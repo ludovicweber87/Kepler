@@ -56,13 +56,14 @@ function buildSessionId(
   agentFile?: AgentFile,
   issueContext?: IssueContext
 ): string {
+  const uid = Date.now().toString(36);
   if (issueContext) {
-    return `devora-${issueContext.owner}-${issueContext.repo}-${issueContext.issueNumber}`;
+    return `devora-${issueContext.owner}-${issueContext.repo}-${issueContext.issueNumber}-${uid}`;
   }
   const base = projectPath?.replace(/[^a-zA-Z0-9]/g, "-") ?? "unknown";
   const suffix =
     agentFile?.filename?.replace(/\.md$/, "").replace(/[^a-zA-Z0-9]/g, "-") ?? "session";
-  return `devora-${base}-${suffix}`;
+  return `devora-${base}-${suffix}-${uid}`;
 }
 
 function buildReportingPrompt(sessionId: string): string {
@@ -127,8 +128,14 @@ export default function AgentTerminalModal({
   const [picking, setPicking] = useState(false);
 
   const projectPath = projectPathProp ?? resolvedPath;
-  const sessionId =
-    existingSessionId ?? buildSessionId(projectPath ?? undefined, agentFile, issueContext);
+  const generatedIdRef = useRef<string | null>(null);
+  if (open && !existingSessionId && !generatedIdRef.current) {
+    generatedIdRef.current = buildSessionId(projectPath ?? undefined, agentFile, issueContext);
+  }
+  if (!open) {
+    generatedIdRef.current = null;
+  }
+  const sessionId = existingSessionId ?? generatedIdRef.current ?? "";
 
   const { session, logs, ensureSession, updateStatus } = useAgentSession(open ? sessionId : undefined);
 
