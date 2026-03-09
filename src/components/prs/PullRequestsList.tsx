@@ -16,6 +16,7 @@ import MergeTypeRoundedIcon from "@mui/icons-material/MergeTypeRounded";
 import ChatBubbleOutlineRoundedIcon from "@mui/icons-material/ChatBubbleOutlineRounded";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
+import DraggableTabs from "@/components/shared/DraggableTabs";
 import { useAgentViews } from "@/hooks/useAgentViews";
 import { usePullRequests } from "@/hooks/usePullRequests";
 import type { GitHubPullRequest } from "@/types";
@@ -175,6 +176,7 @@ export default function PullRequestsList() {
     activeView,
     setActiveIndex,
     addView,
+    reorderViews,
   } = useAgentViews();
 
   const allRepos = useMemo(() => views.map((v) => v.repoFullName), [views]);
@@ -261,78 +263,28 @@ export default function PullRequestsList() {
       </Typography>
 
       {/* Tabs: All + per repo */}
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 0.5,
-          mb: 3,
-          overflowX: "auto",
-          "&::-webkit-scrollbar": { display: "none" },
+      <DraggableTabs
+        tabs={["All", ...views.map((v) => v.label)]}
+        activeTab={tabIndex}
+        onTabChange={setTabIndex}
+        onReorder={(newOrder) => {
+          // "All" stays, reorder only the view tabs
+          const viewLabels = newOrder.filter((t) => t !== "All");
+          reorderViews(viewLabels);
         }}
-      >
-        <Box
-          onClick={() => setTabIndex(0)}
-          sx={{
-            px: 2,
-            py: 1,
-            borderRadius: 1,
-            cursor: "pointer",
-            userSelect: "none",
-            whiteSpace: "nowrap",
-            fontSize: "0.85rem",
-            fontWeight: 500,
-            transition: "background-color 0.15s",
-            bgcolor: showAll ? alpha("#4CAF50", 0.18) : "transparent",
-            color: showAll ? "#4CAF50" : "text.secondary",
-            border: 1,
-            borderColor: showAll ? alpha("#4CAF50", 0.25) : "transparent",
-            "&:hover": {
-              bgcolor: alpha("#4CAF50", showAll ? 0.22 : 0.08),
-            },
-          }}
-        >
-          All
-        </Box>
-        {views.map((view, idx) => {
-          const isActive = tabIndex === idx + 1;
-          return (
-            <Box
-              key={view.repoFullName}
-              onClick={() => setTabIndex(idx + 1)}
-              sx={{
-                px: 2,
-                py: 1,
-                borderRadius: 1,
-                cursor: "pointer",
-                userSelect: "none",
-                whiteSpace: "nowrap",
-                fontSize: "0.85rem",
-                fontWeight: 500,
-                transition: "background-color 0.15s",
-                bgcolor: isActive ? alpha("#4CAF50", 0.18) : "transparent",
-                color: isActive ? "#4CAF50" : "text.secondary",
-                border: 1,
-                borderColor: isActive ? alpha("#4CAF50", 0.25) : "transparent",
-                "&:hover": {
-                  bgcolor: alpha("#4CAF50", isActive ? 0.22 : 0.08),
-                },
-              }}
+        color="#4CAF50"
+        trailing={
+          <Tooltip title="Add project">
+            <IconButton
+              size="small"
+              onClick={() => addView()}
+              sx={{ color: "text.disabled", "&:hover": { color: "#4CAF50" } }}
             >
-              {view.label}
-            </Box>
-          );
-        })}
-        <Tooltip title="Add project">
-          <IconButton
-            size="small"
-            onClick={() => addView()}
-            sx={{ color: "text.disabled", "&:hover": { color: "#4CAF50" } }}
-          >
-            <AddRoundedIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      </Box>
+              <AddRoundedIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        }
+      />
 
       {/* Loading */}
       {isLoading && (

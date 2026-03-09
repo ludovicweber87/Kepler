@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useRepoPaths } from "@/hooks/useRepoPaths";
+import { useTabOrder } from "@/hooks/useTabOrder";
 
 export interface AgentView {
   label: string;
@@ -7,11 +8,14 @@ export interface AgentView {
   repoFullName: string;
 }
 
+const TAB_GROUP = "views";
+
 export function useAgentViews() {
   const { repoPaths, savePath } = useRepoPaths();
+  const { applyOrder, reorder } = useTabOrder(TAB_GROUP);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const views: AgentView[] = repoPaths
+  const rawViews: AgentView[] = repoPaths
     .filter((rp) => rp.local_path)
     .map((rp) => ({
       label: rp.repo_full_name.includes("/")
@@ -21,6 +25,9 @@ export function useAgentViews() {
       repoFullName: rp.repo_full_name,
     }));
 
+  // Apply saved tab order
+  const views = applyOrder(rawViews, (v) => v.label);
+
   const addView = useCallback(async (): Promise<AgentView | null> => {
     try {
       const res = await fetch("/api/filesystem/pick-directory");
@@ -29,14 +36,12 @@ export function useAgentViews() {
 
       const label = path.split("/").filter(Boolean).pop() || path;
 
-      // Check if this path is already registered
       const existing = views.find((v) => v.path === path);
       if (existing) {
         setActiveIndex(views.indexOf(existing));
         return existing;
       }
 
-      // Use folder name as repo_full_name for manually added paths
       savePath(label, path);
       setActiveIndex(views.length);
       return { label, path, repoFullName: label };
@@ -44,6 +49,13 @@ export function useAgentViews() {
       return null;
     }
   }, [views, savePath]);
+
+  const reorderViews = useCallback(
+    (newOrder: string[]) => {
+      reorder(newOrder);
+    },
+    [reorder]
+  );
 
   const activeView = views[activeIndex] ?? null;
 
@@ -53,5 +65,6 @@ export function useAgentViews() {
     activeView,
     setActiveIndex,
     addView,
+    reorderViews,
   };
 }

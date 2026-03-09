@@ -70,19 +70,26 @@ export function useAgentSession(sessionId: string | undefined) {
       branch?: string | null;
       agentName?: string | null;
     }) => {
+      // Check if session already exists — don't overwrite status
+      const { data: existing } = await supabase
+        .from("agent_sessions")
+        .select("*")
+        .eq("session_id", params.sessionId)
+        .maybeSingle();
+
+      if (existing) return existing as AgentSession;
+
+      // Create new session only if it doesn't exist
       const { data, error } = await supabase
         .from("agent_sessions")
-        .upsert(
-          {
-            session_id: params.sessionId,
-            project_path: params.projectPath,
-            project_name: params.projectName,
-            branch: params.branch ?? null,
-            agent_name: params.agentName ?? null,
-            status: "active",
-          },
-          { onConflict: "session_id" }
-        )
+        .insert({
+          session_id: params.sessionId,
+          project_path: params.projectPath,
+          project_name: params.projectName,
+          branch: params.branch ?? null,
+          agent_name: params.agentName ?? null,
+          status: "active",
+        })
         .select()
         .single();
       if (error) throw error;

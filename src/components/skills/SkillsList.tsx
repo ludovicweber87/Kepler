@@ -19,6 +19,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import SkillEditorDialog from "./SkillEditorDialog";
 import AgentTerminalModal from "@/components/agents/AgentTerminalModal";
+import DraggableTabs from "@/components/shared/DraggableTabs";
 import { useAgentViews } from "@/hooks/useAgentViews";
 import { useSkillFiles, type SkillFile } from "@/hooks/useSkillFiles";
 
@@ -29,6 +30,7 @@ export default function SkillsList() {
     activeView,
     setActiveIndex,
     addView,
+    reorderViews,
   } = useAgentViews();
 
   const { skills, isLoading, saveSkill, deleteSkill } = useSkillFiles(
@@ -173,55 +175,24 @@ export default function SkillsList() {
       </Box>
 
       {/* Tabs */}
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 0.5,
-          mb: 3,
-          overflowX: "auto",
-          "&::-webkit-scrollbar": { display: "none" },
-        }}
-      >
-        {views.map((view, idx) => {
-          const isActive = idx === activeIndex;
-          return (
-            <Box
-              key={view.repoFullName}
-              onClick={() => setActiveIndex(idx)}
-              sx={{
-                px: 2,
-                py: 1,
-                borderRadius: 1,
-                cursor: "pointer",
-                userSelect: "none",
-                whiteSpace: "nowrap",
-                fontSize: "0.85rem",
-                fontWeight: 500,
-                transition: "background-color 0.15s",
-                bgcolor: isActive ? alpha("#00E5FF", 0.18) : "transparent",
-                color: isActive ? "#00E5FF" : "text.secondary",
-                border: 1,
-                borderColor: isActive ? alpha("#00E5FF", 0.25) : "transparent",
-                "&:hover": {
-                  bgcolor: alpha("#00E5FF", isActive ? 0.22 : 0.08),
-                },
-              }}
+      <DraggableTabs
+        tabs={views.map((v) => v.label)}
+        activeTab={activeIndex}
+        onTabChange={setActiveIndex}
+        onReorder={reorderViews}
+        color="#00E5FF"
+        trailing={
+          <Tooltip title="Add project">
+            <IconButton
+              size="small"
+              onClick={() => addView()}
+              sx={{ color: "text.disabled", "&:hover": { color: "#00E5FF" } }}
             >
-              {view.label}
-            </Box>
-          );
-        })}
-        <Tooltip title="Add project">
-          <IconButton
-            size="small"
-            onClick={() => addView()}
-            sx={{ color: "text.disabled", "&:hover": { color: "#00E5FF" } }}
-          >
-            <AddRoundedIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      </Box>
+              <AddRoundedIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        }
+      />
 
       {/* Loading */}
       {isLoading && (

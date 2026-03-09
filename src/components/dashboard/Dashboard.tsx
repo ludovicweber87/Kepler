@@ -29,6 +29,7 @@ import { useDashboard } from "@/hooks/useGitHub";
 import { usePendingTodoCount } from "@/hooks/usePendingTodoCount";
 import { useWeeklyActivity } from "@/hooks/useWeeklyActivity";
 import { useTodos } from "@/hooks/useTodos";
+import DraggableTabs from "@/components/shared/DraggableTabs";
 import { useAgentViews, type AgentView } from "@/hooks/useAgentViews";
 
 function StatCard({
@@ -212,7 +213,7 @@ export default function Dashboard() {
   );
   const pendingCount = usePendingTodoCount();
   const { data: weeklyData, isLoading: weekLoading } = useWeeklyActivity();
-  const { views } = useAgentViews();
+  const { views, reorderViews } = useAgentViews();
   const [todoTabIndex, setTodoTabIndex] = useState(0);
   const activeTodoView = views[todoTabIndex] ?? views[0];
 
@@ -395,43 +396,13 @@ export default function Dashboard() {
 
           {/* Repo tabs */}
           {views.length > 1 && (
-            <Box
-              sx={{
-                display: "flex",
-                gap: 0.5,
-                mb: 1.5,
-                overflowX: "auto",
-                "&::-webkit-scrollbar": { display: "none" },
-              }}
-            >
-              {views.map((view, idx) => {
-                const isActive = idx === todoTabIndex;
-                return (
-                  <Box
-                    key={view.repoFullName}
-                    onClick={() => setTodoTabIndex(idx)}
-                    sx={{
-                      px: 1.5,
-                      py: 0.5,
-                      borderRadius: 1,
-                      cursor: "pointer",
-                      userSelect: "none",
-                      whiteSpace: "nowrap",
-                      fontSize: "0.75rem",
-                      fontWeight: 500,
-                      transition: "background-color 0.15s",
-                      bgcolor: isActive ? alpha("#FF9800", 0.18) : "transparent",
-                      color: isActive ? "#FF9800" : "text.disabled",
-                      "&:hover": {
-                        bgcolor: alpha("#FF9800", isActive ? 0.22 : 0.08),
-                      },
-                    }}
-                  >
-                    {view.label}
-                  </Box>
-                );
-              })}
-            </Box>
+            <DraggableTabs
+              tabs={views.map((v) => v.label)}
+              activeTab={todoTabIndex}
+              onTabChange={setTodoTabIndex}
+              onReorder={reorderViews}
+              color="#FF9800"
+            />
           )}
 
           {/* Todo list for active tab */}

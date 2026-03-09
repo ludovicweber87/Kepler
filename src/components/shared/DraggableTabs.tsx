@@ -10,16 +10,27 @@ interface DraggableTabsProps {
   onTabChange: (index: number) => void;
   onReorder: (newOrder: string[]) => void;
   counts?: number[];
+  /** Accent color — defaults to #7C5CFF */
+  color?: string;
+  /** Trailing element (e.g. Add button) */
+  trailing?: React.ReactNode;
 }
 
-export default function DraggableTabs({ tabs, activeTab, onTabChange, onReorder, counts }: DraggableTabsProps) {
+export default function DraggableTabs({
+  tabs,
+  activeTab,
+  onTabChange,
+  onReorder,
+  counts,
+  color = "#7C5CFF",
+  trailing,
+}: DraggableTabsProps) {
   const dragIdx = useRef<number | null>(null);
   const [dropTarget, setDropTarget] = useState<number | null>(null);
 
   const handleDragStart = (idx: number) => (e: React.DragEvent) => {
     dragIdx.current = idx;
     e.dataTransfer.effectAllowed = "move";
-    // Needed for Firefox
     e.dataTransfer.setData("text/plain", String(idx));
   };
 
@@ -39,7 +50,6 @@ export default function DraggableTabs({ tabs, activeTab, onTabChange, onReorder,
     const newTabs = [...tabs];
     const [moved] = newTabs.splice(from, 1);
     newTabs.splice(idx, 0, moved);
-    // If active tab was moved, follow it
     const activeName = tabs[activeTab];
     const newActiveIdx = newTabs.indexOf(activeName);
     onReorder(newTabs);
@@ -58,6 +68,7 @@ export default function DraggableTabs({ tabs, activeTab, onTabChange, onReorder,
     <Box
       sx={{
         display: "flex",
+        alignItems: "center",
         gap: 0.5,
         mb: 3,
         overflowX: "auto",
@@ -89,16 +100,16 @@ export default function DraggableTabs({ tabs, activeTab, onTabChange, onReorder,
               fontSize: "0.85rem",
               fontWeight: 500,
               transition: "background-color 0.15s, transform 0.15s, box-shadow 0.15s",
-              bgcolor: isActive ? alpha("#7C5CFF", 0.18) : "transparent",
-              color: isActive ? "#9A84FF" : "text.secondary",
+              bgcolor: isActive ? alpha(color, 0.18) : "transparent",
+              color: isActive ? color : "text.secondary",
               border: 1,
               borderColor: isDropTarget
-                ? alpha("#7C5CFF", 0.5)
+                ? alpha(color, 0.5)
                 : isActive
-                  ? alpha("#7C5CFF", 0.25)
+                  ? alpha(color, 0.25)
                   : "transparent",
               "&:hover": {
-                bgcolor: alpha("#7C5CFF", isActive ? 0.22 : 0.08),
+                bgcolor: alpha(color, isActive ? 0.22 : 0.08),
               },
               "&:active": {
                 cursor: "grabbing",
@@ -113,8 +124,8 @@ export default function DraggableTabs({ tabs, activeTab, onTabChange, onReorder,
                 sx={{
                   fontSize: "0.7rem",
                   fontWeight: 600,
-                  bgcolor: alpha("#7C5CFF", 0.15),
-                  color: isActive ? "#9A84FF" : "text.secondary",
+                  bgcolor: alpha(color, 0.15),
+                  color: isActive ? color : "text.secondary",
                   borderRadius: 1,
                   px: 0.75,
                   py: 0.15,
@@ -128,6 +139,7 @@ export default function DraggableTabs({ tabs, activeTab, onTabChange, onReorder,
           </Box>
         );
       })}
+      {trailing}
     </Box>
   );
 }

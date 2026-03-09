@@ -12,6 +12,7 @@ export interface ActiveSession {
   lastActivity: number;
   lastOutput: number;
   isActive: boolean;
+  isStreaming: boolean;
 }
 
 function getGitBranch(cwd: string): string | null {
@@ -50,7 +51,8 @@ export async function GET() {
       createdAt: meta.createdAt,
       lastActivity: meta.lastActivity,
       lastOutput: meta.lastOutput,
-      isActive: meta.hasRecentOutput,
+      isActive: true,
+      isStreaming: meta.hasRecentOutput,
     }));
 
     // Sort by most recent first

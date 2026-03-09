@@ -77,7 +77,8 @@ function checkPaneActivity(sessionId: string): boolean {
     const hash = simpleHash(content);
     const prev = sessionPaneHashes.get(sessionId);
     sessionPaneHashes.set(sessionId, hash);
-    if (prev === undefined) return true; // first check, assume active
+    // First check: no baseline yet, don't assume active
+    if (prev === undefined) return false;
     if (prev !== hash) {
       sessionOutputTimestamps.set(sessionId, Date.now());
       return true;
@@ -115,11 +116,11 @@ export function getActiveSessions(): SessionMeta[] {
         const [sessionId, created, cwd, activity, command] = line.split("|");
         const tmuxActivity = parseInt(activity, 10) * 1000;
         const trackedTs = sessionOutputTimestamps.get(sessionId);
-        // Best known output time: PTY tracking or tmux activity
-        const lastOutput = Math.max(trackedTs ?? 0, tmuxActivity);
-        // Also check pane content diff as a fallback
+        // Only use PTY-tracked timestamps for output detection (not tmuxActivity which updates on any interaction)
+        const lastOutput = trackedTs ?? 0;
+        // Also check pane content diff as a fallback for unattached sessions
         const paneChanged = checkPaneActivity(sessionId);
-        const hasRecentOutput = (now - lastOutput < ACTIVE_THRESHOLD) || paneChanged;
+        const hasRecentOutput = (lastOutput > 0 && now - lastOutput < ACTIVE_THRESHOLD) || paneChanged;
         return {
           sessionId,
           cwd: cwd || "",
@@ -161,7 +162,7 @@ function listTmuxSessions(): string[] {
 
 function createTmuxSession(sessionId: string, cwd: string): void {
   execSync(
-    `${TMUX} new-session -d -s ${sessionId} -x 120 -y 40 -c ${JSON.stringify(cwd)} -- claude`,
+    `${TMUX} new-session -d -s ${sessionId} -x 120 -y 40 -c ${JSON.stringify(cwd)}`,
     { stdio: "ignore" }
   );
 }

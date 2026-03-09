@@ -6,54 +6,172 @@ import DialogTitle from "@mui/material/DialogTitle";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
+import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
+import CircularProgress from "@mui/material/CircularProgress";
 import { alpha } from "@mui/material/styles";
+import Tooltip from "@mui/material/Tooltip";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import StopCircleRoundedIcon from "@mui/icons-material/StopCircleRounded";
 import TerminalRoundedIcon from "@mui/icons-material/TerminalRounded";
 import FolderOpenRoundedIcon from "@mui/icons-material/FolderOpenRounded";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
+import SmartToyRoundedIcon from "@mui/icons-material/SmartToyRounded";
 import FiberManualRecordRoundedIcon from "@mui/icons-material/FiberManualRecordRounded";
 import TimelineRoundedIcon from "@mui/icons-material/TimelineRounded";
+import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import type { AgentFile } from "@/hooks/useAgentFiles";
+import { useRepoPaths } from "@/hooks/useRepoPaths";
 import { useAgentSession } from "@/hooks/useAgentSession";
 import AgentActivityTab from "./AgentActivityTab";
+
+interface IssueContext {
+  owner: string;
+  repo: string;
+  issueNumber: number;
+  issueTitle: string;
+}
 
 interface AgentTerminalModalProps {
   open: boolean;
   onClose: () => void;
+  /** Direct project path (agents/skills) */
   projectPath?: string;
   agentFile?: AgentFile;
+  /** Attach to an existing tmux session by ID */
   existingSessionId?: string;
+  /** Issue context — resolves projectPath via repo_paths */
+  issueContext?: IssueContext;
+  /** Session is from history (completed/error) — show reopen button first */
+  isPastSession?: boolean;
 }
 
-function buildSessionId(projectPath?: string, agentFile?: AgentFile): string {
+function buildSessionId(
+  projectPath?: string,
+  agentFile?: AgentFile,
+  issueContext?: IssueContext
+): string {
+  if (issueContext) {
+    return `devora-${issueContext.owner}-${issueContext.repo}-${issueContext.issueNumber}`;
+  }
   const base = projectPath?.replace(/[^a-zA-Z0-9]/g, "-") ?? "unknown";
   const suffix =
     agentFile?.filename?.replace(/\.md$/, "").replace(/[^a-zA-Z0-9]/g, "-") ?? "session";
   return `devora-${base}-${suffix}`;
 }
 
+function buildReportingPrompt(sessionId: string): string {
+  const endpoint = `http://localhost:4000/api/agent-sessions/log`;
+  const curlBase = [
+    `curl -s -X POST ${endpoint} \\`,
+    `  -H "Content-Type: application/json" \\`,
+    `  -d '<JSON>'`,
+  ].join("\n");
+
+  return [
+    "",
+    "## Activity Reporting",
+    "",
+    "Tu DOIS reporter ton activité en continu via l'API ci-dessous. Chaque log est une synthèse concise (1-2 phrases) de ce que tu viens de faire.",
+    "",
+    `Endpoint : POST ${endpoint}`,
+    `Payload JSON : { "sessionId": "${sessionId}", "content": "<MESSAGE>", "logType": "<TYPE>" }`,
+    "",
+    "### Types de logs et quand les utiliser :",
+    "- **info** : décisions prises, début d'analyse, changement d'approche",
+    "- **file_change** : fichiers créés/modifiés/supprimés (lister les fichiers)",
+    "- **commit** : quand tu fais un commit (inclure le message de commit)",
+    "- **error** : erreurs rencontrées, blocages",
+    "- **summary** : uniquement à la FIN de ta tâche, résumé global (3-5 bullet points)",
+    "",
+    "### Règles :",
+    "1. Envoie un log **après chaque action significative** (pas avant, après)",
+    "2. Pour le summary final, ajoute `\"branch\": \"<BRANCHE>\"` et `\"status\": \"completed\"` (ou `\"error\"`)",
+    "3. Sois concis : pas de blabla, juste les faits",
+    "",
+    "### Exemple :",
+    "```bash",
+    curlBase.replace("<JSON>", `'{"sessionId": "${sessionId}", "content": "Modifié src/components/Header.tsx : ajout du bouton de navigation", "logType": "file_change"}'`),
+    "```",
+  ].join("\n");
+}
+
 export default function AgentTerminalModal({
   open,
   onClose,
-  projectPath,
+  projectPath: projectPathProp,
   agentFile,
   existingSessionId,
+  issueContext,
+  isPastSession = false,
 }: AgentTerminalModalProps) {
   const [termNode, setTermNode] = useState<HTMLDivElement | null>(null);
   const [resumed, setResumed] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [reopened, setReopened] = useState(false);
   const terminalRef = useRef<Terminal | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
+  const streamTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const readyRef = useRef(false);
 
-  const sessionId = existingSessionId ?? buildSessionId(projectPath, agentFile);
-  const { session, logs, ensureSession, addLog } = useAgentSession(open ? sessionId : undefined);
+  // Path resolution for issue context
+  const { getLocalPath, savePath } = useRepoPaths();
+  const [resolvedPath, setResolvedPath] = useState<string | null>(null);
+  const [picking, setPicking] = useState(false);
+
+  const projectPath = projectPathProp ?? resolvedPath;
+  const sessionId =
+    existingSessionId ?? buildSessionId(projectPath ?? undefined, agentFile, issueContext);
+
+  const { session, logs, ensureSession, updateStatus } = useAgentSession(open ? sessionId : undefined);
+
+  // Resolve path from repo_paths when using issueContext
+  const resolveCwd = useCallback(async () => {
+    if (!issueContext) return;
+    const repoFullName = `${issueContext.owner}/${issueContext.repo}`;
+    const saved = getLocalPath(repoFullName);
+    if (saved) {
+      setResolvedPath(saved);
+      return;
+    }
+    setPicking(true);
+    try {
+      const res = await fetch("/api/filesystem/pick-directory");
+      const { path } = await res.json();
+      if (path) {
+        savePath(repoFullName, path);
+        setResolvedPath(path);
+      } else {
+        onClose();
+      }
+    } catch {
+      onClose();
+    } finally {
+      setPicking(false);
+    }
+  }, [issueContext, getLocalPath, savePath, onClose]);
+
+  useEffect(() => {
+    if (open && issueContext && !resolvedPath) {
+      resolveCwd();
+    }
+  }, [open, issueContext, resolvedPath, resolveCwd]);
+
+  // Reset state on close
+  useEffect(() => {
+    if (!open) {
+      setResolvedPath(null);
+      setActiveTab(0);
+      setReopened(false);
+    }
+  }, [open]);
 
   // Ensure DB session exists when modal opens
   useEffect(() => {
@@ -63,19 +181,25 @@ export default function AgentTerminalModal({
       sessionId,
       projectPath,
       projectName,
-      agentName: agentFile?.name ?? null,
+      agentName: agentFile?.name ?? (issueContext ? `#${issueContext.issueNumber}` : null),
     });
-  }, [open, sessionId, projectPath, agentFile, ensureSession]);
+  }, [open, sessionId, projectPath, agentFile, issueContext, ensureSession]);
 
-  // Refit terminal when switching back to Terminal tab
+  // Refit + refocus terminal when switching back to Terminal tab
   useEffect(() => {
-    if (activeTab === 0 && fitAddonRef.current) {
-      requestAnimationFrame(() => fitAddonRef.current?.fit());
+    if (activeTab === 0) {
+      requestAnimationFrame(() => {
+        fitAddonRef.current?.fit();
+        terminalRef.current?.focus();
+      });
     }
   }, [activeTab]);
 
+  // Don't connect terminal for past sessions until reopened
+  const terminalEnabled = !isPastSession || reopened;
+
   useEffect(() => {
-    if (!open || !projectPath || !termNode) return;
+    if (!open || !projectPath || !termNode || !terminalEnabled) return;
 
     setResumed(false);
 
@@ -114,6 +238,7 @@ export default function AgentTerminalModal({
 
     requestAnimationFrame(() => {
       fitAddon.fit();
+      terminal.focus();
     });
 
     terminalRef.current = terminal;
@@ -121,6 +246,8 @@ export default function AgentTerminalModal({
 
     const ws = new WebSocket("ws://localhost:4001");
     wsRef.current = ws;
+
+    const isReopen = isPastSession && reopened;
 
     ws.onopen = () => {
       ws.send(
@@ -140,19 +267,33 @@ export default function AgentTerminalModal({
           const msg = JSON.parse(event.data);
           if (msg.type === "init-ack") {
             setResumed(msg.resumed);
-            if (!msg.resumed && agentFile) {
-              const escaped = agentFile.content.replace(/'/g, "'\\''");
+            if (!msg.resumed && !isReopen) {
+              const reporting = buildReportingPrompt(sessionId);
+              const basePrompt = agentFile ? agentFile.content : "";
+              const fullPrompt = basePrompt + reporting;
+              const escaped = fullPrompt.replace(/'/g, "'\\''");
               const cmd = `claude --system-prompt '${escaped}'\n`;
               setTimeout(() => {
                 ws.send(JSON.stringify({ type: "input", data: cmd }));
-              }, 500);
+              }, 800);
             }
+            // Wait for initial buffer to flush before tracking streaming
+            setTimeout(() => {
+              readyRef.current = true;
+            }, 2000);
             return;
           }
         } catch {
           // Not JSON — terminal output
         }
         terminal.write(event.data);
+
+        // Track streaming only after initial buffer has flushed
+        if (readyRef.current) {
+          setIsStreaming(true);
+          if (streamTimeoutRef.current) clearTimeout(streamTimeoutRef.current);
+          streamTimeoutRef.current = setTimeout(() => setIsStreaming(false), 3000);
+        }
       }
     };
 
@@ -187,17 +328,51 @@ export default function AgentTerminalModal({
       terminalRef.current = null;
       wsRef.current = null;
       fitAddonRef.current = null;
+      if (streamTimeoutRef.current) clearTimeout(streamTimeoutRef.current);
+      setIsStreaming(false);
+      readyRef.current = false;
     };
-  }, [open, projectPath, agentFile, termNode, sessionId]);
+  }, [open, projectPath, agentFile, termNode, sessionId, terminalEnabled, isPastSession, reopened]);
 
-  const handleAddLog = useCallback(
-    (content: string, logType?: "info" | "commit" | "file_change" | "error" | "summary") => {
-      addLog(content, logType);
-    },
-    [addLog]
+  const [killing, setKilling] = useState(false);
+
+  const handleKill = useCallback(async () => {
+    if (!sessionId || killing) return;
+    setKilling(true);
+    try {
+      await fetch(`/api/agent-sessions/${encodeURIComponent(sessionId)}/kill`, {
+        method: "POST",
+      });
+      onClose();
+    } catch {
+      // ignore
+    } finally {
+      setKilling(false);
+    }
+  }, [sessionId, killing, onClose]);
+
+  // Display info
+  const folderLabel = issueContext
+    ? `${issueContext.owner}/${issueContext.repo}`
+    : projectPath?.split("/").filter(Boolean).pop() ?? "";
+
+  const titleIcon = agentFile ? (
+    <DescriptionRoundedIcon sx={{ color: "#7C5CFF" }} />
+  ) : issueContext ? (
+    <SmartToyRoundedIcon sx={{ color: "#7C5CFF" }} />
+  ) : (
+    <TerminalRoundedIcon sx={{ color: "#00E5FF" }} />
   );
 
-  const folderName = projectPath?.split("/").filter(Boolean).pop() ?? "";
+  const titleText = agentFile
+    ? agentFile.name
+    : issueContext
+      ? `Agent — #${issueContext.issueNumber}`
+      : existingSessionId
+        ? "Active Session"
+        : "New Session";
+
+  const subtitleText = issueContext?.issueTitle;
 
   return (
     <Dialog
@@ -205,6 +380,9 @@ export default function AgentTerminalModal({
       onClose={onClose}
       maxWidth={false}
       fullWidth
+      disableAutoFocus
+      disableEnforceFocus
+      disableRestoreFocus
       PaperProps={{
         sx: {
           bgcolor: "#1E1E1E",
@@ -222,19 +400,29 @@ export default function AgentTerminalModal({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          pb: 0,
+          pb: 5,
           flexShrink: 0,
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0 }}>
-          {agentFile ? (
-            <DescriptionRoundedIcon sx={{ color: "#7C5CFF" }} />
-          ) : (
-            <TerminalRoundedIcon sx={{ color: "#00E5FF" }} />
-          )}
+          {titleIcon}
           <Typography variant="subtitle1" sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>
-            {agentFile ? agentFile.name : existingSessionId ? "Active Session" : "New Session"}
+            {titleText}
           </Typography>
+          {subtitleText && (
+            <Typography
+              variant="body2"
+              sx={{
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                maxWidth: 350,
+                color: "text.secondary",
+              }}
+            >
+              {subtitleText}
+            </Typography>
+          )}
           {resumed && (
             <Chip
               icon={
@@ -257,7 +445,7 @@ export default function AgentTerminalModal({
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
           <Chip
             icon={<FolderOpenRoundedIcon sx={{ fontSize: "14px !important" }} />}
-            label={folderName}
+            label={folderLabel}
             size="small"
             sx={{
               height: 24,
@@ -266,6 +454,26 @@ export default function AgentTerminalModal({
               "& .MuiChip-icon": { color: "text.secondary" },
             }}
           />
+          <Tooltip title="Kill session">
+            <span>
+              <IconButton
+                size="small"
+                onClick={handleKill}
+                disabled={killing || session?.status !== "active"}
+                sx={{
+                  color: "#FF5252",
+                  "&:hover": { bgcolor: "rgba(255, 82, 82, 0.12)" },
+                  "&.Mui-disabled": { color: "text.disabled" },
+                }}
+              >
+                {killing ? (
+                  <CircularProgress size={16} sx={{ color: "#FF5252" }} />
+                ) : (
+                  <StopCircleRoundedIcon fontSize="small" />
+                )}
+              </IconButton>
+            </span>
+          </Tooltip>
           <IconButton size="small" onClick={onClose} sx={{ color: "text.secondary" }}>
             <CloseRoundedIcon fontSize="small" />
           </IconButton>
@@ -324,13 +532,84 @@ export default function AgentTerminalModal({
           },
         }}
       >
-        <Box ref={setTermNode} sx={{ flex: 1, display: "flex" }} />
+        {/* Picking directory state */}
+        {picking && (
+          <Box
+            sx={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 2,
+            }}
+          >
+            <CircularProgress size={28} sx={{ color: "#7C5CFF" }} />
+            <Typography variant="body2" color="text.secondary">
+              Select repository directory...
+            </Typography>
+          </Box>
+        )}
+
+        {/* Loading state */}
+        {!projectPath && !picking && issueContext && (
+          <Box
+            sx={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <CircularProgress size={24} sx={{ color: "#7C5CFF" }} />
+          </Box>
+        )}
+
+        {/* Reopen state for past sessions */}
+        {isPastSession && !reopened && projectPath && (
+          <Box
+            sx={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 2,
+            }}
+          >
+            <TerminalRoundedIcon sx={{ fontSize: 48, color: "text.disabled" }} />
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+              Session terminée
+            </Typography>
+            <Button
+              variant="contained"
+              startIcon={<ReplayRoundedIcon />}
+              onClick={() => {
+                setReopened(true);
+                updateStatus("active");
+              }}
+              sx={{
+                bgcolor: "#7C5CFF",
+                textTransform: "none",
+                fontWeight: 600,
+                "&:hover": { bgcolor: alpha("#7C5CFF", 0.85) },
+              }}
+            >
+              Reopen session
+            </Button>
+          </Box>
+        )}
+
+        <Box
+          ref={setTermNode}
+          sx={{ flex: 1, display: projectPath && terminalEnabled ? "flex" : "none" }}
+        />
       </Box>
 
       {/* Activity panel */}
       {activeTab === 1 && (
         <Box sx={{ flex: 1, overflow: "hidden" }}>
-          <AgentActivityTab session={session} logs={logs} onAddLog={handleAddLog} />
+          <AgentActivityTab session={session} logs={logs} isStreaming={isStreaming} />
         </Box>
       )}
     </Dialog>

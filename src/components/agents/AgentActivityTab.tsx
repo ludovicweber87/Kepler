@@ -1,15 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
-import IconButton from "@mui/material/IconButton";
-import TextField from "@mui/material/TextField";
 import { alpha } from "@mui/material/styles";
 import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
 import FolderRoundedIcon from "@mui/icons-material/FolderRounded";
-import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import CommitRoundedIcon from "@mui/icons-material/CommitRounded";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
@@ -55,20 +51,10 @@ function formatDate(dateStr: string): string {
 interface AgentActivityTabProps {
   session: AgentSession | null;
   logs: AgentActivityLog[];
-  onAddLog: (content: string, logType?: AgentActivityLog["log_type"]) => void;
+  isStreaming?: boolean;
 }
 
-export default function AgentActivityTab({ session, logs, onAddLog }: AgentActivityTabProps) {
-  const [input, setInput] = useState("");
-  const [logType, setLogType] = useState<AgentActivityLog["log_type"]>("info");
-
-  const handleSubmit = () => {
-    const trimmed = input.trim();
-    if (!trimmed || !session) return;
-    onAddLog(trimmed, logType);
-    setInput("");
-  };
-
+export default function AgentActivityTab({ session, logs, isStreaming = false }: AgentActivityTabProps) {
   if (!session) {
     return (
       <Box
@@ -152,7 +138,7 @@ export default function AgentActivityTab({ session, logs, onAddLog }: AgentActiv
 
       {/* Activity timeline */}
       <Box sx={{ flex: 1, overflow: "auto", px: 2, py: 1.5 }}>
-        {logs.length === 0 ? (
+        {logs.length === 0 && !isStreaming ? (
           <Box
             sx={{
               display: "flex",
@@ -172,7 +158,7 @@ export default function AgentActivityTab({ session, logs, onAddLog }: AgentActiv
           <Box sx={{ display: "flex", flexDirection: "column", gap: 0 }}>
             {logs.map((log, i) => {
               const cfg = LOG_TYPE_CONFIG[log.log_type];
-              const isLast = i === logs.length - 1;
+              const isLast = i === logs.length - 1 && !isStreaming;
               return (
                 <Box key={log.id} sx={{ display: "flex", gap: 1.5, position: "relative" }}>
                   {/* Timeline line */}
@@ -238,82 +224,54 @@ export default function AgentActivityTab({ session, logs, onAddLog }: AgentActiv
                 </Box>
               );
             })}
+
+            {/* Streaming indicator */}
+            {isStreaming && (
+              <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
+                <Box
+                  sx={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: "50%",
+                    bgcolor: alpha("#7C5CFF", 0.12),
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <SmartToyRoundedIcon sx={{ fontSize: 14, color: "#7C5CFF" }} />
+                </Box>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                  <Typography variant="caption" sx={{ color: "#7C5CFF", fontWeight: 600, fontSize: "0.75rem" }}>
+                    Claude is working
+                  </Typography>
+                  <Box sx={{ display: "flex", gap: 0.4, alignItems: "center" }}>
+                    {[0, 1, 2].map((i) => (
+                      <Box
+                        key={i}
+                        sx={{
+                          width: 4,
+                          height: 4,
+                          borderRadius: "50%",
+                          bgcolor: "#7C5CFF",
+                          animation: "dotPulse 1.4s ease-in-out infinite",
+                          animationDelay: `${i * 0.2}s`,
+                          "@keyframes dotPulse": {
+                            "0%, 80%, 100%": { opacity: 0.3, transform: "scale(0.8)" },
+                            "40%": { opacity: 1, transform: "scale(1)" },
+                          },
+                        }}
+                      />
+                    ))}
+                  </Box>
+                </Box>
+              </Box>
+            )}
           </Box>
         )}
       </Box>
 
-      {/* Input area */}
-      <Box
-        sx={{
-          p: 1.5,
-          borderTop: 1,
-          borderColor: "divider",
-          display: "flex",
-          gap: 1,
-          alignItems: "flex-end",
-          flexShrink: 0,
-        }}
-      >
-        {/* Log type selector */}
-        <Box sx={{ display: "flex", gap: 0.5, flexShrink: 0 }}>
-          {(Object.keys(LOG_TYPE_CONFIG) as AgentActivityLog["log_type"][]).map((type) => {
-            const cfg = LOG_TYPE_CONFIG[type];
-            const selected = type === logType;
-            return (
-              <IconButton
-                key={type}
-                size="small"
-                onClick={() => setLogType(type)}
-                sx={{
-                  width: 28,
-                  height: 28,
-                  color: selected ? cfg.color : "text.disabled",
-                  bgcolor: selected ? alpha(cfg.color, 0.12) : "transparent",
-                  "&:hover": { bgcolor: alpha(cfg.color, 0.15) },
-                }}
-              >
-                {cfg.icon}
-              </IconButton>
-            );
-          })}
-        </Box>
-        <TextField
-          fullWidth
-          size="small"
-          placeholder="Add a note..."
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              handleSubmit();
-            }
-          }}
-          multiline
-          maxRows={3}
-          sx={{
-            "& .MuiOutlinedInput-root": {
-              fontSize: "0.8rem",
-              bgcolor: alpha("#fff", 0.03),
-              "& fieldset": { borderColor: alpha("#fff", 0.1) },
-              "&:hover fieldset": { borderColor: alpha("#7C5CFF", 0.3) },
-              "&.Mui-focused fieldset": { borderColor: "#7C5CFF" },
-            },
-          }}
-        />
-        <IconButton
-          size="small"
-          onClick={handleSubmit}
-          disabled={!input.trim() || !session}
-          sx={{
-            color: "#7C5CFF",
-            "&:hover": { bgcolor: alpha("#7C5CFF", 0.12) },
-            "&.Mui-disabled": { color: "text.disabled" },
-          }}
-        >
-          <SendRoundedIcon sx={{ fontSize: 18 }} />
-        </IconButton>
-      </Box>
     </Box>
   );
 }

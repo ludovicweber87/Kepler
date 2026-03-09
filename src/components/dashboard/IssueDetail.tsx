@@ -27,7 +27,7 @@ import SmartToyRoundedIcon from "@mui/icons-material/SmartToyRounded";
 import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
 import { useIssue } from "@/hooks/useGitHub";
 import { GitHubComment } from "@/types";
-import TerminalModal from "@/components/terminal/TerminalModal";
+import AgentTerminalModal from "@/components/agents/AgentTerminalModal";
 import IssueTimelineModal from "@/components/dashboard/IssueTimelineModal";
 
 const markdownSx = {
@@ -295,13 +295,15 @@ export default function IssueDetail({
         </Box>
       )}
 
-      <TerminalModal
+      <AgentTerminalModal
         open={terminalOpen}
         onClose={() => setTerminalOpen(false)}
-        owner={owner}
-        repo={repo}
-        issueNumber={parseInt(number, 10)}
-        issueTitle={issue.title}
+        issueContext={{
+          owner,
+          repo,
+          issueNumber: parseInt(number, 10),
+          issueTitle: issue.title,
+        }}
       />
 
       <IssueTimelineModal

@@ -17,6 +17,7 @@ import SmartToyRoundedIcon from "@mui/icons-material/SmartToyRounded";
 import AutoFixHighRoundedIcon from "@mui/icons-material/AutoFixHighRounded";
 import ChecklistRoundedIcon from "@mui/icons-material/ChecklistRounded";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
+import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
 import Image from "next/image";
 import { usePendingTodoCount } from "@/hooks/usePendingTodoCount";
 
@@ -30,6 +31,7 @@ export default function Sidebar() {
     { label: "Dashboard", href: "/dashboard", icon: <DashboardRoundedIcon /> },
     { label: "Issues", href: "/issues", icon: <BugReportRoundedIcon /> },
     { label: "PRs", href: "/prs", icon: <MergeTypeRoundedIcon /> },
+    { label: "Workspace", href: "/workspace", icon: <AccountTreeRoundedIcon /> },
     { label: "Agents", href: "/agents", icon: <SmartToyRoundedIcon /> },
     { label: "Skills", href: "/skills", icon: <AutoFixHighRoundedIcon /> },
     { label: "Todos", href: "/todos", icon: <ChecklistRoundedIcon />, badge: pendingCount },

@@ -20,6 +20,7 @@ import ChecklistRoundedIcon from "@mui/icons-material/ChecklistRounded";
 import FolderOpenRoundedIcon from "@mui/icons-material/FolderOpenRounded";
 import BugReportRoundedIcon from "@mui/icons-material/BugReportRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
+import DraggableTabs from "@/components/shared/DraggableTabs";
 import { useAgentViews } from "@/hooks/useAgentViews";
 import { useTodos, type Todo } from "@/hooks/useTodos";
 import { useDashboard } from "@/hooks/useGitHub";
@@ -218,6 +219,7 @@ export default function TodoList() {
     activeView,
     setActiveIndex,
     addView,
+    reorderViews,
   } = useAgentViews();
 
   const { todos, isLoading, addTodo, toggleTodo, updateTodo, updateDescription, deleteTodo } =
@@ -332,55 +334,24 @@ export default function TodoList() {
       </Typography>
 
       {/* Tabs */}
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 0.5,
-          mb: 3,
-          overflowX: "auto",
-          "&::-webkit-scrollbar": { display: "none" },
-        }}
-      >
-        {views.map((view, idx) => {
-          const isActive = idx === activeIndex;
-          return (
-            <Box
-              key={view.repoFullName}
-              onClick={() => setActiveIndex(idx)}
-              sx={{
-                px: 2,
-                py: 1,
-                borderRadius: 1,
-                cursor: "pointer",
-                userSelect: "none",
-                whiteSpace: "nowrap",
-                fontSize: "0.85rem",
-                fontWeight: 500,
-                transition: "background-color 0.15s",
-                bgcolor: isActive ? alpha("#FF9800", 0.18) : "transparent",
-                color: isActive ? "#FF9800" : "text.secondary",
-                border: 1,
-                borderColor: isActive ? alpha("#FF9800", 0.25) : "transparent",
-                "&:hover": {
-                  bgcolor: alpha("#FF9800", isActive ? 0.22 : 0.08),
-                },
-              }}
+      <DraggableTabs
+        tabs={views.map((v) => v.label)}
+        activeTab={activeIndex}
+        onTabChange={setActiveIndex}
+        onReorder={reorderViews}
+        color="#FF9800"
+        trailing={
+          <Tooltip title="Add project">
+            <IconButton
+              size="small"
+              onClick={() => addView()}
+              sx={{ color: "text.disabled", "&:hover": { color: "#FF9800" } }}
             >
-              {view.label}
-            </Box>
-          );
-        })}
-        <Tooltip title="Add project">
-          <IconButton
-            size="small"
-            onClick={() => addView()}
-            sx={{ color: "text.disabled", "&:hover": { color: "#FF9800" } }}
-          >
-            <AddRoundedIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      </Box>
+              <AddRoundedIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        }
+      />
 
       {/* Add input */}
       <Box
