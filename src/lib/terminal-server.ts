@@ -1,0 +1,256 @@
+import { WebSocketServer, WebSocket } from "ws";
+import { spawn, IPty } from "node-pty";
+import { execSync } from "child_process";
+
+function findTmux(): string {
+  const paths = [
+    "/opt/homebrew/bin/tmux",
+    "/usr/local/bin/tmux",
+    "/usr/bin/tmux",
+  ];
+  for (const p of paths) {
+    try {
+      execSync(`test -x ${p}`, { stdio: "ignore" });
+      return p;
+    } catch { /* continue */ }
+  }
+  return "tmux"; // fallback to PATH
+}
+
+const TMUX = findTmux();
+
+interface InitMessage {
+  type: "init";
+  sessionId: string;
+  cwd: string;
+  cols: number;
+  rows: number;
+}
+
+interface InputMessage {
+  type: "input";
+  data: string;
+}
+
+interface ResizeMessage {
+  type: "resize";
+  cols: number;
+  rows: number;
+}
+
+interface ListSessionsMessage {
+  type: "list-sessions";
+}
+
+type ClientMessage = InitMessage | InputMessage | ResizeMessage | ListSessionsMessage;
+
+// Module-level guard against double-start in dev (hot reload)
+let wss: WebSocketServer | null = null;
+
+// Track last PTY output per session (sessionId → timestamp)
+const sessionOutputTimestamps = new Map<string, number>();
+// Track pane content hash for sessions not attached via WS
+const sessionPaneHashes = new Map<string, string>();
+
+export function getLastOutputTimestamp(sessionId: string): number | undefined {
+  return sessionOutputTimestamps.get(sessionId);
+}
+
+function simpleHash(str: string): string {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+  }
+  return h.toString(36);
+}
+
+/**
+ * Capture tmux pane content and check if it changed since last check.
+ * Returns true if there was new output.
+ */
+function checkPaneActivity(sessionId: string): boolean {
+  try {
+    const content = execSync(
+      `${TMUX} capture-pane -t ${sessionId} -p -J`,
+      { encoding: "utf-8", stdio: ["pipe", "pipe", "ignore"], timeout: 2000 }
+    );
+    const hash = simpleHash(content);
+    const prev = sessionPaneHashes.get(sessionId);
+    sessionPaneHashes.set(sessionId, hash);
+    if (prev === undefined) return true; // first check, assume active
+    if (prev !== hash) {
+      sessionOutputTimestamps.set(sessionId, Date.now());
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+export interface SessionMeta {
+  sessionId: string;
+  cwd: string;
+  createdAt: number;
+  lastActivity: number;
+  lastOutput: number;
+  command: string;
+  hasRecentOutput: boolean;
+}
+
+const ACTIVE_THRESHOLD = 30_000; // 30 seconds
+
+export function getActiveSessions(): SessionMeta[] {
+  try {
+    const out = execSync(
+      `${TMUX} list-sessions -F "#{session_name}|#{session_created}|#{pane_current_path}|#{session_activity}|#{pane_current_command}"`,
+      { encoding: "utf-8", stdio: ["pipe", "pipe", "ignore"] }
+    );
+    const now = Date.now();
+    return out
+      .trim()
+      .split("\n")
+      .filter((line) => line.startsWith("devora-"))
+      .map((line) => {
+        const [sessionId, created, cwd, activity, command] = line.split("|");
+        const tmuxActivity = parseInt(activity, 10) * 1000;
+        const trackedTs = sessionOutputTimestamps.get(sessionId);
+        // Best known output time: PTY tracking or tmux activity
+        const lastOutput = Math.max(trackedTs ?? 0, tmuxActivity);
+        // Also check pane content diff as a fallback
+        const paneChanged = checkPaneActivity(sessionId);
+        const hasRecentOutput = (now - lastOutput < ACTIVE_THRESHOLD) || paneChanged;
+        return {
+          sessionId,
+          cwd: cwd || "",
+          createdAt: parseInt(created, 10) * 1000,
+          lastActivity: tmuxActivity,
+          lastOutput,
+          command: command || "",
+          hasRecentOutput,
+        };
+      });
+  } catch {
+    return [];
+  }
+}
+
+function tmuxSessionExists(sessionId: string): boolean {
+  try {
+    execSync(`${TMUX} has-session -t ${sessionId}`, { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function listTmuxSessions(): string[] {
+  try {
+    const out = execSync(`${TMUX} list-sessions -F "#{session_name}"`, {
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "ignore"],
+    });
+    return out
+      .trim()
+      .split("\n")
+      .filter((s) => s.startsWith("devora-"));
+  } catch {
+    return [];
+  }
+}
+
+function createTmuxSession(sessionId: string, cwd: string): void {
+  execSync(
+    `${TMUX} new-session -d -s ${sessionId} -x 120 -y 40 -c ${JSON.stringify(cwd)} -- claude`,
+    { stdio: "ignore" }
+  );
+}
+
+function spawnTmuxAttach(sessionId: string, cols: number, rows: number): IPty {
+  return spawn(TMUX, ["attach-session", "-t", sessionId], {
+    name: "xterm-256color",
+    cols,
+    rows,
+    cwd: process.env.HOME || "/",
+    env: {
+      ...process.env,
+      TERM: "xterm-256color",
+      COLORTERM: "truecolor",
+    } as Record<string, string>,
+  });
+}
+
+export function startTerminalServer(port: number) {
+  if (wss) return;
+
+  wss = new WebSocketServer({ port });
+  console.log(`[terminal-server] WebSocket server started on port ${port}`);
+
+  wss.on("connection", (ws: WebSocket) => {
+    let pty: IPty | null = null;
+
+    ws.on("message", (raw: Buffer | string) => {
+      let msg: ClientMessage;
+      try {
+        msg = JSON.parse(typeof raw === "string" ? raw : raw.toString());
+      } catch {
+        return;
+      }
+
+      if (msg.type === "list-sessions") {
+        const sessions = listTmuxSessions();
+        ws.send(JSON.stringify({ type: "sessions", sessions }));
+        return;
+      }
+
+      if (msg.type === "init") {
+        const existed = tmuxSessionExists(msg.sessionId);
+
+        if (!existed) {
+          createTmuxSession(msg.sessionId, msg.cwd);
+        }
+
+        // Spawn PTY attached to the tmux session
+        pty = spawnTmuxAttach(msg.sessionId, msg.cols, msg.rows);
+
+        // Tell the client whether this is a resumed session
+        ws.send(JSON.stringify({ type: "init-ack", resumed: existed }));
+
+        // Forward PTY output to WebSocket + track activity
+        pty.onData((data: string) => {
+          sessionOutputTimestamps.set(msg.sessionId, Date.now());
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(data);
+          }
+        });
+
+        pty.onExit(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.close();
+          }
+          pty = null;
+        });
+      }
+
+      if (msg.type === "input" && pty) {
+        pty.write(msg.data);
+      }
+
+      if (msg.type === "resize" && pty) {
+        pty.resize(msg.cols, msg.rows);
+        try {
+          execSync(`${TMUX} refresh-client -C ${msg.cols},${msg.rows}`, { stdio: "ignore" });
+        } catch {
+          // ignore
+        }
+      }
+    });
+
+    ws.on("close", () => {
+      if (pty) {
+        pty.kill();
+        pty = null;
+      }
+    });
+  });
+}

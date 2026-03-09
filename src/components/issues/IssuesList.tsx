@@ -1,0 +1,314 @@
+"use client";
+
+import { useState, useMemo, useRef, useCallback } from "react";
+import { LayoutGroup, type PanInfo } from "framer-motion";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+import Skeleton from "@mui/material/Skeleton";
+import Alert from "@mui/material/Alert";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
+import KanbanColumn from "./KanbanColumn";
+import CreateBranchModal from "./CreateBranchModal";
+import DraggableTabs from "@/components/shared/DraggableTabs";
+import { useDashboard } from "@/hooks/useGitHub";
+import { useProjectConfig } from "@/hooks/useProjectConfig";
+import { useUpdateIssueStatus } from "@/hooks/useUpdateIssueStatus";
+import { GitHubIssue, ViewIssueRef } from "@/types";
+
+const COLUMN_WIDTH = 300;
+
+function buildColumns(issues: GitHubIssue[], statusColumns: string[]): [string, GitHubIssue[]][] {
+  const map = new Map<string, GitHubIssue[]>();
+  for (const col of statusColumns) {
+    map.set(col, []);
+  }
+  for (const issue of issues) {
+    const col = issue.project_columns?.[0]?.column ?? "No Status";
+    if (!map.has(col)) map.set(col, []);
+    map.get(col)!.push(issue);
+  }
+  return [...map.entries()];
+}
+
+interface DragState {
+  issue: GitHubIssue;
+  sourceColumn: string;
+}
+
+interface DropTarget {
+  column: string;
+  index: number;
+}
+
+export default function IssuesList() {
+  const { config, selectedViewMappings, reorderViews } = useProjectConfig();
+
+  const allIssueRefs = useMemo(() => {
+    if (selectedViewMappings.length === 0) return undefined;
+    const hasExplicitIssues = selectedViewMappings.some((m) => m.issues?.length > 0);
+    if (!hasExplicitIssues) return undefined;
+    const seen = new Set<string>();
+    const refs: ViewIssueRef[] = [];
+    for (const m of selectedViewMappings) {
+      for (const issue of m.issues ?? []) {
+        const key = `${issue.repo}#${issue.number}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          refs.push(issue);
+        }
+      }
+    }
+    return refs.length > 0 ? refs : undefined;
+  }, [selectedViewMappings]);
+
+  const { data, error, isLoading, refetch, isFetching } = useDashboard(allIssueRefs);
+  const [activeTab, setActiveTab] = useState(0);
+  const mutation = useUpdateIssueStatus();
+
+  // Branch modal state
+  const [branchModalIssue, setBranchModalIssue] = useState<GitHubIssue | null>(null);
+
+  // Drag & drop state
+  const [dragState, setDragState] = useState<DragState | null>(null);
+  const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
+  const columnRefs = useRef(new Map<string, HTMLElement>());
+  const dropTargetRef = useRef<DropTarget | null>(null);
+
+  const hasViews = selectedViewMappings.length > 0;
+  const isDragEnabled = !!config && (config.statusColumns?.length ?? 0) > 0;
+
+  const openIssues = useMemo(() => {
+    if (!data) return [];
+    const isTargetedMode = data.repos.length === 0;
+    const knownRepos = isTargetedMode ? null : new Set(data.repos.map((r) => r.full_name));
+    return data.issues.filter(
+      (i) =>
+        i.state === "open" &&
+        i.repo_full_name &&
+        (isTargetedMode || knownRepos!.has(i.repo_full_name)) &&
+        i.assignees.some((a) => a.login === data.user)
+    );
+  }, [data]);
+
+  const tabs = hasViews ? selectedViewMappings.map((m) => m.viewName) : [];
+  const safeTab = activeTab >= tabs.length ? 0 : activeTab;
+
+  const filteredIssues = useMemo(() => {
+    if (!hasViews) return openIssues;
+    const mapping = selectedViewMappings[safeTab];
+    if (!mapping) return openIssues;
+    if (mapping.issues?.length) {
+      const issueKeys = new Set(mapping.issues.map((i) => `${i.repo}#${i.number}`));
+      return openIssues.filter((i) => i.repo_full_name && issueKeys.has(`${i.repo_full_name}#${i.number}`));
+    }
+    const viewRepos = new Set(mapping.repos ?? []);
+    return openIssues.filter((i) => i.repo_full_name && viewRepos.has(i.repo_full_name));
+  }, [openIssues, selectedViewMappings, safeTab, hasViews]);
+
+  const columns = useMemo(
+    () => buildColumns(filteredIssues, config?.statusColumns ?? []),
+    [filteredIssues, config?.statusColumns]
+  );
+
+  // Ref registration for columns
+  const registerColumnRef = useCallback((name: string, el: HTMLElement | null) => {
+    if (el) {
+      columnRefs.current.set(name, el);
+    } else {
+      columnRefs.current.delete(name);
+    }
+  }, []);
+
+  // Drag handlers
+  const handleCardDragStart = useCallback((issue: GitHubIssue, sourceColumn: string) => {
+    setDragState({ issue, sourceColumn });
+    setDropTarget(null);
+    dropTargetRef.current = null;
+  }, []);
+
+  const handleCardDrag = useCallback((_event: PointerEvent, info: PanInfo) => {
+    // Use info.point for coordinates (page-relative)
+    const x = info.point.x;
+    const y = info.point.y;
+
+    let newTarget: DropTarget | null = null;
+
+    for (const [colName, el] of columnRefs.current.entries()) {
+      const rect = el.getBoundingClientRect();
+      // Check if pointer is within column X bounds (with some tolerance)
+      if (x >= rect.left - 20 && x <= rect.right + 20) {
+        // Find insertion index based on Y position
+        const children = Array.from(el.children).filter(
+          (child) => !(child as HTMLElement).dataset.placeholder
+        );
+        let index = children.length;
+        for (let i = 0; i < children.length; i++) {
+          const childRect = children[i].getBoundingClientRect();
+          if (y < childRect.top + childRect.height / 2) {
+            index = i;
+            break;
+          }
+        }
+        newTarget = { column: colName, index };
+        break;
+      }
+    }
+
+    // Only update state if target changed
+    const current = dropTargetRef.current;
+    if (newTarget?.column !== current?.column || newTarget?.index !== current?.index) {
+      dropTargetRef.current = newTarget;
+      setDropTarget(newTarget);
+    }
+  }, []);
+
+  const handleCardDragEnd = useCallback(() => {
+    if (dragState && dropTarget && dropTarget.column !== dragState.sourceColumn && config) {
+      // Always update status
+      mutation.mutate({
+        issueNodeId: dragState.issue.node_id,
+        newStatus: dropTarget.column,
+        org: config.org,
+        projectNumber: config.projectNumber,
+      });
+
+      // Open branch modal when dropping on a column containing "In Progress"
+      if (dropTarget.column.includes("In Progress")) {
+        setBranchModalIssue(dragState.issue);
+      }
+    }
+
+    setDragState(null);
+    setDropTarget(null);
+    dropTargetRef.current = null;
+  }, [dragState, dropTarget, config, mutation]);
+
+  if (isLoading) {
+    return (
+      <Box>
+        <Skeleton variant="rounded" height={40} width={120} sx={{ mb: 3, borderRadius: 1 }} />
+        <Skeleton variant="rounded" height={36} sx={{ mb: 2, borderRadius: 1 }} />
+        <Box sx={{ display: "flex", gap: 2 }}>
+          {[1, 2, 3].map((i) => (
+            <Box key={i} sx={{ width: COLUMN_WIDTH, flexShrink: 0 }}>
+              <Skeleton variant="rounded" height={32} sx={{ mb: 1.5, borderRadius: 1 }} />
+              {[1, 2].map((j) => (
+                <Skeleton key={j} variant="rounded" height={80} sx={{ mb: 1, borderRadius: 1 }} />
+              ))}
+            </Box>
+          ))}
+        </Box>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert severity="error" sx={{ borderRadius: 1 }}>
+        Failed to load GitHub data: {error.message}
+      </Alert>
+    );
+  }
+
+  if (!data) return null;
+
+  return (
+    <Box>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+        <Typography
+          variant="h4"
+          sx={{
+            fontWeight: 700,
+            background: "linear-gradient(135deg, #7C5CFF 0%, #9A84FF 30%, #00D4FF 100%)",
+            backgroundClip: "text",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+          }}
+        >
+          Issues
+        </Typography>
+        <Tooltip title="Refresh">
+          <IconButton
+            onClick={() => refetch()}
+            disabled={isFetching}
+            sx={{
+              color: "text.secondary",
+              animation: isFetching ? "spin 1s linear infinite" : "none",
+            }}
+          >
+            <RefreshRoundedIcon />
+          </IconButton>
+        </Tooltip>
+      </Box>
+
+      {hasViews && (
+        <DraggableTabs
+          tabs={tabs}
+          activeTab={safeTab}
+          onTabChange={(idx) => setActiveTab(idx)}
+          onReorder={reorderViews}
+          counts={tabs.map((_, idx) => {
+            const m = selectedViewMappings[idx];
+            if (m?.issues?.length) {
+              const keys = new Set(m.issues.map((i) => `${i.repo}#${i.number}`));
+              return openIssues.filter((i) => i.repo_full_name && keys.has(`${i.repo_full_name}#${i.number}`)).length;
+            }
+            const viewRepos = new Set(m?.repos ?? []);
+            return openIssues.filter((i) => i.repo_full_name && viewRepos.has(i.repo_full_name)).length;
+          })}
+        />
+      )}
+
+      {filteredIssues.length === 0 ? (
+        <Box sx={{ textAlign: "center", py: 8 }}>
+          <Typography variant="h6" sx={{ color: "text.secondary", mb: 1 }}>
+            No open issues
+          </Typography>
+          <Typography variant="body2">
+            No open issues are assigned to you here.
+          </Typography>
+        </Box>
+      ) : (
+        <LayoutGroup>
+          <Box
+            sx={{
+              display: "flex",
+              gap: 2,
+              overflowX: "auto",
+              pb: 1,
+              scrollbarWidth: "thin",
+              "&::-webkit-scrollbar": { height: 6 },
+              "&::-webkit-scrollbar-thumb": { bgcolor: "divider", borderRadius: 3 },
+            }}
+          >
+            {columns.map(([colName, issues]) => (
+              <KanbanColumn
+                key={colName}
+                ref={(el) => registerColumnRef(colName, el)}
+                columnName={colName}
+                issues={issues}
+                isDragActive={!!dragState}
+                draggedIssueId={dragState?.issue.id ?? null}
+                isDropTarget={dropTarget?.column === colName}
+                dropIndex={dropTarget?.column === colName ? dropTarget.index : -1}
+                onCardDragStart={(issue) => handleCardDragStart(issue, colName)}
+                onCardDrag={handleCardDrag}
+                onCardDragEnd={handleCardDragEnd}
+              />
+            ))}
+          </Box>
+        </LayoutGroup>
+      )}
+
+      {branchModalIssue && (
+        <CreateBranchModal
+          open
+          onClose={() => setBranchModalIssue(null)}
+          issue={branchModalIssue}
+        />
+      )}
+    </Box>
+  );
+}
