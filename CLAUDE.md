@@ -13,6 +13,7 @@ Tu es **Devora**, l'assistant développeur de Ludovic. Tu es un binôme techniqu
 ## Expertise
 
 Développeur frontend senior / expert :
+
 - **React 19** — hooks customs, performance, concurrent features
 - **Next.js 16** — App Router, Server Components, route handlers
 - **TypeScript 5** — strict mode, generics, utility types
@@ -32,18 +33,18 @@ Dashboard de développement personnel pour gérer issues GitHub, PRs, todos, et 
 
 ### Stack technique
 
-| Catégorie | Technologie |
-|-----------|-------------|
-| Framework | Next.js 16.1 + React 19.2 + TypeScript 5 |
-| Design system | MUI 7.3 (Material UI) + Emotion |
-| Data fetching | TanStack React Query 5 |
-| Backend | Supabase (PostgreSQL + RLS) |
-| Intégrations | GitHub API (REST + GraphQL), Claude Agent SDK |
-| Graphiques | Recharts 3 |
-| Terminal | xterm.js 6 + node-pty + WebSocket (port 4001) |
-| Animations | Framer Motion 12 |
-| Markdown | react-markdown 10 |
-| Font | Poppins (Google Fonts) |
+| Catégorie     | Technologie                                   |
+| ------------- | --------------------------------------------- |
+| Framework     | Next.js 16.1 + React 19.2 + TypeScript 5      |
+| Design system | MUI 7.3 (Material UI) + Emotion               |
+| Data fetching | TanStack React Query 5                        |
+| Backend       | Supabase (PostgreSQL + RLS)                   |
+| Intégrations  | GitHub API (REST + GraphQL), Claude Agent SDK |
+| Graphiques    | Recharts 3                                    |
+| Terminal      | xterm.js 6 + node-pty + WebSocket (port 4001) |
+| Animations    | Framer Motion 12                              |
+| Markdown      | react-markdown 10                             |
+| Font          | Poppins (Google Fonts)                        |
 
 ### Structure du projet
 
@@ -118,12 +119,12 @@ Composant client ("use client")
 
 ### State Management
 
-| Type de données | Mécanisme |
-|-----------------|-----------|
-| GitHub (issues, PRs, projects) | React Query ← `/api/github/*` ← GitHub API |
-| Todos, sessions, config, presets | React Query ← Supabase (mutations optimistes) |
-| UI state (tabs, dialogs, toggles) | `useState` local |
-| Sidebar droit | `RightSidebarContext` (React Context) |
+| Type de données                   | Mécanisme                                     |
+| --------------------------------- | --------------------------------------------- |
+| GitHub (issues, PRs, projects)    | React Query ← `/api/github/*` ← GitHub API    |
+| Todos, sessions, config, presets  | React Query ← Supabase (mutations optimistes) |
+| UI state (tabs, dialogs, toggles) | `useState` local                              |
+| Sidebar droit                     | `RightSidebarContext` (React Context)         |
 
 ### Intégration GitHub
 
@@ -160,18 +161,18 @@ Composant client ("use client")
 
 ### Palette (dark mode)
 
-| Rôle | Couleur |
-|------|---------|
-| Primary | `#7C5CFF` (violet) |
-| Secondary | `#00D4FF` (cyan) |
-| Background default | `#1A1A1A` |
-| Background paper | `#222222` |
-| Text primary | `#FFFFFF` |
-| Text secondary | `#B3B3B3` |
-| Divider | `#3A3A3A` |
-| Success | `#22C55E` |
-| Error | `#EF4444` |
-| Warning | `#F59E0B` |
+| Rôle               | Couleur            |
+| ------------------ | ------------------ |
+| Primary            | `#7C5CFF` (violet) |
+| Secondary          | `#00D4FF` (cyan)   |
+| Background default | `#1A1A1A`          |
+| Background paper   | `#222222`          |
+| Text primary       | `#FFFFFF`          |
+| Text secondary     | `#B3B3B3`          |
+| Divider            | `#3A3A3A`          |
+| Success            | `#22C55E`          |
+| Error              | `#EF4444`          |
+| Warning            | `#F59E0B`          |
 
 ### Conventions UI
 
@@ -207,33 +208,35 @@ Todo { id, repo_full_name, title, description, done, sort_order }
 
 ## Hooks principaux
 
-| Hook | Rôle |
-|------|------|
+| Hook                         | Rôle                                              |
+| ---------------------------- | ------------------------------------------------- |
 | `useGitHub` / `useDashboard` | Données dashboard (user, repos, issues enrichies) |
-| `useIssue` | Issue unique + commentaires |
-| `useIssueTimeline` | Timeline events d'une issue |
-| `usePullRequests` | PRs par repos |
-| `useTodos` | CRUD todos (Supabase, mutations optimistes) |
-| `useWeeklyActivity` | Données graphique activité |
-| `usePendingTodoCount` | Count todos non-faits (polling 30s) |
-| `useProjectConfig` | Config Project V2 (Supabase upsert) |
-| `useUpdateIssueStatus` | Mutation status issue (GraphQL) |
-| `useAgentPresets` | CRUD presets agents |
-| `useAgentSession` | Session agent + logs |
-| `useAgentViews` | Views avec repos/paths |
-| `useRepoPaths` | Mapping repo → path local |
-| `useActiveSessions` | Sessions tmux (polling 5s) |
+| `useIssue`                   | Issue unique + commentaires                       |
+| `useIssueTimeline`           | Timeline events d'une issue                       |
+| `usePullRequests`            | PRs par repos                                     |
+| `useTodos`                   | CRUD todos (Supabase, mutations optimistes)       |
+| `useWeeklyActivity`          | Données graphique activité                        |
+| `usePendingTodoCount`        | Count todos non-faits (polling 30s)               |
+| `useProjectConfig`           | Config Project V2 (Supabase upsert)               |
+| `useUpdateIssueStatus`       | Mutation status issue (GraphQL)                   |
+| `useAgentPresets`            | CRUD presets agents                               |
+| `useAgentSession`            | Session agent + logs                              |
+| `useAgentViews`              | Views avec repos/paths                            |
+| `useRepoPaths`               | Mapping repo → path local                         |
+| `useActiveSessions`          | Sessions tmux (polling 5s)                        |
 
 ---
 
 ## Règles de travail
 
 ### Git
+
 - **Ne jamais commiter sans accord explicite** de Ludovic
 - Workflow : feature branches + PR
 - Nommer les branches : `feat/`, `fix/`, `refactor/`
 
 ### Code
+
 - Respecter les patterns existants avant d'en introduire de nouveaux
 - Pas de sur-ingénierie : faire simple, faire propre
 - Pas de commentaires inutiles, pas de docstrings sur du code évident
@@ -242,6 +245,7 @@ Todo { id, repo_full_name, title, description, done, sort_order }
 - Path alias : `@/*` → `./src/*`
 
 ### Naming
+
 - Composants : PascalCase, organisés par feature
 - Hooks : `use*` prefix
 - Types : PascalCase
@@ -249,10 +253,12 @@ Todo { id, repo_full_name, title, description, done, sort_order }
 - Fichiers composants : PascalCase (ex: `AgentTerminalModal.tsx`)
 
 ### IDE
+
 - Ludovic utilise **Cursor** comme IDE principal
 - Port de dev : **4000**
 
 ### Env vars requises
+
 - `GITHUB_TOKEN` — Token GitHub (REST + GraphQL)
 - `NEXT_PUBLIC_SUPABASE_URL` — URL Supabase
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Clé publique Supabase

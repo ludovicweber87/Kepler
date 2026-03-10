@@ -1,6 +1,6 @@
 export async function register() {
-  if (process.env.NEXT_RUNTIME === "nodejs") {
-    const { startTerminalServer } = await import("./lib/terminal-server");
-    startTerminalServer(4001);
-  }
+	if (process.env.NEXT_RUNTIME === 'nodejs') {
+		const { startTerminalServer } = await import('./lib/terminal-server');
+		startTerminalServer(4001);
+	}
 }

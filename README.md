@@ -34,9 +34,11 @@ Think of it as your **mission control for AI-assisted development**.
 ## Key Features
 
 ### 🎯 Unified Dashboard
+
 One screen to rule them all. See your open issues, in-progress work, pending todos, and weekly activity at a glance. No more jumping between GitHub, your terminal, and a note-taking app.
 
 ### 🤖 Claude Agent Management
+
 Launch, monitor, and manage Claude agents directly from the UI. Each agent runs in an isolated **tmux session** with a full embedded terminal (xterm.js). Agents automatically report their activity — every file change, every commit, every decision — in real-time.
 
 - **Start agents on any branch** with one click
@@ -46,18 +48,23 @@ Launch, monitor, and manage Claude agents directly from the UI. Each agent runs 
 - **Custom system prompts** via `.md` agent files
 
 ### 🔀 Workspace — Branch-Level Visibility
+
 The **Workspace** page gives you a bird's-eye view of all branches across your projects. Click any branch to see its commit history and linked agent sessions. Start a new agent directly on a branch.
 
 ### 📋 Kanban Issues (GitHub Project V2)
+
 Full integration with GitHub Projects V2. Drag-and-drop Kanban board with status updates that sync back to GitHub via GraphQL. Create branches from issues in one click.
 
 ### ✅ Smart Todos
+
 Per-repository todo lists with **auto-suggestions** from your in-progress GitHub issues. Optimistic mutations for instant UI feedback.
 
 ### 🔃 Pull Requests
+
 See all your open PRs across repositories with diff stats, reviewers, labels, and comments — all in one view.
 
 ### 🧩 Skills Editor
+
 Create and manage reusable agent presets (`.md` files in `.claude/skills/`). Define specialized agents for different tasks — code review, test writing, refactoring — and launch them with one click.
 
 <br/>
@@ -66,13 +73,13 @@ Create and manage reusable agent presets (`.md` files in `.claude/skills/`). Def
 
 ### Save Hours Every Day
 
-| Without Devora | With Devora |
-|---|---|
-| Open GitHub → find issue → copy branch name → open terminal → checkout → start Claude | Click "Start Agent" on the branch |
-| Switch between 5 browser tabs to check status | Everything on one dashboard |
-| Manually check what your AI agent did | Agents auto-report activity in real-time |
-| Lose context when switching between repos | Draggable tabs, persistent order, multi-repo views |
-| No visibility on background agents | Live streaming indicators + session history |
+| Without Devora                                                                        | With Devora                                        |
+| ------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| Open GitHub → find issue → copy branch name → open terminal → checkout → start Claude | Click "Start Agent" on the branch                  |
+| Switch between 5 browser tabs to check status                                         | Everything on one dashboard                        |
+| Manually check what your AI agent did                                                 | Agents auto-report activity in real-time           |
+| Lose context when switching between repos                                             | Draggable tabs, persistent order, multi-repo views |
+| No visibility on background agents                                                    | Live streaming indicators + session history        |
 
 ### Built for Multi-Repo Workflows
 
@@ -98,16 +105,16 @@ Killed an agent by mistake? Need to pick up where you left off? Devora keeps ful
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| **Frontend** | Next.js 16 · React 19 · TypeScript 5 |
-| **UI** | Material UI 7 · Emotion · Framer Motion |
-| **Data** | TanStack React Query 5 (optimistic mutations) |
-| **Backend** | Supabase (PostgreSQL + Row Level Security) |
-| **AI** | Claude Agent SDK · Claude CLI |
-| **Terminal** | xterm.js 6 · node-pty · WebSocket · tmux |
-| **GitHub** | REST API + GraphQL (Project V2) |
-| **Charts** | Recharts 3 |
+| Layer        | Technology                                    |
+| ------------ | --------------------------------------------- |
+| **Frontend** | Next.js 16 · React 19 · TypeScript 5          |
+| **UI**       | Material UI 7 · Emotion · Framer Motion       |
+| **Data**     | TanStack React Query 5 (optimistic mutations) |
+| **Backend**  | Supabase (PostgreSQL + Row Level Security)    |
+| **AI**       | Claude Agent SDK · Claude CLI                 |
+| **Terminal** | xterm.js 6 · node-pty · WebSocket · tmux      |
+| **GitHub**   | REST API + GraphQL (Project V2)               |
+| **Charts**   | Recharts 3                                    |
 
 <br/>
 
@@ -224,9 +231,11 @@ C'est votre **centre de contrôle pour le développement assisté par IA**.
 ## Fonctionnalités clés
 
 ### 🎯 Dashboard unifié
+
 Un seul écran pour tout voir. Issues en cours, travail en progression, todos en attente, activité de la semaine. Plus besoin de naviguer entre GitHub, votre terminal et une app de notes.
 
 ### 🤖 Gestion des agents Claude
+
 Lancez, supervisez et gérez vos agents Claude directement depuis l'interface. Chaque agent tourne dans une **session tmux isolée** avec un terminal embarqué complet (xterm.js). Les agents rapportent automatiquement leur activité — chaque modification de fichier, chaque commit, chaque décision — en temps réel.
 
 - **Lancez un agent sur n'importe quelle branche** en un clic
@@ -236,18 +245,23 @@ Lancez, supervisez et gérez vos agents Claude directement depuis l'interface. C
 - **Prompts système personnalisés** via des fichiers `.md`
 
 ### 🔀 Workspace — Visibilité par branche
+
 La page **Workspace** offre une vue d'ensemble de toutes les branches de vos projets. Cliquez sur une branche pour voir son historique de commits et les sessions d'agents associées. Démarrez un nouvel agent directement sur une branche.
 
 ### 📋 Kanban Issues (GitHub Project V2)
+
 Intégration complète avec GitHub Projects V2. Board Kanban en drag-and-drop avec mise à jour des statuts synchronisés vers GitHub via GraphQL. Créez des branches depuis une issue en un clic.
 
 ### ✅ Todos intelligents
+
 Listes de tâches par repository avec **suggestions automatiques** depuis vos issues GitHub en cours. Mutations optimistes pour un feedback UI instantané.
 
 ### 🔃 Pull Requests
+
 Visualisez toutes vos PRs ouvertes sur tous vos repositories avec les stats de diff, reviewers, labels et commentaires — le tout dans une seule vue.
 
 ### 🧩 Éditeur de Skills
+
 Créez et gérez des presets d'agents réutilisables (fichiers `.md` dans `.claude/skills/`). Définissez des agents spécialisés pour différentes tâches — code review, écriture de tests, refactoring — et lancez-les en un clic.
 
 <br/>
@@ -256,13 +270,13 @@ Créez et gérez des presets d'agents réutilisables (fichiers `.md` dans `.clau
 
 ### Gagnez des heures chaque jour
 
-| Sans Devora | Avec Devora |
-|---|---|
-| Ouvrir GitHub → trouver l'issue → copier le nom de branche → ouvrir le terminal → checkout → lancer Claude | Cliquer "Start Agent" sur la branche |
-| Naviguer entre 5 onglets pour vérifier l'état | Tout sur un seul dashboard |
-| Vérifier manuellement ce que l'agent IA a fait | Les agents rapportent leur activité en temps réel |
-| Perdre le contexte en changeant de repo | Onglets draggables, ordre persistant, vues multi-repo |
-| Aucune visibilité sur les agents en arrière-plan | Indicateurs de streaming live + historique des sessions |
+| Sans Devora                                                                                                | Avec Devora                                             |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Ouvrir GitHub → trouver l'issue → copier le nom de branche → ouvrir le terminal → checkout → lancer Claude | Cliquer "Start Agent" sur la branche                    |
+| Naviguer entre 5 onglets pour vérifier l'état                                                              | Tout sur un seul dashboard                              |
+| Vérifier manuellement ce que l'agent IA a fait                                                             | Les agents rapportent leur activité en temps réel       |
+| Perdre le contexte en changeant de repo                                                                    | Onglets draggables, ordre persistant, vues multi-repo   |
+| Aucune visibilité sur les agents en arrière-plan                                                           | Indicateurs de streaming live + historique des sessions |
 
 ### Conçu pour le multi-repo
 

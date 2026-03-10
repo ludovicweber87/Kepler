@@ -1,5 +1,5 @@
-import SkillsList from "@/components/skills/SkillsList";
+import SkillsList from '@/components/skills/SkillsList';
 
 export default function SkillsPage() {
-  return <SkillsList />;
+	return <SkillsList />;
 }

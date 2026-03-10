@@ -1,5 +1,10 @@
-import IssuesList from "@/components/issues/IssuesList";
+import Box from '@mui/material/Box';
+import IssuesList from '@/components/issues/IssuesList';
 
 export default function IssuesPage() {
-  return <IssuesList />;
+	return (
+		<Box sx={{ height: '100%' }}>
+			<IssuesList />
+		</Box>
+	);
 }
