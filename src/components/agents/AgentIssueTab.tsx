@@ -572,12 +572,13 @@ export default function AgentIssueTab({ owner, repo, issueNumber }: AgentIssueTa
 								transition: 'opacity 0.15s',
 							}}
 						/>
+						{(() => { bodyRef.current = issue.body ?? ''; return null; })()}
 						{issue.body ? (
 							<Box sx={markdownSx}>
 								<ReactMarkdown
 									remarkPlugins={[remarkGfm]}
 									rehypePlugins={[rehypeRaw]}
-									components={mdComponents}
+									components={bodyMarkdownComponents}
 								>
 									{issue.body}
 								</ReactMarkdown>
