@@ -155,9 +155,7 @@ function proxyGitHubImage(src: string | undefined): string | undefined {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function createMarkdownComponents(onCheckboxToggle?: (index: number) => void): Record<string, any> {
-	let checkboxCounter = 0;
-
+function createMarkdownComponents(onCheckboxToggle?: (index: number) => void, counterRef?: React.RefObject<number>): Record<string, any> {
 	return {
 		img: ({ src, alt, ...props }: { src?: string; alt?: string }) => (
 			// eslint-disable-next-line @next/next/no-img-element
@@ -173,7 +171,7 @@ function createMarkdownComponents(onCheckboxToggle?: (index: number) => void): R
 				(child) => child.type === 'element' && child.tagName === 'input' && child.properties?.type === 'checkbox',
 			);
 			const isChecked = inputChild?.properties?.checked ?? false;
-			const currentIdx = checkboxCounter++;
+			const currentIdx = counterRef ? counterRef.current++ : 0;
 
 			const filteredChildren = Array.isArray(children)
 				? children.filter(
@@ -300,9 +298,9 @@ export default function IssueDetail({
 	const [newComment, setNewComment] = useState('');
 	const [sendingComment, setSendingComment] = useState(false);
 
-	const issueQueryKey = ['github', 'issue', owner, repo, number];
-	const checkboxIndexRef = useRef(0);
+	const issueQueryKey = useMemo(() => ['github', 'issue', owner, repo, number], [owner, repo, number]);
 	const bodyRef = useRef('');
+	const checkboxCounterRef = useRef(0);
 
 	const handleToggleCheckbox = useCallback(
 		async (checkboxIndex: number, currentBody: string) => {
@@ -338,7 +336,7 @@ export default function IssueDetail({
 				if (bodyRef.current) {
 					handleToggleCheckbox(idx, bodyRef.current);
 				}
-			}),
+			}, checkboxCounterRef),
 		[handleToggleCheckbox],
 	);
 
@@ -817,7 +815,8 @@ export default function IssueDetail({
 								'&:hover .edit-body-icon': { opacity: 1 },
 								position: 'relative',
 							}}
-							onClick={() => {
+							onClick={(e) => {
+								if ((e.target as HTMLElement).closest('.task-checkbox')) return;
 								setEditBody(issue.body ?? '');
 								setEditingBody(true);
 							}}
@@ -834,7 +833,7 @@ export default function IssueDetail({
 									transition: 'opacity 0.15s',
 								}}
 							/>
-							{(() => { bodyRef.current = issue.body ?? ''; return null; })()}
+							{(() => { bodyRef.current = issue.body ?? ''; checkboxCounterRef.current = 0; return null; })()}
 							{issue.body ? (
 								<Box sx={markdownSx}>
 									<ReactMarkdown

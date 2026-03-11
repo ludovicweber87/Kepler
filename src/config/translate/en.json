@@ -1,0 +1,167 @@
+{
+	"sidebar": {
+		"dashboard": "Dashboard",
+		"issues": "Issues",
+		"prs": "PRs",
+		"workspace": "Workspace",
+		"agents": "Agents",
+		"skills": "Skills",
+		"todos": "Tasks",
+		"settings": "Settings",
+		"signOut": "Sign out"
+	},
+	"landing": {
+		"nav": {
+			"cta": "Sign in with GitHub"
+		},
+		"hero": {
+			"tagline": "One dashboard, all your dev workflow",
+			"subtitle": "Manage your GitHub issues, pull requests, and parallel AI sessions from a single unified interface. Built for teams who ship fast.",
+			"cta": "Get started with GitHub"
+		},
+		"features": {
+			"kanban": {
+				"title": "Issues & Kanban",
+				"desc": "Kanban board synced to GitHub Projects V2.",
+				"details": "Drag-and-drop issues across status columns, filter by view, and see real-time sync with your GitHub Project boards. Every status change is reflected instantly on both sides."
+			},
+			"prs": {
+				"title": "Pull Requests",
+				"desc": "Track PRs and CI checks across all repos.",
+				"details": "See all open PRs in one view with live CI status, review requests, and diff stats. Merge with one click using squash merge. No more switching between repos."
+			},
+			"parallel": {
+				"title": "Parallel AI Sessions",
+				"desc": "Multiple Claude agents on separate branches.",
+				"details": "Assign an issue to an agent, it creates a worktree branch and works autonomously. Run several in parallel — each agent tackles its own issue independently with full activity logging."
+			},
+			"workspace": {
+				"title": "Unified Workspace",
+				"desc": "Todos, branches, skills — one place.",
+				"details": "Manage todo lists per repo, browse git branches with commit history, configure agent presets and skills. Everything your team needs without leaving the dashboard."
+			}
+		}
+	},
+	"dashboard": {
+		"greeting": {
+			"morning": "Good morning",
+			"afternoon": "Good afternoon",
+			"evening": "Good evening"
+		},
+		"time": {
+			"justNow": "just now",
+			"minutesAgo": "{mins}m ago",
+			"hoursAgo": "{hours}h ago",
+			"daysAgo": "{days}d ago"
+		},
+		"closeSession": "Close session",
+		"sessionError": "Session ended with error",
+		"noReport": "No report available",
+		"viewSession": "View session",
+		"activeAgents": "{count, plural, one {# active agent} other {# active agents}}",
+		"streaming": "streaming",
+		"pendingTodos": "{count, plural, one {# pending task} other {# pending tasks}}",
+		"launchAgent": "Launch agent",
+		"activeAgentsTitle": "Active agents",
+		"pastSessions": "Past sessions",
+		"noSessionsProject": "No sessions for this project",
+		"launchAgentToStart": "Launch an agent to get started",
+		"reports": "Reports",
+		"noReportsYet": "No reports yet",
+		"reportsAppearWhen": "Reports appear when an agent completes its session"
+	},
+	"issues": {
+		"title": "Issues",
+		"searchPlaceholder": "Search #id or title...",
+		"refresh": "Refresh",
+		"noOpenIssues": "No open issues",
+		"noOpenIssuesDesc": "No open issues are assigned to you here.",
+		"createBranch": "Create branch",
+		"branchName": "Branch name",
+		"issue": "Issue",
+		"willExecute": "Will execute: git checkout main → git pull --rebase → git checkout -b",
+		"creating": "Creating...",
+		"created": "Created",
+		"branchCreated": "Branch {branchName} created"
+	},
+	"todos": {
+		"title": "Tasks",
+		"noProjectSelected": "No project selected",
+		"addRepoFirst": "Add a repository in settings first.",
+		"addProject": "Add project",
+		"whatToDo": "What needs to be done?",
+		"taskDescription": "What needs to be done for this task?",
+		"inProgress": "In progress",
+		"noTasks": "No tasks",
+		"done": "Done"
+	},
+	"agents": {
+		"title": "Agents",
+		"noProjectSelected": "No project selected",
+		"selectProjectFolder": "Select a project folder to manage its agents.",
+		"addProject": "Add project",
+		"newAgent": "New agent",
+		"instruction": "One agent = one .md file in .claude/agents/. Write the system prompt in markdown.",
+		"noAgents": "No agents",
+		"createAgentIn": "Create a .md file in {path}/.claude/agents/",
+		"createAgent": "Create agent",
+		"editAgent": "Edit — {name}.md",
+		"fileName": "File name",
+		"fileNameExample": "e.g. code-reviewer",
+		"fileNameHelper": "Will be saved in .claude/agents/{name}.md",
+		"agentPrompt": "Agent prompt",
+		"promptPlaceholder": "Write the agent system prompt in markdown...",
+		"files": "Files"
+	},
+	"prs": {
+		"title": "Pull Requests",
+		"noProjectSelected": "No project selected",
+		"addRepoFirst": "Add a repository in settings first.",
+		"addProject": "Add project",
+		"noOpenPRs": "No open pull requests",
+		"checksPassed": "Checks passed",
+		"checksFailed": "Checks failed",
+		"checksInProgress": "Checks in progress",
+		"checksPassedCount": "{passed}/{total} checks passed",
+		"draft": "Draft",
+		"merge": "Merge",
+		"squashAndMerge": "Squash and Merge",
+		"merging": "Merging...",
+		"confirmMerge": "Confirm Merge"
+	},
+	"skills": {
+		"title": "Skills",
+		"noProjectSelected": "No project selected",
+		"selectProjectFolder": "Add a repository in settings to manage its skills.",
+		"addProject": "Add project",
+		"findSkills": "Find skills",
+		"newSkill": "New skill",
+		"instruction": "One skill = one .md file in .claude/skills/. Skills are reusable prompt templates.",
+		"noSkills": "No skills",
+		"createSkillIn": "Create a .md file in {path}/.claude/skills/"
+	},
+	"settings": {
+		"title": "Settings",
+		"viewsSaved": "Views saved",
+		"pathSaved": "Path saved"
+	},
+	"header": {
+		"lightMode": "Light mode",
+		"darkMode": "Dark mode",
+		"hideAgents": "Hide agents",
+		"showAgents": "Show agents"
+	},
+	"common": {
+		"loading": "Loading...",
+		"error": "An error occurred",
+		"save": "Save",
+		"cancel": "Cancel",
+		"delete": "Delete",
+		"edit": "Edit",
+		"close": "Close",
+		"confirm": "Confirm",
+		"search": "Search",
+		"noResults": "No results",
+		"language": "Language"
+	}
+}

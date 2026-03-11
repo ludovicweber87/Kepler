@@ -8,6 +8,7 @@ import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import { alpha } from '@mui/material/styles';
+import { useTranslations } from 'next-intl';
 import type { SkillFile } from '@/hooks/useSkillFiles';
 
 interface SkillEditorDialogProps {
@@ -23,6 +24,9 @@ export default function SkillEditorDialog({
 	onSave,
 	skill,
 }: SkillEditorDialogProps) {
+	const t = useTranslations('skills');
+	const ta = useTranslations('agents');
+	const tc = useTranslations('common');
 	const [filename, setFilename] = useState('');
 	const [content, setContent] = useState('');
 
@@ -67,7 +71,7 @@ export default function SkillEditorDialog({
 			}}
 		>
 			<DialogTitle sx={{ fontWeight: 600 }}>
-				{skill ? `Modifier — ${skill.name}` : 'Nouveau skill'}
+				{skill ? `${tc('edit')} — ${skill.name}` : t('newSkill')}
 			</DialogTitle>
 			<DialogContent
 				sx={{
@@ -81,27 +85,26 @@ export default function SkillEditorDialog({
 			>
 				{!skill && (
 					<TextField
-						label="Nom du fichier"
+						label={ta('fileName')}
 						value={filename}
 						onChange={(e) => setFilename(e.target.value)}
 						required
 						fullWidth
 						placeholder="ex. deployment-workflow"
-						helperText="Sera enregistré dans .claude/skills/{name}.md"
 						size="small"
 						sx={{ flexShrink: 0 }}
 					/>
 				)}
 
 				<TextField
-					label="Contenu du skill"
+					label={t('title')}
 					value={content}
 					onChange={(e) => setContent(e.target.value)}
 					required
 					fullWidth
 					multiline
 					rows={undefined}
-					placeholder="Écrivez le contenu du skill en markdown..."
+					placeholder=""
 					sx={{
 						flex: 1,
 						minHeight: 0,
@@ -124,7 +127,7 @@ export default function SkillEditorDialog({
 			</DialogContent>
 			<DialogActions sx={{ px: 3, pb: 2.5 }}>
 				<Button onClick={onClose} sx={{ color: 'text.secondary' }}>
-					Annuler
+					{tc('cancel')}
 				</Button>
 				<Button
 					onClick={handleSave}
@@ -136,7 +139,7 @@ export default function SkillEditorDialog({
 						'&:hover': { bgcolor: alpha('#00E5FF', 0.85) },
 					}}
 				>
-					Enregistrer
+					{tc('save')}
 				</Button>
 			</DialogActions>
 		</Dialog>

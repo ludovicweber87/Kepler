@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateIssue } from '@/lib/github';
+import { requireAuth, isAuthError } from '@/lib/auth-utils';
 
 export async function PATCH(req: NextRequest) {
+	const auth = await requireAuth();
+	if (isAuthError(auth)) return auth;
+
 	try {
 		const { owner, repo, number, title, body } = (await req.json()) as {
 			owner: string;
@@ -23,7 +27,7 @@ export async function PATCH(req: NextRequest) {
 			return NextResponse.json({ error: 'Nothing to update' }, { status: 400 });
 		}
 
-		await updateIssue(owner, repo, number, fields);
+		await updateIssue(owner, repo, number, fields, auth.accessToken);
 
 		return NextResponse.json({ ok: true });
 	} catch (err) {

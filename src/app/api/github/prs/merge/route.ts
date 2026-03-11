@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { mergePullRequest } from '@/lib/github';
+import { requireAuth, isAuthError } from '@/lib/auth-utils';
 
 export async function POST(req: NextRequest) {
+	const auth = await requireAuth();
+	if (isAuthError(auth)) return auth;
+
 	try {
 		const { repo, pull_number } = await req.json();
 
@@ -13,7 +17,7 @@ export async function POST(req: NextRequest) {
 		}
 
 		const [owner, name] = repo.split('/');
-		const result = await mergePullRequest(owner, name, pull_number);
+		const result = await mergePullRequest(owner, name, pull_number, auth.accessToken);
 
 		return NextResponse.json(result);
 	} catch (err) {

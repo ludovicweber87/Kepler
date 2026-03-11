@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSession } from 'next-auth/react';
 import { supabase } from '@/lib/supabase';
 
 export interface Todo {
@@ -18,10 +19,11 @@ function queryKey(repo: string) {
 	return ['todos', repo];
 }
 
-async function fetchTodos(repo: string): Promise<Todo[]> {
+async function fetchTodos(repo: string, userId: string): Promise<Todo[]> {
 	const { data, error } = await supabase
 		.from('todos')
 		.select('*')
+		.eq('user_id', userId)
 		.eq('repo_full_name', repo)
 		.order('sort_order')
 		.order('created_at');
@@ -32,12 +34,14 @@ async function fetchTodos(repo: string): Promise<Todo[]> {
 
 export function useTodos(repoFullName: string | null) {
 	const queryClient = useQueryClient();
+	const { data: session } = useSession();
+	const userId = session?.user?.id ?? null;
 	const key = queryKey(repoFullName ?? '');
 
 	const { data: todos = [], isLoading } = useQuery({
 		queryKey: key,
-		queryFn: () => fetchTodos(repoFullName!),
-		enabled: !!repoFullName,
+		queryFn: () => fetchTodos(repoFullName!, userId!),
+		enabled: !!repoFullName && !!userId,
 	});
 
 	const addMutation = useMutation({
@@ -49,6 +53,7 @@ export function useTodos(repoFullName: string | null) {
 				sort_order: maxOrder,
 				issue_number: params.issueNumber ?? null,
 				issue_repo: params.issueRepo ?? null,
+				user_id: userId,
 			});
 			if (error) throw error;
 		},
@@ -189,18 +194,22 @@ export function useTodos(repoFullName: string | null) {
 
 /** Find todos linked to a specific issue */
 export function useIssueTodos(issueRepo: string | null, issueNumber: number | null) {
+	const { data: session } = useSession();
+	const userId = session?.user?.id ?? null;
+
 	return useQuery({
 		queryKey: ['todos', 'issue', issueRepo, issueNumber],
 		queryFn: async () => {
 			const { data, error } = await supabase
 				.from('todos')
 				.select('*')
+				.eq('user_id', userId!)
 				.eq('issue_repo', issueRepo!)
 				.eq('issue_number', issueNumber!);
 			if (error) throw error;
 			return (data ?? []) as Todo[];
 		},
-		enabled: !!issueRepo && issueNumber != null,
+		enabled: !!issueRepo && issueNumber != null && !!userId,
 	});
 }
 

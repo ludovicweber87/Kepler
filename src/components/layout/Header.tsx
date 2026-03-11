@@ -15,11 +15,13 @@ import { SIDEBAR_WIDTH } from './Sidebar';
 import { useRightSidebar } from '@/hooks/useRightSidebar';
 import { useActiveSessions } from '@/hooks/useActiveSessions';
 import { useColorMode } from '@/hooks/useColorMode';
+import { useTranslations } from 'next-intl';
 
 export default function Header() {
 	const { open, toggle, width: rightWidth } = useRightSidebar();
 	const { data: sessions = [] } = useActiveSessions();
 	const { mode, toggleColorMode } = useColorMode();
+	const t = useTranslations('header');
 
 	return (
 		<AppBar
@@ -39,7 +41,7 @@ export default function Header() {
 			<Toolbar sx={{ px: { xs: 2, md: 4 }, py: 0.5, justifyContent: 'flex-end' }}>
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
 					{/* Theme toggle */}
-					<Tooltip title={mode === 'dark' ? 'Mode clair' : 'Mode sombre'}>
+					<Tooltip title={mode === 'dark' ? t('lightMode') : t('darkMode')}>
 						<IconButton
 							onClick={toggleColorMode}
 							size="small"
@@ -60,7 +62,7 @@ export default function Header() {
 					</Tooltip>
 
 					{/* Agents toggle */}
-					<Tooltip title={open ? 'Masquer agents' : 'Afficher agents'}>
+					<Tooltip title={open ? t('hideAgents') : t('showAgents')}>
 						<IconButton
 							onClick={toggle}
 							size="small"

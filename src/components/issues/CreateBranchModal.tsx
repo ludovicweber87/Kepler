@@ -14,6 +14,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
 import Chip from '@mui/material/Chip';
+import { useTranslations } from 'next-intl';
 import type { GitHubIssue } from '@/types';
 
 interface CreateBranchModalProps {
@@ -35,6 +36,8 @@ function slugify(text: string): string {
 }
 
 export default function CreateBranchModal({ open, onClose, issue }: CreateBranchModalProps) {
+	const t = useTranslations('issues');
+	const tc = useTranslations('common');
 	const router = useRouter();
 	const defaultBranch = useMemo(() => `feat/${slugify(issue.title)}`, [issue.title]);
 
@@ -95,11 +98,11 @@ export default function CreateBranchModal({ open, onClose, issue }: CreateBranch
 				fullWidth
 				PaperProps={{ sx: { borderRadius: 1 } }}
 			>
-				<DialogTitle sx={{ fontWeight: 600 }}>Créer une branche</DialogTitle>
+				<DialogTitle sx={{ fontWeight: 600 }}>{t('createBranch')}</DialogTitle>
 				<DialogContent>
 					<Box sx={{ mb: 2.5 }}>
 						<Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-							Issue
+							{t('issue')}
 						</Typography>
 						<Typography variant="body1" sx={{ fontWeight: 500 }}>
 							#{issue.number} {issue.title}
@@ -118,7 +121,7 @@ export default function CreateBranchModal({ open, onClose, issue }: CreateBranch
 					)}
 
 					<TextField
-						label="Nom de la branche"
+						label={t('branchName')}
 						fullWidth
 						size="small"
 						value={branchName}
@@ -128,8 +131,7 @@ export default function CreateBranchModal({ open, onClose, issue }: CreateBranch
 					/>
 
 					<Typography variant="caption" color="text.secondary">
-						Exécutera : git checkout main → git pull --rebase → git checkout -b{' '}
-						{branchName}
+						{t('willExecute')} {branchName}
 					</Typography>
 
 					{status === 'error' && (
@@ -141,7 +143,7 @@ export default function CreateBranchModal({ open, onClose, issue }: CreateBranch
 
 				<DialogActions sx={{ px: 3, pb: 2.5 }}>
 					<Button onClick={handleClose} disabled={status === 'loading'}>
-						Annuler
+						{tc('cancel')}
 					</Button>
 					<Button
 						variant="contained"
@@ -154,10 +156,10 @@ export default function CreateBranchModal({ open, onClose, issue }: CreateBranch
 						}
 					>
 						{status === 'loading'
-							? 'Création...'
+							? t('creating')
 							: status === 'success'
-								? 'Créée'
-								: 'Créer la branche'}
+								? t('created')
+								: t('createBranch')}
 					</Button>
 				</DialogActions>
 			</Dialog>
@@ -169,7 +171,7 @@ export default function CreateBranchModal({ open, onClose, issue }: CreateBranch
 				anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
 			>
 				<Alert onClose={() => setToast(false)} severity="success" variant="filled">
-					Branche {branchName} créée
+					{t('branchCreated', { branchName })}
 				</Alert>
 			</Snackbar>
 		</>

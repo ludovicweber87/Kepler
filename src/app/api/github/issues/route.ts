@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchStatusFieldInfo, findProjectItemId, updateProjectItemStatus } from '@/lib/github';
+import { requireAuth, isAuthError } from '@/lib/auth-utils';
 
 export const dynamic = 'force-dynamic';
 
 export async function PATCH(request: NextRequest) {
+	const auth = await requireAuth();
+	if (isAuthError(auth)) return auth;
+
 	try {
 		const { issueNodeId, newStatus, org, projectNumber } = await request.json();
 
@@ -14,7 +18,7 @@ export async function PATCH(request: NextRequest) {
 			);
 		}
 
-		const fieldInfo = await fetchStatusFieldInfo(org, projectNumber);
+		const fieldInfo = await fetchStatusFieldInfo(org, projectNumber, auth.accessToken);
 
 		const option = fieldInfo.options.find((o) => o.name === newStatus);
 		if (!option) {
@@ -24,9 +28,9 @@ export async function PATCH(request: NextRequest) {
 			);
 		}
 
-		const itemId = await findProjectItemId(issueNodeId, fieldInfo.projectId);
+		const itemId = await findProjectItemId(issueNodeId, fieldInfo.projectId, auth.accessToken);
 
-		await updateProjectItemStatus(fieldInfo.projectId, itemId, fieldInfo.fieldId, option.id);
+		await updateProjectItemStatus(fieldInfo.projectId, itemId, fieldInfo.fieldId, option.id, auth.accessToken);
 
 		return NextResponse.json({ success: true });
 	} catch (error) {

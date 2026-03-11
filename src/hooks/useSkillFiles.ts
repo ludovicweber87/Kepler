@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiFetch } from '@/lib/api-fetch';
 
 export interface SkillFile {
 	name: string;
@@ -13,7 +14,7 @@ function queryKey(projectPath: string) {
 }
 
 async function fetchSkillFiles(projectPath: string): Promise<SkillFile[]> {
-	const res = await fetch(`/api/filesystem/skills?path=${encodeURIComponent(projectPath)}`);
+	const res = await apiFetch(`/api/filesystem/skills?path=${encodeURIComponent(projectPath)}`);
 	if (!res.ok) throw new Error('Failed to fetch skills');
 	const { skills } = await res.json();
 	return skills;
@@ -30,7 +31,7 @@ export function useSkillFiles(projectPath: string | null) {
 
 	const saveMutation = useMutation({
 		mutationFn: async ({ filename, content }: { filename: string; content: string }) => {
-			const res = await fetch('/api/filesystem/skills', {
+			const res = await apiFetch('/api/filesystem/skills', {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ path: projectPath, filename, content }),
@@ -47,7 +48,7 @@ export function useSkillFiles(projectPath: string | null) {
 
 	const deleteMutation = useMutation({
 		mutationFn: async ({ filename, isFolder }: { filename: string; isFolder: boolean }) => {
-			const res = await fetch('/api/filesystem/skills', {
+			const res = await apiFetch('/api/filesystem/skills', {
 				method: 'DELETE',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ path: projectPath, filename, isFolder }),

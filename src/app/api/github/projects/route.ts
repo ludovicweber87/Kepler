@@ -1,18 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchOrgProjects, fetchProjectV2Data, fetchViewerOrgProjects } from '@/lib/github';
 import { mapViewsToRepos } from '@/lib/projectViews';
+import { requireAuth, isAuthError } from '@/lib/auth-utils';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+	const auth = await requireAuth();
+	if (isAuthError(auth)) return auth;
+
 	try {
 		const { searchParams } = request.nextUrl;
 		const org = searchParams.get('org');
 		const projectNumber = searchParams.get('projectNumber');
 
-		// No org → auto-discover all orgs + projects for the authenticated user
 		if (!org && !projectNumber) {
-			const orgProjects = await fetchViewerOrgProjects();
+			const orgProjects = await fetchViewerOrgProjects(auth.accessToken);
 			return NextResponse.json({ orgProjects });
 		}
 
@@ -20,19 +23,17 @@ export async function GET(request: NextRequest) {
 			return NextResponse.json({ error: 'org parameter is required' }, { status: 400 });
 		}
 
-		// org but no project number → list projects for that org
 		if (!projectNumber) {
-			const projects = await fetchOrgProjects(org);
+			const projects = await fetchOrgProjects(org, auth.accessToken);
 			return NextResponse.json({ projects });
 		}
 
-		// Fetch full project data (views + items) and compute view→repos mappings
 		const num = parseInt(projectNumber, 10);
 		if (isNaN(num)) {
 			return NextResponse.json({ error: 'projectNumber must be a number' }, { status: 400 });
 		}
 
-		const projectData = await fetchProjectV2Data(org, num);
+		const projectData = await fetchProjectV2Data(org, num, auth.accessToken);
 		const viewRepoMappings = mapViewsToRepos(projectData.views, projectData.items);
 
 		return NextResponse.json({

@@ -31,6 +31,7 @@ import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import type { ProjectV2View, ViewRepoMapping } from '@/types';
 import { useProjectConfig } from '@/hooks/useProjectConfig';
+import { useTranslations } from 'next-intl';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
 
 interface OrgProject {
@@ -61,6 +62,8 @@ const accordionSx = {
 };
 
 export default function SettingsPanel() {
+	const t = useTranslations('settings');
+	const tc = useTranslations('common');
 	const { config, saveConfig, clearConfig } = useProjectConfig();
 	const { repoPaths, savePath, deletePath } = useRepoPaths();
 
@@ -86,7 +89,7 @@ export default function SettingsPanel() {
 	const [loadingViews, setLoadingViews] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [toast, setToast] = useState(false);
-	const [toastMessage, setToastMessage] = useState('Vues enregistrées');
+	const [toastMessage, setToastMessage] = useState('');
 	const [localPaths, setLocalPaths] = useState<Record<string, string>>({});
 	const [pickingRepo, setPickingRepo] = useState<string | null>(null);
 
@@ -201,7 +204,7 @@ export default function SettingsPanel() {
 			statusColumns: viewsData.statusColumns ?? [],
 			views: viewsData.views,
 		});
-		setToastMessage('Vues enregistrées');
+		setToastMessage(t('viewsSaved'));
 		setToast(true);
 	};
 
@@ -220,7 +223,7 @@ export default function SettingsPanel() {
 			if (path) {
 				setLocalPaths((prev) => ({ ...prev, [repo]: path }));
 				savePath(repo, path);
-				setToastMessage('Chemin enregistré');
+				setToastMessage(t('pathSaved'));
 				setToast(true);
 			}
 		} finally {
@@ -243,7 +246,7 @@ export default function SettingsPanel() {
 					WebkitTextFillColor: 'transparent',
 				}}
 			>
-				Paramètres
+				{t('title')}
 			</Typography>
 
 			<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -405,7 +408,7 @@ export default function SettingsPanel() {
 									onClick={handleSave}
 									disabled={!viewsData || selectedViews.size === 0}
 								>
-									Enregistrer
+									{tc('save')}
 								</Button>
 								<Button variant="outlined" color="secondary" onClick={handleClear}>
 									Effacer
@@ -514,7 +517,7 @@ export default function SettingsPanel() {
 										);
 										if (repoName?.trim()) {
 											savePath(repoName.trim(), path);
-											setToastMessage('Dépôt ajouté');
+											setToastMessage(t('pathSaved'));
 											setToast(true);
 										}
 									}

@@ -21,9 +21,12 @@ import AgentEditorDialog from './AgentEditorDialog';
 import AgentBuilderDialog from './AgentBuilderDialog';
 import DraggableTabs from '@/components/shared/DraggableTabs';
 import { useAgentViews } from '@/hooks/useAgentViews';
+import { useTranslations } from 'next-intl';
 import { useAgentFiles, type AgentFile } from '@/hooks/useAgentFiles';
 
 export default function AgentsList() {
+	const t = useTranslations('agents');
+	const tc = useTranslations('common');
 	const { views, activeIndex, activeView, setActiveIndex, addView, reorderViews } =
 		useAgentViews();
 
@@ -65,7 +68,7 @@ export default function AgentsList() {
 						WebkitTextFillColor: 'transparent',
 					}}
 				>
-					Agents
+					{t('title')}
 				</Typography>
 				<Box
 					sx={{
@@ -79,10 +82,10 @@ export default function AgentsList() {
 				>
 					<FolderOpenRoundedIcon sx={{ fontSize: 64, color: 'text.disabled' }} />
 					<Typography variant="h6" color="text.secondary">
-						Aucun projet sélectionné
+						{t('noProjectSelected')}
 					</Typography>
 					<Typography variant="body2" color="text.disabled" sx={{ mb: 2 }}>
-						Sélectionnez un dossier projet pour gérer ses agents.
+						{t('selectProjectFolder')}
 					</Typography>
 					<Button
 						variant="outlined"
@@ -98,7 +101,7 @@ export default function AgentsList() {
 							},
 						}}
 					>
-						Ajouter un projet
+						{t('addProject')}
 					</Button>
 				</Box>
 			</Box>
@@ -125,7 +128,7 @@ export default function AgentsList() {
 						WebkitTextFillColor: 'transparent',
 					}}
 				>
-					Agents
+					{t('title')}
 				</Typography>
 				<Button
 					variant="contained"
@@ -140,17 +143,14 @@ export default function AgentsList() {
 						fontWeight: 600,
 					}}
 				>
-					Nouvel agent
+					{t('newAgent')}
 				</Button>
 			</Box>
 			<Typography
 				variant="body2"
 				sx={{ color: 'text.secondary', mb: 3, maxWidth: 640, lineHeight: 1.6 }}
 			>
-				Les agents sont des prompts système (<code>.md</code>) qui spécialisent Claude sur une
-				tâche précise. L&apos;Agent Builder vous guide étape par étape pour créer un agent
-				adapté à votre projet — revue de code, tests, refactoring — avec un prompt optimisé
-				généré par IA.
+				{t('instruction')}
 			</Typography>
 
 			{/* Tabs */}
@@ -160,7 +160,7 @@ export default function AgentsList() {
 				onTabChange={setActiveIndex}
 				onReorder={reorderViews}
 				trailing={
-					<Tooltip title="Ajouter un projet">
+					<Tooltip title={t('addProject')}>
 						<IconButton
 							size="small"
 							onClick={() => addView()}
@@ -193,15 +193,14 @@ export default function AgentsList() {
 				>
 					<SmartToyRoundedIcon sx={{ fontSize: 64, color: 'text.disabled' }} />
 					<Typography variant="h6" color="text.secondary">
-						Aucun agent
+						{t('noAgents')}
 					</Typography>
 					<Typography
 						variant="body2"
 						color="text.disabled"
 						sx={{ mb: 2, textAlign: 'center' }}
 					>
-						Créez un fichier <code>.md</code> dans{' '}
-						<code>{activeView?.path}/.claude/agents/</code>
+						{t('createAgentIn', { path: activeView?.path ?? '' })}
 					</Typography>
 					<Button
 						variant="outlined"
@@ -217,7 +216,7 @@ export default function AgentsList() {
 							},
 						}}
 					>
-						Créer un agent
+						{t('createAgent')}
 					</Button>
 				</Box>
 			)}
@@ -309,7 +308,7 @@ export default function AgentsList() {
 										gap: 0.5,
 									}}
 								>
-									<Tooltip title="Modifier">
+									<Tooltip title={tc('edit')}>
 										<IconButton
 											size="small"
 											onClick={(e) => {
@@ -324,7 +323,7 @@ export default function AgentsList() {
 											<EditRoundedIcon fontSize="small" />
 										</IconButton>
 									</Tooltip>
-									<Tooltip title="Supprimer">
+									<Tooltip title={tc('delete')}>
 										<IconButton
 											size="small"
 											onClick={(e) => {

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+import { getAuthContext } from '@/lib/auth-utils';
 
 export async function GET(req: NextRequest) {
 	const url = req.nextUrl.searchParams.get('url');
@@ -8,7 +7,6 @@ export async function GET(req: NextRequest) {
 		return NextResponse.json({ error: 'url required' }, { status: 400 });
 	}
 
-	// Only proxy github.com and githubusercontent.com URLs
 	const parsed = new URL(url);
 	if (
 		!parsed.hostname.endsWith('github.com') &&
@@ -17,9 +15,13 @@ export async function GET(req: NextRequest) {
 		return NextResponse.json({ error: 'invalid host' }, { status: 403 });
 	}
 
+	// Use user's token if authenticated, fallback to env var
+	const auth = await getAuthContext();
+	const token = auth?.accessToken ?? process.env.GITHUB_TOKEN;
+
 	const res = await fetch(url, {
 		headers: {
-			...(GITHUB_TOKEN ? { Authorization: `Bearer ${GITHUB_TOKEN}` } : {}),
+			...(token ? { Authorization: `Bearer ${token}` } : {}),
 			Accept: 'application/octet-stream',
 		},
 	});

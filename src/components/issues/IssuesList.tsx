@@ -21,6 +21,7 @@ import { useProjectConfig } from '@/hooks/useProjectConfig';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUpdateIssueStatus } from '@/hooks/useUpdateIssueStatus';
 import { completeIssueTodos } from '@/hooks/useTodos';
+import { useTranslations } from 'next-intl';
 import { GitHubIssue, ViewIssueRef } from '@/types';
 
 const COLUMN_WIDTH = 300;
@@ -49,6 +50,7 @@ interface DropTarget {
 }
 
 export default function IssuesList() {
+	const t = useTranslations('issues');
 	const { config, selectedViewMappings, reorderViews, syncViews } = useProjectConfig();
 
 	// Auto-sync Project V2 data on mount to pick up new issues
@@ -96,15 +98,14 @@ export default function IssuesList() {
 	const hasViews = selectedViewMappings.length > 0;
 	const isDragEnabled = !!config && (config.statusColumns?.length ?? 0) > 0;
 
+	const isProjectMode = !!allIssueRefs;
+
 	const allIssues = useMemo(() => {
 		if (!data) return [];
-		const isTargetedMode = data.repos.length === 0;
-		const knownRepos = isTargetedMode ? null : new Set(data.repos.map((r) => r.full_name));
 		return data.issues.filter(
 			(i) =>
 				i.repo_full_name &&
-				(isTargetedMode || knownRepos!.has(i.repo_full_name)) &&
-				i.assignees.some((a) => a.login === data.user),
+				i.assignees?.some((a) => a.login === data.user),
 		);
 	}, [data]);
 
@@ -290,12 +291,12 @@ export default function IssuesList() {
 						WebkitTextFillColor: 'transparent',
 					}}
 				>
-					Issues
+					{t('title')}
 				</Typography>
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
 					<TextField
 						size="small"
-						placeholder="Rechercher #id ou titre…"
+						placeholder={t('searchPlaceholder')}
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
 						slotProps={{
@@ -332,7 +333,7 @@ export default function IssuesList() {
 							},
 						}}
 					/>
-					<Tooltip title="Refresh">
+					<Tooltip title={t('refresh')}>
 						<IconButton
 							onClick={() => {
 								syncViews();
@@ -379,10 +380,10 @@ export default function IssuesList() {
 			{filteredIssues.length === 0 ? (
 				<Box sx={{ textAlign: 'center', py: 8 }}>
 					<Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
-						Aucune issue ouverte
+						{t('noOpenIssues')}
 					</Typography>
 					<Typography variant="body2">
-						Aucune issue ouverte ne vous est assignée ici.
+						{t('noOpenIssuesDesc')}
 					</Typography>
 				</Box>
 			) : (

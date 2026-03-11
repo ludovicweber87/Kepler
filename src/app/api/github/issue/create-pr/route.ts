@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createPullRequest } from '@/lib/github';
+import { requireAuth, isAuthError } from '@/lib/auth-utils';
 
 export async function POST(req: NextRequest) {
+	const auth = await requireAuth();
+	if (isAuthError(auth)) return auth;
+
 	try {
 		const { owner, repo, head, title, body } = (await req.json()) as {
 			owner: string;
@@ -18,7 +22,7 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		const pr = await createPullRequest(owner, repo, head, 'main', title, body ?? '');
+		const pr = await createPullRequest(owner, repo, head, 'main', title, body ?? '', auth.accessToken);
 
 		return NextResponse.json({ ok: true, html_url: pr.html_url, number: pr.number });
 	} catch (err) {

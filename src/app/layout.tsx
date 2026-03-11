@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale, getMessages } from 'next-intl/server';
 import ThemeRegistry from '@/components/ThemeRegistry';
 import QueryProvider from '@/components/QueryProvider';
-import AppShell from '@/components/layout/AppShell';
+import AuthProvider from '@/components/AuthProvider';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -9,9 +11,12 @@ export const metadata: Metadata = {
 	description: 'Personal developer dashboard for tracking tasks and issues',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+	const locale = await getLocale();
+	const messages = await getMessages();
+
 	return (
-		<html lang="en">
+		<html lang={locale}>
 			<head>
 				<link rel="preconnect" href="https://fonts.googleapis.com" />
 				<link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -21,11 +26,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 				/>
 			</head>
 			<body style={{ margin: 0 }}>
-				<QueryProvider>
-					<ThemeRegistry>
-						<AppShell>{children}</AppShell>
-					</ThemeRegistry>
-				</QueryProvider>
+				<NextIntlClientProvider messages={messages}>
+					<AuthProvider>
+						<QueryProvider>
+							<ThemeRegistry>{children}</ThemeRegistry>
+						</QueryProvider>
+					</AuthProvider>
+				</NextIntlClientProvider>
 			</body>
 		</html>
 	);

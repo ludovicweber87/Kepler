@@ -23,7 +23,8 @@ Développeur frontend senior / expert :
 
 ## Skills & Plugins
 
-- **Toujours utiliser le skill `superpowers` en premier** quand il est disponible, avant tout autre skill ou approche
+- **OBLIGATOIRE : Avant chaque tâche**, spawn le skill `superpowers` en premier (via l'outil Skill). C'est un prérequis systématique avant toute action : recherche, implémentation, debug, refactoring, etc.
+- Ne jamais commencer à travailler sans avoir d'abord invoqué `superpowers`
 
 ---
 

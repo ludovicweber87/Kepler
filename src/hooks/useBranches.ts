@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { apiFetch } from '@/lib/api-fetch';
 
 export interface Branch {
 	name: string;
@@ -20,7 +21,7 @@ export function useBranches(localPath: string | undefined) {
 	return useQuery({
 		queryKey: ['git-branches', localPath],
 		queryFn: async () => {
-			const res = await fetch(`/api/git/branches?path=${encodeURIComponent(localPath!)}`);
+			const res = await apiFetch(`/api/git/branches?path=${encodeURIComponent(localPath!)}`);
 			if (!res.ok) throw new Error('Failed to fetch branches');
 			const { branches } = await res.json();
 			return branches as Branch[];
@@ -34,7 +35,7 @@ export function useBranchLog(localPath: string | undefined, branch: string | und
 	return useQuery({
 		queryKey: ['git-branch-log', localPath, branch],
 		queryFn: async () => {
-			const res = await fetch(
+			const res = await apiFetch(
 				`/api/git/branches/log?path=${encodeURIComponent(localPath!)}&branch=${encodeURIComponent(branch!)}`,
 			);
 			if (!res.ok) throw new Error('Failed to fetch branch log');

@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiFetch } from '@/lib/api-fetch';
 
 export interface AgentFile {
 	filename: string;
@@ -12,7 +13,7 @@ function queryKey(projectPath: string) {
 }
 
 async function fetchAgentFiles(projectPath: string): Promise<AgentFile[]> {
-	const res = await fetch(`/api/filesystem/agents?path=${encodeURIComponent(projectPath)}`);
+	const res = await apiFetch(`/api/filesystem/agents?path=${encodeURIComponent(projectPath)}`);
 	if (!res.ok) throw new Error('Failed to fetch agents');
 	const { agents } = await res.json();
 	return agents;
@@ -29,7 +30,7 @@ export function useAgentFiles(projectPath: string | null) {
 
 	const saveMutation = useMutation({
 		mutationFn: async ({ filename, content }: { filename: string; content: string }) => {
-			const res = await fetch('/api/filesystem/agents', {
+			const res = await apiFetch('/api/filesystem/agents', {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ path: projectPath, filename, content }),
@@ -46,7 +47,7 @@ export function useAgentFiles(projectPath: string | null) {
 
 	const deleteMutation = useMutation({
 		mutationFn: async (filename: string) => {
-			const res = await fetch('/api/filesystem/agents', {
+			const res = await apiFetch('/api/filesystem/agents', {
 				method: 'DELETE',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ path: projectPath, filename }),

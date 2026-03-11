@@ -1,0 +1,167 @@
+{
+	"sidebar": {
+		"dashboard": "Tableau de bord",
+		"issues": "Issues",
+		"prs": "PRs",
+		"workspace": "Workspace",
+		"agents": "Agents",
+		"skills": "Skills",
+		"todos": "Taches",
+		"settings": "Parametres",
+		"signOut": "Se deconnecter"
+	},
+	"landing": {
+		"nav": {
+			"cta": "Se connecter avec GitHub"
+		},
+		"hero": {
+			"tagline": "Un dashboard, tout ton workflow dev",
+			"subtitle": "Gere tes issues GitHub, pull requests et sessions IA paralleles depuis une interface unifiee. Concu pour les equipes qui livrent vite.",
+			"cta": "Commencer avec GitHub"
+		},
+		"features": {
+			"kanban": {
+				"title": "Issues & Kanban",
+				"desc": "Board Kanban synchronise sur GitHub Projects V2.",
+				"details": "Deplace tes issues entre colonnes en drag-and-drop, filtre par vue, et profite d'une synchronisation temps reel avec tes boards GitHub Project. Chaque changement de statut est reflète instantanement des deux cotes."
+			},
+			"prs": {
+				"title": "Pull Requests",
+				"desc": "Suivi des PRs et checks CI sur tous tes repos.",
+				"details": "Visualise toutes les PRs ouvertes avec le statut CI en live, les demandes de review et les stats de diff. Merge en un clic avec squash. Plus besoin de naviguer entre les repos."
+			},
+			"parallel": {
+				"title": "Sessions IA paralleles",
+				"desc": "Plusieurs agents Claude sur des branches separees.",
+				"details": "Assigne une issue a un agent, il cree une branche worktree et travaille de facon autonome. Lance-en plusieurs en parallele — chaque agent traite sa propre issue avec un log d'activite complet."
+			},
+			"workspace": {
+				"title": "Workspace unifie",
+				"desc": "Todos, branches, skills — un seul endroit.",
+				"details": "Gere tes listes de taches par repo, parcours les branches git avec l'historique des commits, configure les presets d'agents et les skills. Tout ce dont ton equipe a besoin sans quitter le dashboard."
+			}
+		}
+	},
+	"dashboard": {
+		"greeting": {
+			"morning": "Bonjour",
+			"afternoon": "Bon aprem",
+			"evening": "Bonsoir"
+		},
+		"time": {
+			"justNow": "a l'instant",
+			"minutesAgo": "il y a {mins}m",
+			"hoursAgo": "il y a {hours}h",
+			"daysAgo": "il y a {days}j"
+		},
+		"closeSession": "Fermer la session",
+		"sessionError": "Session terminee avec erreur",
+		"noReport": "Aucun rapport disponible",
+		"viewSession": "Voir la session",
+		"activeAgents": "{count, plural, one {# agent actif} other {# agents actifs}}",
+		"streaming": "en streaming",
+		"pendingTodos": "{count, plural, one {# tache en attente} other {# taches en attente}}",
+		"launchAgent": "Lancer un agent",
+		"activeAgentsTitle": "Agents actifs",
+		"pastSessions": "Sessions passees",
+		"noSessionsProject": "Aucune session sur ce projet",
+		"launchAgentToStart": "Lance un agent pour commencer",
+		"reports": "Rapports",
+		"noReportsYet": "Aucun rapport pour l'instant",
+		"reportsAppearWhen": "Les rapports apparaissent quand un agent termine sa session"
+	},
+	"issues": {
+		"title": "Issues",
+		"searchPlaceholder": "Rechercher #id ou titre...",
+		"refresh": "Rafraichir",
+		"noOpenIssues": "Aucune issue ouverte",
+		"noOpenIssuesDesc": "Aucune issue ouverte ne vous est assignee ici.",
+		"createBranch": "Creer une branche",
+		"branchName": "Nom de la branche",
+		"issue": "Issue",
+		"willExecute": "Executera : git checkout main → git pull --rebase → git checkout -b",
+		"creating": "Creation...",
+		"created": "Creee",
+		"branchCreated": "Branche {branchName} creee"
+	},
+	"todos": {
+		"title": "Taches",
+		"noProjectSelected": "Aucun projet selectionne",
+		"addRepoFirst": "Ajoutez d'abord un depot dans les parametres.",
+		"addProject": "Ajouter un projet",
+		"whatToDo": "Que faut-il faire ?",
+		"taskDescription": "Que faut-il faire pour cette tache ?",
+		"inProgress": "En cours",
+		"noTasks": "Aucune tache",
+		"done": "Termine"
+	},
+	"agents": {
+		"title": "Agents",
+		"noProjectSelected": "Aucun projet selectionne",
+		"selectProjectFolder": "Selectionnez un dossier projet pour gerer ses agents.",
+		"addProject": "Ajouter un projet",
+		"newAgent": "Nouvel agent",
+		"instruction": "Un agent = un fichier .md dans .claude/agents/. Ecrivez le prompt systeme en markdown.",
+		"noAgents": "Aucun agent",
+		"createAgentIn": "Creez un fichier .md dans {path}/.claude/agents/",
+		"createAgent": "Creer un agent",
+		"editAgent": "Modifier — {name}.md",
+		"fileName": "Nom du fichier",
+		"fileNameExample": "ex. code-reviewer",
+		"fileNameHelper": "Sera enregistre dans .claude/agents/{name}.md",
+		"agentPrompt": "Prompt de l'agent",
+		"promptPlaceholder": "Ecrivez le prompt systeme de l'agent en markdown...",
+		"files": "Fichiers"
+	},
+	"prs": {
+		"title": "Pull Requests",
+		"noProjectSelected": "Aucun projet selectionne",
+		"addRepoFirst": "Ajoutez d'abord un depot dans les parametres.",
+		"addProject": "Ajouter un projet",
+		"noOpenPRs": "Aucune pull request ouverte",
+		"checksPassed": "Checks passes",
+		"checksFailed": "Checks echoues",
+		"checksInProgress": "Checks en cours",
+		"checksPassedCount": "{passed}/{total} checks passes",
+		"draft": "Brouillon",
+		"merge": "Merge",
+		"squashAndMerge": "Squash and Merge",
+		"merging": "Merge en cours...",
+		"confirmMerge": "Confirmer le merge"
+	},
+	"skills": {
+		"title": "Skills",
+		"noProjectSelected": "Aucun projet selectionne",
+		"selectProjectFolder": "Ajoutez un depot dans les parametres pour gerer ses skills.",
+		"addProject": "Ajouter un projet",
+		"findSkills": "Trouver des skills",
+		"newSkill": "Nouveau skill",
+		"instruction": "Un skill = un fichier .md dans .claude/skills/. Les skills sont des templates de prompts reutilisables.",
+		"noSkills": "Aucun skill",
+		"createSkillIn": "Creez un fichier .md dans {path}/.claude/skills/"
+	},
+	"settings": {
+		"title": "Parametres",
+		"viewsSaved": "Vues enregistrees",
+		"pathSaved": "Chemin enregistre"
+	},
+	"header": {
+		"lightMode": "Mode clair",
+		"darkMode": "Mode sombre",
+		"hideAgents": "Masquer agents",
+		"showAgents": "Afficher agents"
+	},
+	"common": {
+		"loading": "Chargement...",
+		"error": "Une erreur est survenue",
+		"save": "Enregistrer",
+		"cancel": "Annuler",
+		"delete": "Supprimer",
+		"edit": "Modifier",
+		"close": "Fermer",
+		"confirm": "Confirmer",
+		"search": "Rechercher",
+		"noResults": "Aucun resultat",
+		"language": "Langue"
+	}
+}

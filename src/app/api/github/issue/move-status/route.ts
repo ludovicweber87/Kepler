@@ -6,8 +6,12 @@ import {
 	findProjectItemId,
 	updateProjectItemStatus,
 } from '@/lib/github';
+import { requireAuth, isAuthError } from '@/lib/auth-utils';
 
 export async function POST(req: NextRequest) {
+	const auth = await requireAuth();
+	if (isAuthError(auth)) return auth;
+
 	try {
 		const { owner, repo, issueNumber, newStatus } = (await req.json()) as {
 			owner: string;
@@ -23,7 +27,6 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		// Get project config from DB
 		const { data: config } = await supabase
 			.from('project_configs')
 			.select('org, project_number')
@@ -34,11 +37,8 @@ export async function POST(req: NextRequest) {
 			return NextResponse.json({ error: 'No project config found' }, { status: 404 });
 		}
 
-		// Get issue node_id from GitHub
-		const issue = await fetchIssue(owner, repo, issueNumber);
-
-		// Get project field info + move
-		const fieldInfo = await fetchStatusFieldInfo(config.org, config.project_number);
+		const issue = await fetchIssue(owner, repo, issueNumber, auth.accessToken);
+		const fieldInfo = await fetchStatusFieldInfo(config.org, config.project_number, auth.accessToken);
 		const option = fieldInfo.options.find((o) => o.name === newStatus);
 		if (!option) {
 			return NextResponse.json(
@@ -47,8 +47,8 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		const itemId = await findProjectItemId(issue.node_id, fieldInfo.projectId);
-		await updateProjectItemStatus(fieldInfo.projectId, itemId, fieldInfo.fieldId, option.id);
+		const itemId = await findProjectItemId(issue.node_id, fieldInfo.projectId, auth.accessToken);
+		await updateProjectItemStatus(fieldInfo.projectId, itemId, fieldInfo.fieldId, option.id, auth.accessToken);
 
 		return NextResponse.json({ ok: true });
 	} catch (err) {

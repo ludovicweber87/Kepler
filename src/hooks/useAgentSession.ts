@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSession } from 'next-auth/react';
 import { supabase } from '@/lib/supabase';
 
 export interface AgentSession {
@@ -53,6 +54,8 @@ async function fetchLogs(agentSessionId: string) {
 
 export function useAgentSession(sessionId: string | undefined) {
 	const qc = useQueryClient();
+	const { data: authSession } = useSession();
+	const userId = authSession?.user?.id ?? null;
 
 	const { data: session = null } = useQuery({
 		queryKey: queryKey(sessionId ?? ''),
@@ -123,6 +126,7 @@ export function useAgentSession(sessionId: string | undefined) {
 					issue_repo: params.issueRepo ?? null,
 					issue_number: params.issueNumber ?? null,
 					issue_title: params.issueTitle ?? null,
+					user_id: userId,
 				})
 				.select()
 				.single();
@@ -191,15 +195,20 @@ export function useAgentSession(sessionId: string | undefined) {
 
 /** Fetch all sessions for history view */
 export function useAgentSessionHistory() {
+	const { data: session } = useSession();
+	const userId = session?.user?.id ?? null;
+
 	return useQuery({
 		queryKey: ['agent-sessions', 'history'],
 		queryFn: async () => {
 			const { data, error } = await supabase
 				.from('agent_sessions')
 				.select('*')
+				.eq('user_id', userId!)
 				.order('started_at', { ascending: false });
 			if (error) throw error;
 			return (data ?? []) as AgentSession[];
 		},
+		enabled: !!userId,
 	});
 }

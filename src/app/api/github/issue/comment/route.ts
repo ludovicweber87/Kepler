@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createIssueComment } from '@/lib/github';
+import { requireAuth, isAuthError } from '@/lib/auth-utils';
 
 export async function POST(req: NextRequest) {
+	const auth = await requireAuth();
+	if (isAuthError(auth)) return auth;
+
 	try {
 		const { owner, repo, issueNumber, body } = (await req.json()) as {
 			owner: string;
@@ -17,7 +21,7 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		await createIssueComment(owner, repo, issueNumber, body);
+		await createIssueComment(owner, repo, issueNumber, body, auth.accessToken);
 
 		return NextResponse.json({ ok: true });
 	} catch (err) {

@@ -14,11 +14,14 @@ import {
 
 const GITHUB_API = 'https://api.github.com';
 
-function getHeaders(): HeadersInit {
-	const token = process.env.GITHUB_TOKEN;
-	if (!token) throw new Error('GITHUB_TOKEN is not set');
+function getToken(token: string): string {
+	if (!token) throw new Error('No GitHub token available');
+	return token;
+}
+
+function getHeaders(token: string): HeadersInit {
 	return {
-		Authorization: `Bearer ${token}`,
+		Authorization: `Bearer ${getToken(token)}`,
 		Accept: 'application/vnd.github+json',
 		'X-GitHub-Api-Version': '2022-11-28',
 	};
@@ -29,21 +32,21 @@ function repoFullName(repositoryUrl: string): string {
 	return repositoryUrl.replace(`${GITHUB_API}/repos/`, '');
 }
 
-export async function fetchUserLogin(): Promise<string> {
-	const res = await fetch(`${GITHUB_API}/user`, { headers: getHeaders() });
+export async function fetchUserLogin(token: string): Promise<string> {
+	const res = await fetch(`${GITHUB_API}/user`, { headers: getHeaders(token) });
 	if (!res.ok) throw new Error(`GitHub /user failed: ${res.status}`);
 	const data = await res.json();
 	return data.login;
 }
 
-export async function fetchUserRepos(): Promise<GitHubRepo[]> {
+export async function fetchUserRepos(token: string): Promise<GitHubRepo[]> {
 	const repos: GitHubRepo[] = [];
 	let page = 1;
 
 	while (true) {
 		const res = await fetch(
 			`${GITHUB_API}/user/repos?per_page=100&sort=pushed&affiliation=owner,collaborator,organization_member&page=${page}`,
-			{ headers: getHeaders() },
+			{ headers: getHeaders(token) },
 		);
 		if (!res.ok) throw new Error(`GitHub /user/repos failed: ${res.status}`);
 		const data: GitHubRepo[] = await res.json();
@@ -58,6 +61,7 @@ export async function fetchUserRepos(): Promise<GitHubRepo[]> {
 
 async function fetchIssuesByFilter(
 	filter: 'assigned' | 'created',
+	token: string,
 ): Promise<GitHubIssue[]> {
 	const issues: GitHubIssue[] = [];
 	let page = 1;
@@ -65,7 +69,7 @@ async function fetchIssuesByFilter(
 	while (true) {
 		const res = await fetch(
 			`${GITHUB_API}/issues?filter=${filter}&state=all&per_page=100&sort=updated&page=${page}`,
-			{ headers: getHeaders() },
+			{ headers: getHeaders(token) },
 		);
 		if (!res.ok) throw new Error(`GitHub /issues (${filter}) failed: ${res.status}`);
 		const data: GitHubIssue[] = await res.json();
@@ -86,23 +90,8 @@ async function fetchIssuesByFilter(
 	return issues;
 }
 
-export async function fetchAssignedIssues(): Promise<GitHubIssue[]> {
-	const [assigned, created] = await Promise.all([
-		fetchIssuesByFilter('assigned'),
-		fetchIssuesByFilter('created'),
-	]);
-
-	// Deduplicate by issue id (assigned + created can overlap)
-	const seen = new Set<number>();
-	const merged: GitHubIssue[] = [];
-	for (const issue of [...assigned, ...created]) {
-		if (!seen.has(issue.id)) {
-			seen.add(issue.id);
-			merged.push(issue);
-		}
-	}
-
-	return merged;
+export async function fetchAssignedIssues(token: string): Promise<GitHubIssue[]> {
+	return fetchIssuesByFilter('assigned', token);
 }
 
 async function fetchProjectColumnsBatch(
@@ -170,8 +159,8 @@ async function fetchProjectColumnsBatch(
 
 export async function fetchProjectColumns(
 	nodeIds: string[],
+	token: string,
 ): Promise<Map<string, ProjectColumn[]>> {
-	const token = process.env.GITHUB_TOKEN;
 	if (!token || nodeIds.length === 0) return new Map();
 
 	// Split into batches of 50, then run all batches in parallel
@@ -194,11 +183,11 @@ export async function fetchProjectColumns(
 	return result;
 }
 
-export async function fetchSpecificIssues(refs: ViewIssueRef[]): Promise<GitHubIssue[]> {
+export async function fetchSpecificIssues(refs: ViewIssueRef[], token: string): Promise<GitHubIssue[]> {
 	const results = await Promise.allSettled(
 		refs.map((ref) => {
 			const [owner, repo] = ref.repo.split('/');
-			return fetchIssue(owner, repo, ref.number);
+			return fetchIssue(owner, repo, ref.number, token);
 		}),
 	);
 	return results
@@ -210,9 +199,10 @@ export async function fetchIssue(
 	owner: string,
 	repo: string,
 	number: number,
+	token: string,
 ): Promise<GitHubIssue> {
 	const res = await fetch(`${GITHUB_API}/repos/${owner}/${repo}/issues/${number}`, {
-		headers: getHeaders(),
+		headers: getHeaders(token),
 	});
 	if (!res.ok) throw new Error(`GitHub issue fetch failed: ${res.status}`);
 	const data: GitHubIssue = await res.json();
@@ -226,6 +216,7 @@ export async function fetchIssueComments(
 	owner: string,
 	repo: string,
 	number: number,
+	token: string,
 ): Promise<GitHubComment[]> {
 	const comments: GitHubComment[] = [];
 	let page = 1;
@@ -233,7 +224,7 @@ export async function fetchIssueComments(
 	while (true) {
 		const res = await fetch(
 			`${GITHUB_API}/repos/${owner}/${repo}/issues/${number}/comments?per_page=100&page=${page}`,
-			{ headers: getHeaders() },
+			{ headers: getHeaders(token) },
 		);
 		if (!res.ok) throw new Error(`GitHub comments fetch failed: ${res.status}`);
 		const data: GitHubComment[] = await res.json();
@@ -250,6 +241,7 @@ export async function fetchIssueTimeline(
 	owner: string,
 	repo: string,
 	number: number,
+	token: string,
 ): Promise<GitHubTimelineEvent[]> {
 	const events: GitHubTimelineEvent[] = [];
 	let page = 1;
@@ -259,7 +251,7 @@ export async function fetchIssueTimeline(
 			`${GITHUB_API}/repos/${owner}/${repo}/issues/${number}/timeline?per_page=100&page=${page}`,
 			{
 				headers: {
-					...getHeaders(),
+					...getHeaders(token),
 					Accept: 'application/vnd.github.mockingbird-preview+json',
 				},
 			},
@@ -280,10 +272,11 @@ export async function updateIssue(
 	repo: string,
 	number: number,
 	fields: { title?: string; body?: string },
+	token: string,
 ): Promise<void> {
 	const res = await fetch(`${GITHUB_API}/repos/${owner}/${repo}/issues/${number}`, {
 		method: 'PATCH',
-		headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+		headers: { ...getHeaders(token), 'Content-Type': 'application/json' },
 		body: JSON.stringify(fields),
 	});
 	if (!res.ok) throw new Error(`GitHub update issue failed: ${res.status}`);
@@ -294,10 +287,11 @@ export async function createIssueComment(
 	repo: string,
 	number: number,
 	body: string,
+	token: string,
 ): Promise<void> {
 	const res = await fetch(`${GITHUB_API}/repos/${owner}/${repo}/issues/${number}/comments`, {
 		method: 'POST',
-		headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+		headers: { ...getHeaders(token), 'Content-Type': 'application/json' },
 		body: JSON.stringify({ body }),
 	});
 	if (!res.ok) throw new Error(`GitHub create comment failed: ${res.status}`);
@@ -310,10 +304,11 @@ export async function createPullRequest(
 	base: string,
 	title: string,
 	body: string,
+	token: string,
 ): Promise<{ html_url: string; number: number }> {
 	const res = await fetch(`${GITHUB_API}/repos/${owner}/${repo}/pulls`, {
 		method: 'POST',
-		headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+		headers: { ...getHeaders(token), 'Content-Type': 'application/json' },
 		body: JSON.stringify({ head, base, title, body }),
 	});
 	if (!res.ok) {
@@ -325,7 +320,7 @@ export async function createPullRequest(
 		if (alreadyExists) {
 			const searchRes = await fetch(
 				`${GITHUB_API}/repos/${owner}/${repo}/pulls?head=${owner}:${head}&state=open`,
-				{ headers: getHeaders() },
+				{ headers: getHeaders(token) },
 			);
 			const prs = await searchRes.json();
 			if (prs.length > 0) return { html_url: prs[0].html_url, number: prs[0].number };
@@ -345,6 +340,7 @@ export async function fetchRepoPullRequests(
 	owner: string,
 	repo: string,
 	state: 'open' | 'closed' | 'all' = 'open',
+	token: string,
 ): Promise<GitHubPullRequest[]> {
 	const prs: GitHubPullRequest[] = [];
 	let page = 1;
@@ -352,7 +348,7 @@ export async function fetchRepoPullRequests(
 	while (true) {
 		const res = await fetch(
 			`${GITHUB_API}/repos/${owner}/${repo}/pulls?state=${state}&per_page=100&sort=updated&direction=desc&page=${page}`,
-			{ headers: getHeaders() },
+			{ headers: getHeaders(token) },
 		);
 		if (!res.ok) throw new Error(`GitHub /pulls failed: ${res.status}`);
 		const data = await res.json();
@@ -361,7 +357,7 @@ export async function fetchRepoPullRequests(
 		// Fetch check runs for all PRs in this page in parallel
 		const checksResults = await Promise.all(
 			data.map((pr: { head: { sha: string } }) =>
-				fetchCheckRunsForRef(owner, repo, pr.head.sha),
+				fetchCheckRunsForRef(owner, repo, pr.head.sha, token),
 			),
 		);
 
@@ -417,11 +413,12 @@ async function fetchCheckRunsForRef(
 	owner: string,
 	repo: string,
 	ref: string,
+	token: string,
 ): Promise<{ check_status: GitHubPullRequest['check_status']; check_runs: CheckRun[] }> {
 	try {
 		const res = await fetch(
 			`${GITHUB_API}/repos/${owner}/${repo}/commits/${ref}/check-runs?per_page=100`,
-			{ headers: getHeaders() },
+			{ headers: getHeaders(token) },
 		);
 		if (!res.ok) return { check_status: null, check_runs: [] };
 		const data = await res.json();
@@ -456,12 +453,13 @@ export async function mergePullRequest(
 	owner: string,
 	repo: string,
 	pullNumber: number,
+	token: string,
 ): Promise<{ sha: string; message: string }> {
 	const res = await fetch(
 		`${GITHUB_API}/repos/${owner}/${repo}/pulls/${pullNumber}/merge`,
 		{
 			method: 'PUT',
-			headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+			headers: { ...getHeaders(token), 'Content-Type': 'application/json' },
 			body: JSON.stringify({ merge_method: 'squash' }),
 		},
 	);
@@ -474,19 +472,17 @@ export async function mergePullRequest(
 
 // --- Project V2 GraphQL functions ---
 
-function graphqlHeaders(): HeadersInit {
-	const token = process.env.GITHUB_TOKEN;
-	if (!token) throw new Error('GITHUB_TOKEN is not set');
+function graphqlHeaders(token: string): HeadersInit {
 	return {
-		Authorization: `Bearer ${token}`,
+		Authorization: `Bearer ${getToken(token)}`,
 		'Content-Type': 'application/json',
 	};
 }
 
-async function graphqlRequest(query: string, variables: Record<string, unknown> = {}) {
+async function graphqlRequest(query: string, variables: Record<string, unknown> = {}, token: string) {
 	const res = await fetch('https://api.github.com/graphql', {
 		method: 'POST',
-		headers: graphqlHeaders(),
+		headers: graphqlHeaders(token),
 		body: JSON.stringify({ query, variables }),
 	});
 	if (!res.ok) throw new Error(`GraphQL request failed: ${res.status}`);
@@ -497,6 +493,7 @@ async function graphqlRequest(query: string, variables: Record<string, unknown> 
 
 export async function fetchOrgProjects(
 	org: string,
+	token: string,
 ): Promise<{ id: string; title: string; number: number }[]> {
 	const query = `
     query($org: String!) {
@@ -507,7 +504,7 @@ export async function fetchOrgProjects(
       }
     }
   `;
-	const data = await graphqlRequest(query, { org });
+	const data = await graphqlRequest(query, { org }, token);
 	return data.organization.projectsV2.nodes;
 }
 
@@ -516,7 +513,7 @@ export interface OrgWithProjects {
 	projects: { id: string; title: string; number: number }[];
 }
 
-export async function fetchViewerOrgProjects(): Promise<OrgWithProjects[]> {
+export async function fetchViewerOrgProjects(token: string): Promise<OrgWithProjects[]> {
 	const query = `
     query {
       viewer {
@@ -531,7 +528,7 @@ export async function fetchViewerOrgProjects(): Promise<OrgWithProjects[]> {
       }
     }
   `;
-	const data = await graphqlRequest(query);
+	const data = await graphqlRequest(query, {}, token);
 	const orgs = data.viewer.organizations.nodes as {
 		login: string;
 		projectsV2: { nodes: { id: string; title: string; number: number }[] };
@@ -552,6 +549,7 @@ export interface StatusFieldInfo {
 export async function fetchStatusFieldInfo(
 	org: string,
 	projectNumber: number,
+	token: string,
 ): Promise<StatusFieldInfo> {
 	const query = `
     query($org: String!, $num: Int!) {
@@ -568,7 +566,7 @@ export async function fetchStatusFieldInfo(
       }
     }
   `;
-	const data = await graphqlRequest(query, { org, num: projectNumber });
+	const data = await graphqlRequest(query, { org, num: projectNumber }, token);
 	const project = data.organization.projectV2;
 	return {
 		projectId: project.id,
@@ -577,7 +575,7 @@ export async function fetchStatusFieldInfo(
 	};
 }
 
-export async function findProjectItemId(issueNodeId: string, projectId: string): Promise<string> {
+export async function findProjectItemId(issueNodeId: string, projectId: string, token: string): Promise<string> {
 	const query = `
     query($id: ID!) {
       node(id: $id) {
@@ -592,7 +590,7 @@ export async function findProjectItemId(issueNodeId: string, projectId: string):
       }
     }
   `;
-	const data = await graphqlRequest(query, { id: issueNodeId });
+	const data = await graphqlRequest(query, { id: issueNodeId }, token);
 	const items = data.node?.projectItems?.nodes ?? [];
 	const match = items.find(
 		(item: { id: string; project: { id: string } }) => item.project.id === projectId,
@@ -606,6 +604,7 @@ export async function updateProjectItemStatus(
 	itemId: string,
 	fieldId: string,
 	optionId: string,
+	token: string,
 ): Promise<void> {
 	const mutation = `
     mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
@@ -621,7 +620,7 @@ export async function updateProjectItemStatus(
       }
     }
   `;
-	await graphqlRequest(mutation, { projectId, itemId, fieldId, optionId });
+	await graphqlRequest(mutation, { projectId, itemId, fieldId, optionId }, token);
 }
 
 // --- Project V2 data fetching ---
@@ -629,6 +628,7 @@ export async function updateProjectItemStatus(
 export async function fetchProjectV2Data(
 	org: string,
 	projectNumber: number,
+	token: string,
 ): Promise<ProjectV2Data> {
 	// First fetch project info + views + first page of items in a single query
 	const combinedQuery = `
@@ -676,7 +676,7 @@ export async function fetchProjectV2Data(
       }
     }
   `;
-	const initialData = await graphqlRequest(combinedQuery, { org, num: projectNumber });
+	const initialData = await graphqlRequest(combinedQuery, { org, num: projectNumber }, token);
 	const project = initialData.organization.projectV2;
 
 	const views: ProjectV2View[] = project.views.nodes.map(
@@ -756,7 +756,7 @@ export async function fetchProjectV2Data(
         }
       }
     `;
-		const data = await graphqlRequest(itemsQuery, { org, num: projectNumber, cursor });
+		const data = await graphqlRequest(itemsQuery, { org, num: projectNumber, cursor }, token);
 		const itemsPage = data.organization.projectV2.items;
 		items.push(...parseItemNodes(itemsPage.nodes));
 		hasNext = itemsPage.pageInfo.hasNextPage;

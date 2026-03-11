@@ -1,0 +1,167 @@
+{
+	"sidebar": {
+		"dashboard": "Panel",
+		"issues": "Issues",
+		"prs": "PRs",
+		"workspace": "Espacio de trabajo",
+		"agents": "Agentes",
+		"skills": "Skills",
+		"todos": "Tareas",
+		"settings": "Ajustes",
+		"signOut": "Cerrar sesión"
+	},
+	"landing": {
+		"nav": {
+			"cta": "Iniciar sesión con GitHub"
+		},
+		"hero": {
+			"tagline": "Un panel, todo tu flujo de desarrollo",
+			"subtitle": "Gestiona tus issues de GitHub, pull requests y sesiones de IA en paralelo desde una única interfaz unificada. Diseñado para equipos que despliegan rápido.",
+			"cta": "Empezar con GitHub"
+		},
+		"features": {
+			"kanban": {
+				"title": "Issues & Kanban",
+				"desc": "Tablero Kanban sincronizado con GitHub Projects V2.",
+				"details": "Arrastra y suelta issues entre columnas de estado, filtra por vista y observa la sincronización en tiempo real con tus tableros de GitHub Projects. Cada cambio de estado se refleja instantáneamente en ambos lados."
+			},
+			"prs": {
+				"title": "Pull Requests",
+				"desc": "Supervisa PRs y checks de CI en todos los repos.",
+				"details": "Visualiza todas las PRs abiertas en una sola vista con el estado de CI en directo, solicitudes de revisión y estadísticas de diff. Fusiona con un clic usando squash merge. Se acabó cambiar entre repos."
+			},
+			"parallel": {
+				"title": "Sesiones de IA en paralelo",
+				"desc": "Múltiples agentes Claude en ramas separadas.",
+				"details": "Asigna una issue a un agente, este crea una rama worktree y trabaja de forma autónoma. Ejecuta varios en paralelo — cada agente aborda su propia issue de manera independiente con registro completo de actividad."
+			},
+			"workspace": {
+				"title": "Espacio de trabajo unificado",
+				"desc": "Tareas, ramas, skills — en un solo lugar.",
+				"details": "Gestiona listas de tareas por repo, explora ramas git con historial de commits, configura presets y skills de agentes. Todo lo que tu equipo necesita sin salir del panel."
+			}
+		}
+	},
+	"dashboard": {
+		"greeting": {
+			"morning": "Buenos días",
+			"afternoon": "Buenas tardes",
+			"evening": "Buenas noches"
+		},
+		"time": {
+			"justNow": "ahora mismo",
+			"minutesAgo": "hace {mins}m",
+			"hoursAgo": "hace {hours}h",
+			"daysAgo": "hace {days}d"
+		},
+		"closeSession": "Cerrar sesión",
+		"sessionError": "La sesión terminó con error",
+		"noReport": "Sin informe disponible",
+		"viewSession": "Ver sesión",
+		"activeAgents": "{count, plural, one {# agente activo} other {# agentes activos}}",
+		"streaming": "transmitiendo",
+		"pendingTodos": "{count, plural, one {# tarea pendiente} other {# tareas pendientes}}",
+		"launchAgent": "Lanzar agente",
+		"activeAgentsTitle": "Agentes activos",
+		"pastSessions": "Sesiones anteriores",
+		"noSessionsProject": "Sin sesiones para este proyecto",
+		"launchAgentToStart": "Lanza un agente para empezar",
+		"reports": "Informes",
+		"noReportsYet": "Aún no hay informes",
+		"reportsAppearWhen": "Los informes aparecen cuando un agente completa su sesión"
+	},
+	"issues": {
+		"title": "Issues",
+		"searchPlaceholder": "Buscar #id o título...",
+		"refresh": "Actualizar",
+		"noOpenIssues": "Sin issues abiertas",
+		"noOpenIssuesDesc": "No tienes issues abiertas asignadas aquí.",
+		"createBranch": "Crear rama",
+		"branchName": "Nombre de la rama",
+		"issue": "Issue",
+		"willExecute": "Se ejecutará: git checkout main → git pull --rebase → git checkout -b",
+		"creating": "Creando...",
+		"created": "Creada",
+		"branchCreated": "Rama {branchName} creada"
+	},
+	"todos": {
+		"title": "Tareas",
+		"noProjectSelected": "Ningún proyecto seleccionado",
+		"addRepoFirst": "Añade un repositorio en ajustes primero.",
+		"addProject": "Añadir proyecto",
+		"whatToDo": "¿Qué hay que hacer?",
+		"taskDescription": "¿Qué hay que hacer para esta tarea?",
+		"inProgress": "En progreso",
+		"noTasks": "Sin tareas",
+		"done": "Hecho"
+	},
+	"agents": {
+		"title": "Agentes",
+		"noProjectSelected": "Ningún proyecto seleccionado",
+		"selectProjectFolder": "Selecciona una carpeta de proyecto para gestionar sus agentes.",
+		"addProject": "Añadir proyecto",
+		"newAgent": "Nuevo agente",
+		"instruction": "Un agente = un archivo .md en .claude/agents/. Escribe el prompt del sistema en markdown.",
+		"noAgents": "Sin agentes",
+		"createAgentIn": "Crea un archivo .md en {path}/.claude/agents/",
+		"createAgent": "Crear agente",
+		"editAgent": "Editar — {name}.md",
+		"fileName": "Nombre del archivo",
+		"fileNameExample": "ej. code-reviewer",
+		"fileNameHelper": "Se guardará en .claude/agents/{name}.md",
+		"agentPrompt": "Prompt del agente",
+		"promptPlaceholder": "Escribe el prompt del sistema del agente en markdown...",
+		"files": "Archivos"
+	},
+	"prs": {
+		"title": "Pull Requests",
+		"noProjectSelected": "Ningún proyecto seleccionado",
+		"addRepoFirst": "Añade un repositorio en ajustes primero.",
+		"addProject": "Añadir proyecto",
+		"noOpenPRs": "Sin pull requests abiertas",
+		"checksPassed": "Checks aprobados",
+		"checksFailed": "Checks fallidos",
+		"checksInProgress": "Checks en curso",
+		"checksPassedCount": "{passed}/{total} checks aprobados",
+		"draft": "Borrador",
+		"merge": "Fusionar",
+		"squashAndMerge": "Squash and Merge",
+		"merging": "Fusionando...",
+		"confirmMerge": "Confirmar fusión"
+	},
+	"skills": {
+		"title": "Skills",
+		"noProjectSelected": "Ningún proyecto seleccionado",
+		"selectProjectFolder": "Añade un repositorio en ajustes para gestionar sus skills.",
+		"addProject": "Añadir proyecto",
+		"findSkills": "Buscar skills",
+		"newSkill": "Nuevo skill",
+		"instruction": "Un skill = un archivo .md en .claude/skills/. Los skills son plantillas de prompts reutilizables.",
+		"noSkills": "Sin skills",
+		"createSkillIn": "Crea un archivo .md en {path}/.claude/skills/"
+	},
+	"settings": {
+		"title": "Ajustes",
+		"viewsSaved": "Vistas guardadas",
+		"pathSaved": "Ruta guardada"
+	},
+	"header": {
+		"lightMode": "Modo claro",
+		"darkMode": "Modo oscuro",
+		"hideAgents": "Ocultar agentes",
+		"showAgents": "Mostrar agentes"
+	},
+	"common": {
+		"loading": "Cargando...",
+		"error": "Se ha producido un error",
+		"save": "Guardar",
+		"cancel": "Cancelar",
+		"delete": "Eliminar",
+		"edit": "Editar",
+		"close": "Cerrar",
+		"confirm": "Confirmar",
+		"search": "Buscar",
+		"noResults": "Sin resultados",
+		"language": "Idioma"
+	}
+}

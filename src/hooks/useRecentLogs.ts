@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useSession } from 'next-auth/react';
 import { supabase } from '@/lib/supabase';
 
 export interface AgentSummary {
@@ -18,11 +19,12 @@ export interface AgentSummary {
 	summary_at: string | null;
 }
 
-async function fetchAgentSummaries(): Promise<AgentSummary[]> {
+async function fetchAgentSummaries(userId: string): Promise<AgentSummary[]> {
 	// Fetch recent sessions (completed or error, last 50)
 	const { data: sessions, error: sessErr } = await supabase
 		.from('agent_sessions')
 		.select('*')
+		.eq('user_id', userId)
 		.in('status', ['completed', 'error'])
 		.order('started_at', { ascending: false })
 		.limit(50);
@@ -102,9 +104,13 @@ async function fetchAgentSummaries(): Promise<AgentSummary[]> {
 }
 
 export function useAgentSummaries() {
+	const { data: session } = useSession();
+	const userId = session?.user?.id ?? null;
+
 	return useQuery({
 		queryKey: ['agent-summaries'],
-		queryFn: fetchAgentSummaries,
+		queryFn: () => fetchAgentSummaries(userId!),
+		enabled: !!userId,
 		refetchInterval: 15_000,
 	});
 }

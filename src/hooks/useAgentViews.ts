@@ -30,11 +30,10 @@ export function useAgentViews() {
 
 	const addView = useCallback(async (): Promise<AgentView | null> => {
 		try {
-			const res = await fetch('/api/filesystem/pick-directory');
+			const { apiFetch } = await import('@/lib/api-fetch');
+			const res = await apiFetch('/api/filesystem/pick-directory');
 			const { path } = await res.json();
 			if (!path) return null;
-
-			const label = path.split('/').filter(Boolean).pop() || path;
 
 			const existing = views.find((v) => v.path === path);
 			if (existing) {
@@ -42,9 +41,25 @@ export function useAgentViews() {
 				return existing;
 			}
 
-			savePath(label, path);
+			// Resolve real owner/repo from git remote
+			let repoFullName = path.split('/').filter(Boolean).pop() || path;
+			try {
+				const repoRes = await apiFetch(`/api/git/repo-name?path=${encodeURIComponent(path)}`);
+				if (repoRes.ok) {
+					const { repoFullName: resolved } = await repoRes.json();
+					if (resolved) repoFullName = resolved;
+				}
+			} catch {
+				// Fallback to directory name
+			}
+
+			const label = repoFullName.includes('/')
+				? repoFullName.split('/').pop()!
+				: repoFullName;
+
+			savePath(repoFullName, path);
 			setActiveIndex(views.length);
-			return { label, path, repoFullName: label };
+			return { label, path, repoFullName };
 		} catch {
 			return null;
 		}

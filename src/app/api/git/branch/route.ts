@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { execSync } from 'child_process';
 import { createIssueComment } from '@/lib/github';
+import { requireAuth, isAuthError } from '@/lib/auth-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +12,9 @@ const supabase = createClient(
 );
 
 export async function POST(request: Request) {
+	const auth = await requireAuth();
+	if (isAuthError(auth)) return auth;
+
 	try {
 		const { repoFullName, branchName, issueNumber } = await request.json();
 
@@ -56,7 +60,7 @@ export async function POST(request: Request) {
 		// Post branch name as comment on the GitHub issue
 		if (issueNumber) {
 			const [owner, repo] = repoFullName.split('/');
-			await createIssueComment(owner, repo, issueNumber, `Branch \`${branchName}\` created`);
+			await createIssueComment(owner, repo, issueNumber, `Branch \`${branchName}\` created`, auth.accessToken);
 		}
 
 		return NextResponse.json({ success: true });

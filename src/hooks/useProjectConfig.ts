@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSession } from 'next-auth/react';
 import { supabase } from '@/lib/supabase';
 import type { ProjectV2Config, ProjectV2View, ViewRepoMapping } from '@/types';
 
@@ -46,8 +47,13 @@ function configToRow(config: ProjectV2Config) {
 	};
 }
 
-async function fetchConfig(): Promise<ProjectV2Config | null> {
-	const { data, error } = await supabase.from('project_configs').select('*').limit(1).single();
+async function fetchConfig(userId: string): Promise<ProjectV2Config | null> {
+	const { data, error } = await supabase
+		.from('project_configs')
+		.select('*')
+		.eq('user_id', userId)
+		.limit(1)
+		.single();
 
 	if (error) {
 		if (error.code === 'PGRST116') return null; // no rows
@@ -59,10 +65,13 @@ async function fetchConfig(): Promise<ProjectV2Config | null> {
 
 export function useProjectConfig() {
 	const queryClient = useQueryClient();
+	const { data: session } = useSession();
+	const userId = session?.user?.id ?? null;
 
 	const { data: config = null } = useQuery({
 		queryKey: QUERY_KEY,
-		queryFn: fetchConfig,
+		queryFn: () => fetchConfig(userId!),
+		enabled: !!userId,
 	});
 
 	const saveMutation = useMutation({
@@ -70,7 +79,7 @@ export function useProjectConfig() {
 			const row = configToRow(newConfig);
 			const { error } = await supabase
 				.from('project_configs')
-				.upsert({ ...row, user_id: null }, { onConflict: 'user_id,org,project_number' });
+				.upsert({ ...row, user_id: userId }, { onConflict: 'user_id,org,project_number' });
 			if (error) throw error;
 		},
 		onMutate: async (newConfig) => {
@@ -143,7 +152,8 @@ export function useProjectConfig() {
 		if (!config || syncingRef.current) return;
 		syncingRef.current = true;
 		try {
-			const res = await fetch(
+			const { apiFetch } = await import('@/lib/api-fetch');
+			const res = await apiFetch(
 				`/api/github/projects?org=${config.org}&projectNumber=${config.projectNumber}`,
 			);
 			if (!res.ok) return;

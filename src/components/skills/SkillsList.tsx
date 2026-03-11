@@ -21,9 +21,12 @@ import SkillEditorDialog from './SkillEditorDialog';
 import AgentTerminalModal from '@/components/agents/AgentTerminalModal';
 import DraggableTabs from '@/components/shared/DraggableTabs';
 import { useAgentViews } from '@/hooks/useAgentViews';
+import { useTranslations } from 'next-intl';
 import { useSkillFiles, type SkillFile } from '@/hooks/useSkillFiles';
 
 export default function SkillsList() {
+	const t = useTranslations('skills');
+	const tc = useTranslations('common');
 	const { views, activeIndex, activeView, setActiveIndex, addView, reorderViews } =
 		useAgentViews();
 
@@ -62,7 +65,7 @@ export default function SkillsList() {
 						WebkitTextFillColor: 'transparent',
 					}}
 				>
-					Skills
+					{t('title')}
 				</Typography>
 				<Box
 					sx={{
@@ -76,10 +79,10 @@ export default function SkillsList() {
 				>
 					<FolderOpenRoundedIcon sx={{ fontSize: 64, color: 'text.disabled' }} />
 					<Typography variant="h6" color="text.secondary">
-						Aucun projet sélectionné
+						{t('noProjectSelected')}
 					</Typography>
 					<Typography variant="body2" color="text.disabled" sx={{ mb: 2 }}>
-						Ajoutez un dépôt dans les paramètres pour gérer ses skills.
+						{t('selectProjectFolder')}
 					</Typography>
 					<Button
 						variant="outlined"
@@ -95,7 +98,7 @@ export default function SkillsList() {
 							},
 						}}
 					>
-						Ajouter un projet
+						{t('addProject')}
 					</Button>
 				</Box>
 			</Box>
@@ -122,7 +125,7 @@ export default function SkillsList() {
 						WebkitTextFillColor: 'transparent',
 					}}
 				>
-					Skills
+					{t('title')}
 				</Typography>
 				<Box sx={{ display: 'flex', gap: 1 }}>
 					<Button
@@ -145,7 +148,7 @@ export default function SkillsList() {
 							},
 						}}
 					>
-						Trouver des skills
+						{t('findSkills')}
 					</Button>
 					<Button
 						variant="contained"
@@ -161,7 +164,7 @@ export default function SkillsList() {
 							fontWeight: 600,
 						}}
 					>
-						Nouveau skill
+						{t('newSkill')}
 					</Button>
 				</Box>
 			</Box>
@@ -169,9 +172,7 @@ export default function SkillsList() {
 				variant="body2"
 				sx={{ color: 'text.secondary', mb: 3, maxWidth: 640, lineHeight: 1.6 }}
 			>
-				Les skills sont des fichiers Markdown (<code>.md</code>) qui enrichissent les
-				connaissances de Claude sur votre projet. Ajoutez un skill pour documenter un workflow,
-				une convention ou un outil interne — Claude les utilisera automatiquement en contexte.
+				{t('instruction')}
 			</Typography>
 
 			{/* Tabs */}
@@ -182,7 +183,7 @@ export default function SkillsList() {
 				onReorder={reorderViews}
 				color="#00E5FF"
 				trailing={
-					<Tooltip title="Ajouter un projet">
+					<Tooltip title={t('addProject')}>
 						<IconButton
 							size="small"
 							onClick={() => addView()}
@@ -215,15 +216,14 @@ export default function SkillsList() {
 				>
 					<AutoFixHighRoundedIcon sx={{ fontSize: 64, color: 'text.disabled' }} />
 					<Typography variant="h6" color="text.secondary">
-						Aucun skill
+						{t('noSkills')}
 					</Typography>
 					<Typography
 						variant="body2"
 						color="text.disabled"
 						sx={{ mb: 2, textAlign: 'center' }}
 					>
-						Créez un fichier <code>.md</code> dans{' '}
-						<code>{activeView?.path}/.claude/skills/</code>
+						{t('createSkillIn', { path: activeView?.path ?? '' })}
 					</Typography>
 					<Button
 						variant="outlined"
@@ -239,7 +239,7 @@ export default function SkillsList() {
 							},
 						}}
 					>
-						Créer un skill
+						{t('newSkill')}
 					</Button>
 				</Box>
 			)}
@@ -337,7 +337,7 @@ export default function SkillsList() {
 										gap: 0.5,
 									}}
 								>
-									<Tooltip title="Modifier">
+									<Tooltip title={tc('edit')}>
 										<IconButton
 											size="small"
 											onClick={(e) => {
@@ -352,7 +352,7 @@ export default function SkillsList() {
 											<EditRoundedIcon fontSize="small" />
 										</IconButton>
 									</Tooltip>
-									<Tooltip title="Supprimer">
+									<Tooltip title={tc('delete')}>
 										<IconButton
 											size="small"
 											onClick={(e) => {

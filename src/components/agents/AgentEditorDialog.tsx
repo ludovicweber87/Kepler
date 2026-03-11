@@ -8,6 +8,7 @@ import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import { alpha } from '@mui/material/styles';
+import { useTranslations } from 'next-intl';
 import type { AgentFile } from '@/hooks/useAgentFiles';
 
 interface AgentEditorDialogProps {
@@ -23,6 +24,8 @@ export default function AgentEditorDialog({
 	onSave,
 	agent,
 }: AgentEditorDialogProps) {
+	const t = useTranslations('agents');
+	const tc = useTranslations('common');
 	const [filename, setFilename] = useState('');
 	const [content, setContent] = useState('');
 
@@ -62,7 +65,7 @@ export default function AgentEditorDialog({
 			}}
 		>
 			<DialogTitle sx={{ fontWeight: 600 }}>
-				{agent ? `Modifier — ${agent.name}.md` : 'Nouvel agent'}
+				{agent ? t('editAgent', { name: agent.name }) : t('newAgent')}
 			</DialogTitle>
 			<DialogContent
 				sx={{
@@ -76,27 +79,27 @@ export default function AgentEditorDialog({
 			>
 				{!agent && (
 					<TextField
-						label="Nom du fichier"
+						label={t('fileName')}
 						value={filename}
 						onChange={(e) => setFilename(e.target.value)}
 						required
 						fullWidth
-						placeholder="ex. code-reviewer"
-						helperText="Sera enregistré dans .claude/agents/{name}.md"
+						placeholder={t('fileNameExample')}
+						helperText={t('fileNameHelper', { name: filename || '…' })}
 						size="small"
 						sx={{ flexShrink: 0 }}
 					/>
 				)}
 
 				<TextField
-					label="Prompt de l'agent"
+					label={t('agentPrompt')}
 					value={content}
 					onChange={(e) => setContent(e.target.value)}
 					required
 					fullWidth
 					multiline
 					rows={undefined}
-					placeholder="Écrivez le prompt système de l'agent en markdown..."
+					placeholder={t('promptPlaceholder')}
 					sx={{
 						flex: 1,
 						minHeight: 0,
@@ -119,7 +122,7 @@ export default function AgentEditorDialog({
 			</DialogContent>
 			<DialogActions sx={{ px: 3, pb: 2.5 }}>
 				<Button onClick={onClose} sx={{ color: 'text.secondary' }}>
-					Annuler
+					{tc('cancel')}
 				</Button>
 				<Button
 					onClick={handleSave}
@@ -130,7 +133,7 @@ export default function AgentEditorDialog({
 						'&:hover': { bgcolor: alpha('#7C5CFF', 0.85) },
 					}}
 				>
-					Enregistrer
+					{tc('save')}
 				</Button>
 			</DialogActions>
 		</Dialog>

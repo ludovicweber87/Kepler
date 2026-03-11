@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSession } from 'next-auth/react';
 import { supabase } from '@/lib/supabase';
 
 interface RepoPathRow {
@@ -10,19 +11,23 @@ interface RepoPathRow {
 
 const QUERY_KEY = ['repo-paths'];
 
-async function fetchRepoPaths(): Promise<RepoPathRow[]> {
-	const { data, error } = await supabase.from('repo_paths').select('*').order('repo_full_name');
-
-	if (error) throw error;
-	return data as RepoPathRow[];
-}
-
 export function useRepoPaths() {
 	const queryClient = useQueryClient();
+	const { data: session } = useSession();
+	const userId = session?.user?.id ?? null;
 
 	const { data: repoPaths = [] } = useQuery({
 		queryKey: QUERY_KEY,
-		queryFn: fetchRepoPaths,
+		queryFn: async () => {
+			const { data, error } = await supabase
+				.from('repo_paths')
+				.select('*')
+				.eq('user_id', userId!)
+				.order('repo_full_name');
+			if (error) throw error;
+			return data as RepoPathRow[];
+		},
+		enabled: !!userId,
 	});
 
 	const saveMutation = useMutation({
@@ -36,7 +41,7 @@ export function useRepoPaths() {
 			const { error } = await supabase
 				.from('repo_paths')
 				.upsert(
-					{ repo_full_name: repoFullName, local_path: localPath },
+					{ repo_full_name: repoFullName, local_path: localPath, user_id: userId },
 					{ onConflict: 'repo_full_name' },
 				);
 			if (error) throw error;

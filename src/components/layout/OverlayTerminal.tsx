@@ -27,7 +27,7 @@ export default function OverlayTerminal() {
 	const fitAddonRef = useRef<FitAddon | null>(null);
 
 	// Drag state
-	const [pos, setPos] = useState({ x: 32, y: window.innerHeight - OVERLAY_H - 32 });
+	const [pos, setPos] = useState({ x: 32, y: typeof window !== 'undefined' ? window.innerHeight - OVERLAY_H - 32 : 400 });
 	const dragging = useRef(false);
 	const dragOffset = useRef({ x: 0, y: 0 });
 

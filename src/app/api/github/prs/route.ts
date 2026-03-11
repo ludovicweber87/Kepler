@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchRepoPullRequests } from '@/lib/github';
+import { requireAuth, isAuthError } from '@/lib/auth-utils';
 
 export async function GET(req: NextRequest) {
+	const auth = await requireAuth();
+	if (isAuthError(auth)) return auth;
+
 	try {
 		const repos = req.nextUrl.searchParams.get('repos');
 		if (!repos) {
@@ -11,11 +15,12 @@ export async function GET(req: NextRequest) {
 		const repoList = repos
 			.split(',')
 			.map((r) => r.trim())
-			.filter(Boolean);
+			.filter((r) => r.includes('/'));
+		console.log('[PRs] userId:', auth.userId, 'repos param:', repos, '→ repoList:', repoList);
 		const results = await Promise.allSettled(
 			repoList.map((repo) => {
 				const [owner, name] = repo.split('/');
-				return fetchRepoPullRequests(owner, name, 'open');
+				return fetchRepoPullRequests(owner, name, 'open', auth.accessToken);
 			}),
 		);
 
@@ -28,7 +33,6 @@ export async function GET(req: NextRequest) {
 			)
 			.flatMap((r) => r.value);
 
-		// Sort by updated_at desc
 		prs.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
 
 		return NextResponse.json({ prs });

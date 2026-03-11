@@ -45,6 +45,7 @@ import { useAgentViews } from '@/hooks/useAgentViews';
 import { useAgentSummaries, type AgentSummary } from '@/hooks/useRecentLogs';
 import { usePendingTodoCount } from '@/hooks/usePendingTodoCount';
 import dynamic from 'next/dynamic';
+import { useTranslations } from 'next-intl';
 import DraggableTabs from '@/components/shared/DraggableTabs';
 
 const AgentTerminalModal = dynamic(() => import('@/components/agents/AgentTerminalModal'), {
@@ -65,21 +66,21 @@ function formatDateTime(dateStr: string): string {
 	});
 }
 
-function timeAgo(ts: number): string {
+function timeAgo(ts: number, t: (key: string, values?: Record<string, number>) => string): string {
 	const diff = Date.now() - ts;
 	const mins = Math.floor(diff / 60_000);
-	if (mins < 1) return "a l'instant";
-	if (mins < 60) return `il y a ${mins}m`;
+	if (mins < 1) return t('time.justNow');
+	if (mins < 60) return t('time.minutesAgo', { mins });
 	const hours = Math.floor(mins / 60);
-	if (hours < 24) return `il y a ${hours}h`;
-	return `il y a ${Math.floor(hours / 24)}j`;
+	if (hours < 24) return t('time.hoursAgo', { hours });
+	return t('time.daysAgo', { days: Math.floor(hours / 24) });
 }
 
-function getGreeting(): string {
+function getGreeting(t: (key: string) => string): string {
 	const h = new Date().getHours();
-	if (h < 12) return 'Bonjour';
-	if (h < 18) return 'Bon aprem';
-	return 'Bonsoir';
+	if (h < 12) return t('greeting.morning');
+	if (h < 18) return t('greeting.afternoon');
+	return t('greeting.evening');
 }
 
 /* ── Live Clock ── */
@@ -117,11 +118,13 @@ function ActiveSessionCard({
 	onClick,
 	isStreaming,
 	onKill,
+	t,
 }: {
 	session: ActiveSession;
 	onClick: () => void;
 	isStreaming: boolean;
 	onKill: () => void;
+	t: (key: string, values?: Record<string, number>) => string;
 }) {
 	const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
@@ -197,7 +200,7 @@ function ActiveSessionCard({
 					variant="caption"
 					sx={{ color: 'text.disabled', fontSize: '0.7rem', fontFamily: 'monospace' }}
 				>
-					{timeAgo(session.createdAt)}
+					{timeAgo(session.createdAt, t)}
 				</Typography>
 				<IconButton
 					size="small"
@@ -240,7 +243,7 @@ function ActiveSessionCard({
 							<StopCircleRoundedIcon sx={{ fontSize: 18, color: '#FF5252' }} />
 						</ListItemIcon>
 						<ListItemText primaryTypographyProps={{ fontSize: '0.8rem' }}>
-							Fermer la session
+							{t('closeSession')}
 						</ListItemText>
 					</MenuItem>
 				</Menu>
@@ -283,6 +286,7 @@ function PastSessionCard({
 	onDelete: () => void;
 }) {
 	const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+	const tc = useTranslations('common');
 	const isError = session.status === 'error';
 	const statusColor = isError ? '#FF5252' : '#9E9E9E';
 	const StatusIcon = isError ? ErrorOutlineRoundedIcon : CheckCircleOutlineRoundedIcon;
@@ -378,7 +382,7 @@ function PastSessionCard({
 							<DeleteOutlineRoundedIcon sx={{ fontSize: 18, color: '#FF5252' }} />
 						</ListItemIcon>
 						<ListItemText primaryTypographyProps={{ fontSize: '0.8rem' }}>
-							Supprimer
+							{tc('delete')}
 						</ListItemText>
 					</MenuItem>
 				</Menu>
@@ -391,9 +395,11 @@ function PastSessionCard({
 function SummaryTimeline({
 	summaries,
 	onSessionClick,
+	t,
 }: {
 	summaries: AgentSummary[];
 	onSessionClick: (summary: AgentSummary) => void;
+	t: (key: string) => string;
 }) {
 	const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -634,8 +640,8 @@ function SummaryTimeline({
 											}}
 										>
 											{isError
-												? 'Session terminée avec erreur'
-												: 'Aucun rapport disponible'}
+												? t('sessionError')
+												: t('noReport')}
 										</Typography>
 									)}
 
@@ -658,7 +664,7 @@ function SummaryTimeline({
 											},
 										}}
 									>
-										Voir la session →
+										{t('viewSession')} →
 									</Typography>
 								</Box>
 							</Collapse>
@@ -677,6 +683,7 @@ type SelectedItem =
 
 /* ── Main Dashboard ── */
 export default function Dashboard() {
+	const t = useTranslations('dashboard');
 	const queryClient = useQueryClient();
 	const { data: sessions = [] } = useActiveSessions();
 	const { data: pastSessions = [] } = useAgentSessionHistory();
@@ -801,7 +808,7 @@ export default function Dashboard() {
 								WebkitTextFillColor: 'transparent',
 							}}
 						>
-							{getGreeting()}, Ludovic
+							{getGreeting(t)}
 						</Typography>
 						<Typography
 							variant="body2"
@@ -833,8 +840,7 @@ export default function Dashboard() {
 							{sessions.length}
 						</Typography>
 						<Typography variant="caption" sx={{ color: 'text.secondary' }}>
-							agent{sessions.length !== 1 ? 's' : ''} actif
-							{sessions.length !== 1 ? 's' : ''}
+							{t('activeAgents', { count: sessions.length })}
 						</Typography>
 					</Box>
 					{sessions.filter((s) => s.isStreaming).length > 0 && (
@@ -866,7 +872,7 @@ export default function Dashboard() {
 								{sessions.filter((s) => s.isStreaming).length}
 							</Typography>
 							<Typography variant="caption" sx={{ color: 'text.secondary' }}>
-								en streaming
+								{t('streaming')}
 							</Typography>
 						</Box>
 					)}
@@ -889,7 +895,7 @@ export default function Dashboard() {
 								{pendingCount}
 							</Typography>
 							<Typography variant="caption" sx={{ color: 'text.secondary' }}>
-								todo{pendingCount > 1 ? 's' : ''} en attente
+								{t('pendingTodos', { count: pendingCount })}
 							</Typography>
 						</Box>
 					)}
@@ -937,7 +943,7 @@ export default function Dashboard() {
 								},
 							}}
 						>
-							Lancer un agent
+							{t('launchAgent')}
 						</Button>
 
 						{/* Active sessions */}
@@ -962,7 +968,7 @@ export default function Dashboard() {
 											textTransform: 'uppercase',
 										}}
 									>
-										Agents actifs
+										{t('activeAgentsTitle')}
 									</Typography>
 									<Box
 										sx={{
@@ -987,6 +993,7 @@ export default function Dashboard() {
 											isStreaming={session.isStreaming}
 											onClick={() => setSelected({ type: 'active', session })}
 											onKill={() => handleKillSession(session.sessionId)}
+											t={t}
 										/>
 									))}
 								</Box>
@@ -1017,7 +1024,7 @@ export default function Dashboard() {
 											textTransform: 'uppercase',
 										}}
 									>
-										Sessions passees
+										{t('pastSessions')}
 									</Typography>
 								</Box>
 								<Box
@@ -1069,13 +1076,13 @@ export default function Dashboard() {
 										variant="body2"
 										sx={{ color: 'text.disabled', textAlign: 'center' }}
 									>
-										Aucune session sur ce projet
+										{t('noSessionsProject')}
 									</Typography>
 									<Typography
 										variant="caption"
 										sx={{ color: 'text.disabled', textAlign: 'center' }}
 									>
-										Lance un agent pour commencer
+										{t('launchAgentToStart')}
 									</Typography>
 								</Box>
 							)}
@@ -1107,7 +1114,7 @@ export default function Dashboard() {
 								variant="body2"
 								sx={{ fontWeight: 600, fontSize: '0.82rem' }}
 							>
-								Rapports
+								{t('reports')}
 							</Typography>
 							<Chip
 								label={filteredSummaries.length}
@@ -1166,20 +1173,20 @@ export default function Dashboard() {
 										variant="body2"
 										sx={{ color: 'text.disabled' }}
 									>
-										Aucun rapport pour l{"'"}instant
+										{t('noReportsYet')}
 									</Typography>
 									<Typography
 										variant="caption"
 										sx={{ color: 'text.disabled' }}
 									>
-										Les rapports apparaissent quand un agent termine
-										sa session
+										{t('reportsAppearWhen')}
 									</Typography>
 								</Box>
 							) : (
 								<SummaryTimeline
 									summaries={filteredSummaries}
 									onSessionClick={handleSummaryClick}
+									t={t}
 								/>
 							)}
 						</Box>

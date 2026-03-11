@@ -23,6 +23,7 @@ import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import DraggableTabs from '@/components/shared/DraggableTabs';
 import { useAgentViews } from '@/hooks/useAgentViews';
 import { useTodos, type Todo } from '@/hooks/useTodos';
+import { useTranslations } from 'next-intl';
 import { useDashboard } from '@/hooks/useGitHub';
 
 function TodoAccordion({
@@ -194,7 +195,7 @@ function TodoAccordion({
 						minRows={2}
 						maxRows={8}
 						size="small"
-						placeholder="What needs to be done for this task?"
+						placeholder=""
 						value={descFocused ? descDraft : todo.description}
 						onChange={(e) => setDescDraft(e.target.value)}
 						onFocus={() => {
@@ -220,6 +221,7 @@ function TodoAccordion({
 }
 
 export default function TodoList() {
+	const t = useTranslations('todos');
 	const { views, activeIndex, activeView, setActiveIndex, addView, reorderViews } =
 		useAgentViews();
 
@@ -278,7 +280,7 @@ export default function TodoList() {
 						WebkitTextFillColor: 'transparent',
 					}}
 				>
-					Tâches
+					{t('title')}
 				</Typography>
 				<Box
 					sx={{
@@ -292,10 +294,10 @@ export default function TodoList() {
 				>
 					<FolderOpenRoundedIcon sx={{ fontSize: 64, color: 'text.disabled' }} />
 					<Typography variant="h6" color="text.secondary">
-						Aucun projet sélectionné
+						{t('noProjectSelected')}
 					</Typography>
 					<Typography variant="body2" color="text.disabled" sx={{ mb: 2 }}>
-						Ajoutez d&apos;abord un dépôt dans les paramètres.
+						{t('addRepoFirst')}
 					</Typography>
 					<Button
 						variant="outlined"
@@ -311,7 +313,7 @@ export default function TodoList() {
 							},
 						}}
 					>
-						Ajouter un projet
+						{t('addProject')}
 					</Button>
 				</Box>
 			</Box>
@@ -331,7 +333,7 @@ export default function TodoList() {
 					WebkitTextFillColor: 'transparent',
 				}}
 			>
-				Tâches
+				{t('title')}
 			</Typography>
 
 			{/* Tabs */}
@@ -342,7 +344,7 @@ export default function TodoList() {
 				onReorder={reorderViews}
 				color="#FF9800"
 				trailing={
-					<Tooltip title="Ajouter un projet">
+					<Tooltip title={t('addProject')}>
 						<IconButton
 							size="small"
 							onClick={() => addView()}
@@ -371,7 +373,7 @@ export default function TodoList() {
 					inputRef={inputRef}
 					fullWidth
 					size="small"
-					placeholder="Que faut-il faire ?"
+					placeholder={t('whatToDo')}
 					value={newTitle}
 					onChange={(e) => setNewTitle(e.target.value)}
 					onKeyDown={handleKeyDown}
@@ -412,7 +414,7 @@ export default function TodoList() {
 						}}
 					>
 						<BugReportRoundedIcon sx={{ fontSize: 14 }} />
-						En cours — {suggestions.length}
+						{t('inProgress')} — {suggestions.length}
 					</Typography>
 					<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
 						{suggestions.map((issue) => (
@@ -466,7 +468,7 @@ export default function TodoList() {
 				>
 					<ChecklistRoundedIcon sx={{ fontSize: 48, color: 'text.disabled' }} />
 					<Typography variant="body1" color="text.secondary">
-						Aucune tâche
+						{t('noTasks')}
 					</Typography>
 				</Box>
 			)}
@@ -508,7 +510,7 @@ export default function TodoList() {
 							display: 'block',
 						}}
 					>
-						Terminé — {done.length}
+						{t('done')} — {done.length}
 					</Typography>
 					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
 						{done.map((todo) => (

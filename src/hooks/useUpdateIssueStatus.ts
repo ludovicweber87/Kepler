@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { DashboardData } from '@/types';
+import { apiFetch } from '@/lib/api-fetch';
 
 interface UpdateStatusParams {
 	issueNodeId: string;
@@ -36,7 +37,7 @@ export function useUpdateIssueStatus() {
 
 	return useMutation({
 		mutationFn: async (params: UpdateStatusParams) => {
-			const res = await fetch('/api/github/issues', {
+			const res = await apiFetch('/api/github/issues', {
 				method: 'PATCH',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(params),

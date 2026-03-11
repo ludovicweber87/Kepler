@@ -1,0 +1,167 @@
+{
+	"sidebar": {
+		"dashboard": "Dashboard",
+		"issues": "Issues",
+		"prs": "PRs",
+		"workspace": "Workspace",
+		"agents": "Agents",
+		"skills": "Skills",
+		"todos": "Tarefas",
+		"settings": "Configurações",
+		"signOut": "Sair"
+	},
+	"landing": {
+		"nav": {
+			"cta": "Entrar com GitHub"
+		},
+		"hero": {
+			"tagline": "Um dashboard, todo o seu fluxo de trabalho dev",
+			"subtitle": "Gerencie suas issues do GitHub, pull requests e sessões paralelas de IA a partir de uma única interface unificada. Feito para equipes que entregam rápido.",
+			"cta": "Começar com GitHub"
+		},
+		"features": {
+			"kanban": {
+				"title": "Issues & Kanban",
+				"desc": "Quadro Kanban sincronizado com GitHub Projects V2.",
+				"details": "Arraste e solte issues entre colunas de status, filtre por visualização e veja a sincronização em tempo real com seus quadros do GitHub Project. Cada mudança de status é refletida instantaneamente em ambos os lados."
+			},
+			"prs": {
+				"title": "Pull Requests",
+				"desc": "Acompanhe PRs e verificações de CI em todos os repos.",
+				"details": "Veja todas as PRs abertas em uma única visualização com status de CI ao vivo, solicitações de revisão e estatísticas de diff. Faça merge com um clique usando squash merge. Sem mais alternar entre repos."
+			},
+			"parallel": {
+				"title": "Sessões Paralelas de IA",
+				"desc": "Múltiplos agentes Claude em branches separadas.",
+				"details": "Atribua uma issue a um agente, ele cria uma branch de worktree e trabalha de forma autônoma. Execute vários em paralelo — cada agente trabalha em sua própria issue de forma independente com registro completo de atividades."
+			},
+			"workspace": {
+				"title": "Workspace Unificado",
+				"desc": "Tarefas, branches, skills — tudo em um só lugar.",
+				"details": "Gerencie listas de tarefas por repo, navegue pelas branches do git com histórico de commits, configure presets de agentes e skills. Tudo o que sua equipe precisa sem sair do dashboard."
+			}
+		}
+	},
+	"dashboard": {
+		"greeting": {
+			"morning": "Bom dia",
+			"afternoon": "Boa tarde",
+			"evening": "Boa noite"
+		},
+		"time": {
+			"justNow": "agora mesmo",
+			"minutesAgo": "{mins}m atrás",
+			"hoursAgo": "{hours}h atrás",
+			"daysAgo": "{days}d atrás"
+		},
+		"closeSession": "Encerrar sessão",
+		"sessionError": "Sessão encerrada com erro",
+		"noReport": "Nenhum relatório disponível",
+		"viewSession": "Ver sessão",
+		"activeAgents": "{count, plural, one {# agente ativo} other {# agentes ativos}}",
+		"streaming": "transmitindo",
+		"pendingTodos": "{count, plural, one {# tarefa pendente} other {# tarefas pendentes}}",
+		"launchAgent": "Iniciar agente",
+		"activeAgentsTitle": "Agentes ativos",
+		"pastSessions": "Sessões anteriores",
+		"noSessionsProject": "Nenhuma sessão para este projeto",
+		"launchAgentToStart": "Inicie um agente para começar",
+		"reports": "Relatórios",
+		"noReportsYet": "Nenhum relatório ainda",
+		"reportsAppearWhen": "Os relatórios aparecem quando um agente conclui sua sessão"
+	},
+	"issues": {
+		"title": "Issues",
+		"searchPlaceholder": "Buscar #id ou título...",
+		"refresh": "Atualizar",
+		"noOpenIssues": "Nenhuma issue aberta",
+		"noOpenIssuesDesc": "Nenhuma issue aberta está atribuída a você aqui.",
+		"createBranch": "Criar branch",
+		"branchName": "Nome da branch",
+		"issue": "Issue",
+		"willExecute": "Vai executar: git checkout main → git pull --rebase → git checkout -b",
+		"creating": "Criando...",
+		"created": "Criada",
+		"branchCreated": "Branch {branchName} criada"
+	},
+	"todos": {
+		"title": "Tarefas",
+		"noProjectSelected": "Nenhum projeto selecionado",
+		"addRepoFirst": "Adicione um repositório nas configurações primeiro.",
+		"addProject": "Adicionar projeto",
+		"whatToDo": "O que precisa ser feito?",
+		"taskDescription": "O que precisa ser feito para esta tarefa?",
+		"inProgress": "Em andamento",
+		"noTasks": "Nenhuma tarefa",
+		"done": "Concluído"
+	},
+	"agents": {
+		"title": "Agents",
+		"noProjectSelected": "Nenhum projeto selecionado",
+		"selectProjectFolder": "Selecione uma pasta de projeto para gerenciar seus agentes.",
+		"addProject": "Adicionar projeto",
+		"newAgent": "Novo agente",
+		"instruction": "Um agente = um arquivo .md em .claude/agents/. Escreva o prompt de sistema em markdown.",
+		"noAgents": "Nenhum agente",
+		"createAgentIn": "Crie um arquivo .md em {path}/.claude/agents/",
+		"createAgent": "Criar agente",
+		"editAgent": "Editar — {name}.md",
+		"fileName": "Nome do arquivo",
+		"fileNameExample": "ex: code-reviewer",
+		"fileNameHelper": "Será salvo em .claude/agents/{name}.md",
+		"agentPrompt": "Prompt do agente",
+		"promptPlaceholder": "Escreva o prompt de sistema do agente em markdown...",
+		"files": "Arquivos"
+	},
+	"prs": {
+		"title": "Pull Requests",
+		"noProjectSelected": "Nenhum projeto selecionado",
+		"addRepoFirst": "Adicione um repositório nas configurações primeiro.",
+		"addProject": "Adicionar projeto",
+		"noOpenPRs": "Nenhuma pull request aberta",
+		"checksPassed": "Verificações aprovadas",
+		"checksFailed": "Verificações falharam",
+		"checksInProgress": "Verificações em andamento",
+		"checksPassedCount": "{passed}/{total} verificações aprovadas",
+		"draft": "Rascunho",
+		"merge": "Merge",
+		"squashAndMerge": "Squash and Merge",
+		"merging": "Fazendo merge...",
+		"confirmMerge": "Confirmar Merge"
+	},
+	"skills": {
+		"title": "Skills",
+		"noProjectSelected": "Nenhum projeto selecionado",
+		"selectProjectFolder": "Adicione um repositório nas configurações para gerenciar suas skills.",
+		"addProject": "Adicionar projeto",
+		"findSkills": "Encontrar skills",
+		"newSkill": "Nova skill",
+		"instruction": "Uma skill = um arquivo .md em .claude/skills/. Skills são modelos de prompts reutilizáveis.",
+		"noSkills": "Nenhuma skill",
+		"createSkillIn": "Crie um arquivo .md em {path}/.claude/skills/"
+	},
+	"settings": {
+		"title": "Configurações",
+		"viewsSaved": "Visualizações salvas",
+		"pathSaved": "Caminho salvo"
+	},
+	"header": {
+		"lightMode": "Modo claro",
+		"darkMode": "Modo escuro",
+		"hideAgents": "Ocultar agentes",
+		"showAgents": "Mostrar agentes"
+	},
+	"common": {
+		"loading": "Carregando...",
+		"error": "Ocorreu um erro",
+		"save": "Salvar",
+		"cancel": "Cancelar",
+		"delete": "Excluir",
+		"edit": "Editar",
+		"close": "Fechar",
+		"confirm": "Confirmar",
+		"search": "Buscar",
+		"noResults": "Nenhum resultado",
+		"language": "Idioma"
+	}
+}

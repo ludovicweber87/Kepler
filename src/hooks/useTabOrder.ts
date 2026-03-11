@@ -1,15 +1,17 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSession } from 'next-auth/react';
 import { supabase } from '@/lib/supabase';
 
 function queryKey(group: string) {
 	return ['tab-order', group];
 }
 
-async function fetchTabOrder(group: string): Promise<string[]> {
+async function fetchTabOrder(group: string, userId: string): Promise<string[]> {
 	const { data, error } = await supabase
 		.from('tab_orders')
 		.select('tab_order')
+		.eq('user_id', userId)
 		.eq('tab_group', group)
 		.maybeSingle();
 	if (error) throw error;
@@ -23,10 +25,13 @@ async function fetchTabOrder(group: string): Promise<string[]> {
  */
 export function useTabOrder(group: string) {
 	const qc = useQueryClient();
+	const { data: session } = useSession();
+	const userId = session?.user?.id ?? null;
 
 	const { data: order = [] } = useQuery({
 		queryKey: queryKey(group),
-		queryFn: () => fetchTabOrder(group),
+		queryFn: () => fetchTabOrder(group, userId!),
+		enabled: !!userId,
 	});
 
 	const mutation = useMutation({
@@ -34,7 +39,7 @@ export function useTabOrder(group: string) {
 			const { error } = await supabase
 				.from('tab_orders')
 				.upsert(
-					{ tab_group: group, tab_order: newOrder, updated_at: new Date().toISOString() },
+					{ tab_group: group, tab_order: newOrder, updated_at: new Date().toISOString(), user_id: userId },
 					{ onConflict: 'tab_group' },
 				);
 			if (error) throw error;

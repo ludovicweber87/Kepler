@@ -30,6 +30,7 @@ import DraggableTabs from '@/components/shared/DraggableTabs';
 import { useAgentViews } from '@/hooks/useAgentViews';
 import { usePullRequests, useMergePR } from '@/hooks/usePullRequests';
 import { useSnackbar } from '@/hooks/useSnackbar';
+import { useTranslations } from 'next-intl';
 import type { GitHubPullRequest, CheckRun } from '@/types';
 
 function timeAgo(dateStr: string): string {
@@ -66,24 +67,24 @@ function getAgeBorderColor(updatedAt: string): string {
 	return 'rgba(244, 67, 54, 0.30)';
 }
 
-function CheckIcon({ status }: { status: GitHubPullRequest['check_status'] }) {
+function CheckIcon({ status, t }: { status: GitHubPullRequest['check_status']; t: (key: string) => string }) {
 	if (status === 'success') {
 		return (
-			<Tooltip title="Checks passed">
+			<Tooltip title={t('checksPassed')}>
 				<CheckCircleRoundedIcon sx={{ fontSize: 16, color: '#22C55E' }} />
 			</Tooltip>
 		);
 	}
 	if (status === 'failure') {
 		return (
-			<Tooltip title="Checks failed">
+			<Tooltip title={t('checksFailed')}>
 				<CancelRoundedIcon sx={{ fontSize: 16, color: '#EF4444' }} />
 			</Tooltip>
 		);
 	}
 	if (status === 'pending') {
 		return (
-			<Tooltip title="Checks in progress">
+			<Tooltip title={t('checksInProgress')}>
 				<AccessTimeRoundedIcon sx={{ fontSize: 16, color: '#F59E0B' }} />
 			</Tooltip>
 		);
@@ -122,7 +123,7 @@ function CheckRunItem({ run }: { run: CheckRun }) {
 	);
 }
 
-function ChecksDetail({ runs }: { runs: CheckRun[] }) {
+function ChecksDetail({ runs, t }: { runs: CheckRun[]; t: (key: string, values?: Record<string, number>) => string }) {
 	const [expanded, setExpanded] = useState(false);
 
 	if (runs.length === 0) return null;
@@ -148,7 +149,7 @@ function ChecksDetail({ runs }: { runs: CheckRun[] }) {
 				}}
 			>
 				<Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.7rem', transition: 'color 0.15s' }}>
-					{passed}/{runs.length} checks passed
+					{t('checksPassedCount', { passed, total: runs.length })}
 				</Typography>
 				{expanded ? (
 					<ExpandLessRoundedIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
@@ -170,9 +171,11 @@ function ChecksDetail({ runs }: { runs: CheckRun[] }) {
 function PRCard({
 	pr,
 	onMerge,
+	t,
 }: {
 	pr: GitHubPullRequest;
 	onMerge: (pr: GitHubPullRequest) => void;
+	t: (key: string, values?: Record<string, number>) => string;
 }) {
 	const totalChanges = pr.additions + pr.deletions;
 	const bgColor = getAgeBgColor(pr.updated_at);
@@ -209,7 +212,7 @@ function PRCard({
 			{/* Content */}
 			<Box sx={{ flex: 1, minWidth: 0 }}>
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-					<CheckIcon status={pr.check_status} />
+					<CheckIcon status={pr.check_status} t={t} />
 					<Typography
 						component="a"
 						href={pr.html_url}
@@ -231,7 +234,7 @@ function PRCard({
 					</Typography>
 					{pr.draft && (
 						<Chip
-							label="Draft"
+							label={t('draft')}
 							size="small"
 							sx={{
 								height: 20,
@@ -318,7 +321,7 @@ function PRCard({
 				</Box>
 
 				{/* Check runs detail */}
-				<ChecksDetail runs={pr.check_runs} />
+				<ChecksDetail runs={pr.check_runs} t={t} />
 			</Box>
 
 			{/* Right side */}
@@ -355,7 +358,7 @@ function PRCard({
 							'&:hover': { bgcolor: '#6A4DE0' },
 						}}
 					>
-						Merge
+						{t('merge')}
 					</Button>
 				)}
 				<OpenInNewRoundedIcon
@@ -375,6 +378,8 @@ function PRCard({
 }
 
 export default function PullRequestsList() {
+	const t = useTranslations('prs');
+	const tc = useTranslations('common');
 	const { views, addView, reorderViews } = useAgentViews();
 	const allRepos = useMemo(() => views.map((v) => v.repoFullName), [views]);
 	const { data: allPrs, isLoading } = usePullRequests(allRepos);
@@ -421,7 +426,7 @@ export default function PullRequestsList() {
 						WebkitTextFillColor: 'transparent',
 					}}
 				>
-					Pull Requests
+					{t('title')}
 				</Typography>
 				<Box
 					sx={{
@@ -435,10 +440,10 @@ export default function PullRequestsList() {
 				>
 					<FolderOpenRoundedIcon sx={{ fontSize: 64, color: 'text.disabled' }} />
 					<Typography variant="h6" color="text.secondary">
-						Aucun projet sélectionné
+						{t('noProjectSelected')}
 					</Typography>
 					<Typography variant="body2" color="text.disabled" sx={{ mb: 2 }}>
-						Ajoutez d&apos;abord un dépôt dans les paramètres.
+						{t('addRepoFirst')}
 					</Typography>
 					<Button
 						variant="outlined"
@@ -454,7 +459,7 @@ export default function PullRequestsList() {
 							},
 						}}
 					>
-						Ajouter un projet
+						{t('addProject')}
 					</Button>
 				</Box>
 			</Box>
@@ -474,7 +479,7 @@ export default function PullRequestsList() {
 					WebkitTextFillColor: 'transparent',
 				}}
 			>
-				Pull Requests
+				{t('title')}
 			</Typography>
 
 			{/* Tabs per repo */}
@@ -487,7 +492,7 @@ export default function PullRequestsList() {
 				}}
 				color="#4CAF50"
 				trailing={
-					<Tooltip title="Ajouter un projet">
+					<Tooltip title={t('addProject')}>
 						<IconButton
 							size="small"
 							onClick={() => addView()}
@@ -519,7 +524,7 @@ export default function PullRequestsList() {
 				>
 					<MergeTypeRoundedIcon sx={{ fontSize: 48, color: 'text.disabled' }} />
 					<Typography variant="body1" color="text.secondary">
-						Aucune pull request ouverte
+						{t('noOpenPRs')}
 					</Typography>
 				</Box>
 			)}
@@ -528,7 +533,7 @@ export default function PullRequestsList() {
 			{!isLoading && filteredPrs.length > 0 && (
 				<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
 					{filteredPrs.map((pr) => (
-						<PRCard key={pr.id} pr={pr} onMerge={setMergeTarget} />
+						<PRCard key={pr.id} pr={pr} onMerge={setMergeTarget} t={t} />
 					))}
 				</Box>
 			)}
@@ -549,7 +554,7 @@ export default function PullRequestsList() {
 				}}
 			>
 				<DialogTitle sx={{ fontWeight: 600, fontSize: '1rem' }}>
-					Squash and Merge
+					{t('squashAndMerge')}
 				</DialogTitle>
 				<DialogContent>
 					{mergeTarget && (
@@ -588,7 +593,7 @@ export default function PullRequestsList() {
 						onClick={() => setMergeTarget(null)}
 						sx={{ textTransform: 'none', color: 'text.secondary' }}
 					>
-						Annuler
+						{tc('cancel')}
 					</Button>
 					<Button
 						variant="contained"
@@ -608,7 +613,7 @@ export default function PullRequestsList() {
 							'&:hover': { bgcolor: '#6A4DE0' },
 						}}
 					>
-						{mergeMutation.isPending ? 'Merging...' : 'Confirm Merge'}
+						{mergeMutation.isPending ? t('merging') : t('confirmMerge')}
 					</Button>
 				</DialogActions>
 			</Dialog>
