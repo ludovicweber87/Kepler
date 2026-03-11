@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -41,6 +41,7 @@ import AddTaskRoundedIcon from '@mui/icons-material/AddTaskRounded';
 import AssignmentTurnedInRoundedIcon from '@mui/icons-material/AssignmentTurnedInRounded';
 import CheckBoxRoundedIcon from '@mui/icons-material/CheckBoxRounded';
 import CheckBoxOutlineBlankRoundedIcon from '@mui/icons-material/CheckBoxOutlineBlankRounded';
+import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import { useQueryClient } from '@tanstack/react-query';
 import { useIssue } from '@/hooks/useGitHub';
 import { useTodos, useIssueTodos } from '@/hooks/useTodos';
@@ -65,7 +66,7 @@ const markdownSx = {
 		borderRadius: 1,
 	},
 	'& pre': {
-		bgcolor: '#1A1A1A',
+		bgcolor: 'background.default',
 		borderRadius: 1,
 		p: 2,
 		overflow: 'auto',
@@ -106,7 +107,43 @@ const markdownSx = {
 		borderTop: (t: { palette: { divider: string } }) => `1px solid ${t.palette.divider}`,
 		my: 2,
 	},
-	"& input[type='checkbox']": { mr: 1 },
+	"& input[type='checkbox']": { display: 'none' },
+	'& .task-checkbox': {
+		width: 18,
+		height: 18,
+		borderRadius: '4px',
+		border: '2px solid',
+		borderColor: 'text.disabled',
+		display: 'inline-flex',
+		alignItems: 'center',
+		justifyContent: 'center',
+		mr: 1,
+		cursor: 'pointer',
+		transition: 'all 0.15s ease',
+		flexShrink: 0,
+		verticalAlign: 'middle',
+		position: 'relative',
+		top: '-1px',
+		'&:hover': {
+			borderColor: '#7C5CFF',
+			bgcolor: (t: { palette: { divider: string } }) => alpha(t.palette.divider, 0.2),
+		},
+		'&.checked': {
+			borderColor: '#22C55E',
+			bgcolor: (t: { palette: { divider: string } }) => alpha('#22C55E', 0.15),
+			'& svg': { color: '#22C55E' },
+		},
+		'&.unchecked': {
+			borderColor: '#666',
+		},
+	},
+	'& li:has(.task-checkbox)': {
+		listStyle: 'none',
+		ml: -2.5,
+		display: 'flex',
+		alignItems: 'flex-start',
+		gap: 0,
+	},
 };
 
 function proxyGitHubImage(src: string | undefined): string | undefined {
@@ -117,16 +154,72 @@ function proxyGitHubImage(src: string | undefined): string | undefined {
 	return src;
 }
 
-const markdownComponents = {
-	img: ({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) => (
-		// eslint-disable-next-line @next/next/no-img-element
-		<img
-			src={proxyGitHubImage(typeof src === 'string' ? src : undefined)}
-			alt={alt ?? ''}
-			{...props}
-		/>
-	),
-};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function createMarkdownComponents(onCheckboxToggle?: (index: number) => void): Record<string, any> {
+	let checkboxCounter = 0;
+
+	return {
+		img: ({ src, alt, ...props }: { src?: string; alt?: string }) => (
+			// eslint-disable-next-line @next/next/no-img-element
+			<img {...props} src={proxyGitHubImage(src)} alt={alt ?? ''} />
+		),
+		li: ({ children, node, ...props }: { children?: React.ReactNode; node?: { children?: Array<{ type: string; tagName?: string; properties?: { type?: string; checked?: boolean } }>; }; className?: string; ordered?: boolean }) => {
+			const isTaskItem = node?.children?.some(
+				(child) => child.type === 'element' && child.tagName === 'input' && child.properties?.type === 'checkbox',
+			);
+			if (!isTaskItem) return <li {...props}>{children}</li>;
+
+			const inputChild = node?.children?.find(
+				(child) => child.type === 'element' && child.tagName === 'input' && child.properties?.type === 'checkbox',
+			);
+			const isChecked = inputChild?.properties?.checked ?? false;
+			const currentIdx = checkboxCounter++;
+
+			const filteredChildren = Array.isArray(children)
+				? children.filter(
+						(child) => !(child && typeof child === 'object' && 'props' in child && child.props?.type === 'checkbox'),
+					)
+				: children;
+
+			return (
+				<li {...props}>
+					<Box
+						component="span"
+						className={`task-checkbox ${isChecked ? 'checked' : 'unchecked'}`}
+						onClick={
+							onCheckboxToggle
+								? (e: React.MouseEvent) => {
+										e.stopPropagation();
+										e.preventDefault();
+										onCheckboxToggle(currentIdx);
+									}
+								: undefined
+						}
+						sx={{ cursor: onCheckboxToggle ? 'pointer' : 'default' }}
+					>
+						{isChecked && <CheckRoundedIcon sx={{ fontSize: 14 }} />}
+					</Box>
+					{filteredChildren}
+				</li>
+			);
+		},
+	};
+}
+
+const markdownComponents = createMarkdownComponents();
+
+function toggleCheckboxInMarkdown(markdown: string, checkboxIndex: number): string {
+	const checkboxPattern = /- \[([ xX])\]/g;
+	let currentIndex = 0;
+	return markdown.replace(checkboxPattern, (match, state) => {
+		if (currentIndex === checkboxIndex) {
+			currentIndex++;
+			return state === ' ' ? '- [x]' : '- [ ]';
+		}
+		currentIndex++;
+		return match;
+	});
+}
 
 function formatDate(dateStr: string): string {
 	return new Date(dateStr).toLocaleDateString('fr-FR', {
@@ -208,6 +301,46 @@ export default function IssueDetail({
 	const [sendingComment, setSendingComment] = useState(false);
 
 	const issueQueryKey = ['github', 'issue', owner, repo, number];
+	const checkboxIndexRef = useRef(0);
+	const bodyRef = useRef('');
+
+	const handleToggleCheckbox = useCallback(
+		async (checkboxIndex: number, currentBody: string) => {
+			const newBody = toggleCheckboxInMarkdown(currentBody, checkboxIndex);
+			if (newBody === currentBody) return;
+			// Optimistic update
+			qc.setQueryData(issueQueryKey, (old: { issue: { body: string }; comments: GitHubComment[] } | undefined) => {
+				if (!old) return old;
+				return { ...old, issue: { ...old.issue, body: newBody } };
+			});
+			try {
+				await fetch('/api/github/issue/update', {
+					method: 'PATCH',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ owner, repo, number: issueNum, body: newBody }),
+				});
+				qc.invalidateQueries({ queryKey: issueQueryKey });
+			} catch {
+				// Rollback
+				qc.setQueryData(issueQueryKey, (old: { issue: { body: string }; comments: GitHubComment[] } | undefined) => {
+					if (!old) return old;
+					return { ...old, issue: { ...old.issue, body: currentBody } };
+				});
+			}
+		},
+		[owner, repo, issueNum, qc, issueQueryKey],
+	);
+
+	// Interactive markdown components for the issue body (checkboxes toggle via GitHub API)
+	const bodyMarkdownComponents = useMemo(
+		() =>
+			createMarkdownComponents((idx: number) => {
+				if (bodyRef.current) {
+					handleToggleCheckbox(idx, bodyRef.current);
+				}
+			}),
+		[handleToggleCheckbox],
+	);
 
 	const handleSaveTitle = useCallback(async () => {
 		if (!editTitle.trim() || saving) return;
@@ -315,11 +448,11 @@ export default function IssueDetail({
 						startIcon={<ArrowBackRoundedIcon />}
 						sx={{ mb: 3, color: 'text.secondary' }}
 					>
-						Back to issues
+						Retour aux issues
 					</Button>
 				</Link>
 				<Alert severity="error" sx={{ borderRadius: 1 }}>
-					Failed to load issue: {error.message}
+					Erreur de chargement : {error.message}
 				</Alert>
 			</Box>
 		);
@@ -338,7 +471,7 @@ export default function IssueDetail({
 					startIcon={<ArrowBackRoundedIcon />}
 					sx={{ mb: 3, color: 'text.secondary' }}
 				>
-					Back to issues
+					Retour aux issues
 				</Button>
 			</Link>
 
@@ -471,7 +604,7 @@ export default function IssueDetail({
 								startIcon={<SmartToyRoundedIcon />}
 								onClick={() => setTerminalOpen(true)}
 							>
-								Start Agent
+								Lancer un agent
 							</Button>
 							<Button
 								variant="outlined"
@@ -490,7 +623,7 @@ export default function IssueDetail({
 								slotProps={{
 									paper: {
 										sx: {
-											bgcolor: '#2A2A2A',
+											bgcolor: 'background.paper',
 											border: 1,
 											borderColor: 'divider',
 											minWidth: 240,
@@ -576,7 +709,7 @@ export default function IssueDetail({
 								startIcon={<HistoryRoundedIcon />}
 								onClick={() => setTimelineOpen(true)}
 							>
-								History
+								Historique
 							</Button>
 							<Button
 								variant="outlined"
@@ -623,7 +756,7 @@ export default function IssueDetail({
 								sx={{ fontSize: 18, color: 'text.secondary' }}
 							/>
 							<Typography variant="body2">
-								{comments.length} comment{comments.length !== 1 ? 's' : ''}
+								{comments.length} commentaire{comments.length !== 1 ? 's' : ''}
 							</Typography>
 						</Box>
 					</Box>
@@ -701,12 +834,13 @@ export default function IssueDetail({
 									transition: 'opacity 0.15s',
 								}}
 							/>
+							{(() => { bodyRef.current = issue.body ?? ''; return null; })()}
 							{issue.body ? (
 								<Box sx={markdownSx}>
 									<ReactMarkdown
 										remarkPlugins={[remarkGfm]}
 										rehypePlugins={[rehypeRaw]}
-										components={markdownComponents}
+										components={bodyMarkdownComponents}
 									>
 										{issue.body}
 									</ReactMarkdown>
@@ -716,7 +850,7 @@ export default function IssueDetail({
 									variant="body2"
 									sx={{ fontStyle: 'italic', color: 'text.secondary' }}
 								>
-									No description provided. Click to add one.
+									Aucune description. Cliquez pour en ajouter une.
 								</Typography>
 							)}
 						</Box>
@@ -727,7 +861,7 @@ export default function IssueDetail({
 			{comments.length > 0 && (
 				<Box>
 					<Typography variant="h6" sx={{ mb: 2 }}>
-						Comments ({comments.length})
+						Commentaires ({comments.length})
 					</Typography>
 					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
 						{comments.map((comment, index) => (

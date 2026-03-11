@@ -1,5 +1,7 @@
 import { spawn } from 'child_process';
 
+const CLAUDE_BIN = '/opt/homebrew/bin/claude';
+
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
@@ -37,10 +39,11 @@ export async function POST(request: Request) {
 					);
 				};
 
-				const proc = spawn('claude', args, {
+				const { CLAUDECODE, CLAUDE_CODE_ENTRYPOINT, ...cleanEnv } = process.env;
+				const proc = spawn(CLAUDE_BIN, args, {
 					cwd,
 					env: {
-						...process.env,
+						...cleanEnv,
 						PATH: process.env.PATH || '/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin',
 					},
 				});

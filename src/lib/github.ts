@@ -4,6 +4,7 @@ import {
 	GitHubComment,
 	GitHubTimelineEvent,
 	GitHubPullRequest,
+	CheckRun,
 	ProjectColumn,
 	ProjectV2Data,
 	ProjectV2View,
@@ -55,16 +56,18 @@ export async function fetchUserRepos(): Promise<GitHubRepo[]> {
 	return repos;
 }
 
-export async function fetchAssignedIssues(): Promise<GitHubIssue[]> {
+async function fetchIssuesByFilter(
+	filter: 'assigned' | 'created',
+): Promise<GitHubIssue[]> {
 	const issues: GitHubIssue[] = [];
 	let page = 1;
 
 	while (true) {
 		const res = await fetch(
-			`${GITHUB_API}/issues?filter=assigned&state=all&per_page=100&sort=updated&page=${page}`,
+			`${GITHUB_API}/issues?filter=${filter}&state=all&per_page=100&sort=updated&page=${page}`,
 			{ headers: getHeaders() },
 		);
-		if (!res.ok) throw new Error(`GitHub /issues failed: ${res.status}`);
+		if (!res.ok) throw new Error(`GitHub /issues (${filter}) failed: ${res.status}`);
 		const data: GitHubIssue[] = await res.json();
 		if (data.length === 0) break;
 
@@ -83,19 +86,33 @@ export async function fetchAssignedIssues(): Promise<GitHubIssue[]> {
 	return issues;
 }
 
-export async function fetchProjectColumns(
-	nodeIds: string[],
-): Promise<Map<string, ProjectColumn[]>> {
-	const token = process.env.GITHUB_TOKEN;
-	if (!token) return new Map();
+export async function fetchAssignedIssues(): Promise<GitHubIssue[]> {
+	const [assigned, created] = await Promise.all([
+		fetchIssuesByFilter('assigned'),
+		fetchIssuesByFilter('created'),
+	]);
 
+	// Deduplicate by issue id (assigned + created can overlap)
+	const seen = new Set<number>();
+	const merged: GitHubIssue[] = [];
+	for (const issue of [...assigned, ...created]) {
+		if (!seen.has(issue.id)) {
+			seen.add(issue.id);
+			merged.push(issue);
+		}
+	}
+
+	return merged;
+}
+
+async function fetchProjectColumnsBatch(
+	batch: string[],
+	token: string,
+): Promise<Map<string, ProjectColumn[]>> {
 	const result = new Map<string, ProjectColumn[]>();
-	// Batch in groups of 50 to stay within GraphQL limits
-	for (let i = 0; i < nodeIds.length; i += 50) {
-		const batch = nodeIds.slice(i, i + 50);
-		const nodeQueries = batch
-			.map(
-				(id, idx) => `
+	const nodeQueries = batch
+		.map(
+			(id, idx) => `
       n${idx}: node(id: "${id}") {
         ... on Issue {
           id
@@ -109,46 +126,71 @@ export async function fetchProjectColumns(
           }
         }
       }`,
-			)
-			.join('\n');
+		)
+		.join('\n');
 
-		const query = `query { ${nodeQueries} }`;
+	const query = `query { ${nodeQueries} }`;
 
-		try {
-			const res = await fetch('https://api.github.com/graphql', {
-				method: 'POST',
-				headers: {
-					Authorization: `Bearer ${token}`,
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify({ query }),
-			});
+	try {
+		const res = await fetch('https://api.github.com/graphql', {
+			method: 'POST',
+			headers: {
+				Authorization: `Bearer ${token}`,
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({ query }),
+		});
 
-			if (!res.ok) continue;
+		if (!res.ok) return result;
 
-			const json = await res.json();
-			if (!json.data) continue;
+		const json = await res.json();
+		if (!json.data) return result;
 
-			for (let idx = 0; idx < batch.length; idx++) {
-				const node = json.data[`n${idx}`];
-				if (!node?.projectItems?.nodes) continue;
+		for (let idx = 0; idx < batch.length; idx++) {
+			const node = json.data[`n${idx}`];
+			if (!node?.projectItems?.nodes) continue;
 
-				const columns: ProjectColumn[] = [];
-				for (const item of node.projectItems.nodes) {
-					const col = item.fieldValueByName?.name;
-					if (item.project?.title && col) {
-						columns.push({ project: item.project.title, column: col });
-					}
-				}
-				if (columns.length > 0) {
-					result.set(batch[idx], columns);
+			const columns: ProjectColumn[] = [];
+			for (const item of node.projectItems.nodes) {
+				const col = item.fieldValueByName?.name;
+				if (item.project?.title && col) {
+					columns.push({ project: item.project.title, column: col });
 				}
 			}
-		} catch {
-			// GraphQL query failed (missing scope, etc.) — skip silently
+			if (columns.length > 0) {
+				result.set(batch[idx], columns);
+			}
 		}
+	} catch {
+		// GraphQL query failed (missing scope, etc.) — skip silently
 	}
 
+	return result;
+}
+
+export async function fetchProjectColumns(
+	nodeIds: string[],
+): Promise<Map<string, ProjectColumn[]>> {
+	const token = process.env.GITHUB_TOKEN;
+	if (!token || nodeIds.length === 0) return new Map();
+
+	// Split into batches of 50, then run all batches in parallel
+	const batches: string[][] = [];
+	for (let i = 0; i < nodeIds.length; i += 50) {
+		batches.push(nodeIds.slice(i, i + 50));
+	}
+
+	const batchResults = await Promise.all(
+		batches.map((batch) => fetchProjectColumnsBatch(batch, token)),
+	);
+
+	// Merge all batch results into a single map
+	const result = new Map<string, ProjectColumn[]>();
+	for (const map of batchResults) {
+		for (const [key, value] of map) {
+			result.set(key, value);
+		}
+	}
 	return result;
 }
 
@@ -316,7 +358,16 @@ export async function fetchRepoPullRequests(
 		const data = await res.json();
 		if (data.length === 0) break;
 
-		for (const pr of data) {
+		// Fetch check runs for all PRs in this page in parallel
+		const checksResults = await Promise.all(
+			data.map((pr: { head: { sha: string } }) =>
+				fetchCheckRunsForRef(owner, repo, pr.head.sha),
+			),
+		);
+
+		for (let i = 0; i < data.length; i++) {
+			const pr = data[i];
+			const checks = checksResults[i];
 			prs.push({
 				id: pr.id,
 				number: pr.number,
@@ -328,8 +379,9 @@ export async function fetchRepoPullRequests(
 				created_at: pr.created_at,
 				updated_at: pr.updated_at,
 				merged_at: pr.merged_at,
+				mergeable: pr.mergeable ?? null,
 				user: { login: pr.user.login, avatar_url: pr.user.avatar_url },
-				head: { ref: pr.head.ref, label: pr.head.label },
+				head: { ref: pr.head.ref, sha: pr.head.sha, label: pr.head.label },
 				base: { ref: pr.base.ref, label: pr.base.label },
 				labels: (pr.labels ?? []).map((l: { name: string; color: string }) => ({
 					name: l.name,
@@ -347,6 +399,8 @@ export async function fetchRepoPullRequests(
 				deletions: pr.deletions ?? 0,
 				changed_files: pr.changed_files ?? 0,
 				repo_full_name: `${owner}/${repo}`,
+				check_status: checks.check_status,
+				check_runs: checks.check_runs,
 			});
 		}
 
@@ -355,6 +409,67 @@ export async function fetchRepoPullRequests(
 	}
 
 	return prs;
+}
+
+// --- Check runs ---
+
+async function fetchCheckRunsForRef(
+	owner: string,
+	repo: string,
+	ref: string,
+): Promise<{ check_status: GitHubPullRequest['check_status']; check_runs: CheckRun[] }> {
+	try {
+		const res = await fetch(
+			`${GITHUB_API}/repos/${owner}/${repo}/commits/${ref}/check-runs?per_page=100`,
+			{ headers: getHeaders() },
+		);
+		if (!res.ok) return { check_status: null, check_runs: [] };
+		const data = await res.json();
+		const runs: CheckRun[] = (data.check_runs ?? []).map(
+			(r: { name: string; status: string; conclusion: string | null }) => ({
+				name: r.name,
+				status: r.status,
+				conclusion: r.conclusion,
+			}),
+		);
+
+		let check_status: GitHubPullRequest['check_status'] = null;
+		if (runs.length > 0) {
+			const hasInProgress = runs.some((r) => r.status !== 'completed');
+			const hasFailed = runs.some(
+				(r) => r.status === 'completed' && r.conclusion !== 'success' && r.conclusion !== 'neutral' && r.conclusion !== 'skipped',
+			);
+			if (hasInProgress) check_status = 'pending';
+			else if (hasFailed) check_status = 'failure';
+			else check_status = 'success';
+		}
+
+		return { check_status, check_runs: runs };
+	} catch {
+		return { check_status: null, check_runs: [] };
+	}
+}
+
+// --- Merge PR ---
+
+export async function mergePullRequest(
+	owner: string,
+	repo: string,
+	pullNumber: number,
+): Promise<{ sha: string; message: string }> {
+	const res = await fetch(
+		`${GITHUB_API}/repos/${owner}/${repo}/pulls/${pullNumber}/merge`,
+		{
+			method: 'PUT',
+			headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+			body: JSON.stringify({ merge_method: 'squash' }),
+		},
+	);
+	if (!res.ok) {
+		const err = await res.json().catch(() => ({}));
+		throw new Error(err.message || `Merge failed: ${res.status}`);
+	}
+	return res.json();
 }
 
 // --- Project V2 GraphQL functions ---
@@ -515,8 +630,8 @@ export async function fetchProjectV2Data(
 	org: string,
 	projectNumber: number,
 ): Promise<ProjectV2Data> {
-	// First fetch project info + views
-	const infoQuery = `
+	// First fetch project info + views + first page of items in a single query
+	const combinedQuery = `
     query($org: String!, $num: Int!) {
       organization(login: $org) {
         projectV2(number: $num) {
@@ -531,12 +646,38 @@ export async function fetchProjectV2Data(
               options { name }
             }
           }
+          items(first: 100) {
+            nodes {
+              content {
+                __typename
+                ... on Issue { number repository { nameWithOwner } }
+                ... on PullRequest { number repository { nameWithOwner } }
+              }
+              fieldValues(first: 20) {
+                nodes {
+                  ... on ProjectV2ItemFieldSingleSelectValue {
+                    field { ... on ProjectV2SingleSelectField { name } }
+                    name
+                  }
+                  ... on ProjectV2ItemFieldTextValue {
+                    field { ... on ProjectV2Field { name } }
+                    text
+                  }
+                  ... on ProjectV2ItemFieldIterationValue {
+                    field { ... on ProjectV2IterationField { name } }
+                    title
+                  }
+                }
+              }
+            }
+            pageInfo { hasNextPage endCursor }
+          }
         }
       }
     }
   `;
-	const infoData = await graphqlRequest(infoQuery, { org, num: projectNumber });
-	const project = infoData.organization.projectV2;
+	const initialData = await graphqlRequest(combinedQuery, { org, num: projectNumber });
+	const project = initialData.organization.projectV2;
 
 	const views: ProjectV2View[] = project.views.nodes.map(
 		(v: { id: string; name: string; filter: string | null }) => ({
@@ -550,11 +691,36 @@ export async function fetchProjectV2Data(
 		(o: { name: string }) => o.name,
 	);
 
-	// Paginate items
-	const items: ProjectV2Item[] = [];
-	let cursor: string | null = null;
-	let hasNext = true;
+	// Parse items from response pages
+	function parseItemNodes(nodes: Record<string, unknown>[]): ProjectV2Item[] {
+		return nodes.map((node) => {
+			const content = node.content as Record<string, unknown> | null;
+			const contentType = ((content?.__typename as string) ?? 'DraftIssue') as ProjectV2Item['contentType'];
+			const repo = content?.repository as { nameWithOwner: string } | null;
+			const repoFullName = repo?.nameWithOwner ?? null;
+			const number = (content?.number as number) ?? null;
 
+			const fieldValues: Record<string, string> = {};
+			const fvNodes = (node.fieldValues as { nodes: Record<string, unknown>[] }).nodes;
+			for (const fv of fvNodes) {
+				const field = fv?.field as { name?: string } | null;
+				const fieldName = field?.name;
+				const value = (fv?.name ?? fv?.text ?? fv?.title) as string | undefined;
+				if (fieldName && value) {
+					fieldValues[fieldName] = value;
+				}
+			}
+
+			return { contentType, repoFullName, number, fieldValues };
+		});
+	}
+
+	// First page already fetched
+	const items: ProjectV2Item[] = parseItemNodes(project.items.nodes);
+	let hasNext = project.items.pageInfo.hasNextPage;
+	let cursor: string | null = project.items.pageInfo.endCursor;
+
+	// Paginate remaining items sequentially (cursor-based, can't parallelize)
 	while (hasNext) {
 		const itemsQuery = `
       query($org: String!, $num: Int!, $cursor: String) {
@@ -592,25 +758,7 @@ export async function fetchProjectV2Data(
     `;
 		const data = await graphqlRequest(itemsQuery, { org, num: projectNumber, cursor });
 		const itemsPage = data.organization.projectV2.items;
-
-		for (const node of itemsPage.nodes) {
-			const content = node.content;
-			const contentType = content?.__typename ?? 'DraftIssue';
-			const repoFullName = content?.repository?.nameWithOwner ?? null;
-			const number = content?.number ?? null;
-
-			const fieldValues: Record<string, string> = {};
-			for (const fv of node.fieldValues.nodes) {
-				const fieldName = fv?.field?.name;
-				const value = fv?.name ?? fv?.text ?? fv?.title;
-				if (fieldName && value) {
-					fieldValues[fieldName] = value;
-				}
-			}
-
-			items.push({ contentType, repoFullName, number, fieldValues });
-		}
-
+		items.push(...parseItemNodes(itemsPage.nodes));
 		hasNext = itemsPage.pageInfo.hasNextPage;
 		cursor = itemsPage.pageInfo.endCursor;
 	}

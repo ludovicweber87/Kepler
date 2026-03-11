@@ -76,10 +76,10 @@ export default function SkillsList() {
 				>
 					<FolderOpenRoundedIcon sx={{ fontSize: 64, color: 'text.disabled' }} />
 					<Typography variant="h6" color="text.secondary">
-						No project selected
+						Aucun projet sélectionné
 					</Typography>
 					<Typography variant="body2" color="text.disabled" sx={{ mb: 2 }}>
-						Add a repository in Settings to manage its skills.
+						Ajoutez un dépôt dans les paramètres pour gérer ses skills.
 					</Typography>
 					<Button
 						variant="outlined"
@@ -95,7 +95,7 @@ export default function SkillsList() {
 							},
 						}}
 					>
-						Add Project
+						Ajouter un projet
 					</Button>
 				</Box>
 			</Box>
@@ -110,7 +110,7 @@ export default function SkillsList() {
 					display: 'flex',
 					alignItems: 'center',
 					justifyContent: 'space-between',
-					mb: 3,
+					mb: 1,
 				}}
 			>
 				<Typography
@@ -145,7 +145,7 @@ export default function SkillsList() {
 							},
 						}}
 					>
-						Find Skills
+						Trouver des skills
 					</Button>
 					<Button
 						variant="contained"
@@ -154,17 +154,25 @@ export default function SkillsList() {
 						onClick={() => handleLaunch()}
 						sx={{
 							bgcolor: '#00E5FF',
-							color: '#1A1A1A',
+							color: 'background.default',
 							'&:hover': { bgcolor: alpha('#00E5FF', 0.85) },
 							borderRadius: 1,
 							textTransform: 'none',
 							fontWeight: 600,
 						}}
 					>
-						New Skill
+						Nouveau skill
 					</Button>
 				</Box>
 			</Box>
+			<Typography
+				variant="body2"
+				sx={{ color: 'text.secondary', mb: 3, maxWidth: 640, lineHeight: 1.6 }}
+			>
+				Les skills sont des fichiers Markdown (<code>.md</code>) qui enrichissent les
+				connaissances de Claude sur votre projet. Ajoutez un skill pour documenter un workflow,
+				une convention ou un outil interne — Claude les utilisera automatiquement en contexte.
+			</Typography>
 
 			{/* Tabs */}
 			<DraggableTabs
@@ -174,7 +182,7 @@ export default function SkillsList() {
 				onReorder={reorderViews}
 				color="#00E5FF"
 				trailing={
-					<Tooltip title="Add project">
+					<Tooltip title="Ajouter un projet">
 						<IconButton
 							size="small"
 							onClick={() => addView()}
@@ -207,14 +215,14 @@ export default function SkillsList() {
 				>
 					<AutoFixHighRoundedIcon sx={{ fontSize: 64, color: 'text.disabled' }} />
 					<Typography variant="h6" color="text.secondary">
-						No skills yet
+						Aucun skill
 					</Typography>
 					<Typography
 						variant="body2"
 						color="text.disabled"
 						sx={{ mb: 2, textAlign: 'center' }}
 					>
-						Create a <code>.md</code> file in{' '}
+						Créez un fichier <code>.md</code> dans{' '}
 						<code>{activeView?.path}/.claude/skills/</code>
 					</Typography>
 					<Button
@@ -231,7 +239,7 @@ export default function SkillsList() {
 							},
 						}}
 					>
-						Create Skill
+						Créer un skill
 					</Button>
 				</Box>
 			)}
@@ -329,7 +337,7 @@ export default function SkillsList() {
 										gap: 0.5,
 									}}
 								>
-									<Tooltip title="Edit">
+									<Tooltip title="Modifier">
 										<IconButton
 											size="small"
 											onClick={(e) => {
@@ -344,7 +352,7 @@ export default function SkillsList() {
 											<EditRoundedIcon fontSize="small" />
 										</IconButton>
 									</Tooltip>
-									<Tooltip title="Delete">
+									<Tooltip title="Supprimer">
 										<IconButton
 											size="small"
 											onClick={(e) => {

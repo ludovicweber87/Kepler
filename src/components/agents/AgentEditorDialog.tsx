@@ -62,7 +62,7 @@ export default function AgentEditorDialog({
 			}}
 		>
 			<DialogTitle sx={{ fontWeight: 600 }}>
-				{agent ? `Edit — ${agent.name}.md` : 'New Agent'}
+				{agent ? `Modifier — ${agent.name}.md` : 'Nouvel agent'}
 			</DialogTitle>
 			<DialogContent
 				sx={{
@@ -76,27 +76,27 @@ export default function AgentEditorDialog({
 			>
 				{!agent && (
 					<TextField
-						label="Filename"
+						label="Nom du fichier"
 						value={filename}
 						onChange={(e) => setFilename(e.target.value)}
 						required
 						fullWidth
-						placeholder="e.g. code-reviewer"
-						helperText="Will be saved as .claude/agents/{name}.md"
+						placeholder="ex. code-reviewer"
+						helperText="Sera enregistré dans .claude/agents/{name}.md"
 						size="small"
 						sx={{ flexShrink: 0 }}
 					/>
 				)}
 
 				<TextField
-					label="Agent Prompt"
+					label="Prompt de l'agent"
 					value={content}
 					onChange={(e) => setContent(e.target.value)}
 					required
 					fullWidth
 					multiline
 					rows={undefined}
-					placeholder="Write the agent system prompt in markdown..."
+					placeholder="Écrivez le prompt système de l'agent en markdown..."
 					sx={{
 						flex: 1,
 						minHeight: 0,
@@ -119,7 +119,7 @@ export default function AgentEditorDialog({
 			</DialogContent>
 			<DialogActions sx={{ px: 3, pb: 2.5 }}>
 				<Button onClick={onClose} sx={{ color: 'text.secondary' }}>
-					Cancel
+					Annuler
 				</Button>
 				<Button
 					onClick={handleSave}
@@ -130,7 +130,7 @@ export default function AgentEditorDialog({
 						'&:hover': { bgcolor: alpha('#7C5CFF', 0.85) },
 					}}
 				>
-					Save
+					Enregistrer
 				</Button>
 			</DialogActions>
 		</Dialog>

@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import type { ProjectV2Config, ProjectV2View, ViewRepoMapping } from '@/types';
@@ -137,6 +137,35 @@ export function useProjectConfig() {
 		return ordered;
 	})();
 
+	// Background sync: re-fetch Project V2 data from GitHub and update mappings
+	const syncingRef = useRef(false);
+	const syncViews = useCallback(async () => {
+		if (!config || syncingRef.current) return;
+		syncingRef.current = true;
+		try {
+			const res = await fetch(
+				`/api/github/projects?org=${config.org}&projectNumber=${config.projectNumber}`,
+			);
+			if (!res.ok) return;
+			const data = await res.json();
+			const newMappings: ViewRepoMapping[] = data.viewRepoMappings ?? [];
+			const newViews: ProjectV2View[] = data.views ?? [];
+			const newStatusColumns: string[] = data.statusColumns ?? config.statusColumns;
+
+			// Merge: keep user settings, update GitHub data
+			saveMutation.mutate({
+				...config,
+				viewRepoMappings: newMappings,
+				views: newViews,
+				statusColumns: newStatusColumns,
+			});
+		} catch {
+			// Sync failed silently — stale data is still usable
+		} finally {
+			syncingRef.current = false;
+		}
+	}, [config, saveMutation]);
+
 	return {
 		config,
 		saveConfig,
@@ -145,5 +174,6 @@ export function useProjectConfig() {
 		reorderViews,
 		getViewRepos,
 		selectedViewMappings,
+		syncViews,
 	};
 }

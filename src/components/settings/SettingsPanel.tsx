@@ -86,7 +86,7 @@ export default function SettingsPanel() {
 	const [loadingViews, setLoadingViews] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [toast, setToast] = useState(false);
-	const [toastMessage, setToastMessage] = useState('Views saved');
+	const [toastMessage, setToastMessage] = useState('Vues enregistrées');
 	const [localPaths, setLocalPaths] = useState<Record<string, string>>({});
 	const [pickingRepo, setPickingRepo] = useState<string | null>(null);
 
@@ -201,7 +201,7 @@ export default function SettingsPanel() {
 			statusColumns: viewsData.statusColumns ?? [],
 			views: viewsData.views,
 		});
-		setToastMessage('Views saved');
+		setToastMessage('Vues enregistrées');
 		setToast(true);
 	};
 
@@ -220,7 +220,7 @@ export default function SettingsPanel() {
 			if (path) {
 				setLocalPaths((prev) => ({ ...prev, [repo]: path }));
 				savePath(repo, path);
-				setToastMessage('Path saved');
+				setToastMessage('Chemin enregistré');
 				setToast(true);
 			}
 		} finally {
@@ -243,7 +243,7 @@ export default function SettingsPanel() {
 					WebkitTextFillColor: 'transparent',
 				}}
 			>
-				Settings
+				Paramètres
 			</Typography>
 
 			<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -253,14 +253,14 @@ export default function SettingsPanel() {
 						<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
 							<GitHubIcon sx={{ color: 'text.secondary' }} />
 							<Typography variant="h6" sx={{ fontWeight: 600 }}>
-								GitHub Project Views
+								Vues de projet GitHub
 							</Typography>
 						</Box>
 					</AccordionSummary>
 					<AccordionDetails sx={{ pt: 0 }}>
 						<Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-							Select a project from your organizations to filter dashboard data by
-							view.
+							Sélectionnez un projet de vos organisations pour filtrer les données
+							par vue.
 						</Typography>
 
 						{error && (
@@ -279,16 +279,16 @@ export default function SettingsPanel() {
 
 						{!loadingProjects && totalProjects === 0 && !error && (
 							<Alert severity="info" sx={{ mb: 2, borderRadius: 1 }}>
-								No projects found in your organizations.
+								Aucun projet trouvé dans vos organisations.
 							</Alert>
 						)}
 
 						{!loadingProjects && totalProjects > 0 && (
 							<FormControl fullWidth size="small" sx={{ mb: 2.5 }}>
-								<InputLabel>Project</InputLabel>
+								<InputLabel>Projet</InputLabel>
 								<Select
 									value={selectedKey}
-									label="Project"
+									label="Projet"
 									onChange={(e) => handleProjectChange(e.target.value)}
 								>
 									{orgProjects.map((o) => [
@@ -312,7 +312,7 @@ export default function SettingsPanel() {
 							<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
 								<CircularProgress size={20} />
 								<Typography variant="body2" color="text.secondary">
-									Loading project views and items...
+									Chargement des vues et éléments...
 								</Typography>
 							</Box>
 						)}
@@ -328,9 +328,9 @@ export default function SettingsPanel() {
 									}}
 								>
 									<Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-										Views
+										Vues
 									</Typography>
-									<Tooltip title="Refetch views from GitHub">
+									<Tooltip title="Rafraîchir les vues depuis GitHub">
 										<IconButton
 											size="small"
 											onClick={() => {
@@ -387,7 +387,7 @@ export default function SettingsPanel() {
 												sx={{ flex: 1, mr: 0 }}
 											/>
 											<Chip
-												label={`${repoCount} repo${repoCount !== 1 ? 's' : ''}`}
+												label={`${repoCount} dépôt${repoCount !== 1 ? 's' : ''}`}
 												size="small"
 												variant="outlined"
 												sx={{ fontSize: '0.75rem' }}
@@ -405,10 +405,10 @@ export default function SettingsPanel() {
 									onClick={handleSave}
 									disabled={!viewsData || selectedViews.size === 0}
 								>
-									Save
+									Enregistrer
 								</Button>
 								<Button variant="outlined" color="secondary" onClick={handleClear}>
-									Clear
+									Effacer
 								</Button>
 							</Box>
 						)}
@@ -421,14 +421,14 @@ export default function SettingsPanel() {
 						<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
 							<FolderRoundedIcon sx={{ color: 'text.secondary' }} />
 							<Typography variant="h6" sx={{ fontWeight: 600 }}>
-								Repository Local Paths
+								Chemins locaux des dépôts
 							</Typography>
 						</Box>
 					</AccordionSummary>
 					<AccordionDetails sx={{ pt: 0 }}>
 						<Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-							Local paths for your repositories. Used for git operations and agent
-							sessions.
+							Chemins locaux de vos dépôts. Utilisés pour les opérations git et les
+							sessions d&apos;agents.
 						</Typography>
 
 						{repoPaths.length > 0 && (
@@ -450,7 +450,7 @@ export default function SettingsPanel() {
 											input: {
 												endAdornment: (
 													<InputAdornment position="end">
-														<Tooltip title="Browse...">
+														<Tooltip title="Parcourir...">
 															<IconButton
 																size="small"
 																edge="end"
@@ -467,7 +467,7 @@ export default function SettingsPanel() {
 																)}
 															</IconButton>
 														</Tooltip>
-														<Tooltip title="Remove">
+														<Tooltip title="Supprimer">
 															<IconButton
 																size="small"
 																edge="end"
@@ -514,7 +514,7 @@ export default function SettingsPanel() {
 										);
 										if (repoName?.trim()) {
 											savePath(repoName.trim(), path);
-											setToastMessage('Repository added');
+											setToastMessage('Dépôt ajouté');
 											setToast(true);
 										}
 									}
@@ -533,7 +533,7 @@ export default function SettingsPanel() {
 								},
 							}}
 						>
-							{pickingRepo === '__new__' ? 'Selecting...' : 'Add Repository'}
+							{pickingRepo === '__new__' ? 'Sélection...' : 'Ajouter un dépôt'}
 						</Button>
 					</AccordionDetails>
 				</Accordion>

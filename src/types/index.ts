@@ -43,6 +43,10 @@ export interface GitHubIssue {
 		login: string;
 		avatar_url: string;
 	}[];
+	user: {
+		login: string;
+		avatar_url: string;
+	};
 	repository_url: string;
 	pull_request?: unknown;
 	repo_full_name?: string;
@@ -196,6 +200,12 @@ export type GitHubTimelineEvent =
 	| CrossReferencedEvent
 	| GenericTimelineEvent;
 
+export interface CheckRun {
+	name: string;
+	status: 'queued' | 'in_progress' | 'completed';
+	conclusion: 'success' | 'failure' | 'neutral' | 'cancelled' | 'skipped' | 'timed_out' | 'action_required' | null;
+}
+
 export interface GitHubPullRequest {
 	id: number;
 	number: number;
@@ -207,12 +217,14 @@ export interface GitHubPullRequest {
 	created_at: string;
 	updated_at: string;
 	merged_at: string | null;
+	mergeable: boolean | null;
 	user: {
 		login: string;
 		avatar_url: string;
 	};
 	head: {
 		ref: string;
+		sha: string;
 		label: string;
 	};
 	base: {
@@ -230,24 +242,10 @@ export interface GitHubPullRequest {
 	deletions: number;
 	changed_files: number;
 	repo_full_name: string;
+	check_status: 'success' | 'failure' | 'pending' | null;
+	check_runs: CheckRun[];
 }
 
-// Notifications
-
-export interface Notification {
-	id: string;
-	type: string;
-	title: string;
-	message: string | null;
-	issue_owner: string | null;
-	issue_repo: string | null;
-	issue_number: number | null;
-	issue_title: string | null;
-	session_id: string | null;
-	view_name: string | null;
-	read: boolean;
-	created_at: string;
-}
 
 export interface AgentPreset {
 	id: string;

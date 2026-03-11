@@ -21,6 +21,8 @@ import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
 import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded';
 import StopCircleRoundedIcon from '@mui/icons-material/StopCircleRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import Button from '@mui/material/Button';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useActiveSessions, type ActiveSession } from '@/hooks/useActiveSessions';
@@ -30,14 +32,14 @@ import { useRightSidebar } from '@/hooks/useRightSidebar';
 import DraggableTabs from '@/components/shared/DraggableTabs';
 import AgentTerminalModal from '@/components/agents/AgentTerminalModal';
 
-export const RIGHT_SIDEBAR_WIDTH = 300;
-const MIN_WIDTH = 300;
-const MAX_WIDTH = 300;
+export const RIGHT_SIDEBAR_WIDTH = 400;
+const MIN_WIDTH = 400;
+const MAX_WIDTH = 400;
 
 function timeAgo(ts: number): string {
 	const diff = Date.now() - ts;
 	const mins = Math.floor(diff / 60_000);
-	if (mins < 1) return 'now';
+	if (mins < 1) return "à l'instant";
 	if (mins < 60) return `${mins}m`;
 	const hours = Math.floor(mins / 60);
 	if (hours < 24) return `${hours}h`;
@@ -69,16 +71,16 @@ function ActiveSessionCard({
 			sx={{
 				p: 1.5,
 				borderRadius: 1,
-				bgcolor: alpha('#7C5CFF', isStreaming ? 0.12 : 0.06),
+				bgcolor: alpha('#22C55E', isStreaming ? 0.08 : 0.04),
 				border: 1,
-				borderColor: alpha('#7C5CFF', isStreaming ? 0.3 : 0.12),
+				borderColor: alpha('#22C55E', isStreaming ? 0.25 : 0.1),
 				borderLeft: isStreaming ? 3 : 1,
-				borderLeftColor: isStreaming ? '#7C5CFF' : alpha('#7C5CFF', 0.12),
+				borderLeftColor: isStreaming ? '#22C55E' : alpha('#22C55E', 0.1),
 				cursor: 'pointer',
 				transition: 'all 0.15s',
 				'&:hover': {
-					bgcolor: alpha('#7C5CFF', 0.12),
-					borderColor: alpha('#7C5CFF', 0.25),
+					bgcolor: alpha('#22C55E', 0.12),
+					borderColor: alpha('#22C55E', 0.3),
 					transform: 'translateX(-2px)',
 				},
 			}}
@@ -147,7 +149,7 @@ function ActiveSessionCard({
 					slotProps={{
 						paper: {
 							sx: {
-								bgcolor: '#2A2A2A',
+								bgcolor: 'background.paper',
 								border: 1,
 								borderColor: 'divider',
 								minWidth: 160,
@@ -167,7 +169,7 @@ function ActiveSessionCard({
 							<StopCircleRoundedIcon sx={{ fontSize: 18, color: '#FF5252' }} />
 						</ListItemIcon>
 						<ListItemText primaryTypographyProps={{ fontSize: '0.8rem' }}>
-							Fermer la session
+							Arrêter la session
 						</ListItemText>
 					</MenuItem>
 				</Menu>
@@ -188,11 +190,13 @@ function ActiveSessionCard({
 					sx={{
 						height: 20,
 						fontSize: '0.65rem',
-						bgcolor: alpha('#00E5FF', 0.1),
-						color: '#00E5FF',
+						bgcolor: (t: { palette: { secondary: { main: string } } }) =>
+							alpha(t.palette.secondary.main, 0.1),
+						color: 'secondary.main',
 						border: 1,
-						borderColor: alpha('#00E5FF', 0.2),
-						'& .MuiChip-icon': { color: '#00E5FF' },
+						borderColor: (t: { palette: { secondary: { main: string } } }) =>
+							alpha(t.palette.secondary.main, 0.2),
+						'& .MuiChip-icon': { color: 'secondary.main' },
 					}}
 				/>
 			)}
@@ -221,14 +225,14 @@ function PastSessionCard({
 			sx={{
 				p: 1.5,
 				borderRadius: 1,
-				bgcolor: alpha('#fff', 0.02),
+				bgcolor: alpha('#FF9800', 0.03),
 				border: 1,
-				borderColor: alpha('#fff', 0.06),
+				borderColor: alpha('#FF9800', 0.08),
 				cursor: 'pointer',
 				transition: 'all 0.15s',
 				'&:hover': {
-					bgcolor: alpha('#fff', 0.05),
-					borderColor: alpha('#fff', 0.12),
+					bgcolor: alpha('#FF9800', 0.07),
+					borderColor: alpha('#FF9800', 0.15),
 				},
 			}}
 		>
@@ -276,7 +280,7 @@ function PastSessionCard({
 					slotProps={{
 						paper: {
 							sx: {
-								bgcolor: '#2A2A2A',
+								bgcolor: 'background.paper',
 								border: 1,
 								borderColor: 'divider',
 								minWidth: 160,
@@ -318,9 +322,10 @@ function PastSessionCard({
 						mt: 0.5,
 						height: 18,
 						fontSize: '0.6rem',
-						bgcolor: alpha('#00E5FF', 0.06),
-						color: alpha('#00E5FF', 0.6),
-						'& .MuiChip-icon': { color: alpha('#00E5FF', 0.6) },
+						bgcolor: (t: { palette: { secondary: { main: string } } }) =>
+							alpha(t.palette.secondary.main, 0.06),
+						color: 'secondary.main',
+						'& .MuiChip-icon': { color: 'secondary.main' },
 					}}
 				/>
 			)}
@@ -340,6 +345,7 @@ export default function RightSidebar() {
 	const { views, reorderViews } = useAgentViews();
 	const queryClient = useQueryClient();
 	const [selected, setSelected] = useState<SelectedItem | null>(null);
+	const [newAgentOpen, setNewAgentOpen] = useState(false);
 	const [tabIndex, setTabIndex] = useState(0);
 	const [isResizing, setIsResizing] = useState(false);
 	const startXRef = useRef(0);
@@ -381,20 +387,20 @@ export default function RightSidebar() {
 	);
 
 	const filteredActiveSessions = useMemo(() => {
-		if (tabIndex === 0) return sessions;
-		const view = views[tabIndex - 1];
+		const view = views[tabIndex];
 		if (!view) return sessions;
 		return sessions.filter((s) => s.cwd.startsWith(view.path));
 	}, [sessions, views, tabIndex]);
 
 	const filteredPastSessions = useMemo(() => {
-		if (tabIndex === 0) return filteredPast;
-		const view = views[tabIndex - 1];
+		const view = views[tabIndex];
 		if (!view) return filteredPast;
 		return filteredPast.filter(
 			(s) => s.project_path.startsWith(view.path) || s.project_name === view.label,
 		);
 	}, [filteredPast, views, tabIndex]);
+
+	const activeViewPath = views[tabIndex]?.path ?? views[0]?.path;
 
 	const handleMouseDown = useCallback(
 		(e: React.MouseEvent) => {
@@ -433,15 +439,15 @@ export default function RightSidebar() {
 	const modalProps =
 		selected?.type === 'active'
 			? {
-					projectPath: selected.session.cwd,
-					existingSessionId: selected.session.sessionId,
-				}
+				projectPath: selected.session.cwd,
+				existingSessionId: selected.session.sessionId,
+			}
 			: selected?.type === 'past'
 				? {
-						projectPath: selected.session.project_path || undefined,
-						existingSessionId: selected.session.session_id,
-						isPastSession: true,
-					}
+					projectPath: selected.session.project_path || undefined,
+					existingSessionId: selected.session.session_id,
+					isPastSession: true,
+				}
 				: {};
 
 	return (
@@ -527,22 +533,41 @@ export default function RightSidebar() {
 				{views.length > 0 && (
 					<Box sx={{ px: 1, flexShrink: 0, borderBottom: 1, borderColor: 'divider' }}>
 						<DraggableTabs
-							tabs={['All', ...views.map((v) => v.label)]}
+							tabs={views.map((v) => v.label)}
 							activeTab={tabIndex}
 							onTabChange={setTabIndex}
 							onReorder={(newOrder) => {
-								const viewLabels = newOrder.filter((t) => t !== 'All');
-								reorderViews(viewLabels);
+								reorderViews(newOrder);
 							}}
-							counts={[
-								undefined as unknown as number,
-								...views.map(
-									(v) => sessions.filter((s) => s.cwd.startsWith(v.path)).length,
-								),
-							]}
+							counts={views.map(
+								(v) => sessions.filter((s) => s.cwd.startsWith(v.path)).length,
+							)}
 						/>
 					</Box>
 				)}
+
+				{/* Start Agent button */}
+				<Box sx={{ px: 2, pt: 1.5, pb: 0.5, flexShrink: 0 }}>
+					<Button
+						size="small"
+						startIcon={<AddRoundedIcon />}
+						onClick={() => setNewAgentOpen(true)}
+						sx={{
+							textTransform: 'none',
+							fontWeight: 600,
+							fontSize: '0.75rem',
+							color: '#7C5CFF',
+							borderColor: alpha('#7C5CFF', 0.3),
+							'&:hover': {
+								borderColor: '#7C5CFF',
+								bgcolor: alpha('#7C5CFF', 0.08),
+							},
+						}}
+						variant="outlined"
+					>
+						Lancer un agent
+					</Button>
+				</Box>
 
 				{/* Content */}
 				<Box sx={{ p: 2, overflow: 'auto', flex: 1 }}>
@@ -584,7 +609,7 @@ export default function RightSidebar() {
 										textTransform: 'uppercase',
 									}}
 								>
-									Past sessions
+									Sessions passées
 								</Typography>
 							</Box>
 							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
@@ -616,7 +641,7 @@ export default function RightSidebar() {
 								variant="caption"
 								sx={{ color: 'text.disabled', textAlign: 'center' }}
 							>
-								{tabIndex === 0 ? 'No sessions yet' : 'No sessions on this project'}
+								Aucune session sur ce projet
 							</Typography>
 						</Box>
 					)}
@@ -627,6 +652,12 @@ export default function RightSidebar() {
 				open={modalOpen}
 				onClose={() => setSelected(null)}
 				{...modalProps}
+			/>
+
+			<AgentTerminalModal
+				open={newAgentOpen}
+				onClose={() => setNewAgentOpen(false)}
+				projectPath={activeViewPath}
 			/>
 		</>
 	);

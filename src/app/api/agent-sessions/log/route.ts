@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 			return NextResponse.json({ error: 'sessionId and content required' }, { status: 400 });
 		}
 
-		// Look up existing session — never create one here (ensureSession in the UI is the only creator)
+		// Look up existing session
 		const { data: session } = await supabase
 			.from('agent_sessions')
 			.select('id, session_id, project_name, agent_name, issue_owner, issue_repo, issue_number, issue_title')
@@ -30,24 +30,23 @@ export async function POST(req: NextRequest) {
 			.single();
 
 		if (!session) {
-			// Session not yet created by UI — silently skip (agent logs before modal opens)
 			return NextResponse.json({ ok: true, skipped: true });
 		}
 
-		// Update branch and status if provided (status "active" is ignored — only reopen flow can set it)
-		const updates: Record<string, unknown> = {};
-		if (branch) updates.branch = branch;
-		if (status && status !== 'active') {
-			updates.status = status;
-			if (status === 'completed' || status === 'error') {
-				updates.ended_at = new Date().toISOString();
+		// Handle "title" log type — update agent_name if not already set
+		if (logType === 'title') {
+			const title = content.slice(0, 60).trim();
+			if (title) {
+				await supabase
+					.from('agent_sessions')
+					.update({ agent_name: title })
+					.eq('id', session.id)
+					.is('agent_name', null);
 			}
-		}
-		if (Object.keys(updates).length > 0) {
-			await supabase.from('agent_sessions').update(updates).eq('id', session.id);
+			return NextResponse.json({ ok: true });
 		}
 
-		// Insert activity log
+		// Insert activity log first (so the trigger can read it)
 		const { error: logError } = await supabase.from('agent_activity_logs').insert({
 			agent_session_id: session.id,
 			content,
@@ -58,63 +57,17 @@ export async function POST(req: NextRequest) {
 			return NextResponse.json({ error: logError.message }, { status: 500 });
 		}
 
-		// Create notification when agent posts a summary or session completes
-		if (logType === 'summary' || (status === 'completed' || status === 'error')) {
-			const isSummary = logType === 'summary';
-			const isError = status === 'error' || logType === 'error';
-
-			// Resolve view_name from repo
-			let viewName: string | null = null;
-			if (session.issue_owner && session.issue_repo) {
-				const repoFull = `${session.issue_owner}/${session.issue_repo}`;
-				const { data: configs } = await supabase
-					.from('project_configs')
-					.select('view_repo_mappings')
-					.limit(1)
-					.single();
-				if (configs?.view_repo_mappings) {
-					const mappings = configs.view_repo_mappings as Array<{
-						viewName: string;
-						repos?: string[];
-						issues?: Array<{ repo: string; number: number }>;
-					}>;
-					const match = mappings.find(
-						(m) =>
-							m.repos?.includes(repoFull) ||
-							m.issues?.some((i) => i.repo === repoFull && i.number === session.issue_number),
-					);
-					viewName = match?.viewName ?? null;
-				}
+		// Update branch and status
+		const updates: Record<string, unknown> = {};
+		if (branch) updates.branch = branch;
+		if (status && status !== 'active') {
+			updates.status = status;
+			if (status === 'completed' || status === 'error') {
+				updates.ended_at = new Date().toISOString();
 			}
-
-			const agentName = session.agent_name ?? 'Claude';
-			const issueLabel = session.issue_title
-				? `${session.issue_repo}#${session.issue_number} ${session.issue_title}`
-				: session.project_name;
-
-			const title = isError
-				? `Erreur agent — ${issueLabel}`
-				: isSummary
-					? `Résumé disponible — ${issueLabel}`
-					: `Session terminée — ${issueLabel}`;
-
-			const message = isError
-				? `L'agent ${agentName} a rencontré une erreur.`
-				: isSummary
-					? content.length > 200 ? content.slice(0, 200) + '…' : content
-					: `L'agent ${agentName} a terminé sa session.`;
-
-			await supabase.from('notifications').insert({
-				type: isError ? 'agent_error' : isSummary ? 'agent_summary' : 'session_completed',
-				title,
-				message,
-				issue_owner: session.issue_owner,
-				issue_repo: session.issue_repo,
-				issue_number: session.issue_number,
-				issue_title: session.issue_title,
-				session_id: session.session_id,
-				view_name: viewName,
-			});
+		}
+		if (Object.keys(updates).length > 0) {
+			await supabase.from('agent_sessions').update(updates).eq('id', session.id);
 		}
 
 		return NextResponse.json({ ok: true });

@@ -169,21 +169,6 @@ export function useAgentSession(sessionId: string | undefined) {
 		},
 	});
 
-	const reopenSessionMutation = useMutation({
-		mutationFn: async () => {
-			if (!session) throw new Error('No session');
-			const { error } = await supabase
-				.from('agent_sessions')
-				.update({ status: 'active', ended_at: null })
-				.eq('id', session.id);
-			if (error) throw error;
-		},
-		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: queryKey(sessionId ?? '') });
-			qc.invalidateQueries({ queryKey: ['agent-sessions', 'history'] });
-		},
-	});
-
 	const ensureSession = useCallback(
 		(params: Parameters<typeof ensureSessionMutation.mutate>[0]) =>
 			ensureSessionMutation.mutate(params),
@@ -201,12 +186,7 @@ export function useAgentSession(sessionId: string | undefined) {
 		[updateStatusMutation],
 	);
 
-	const reopenSession = useCallback(
-		() => reopenSessionMutation.mutate(),
-		[reopenSessionMutation],
-	);
-
-	return { session, logs, ensureSession, addLog, updateStatus, reopenSession };
+	return { session, logs, ensureSession, addLog, updateStatus };
 }
 
 /** Fetch all sessions for history view */

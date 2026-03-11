@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
@@ -9,6 +9,11 @@ import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import Button from '@mui/material/Button';
 import Avatar from '@mui/material/Avatar';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import Collapse from '@mui/material/Collapse';
 import { alpha } from '@mui/material/styles';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
@@ -16,10 +21,16 @@ import MergeTypeRoundedIcon from '@mui/icons-material/MergeTypeRounded';
 import ChatBubbleOutlineRoundedIcon from '@mui/icons-material/ChatBubbleOutlineRounded';
 import InsertDriveFileOutlinedIcon from '@mui/icons-material/InsertDriveFileOutlined';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
+import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
+import CancelRoundedIcon from '@mui/icons-material/CancelRounded';
+import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
+import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
+import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
 import DraggableTabs from '@/components/shared/DraggableTabs';
 import { useAgentViews } from '@/hooks/useAgentViews';
-import { usePullRequests } from '@/hooks/usePullRequests';
-import type { GitHubPullRequest } from '@/types';
+import { usePullRequests, useMergePR } from '@/hooks/usePullRequests';
+import { useSnackbar } from '@/hooks/useSnackbar';
+import type { GitHubPullRequest, CheckRun } from '@/types';
 
 function timeAgo(dateStr: string): string {
 	const diff = Date.now() - new Date(dateStr).getTime();
@@ -55,17 +66,121 @@ function getAgeBorderColor(updatedAt: string): string {
 	return 'rgba(244, 67, 54, 0.30)';
 }
 
-function PRCard({ pr }: { pr: GitHubPullRequest }) {
+function CheckIcon({ status }: { status: GitHubPullRequest['check_status'] }) {
+	if (status === 'success') {
+		return (
+			<Tooltip title="Checks passed">
+				<CheckCircleRoundedIcon sx={{ fontSize: 16, color: '#22C55E' }} />
+			</Tooltip>
+		);
+	}
+	if (status === 'failure') {
+		return (
+			<Tooltip title="Checks failed">
+				<CancelRoundedIcon sx={{ fontSize: 16, color: '#EF4444' }} />
+			</Tooltip>
+		);
+	}
+	if (status === 'pending') {
+		return (
+			<Tooltip title="Checks in progress">
+				<AccessTimeRoundedIcon sx={{ fontSize: 16, color: '#F59E0B' }} />
+			</Tooltip>
+		);
+	}
+	return null;
+}
+
+function CheckRunItem({ run }: { run: CheckRun }) {
+	const isCompleted = run.status === 'completed';
+	const isSuccess = run.conclusion === 'success' || run.conclusion === 'neutral' || run.conclusion === 'skipped';
+
+	let color = '#F59E0B';
+	let Icon = AccessTimeRoundedIcon;
+	if (isCompleted) {
+		if (isSuccess) {
+			color = '#22C55E';
+			Icon = CheckCircleRoundedIcon;
+		} else {
+			color = '#EF4444';
+			Icon = CancelRoundedIcon;
+		}
+	}
+
+	return (
+		<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.25 }}>
+			<Icon sx={{ fontSize: 13, color }} />
+			<Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
+				{run.name}
+			</Typography>
+			{run.conclusion && (
+				<Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.65rem', ml: 'auto' }}>
+					{run.conclusion}
+				</Typography>
+			)}
+		</Box>
+	);
+}
+
+function ChecksDetail({ runs }: { runs: CheckRun[] }) {
+	const [expanded, setExpanded] = useState(false);
+
+	if (runs.length === 0) return null;
+
+	const passed = runs.filter(
+		(r) => r.status === 'completed' && (r.conclusion === 'success' || r.conclusion === 'neutral' || r.conclusion === 'skipped'),
+	).length;
+
+	return (
+		<Box sx={{ mt: 0.5 }}>
+			<Box
+				onClick={(e) => {
+					e.preventDefault();
+					e.stopPropagation();
+					setExpanded(!expanded);
+				}}
+				sx={{
+					display: 'inline-flex',
+					alignItems: 'center',
+					gap: 0.5,
+					cursor: 'pointer',
+					'&:hover': { '& .MuiTypography-root': { color: 'text.primary' } },
+				}}
+			>
+				<Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.7rem', transition: 'color 0.15s' }}>
+					{passed}/{runs.length} checks passed
+				</Typography>
+				{expanded ? (
+					<ExpandLessRoundedIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
+				) : (
+					<ExpandMoreRoundedIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
+				)}
+			</Box>
+			<Collapse in={expanded}>
+				<Box sx={{ mt: 0.5, pl: 0.5 }}>
+					{runs.map((run) => (
+						<CheckRunItem key={run.name} run={run} />
+					))}
+				</Box>
+			</Collapse>
+		</Box>
+	);
+}
+
+function PRCard({
+	pr,
+	onMerge,
+}: {
+	pr: GitHubPullRequest;
+	onMerge: (pr: GitHubPullRequest) => void;
+}) {
 	const totalChanges = pr.additions + pr.deletions;
 	const bgColor = getAgeBgColor(pr.updated_at);
 	const borderColor = getAgeBorderColor(pr.updated_at);
+	const canMerge = pr.check_status === 'success' && !pr.draft;
 
 	return (
 		<Box
-			component="a"
-			href={pr.html_url}
-			target="_blank"
-			rel="noopener noreferrer"
 			sx={{
 				display: 'flex',
 				alignItems: 'flex-start',
@@ -76,8 +191,6 @@ function PRCard({ pr }: { pr: GitHubPullRequest }) {
 				bgcolor: bgColor,
 				border: 1,
 				borderColor,
-				textDecoration: 'none',
-				color: 'inherit',
 				transition: 'transform 0.1s, box-shadow 0.15s',
 				'&:hover': {
 					transform: 'translateX(4px)',
@@ -96,7 +209,12 @@ function PRCard({ pr }: { pr: GitHubPullRequest }) {
 			{/* Content */}
 			<Box sx={{ flex: 1, minWidth: 0 }}>
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+					<CheckIcon status={pr.check_status} />
 					<Typography
+						component="a"
+						href={pr.html_url}
+						target="_blank"
+						rel="noopener noreferrer"
 						variant="body2"
 						sx={{
 							fontWeight: 600,
@@ -104,6 +222,9 @@ function PRCard({ pr }: { pr: GitHubPullRequest }) {
 							textOverflow: 'ellipsis',
 							whiteSpace: 'nowrap',
 							flex: 1,
+							color: 'inherit',
+							textDecoration: 'none',
+							'&:hover': { textDecoration: 'underline' },
 						}}
 					>
 						{pr.title}
@@ -195,6 +316,9 @@ function PRCard({ pr }: { pr: GitHubPullRequest }) {
 						</Box>
 					)}
 				</Box>
+
+				{/* Check runs detail */}
+				<ChecksDetail runs={pr.check_runs} />
 			</Box>
 
 			{/* Right side */}
@@ -203,13 +327,37 @@ function PRCard({ pr }: { pr: GitHubPullRequest }) {
 					display: 'flex',
 					flexDirection: 'column',
 					alignItems: 'flex-end',
-					gap: 0.5,
+					gap: 0.75,
 					flexShrink: 0,
 				}}
 			>
 				<Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.7rem' }}>
 					{timeAgo(pr.updated_at)}
 				</Typography>
+				{canMerge && (
+					<Button
+						size="small"
+						variant="contained"
+						startIcon={<MergeTypeRoundedIcon sx={{ fontSize: 14 }} />}
+						onClick={(e) => {
+							e.preventDefault();
+							e.stopPropagation();
+							onMerge(pr);
+						}}
+						sx={{
+							textTransform: 'none',
+							fontSize: '0.7rem',
+							fontWeight: 600,
+							py: 0.25,
+							px: 1.5,
+							minHeight: 0,
+							bgcolor: '#7C5CFF',
+							'&:hover': { bgcolor: '#6A4DE0' },
+						}}
+					>
+						Merge
+					</Button>
+				)}
 				<OpenInNewRoundedIcon
 					className="open-icon"
 					sx={{
@@ -217,7 +365,9 @@ function PRCard({ pr }: { pr: GitHubPullRequest }) {
 						color: 'text.disabled',
 						opacity: 0,
 						transition: 'opacity 0.15s',
+						cursor: 'pointer',
 					}}
+					onClick={() => window.open(pr.html_url, '_blank')}
 				/>
 			</Box>
 		</Box>
@@ -225,21 +375,37 @@ function PRCard({ pr }: { pr: GitHubPullRequest }) {
 }
 
 export default function PullRequestsList() {
-	const { views, activeIndex, activeView, setActiveIndex, addView, reorderViews } =
-		useAgentViews();
-
+	const { views, addView, reorderViews } = useAgentViews();
 	const allRepos = useMemo(() => views.map((v) => v.repoFullName), [views]);
 	const { data: allPrs, isLoading } = usePullRequests(allRepos);
+	const mergeMutation = useMergePR();
+	const { showSnackbar } = useSnackbar();
 
 	const [tabIndex, setTabIndex] = useState(0);
-	const showAll = tabIndex === 0;
+	const [mergeTarget, setMergeTarget] = useState<GitHubPullRequest | null>(null);
 
 	const filteredPrs = useMemo(() => {
 		if (!allPrs) return [];
-		if (showAll) return allPrs;
-		const repo = views[tabIndex - 1]?.repoFullName;
-		return repo ? allPrs.filter((pr) => pr.repo_full_name === repo) : [];
-	}, [allPrs, showAll, tabIndex, views]);
+		const repo = views[tabIndex]?.repoFullName;
+		return repo ? allPrs.filter((pr) => pr.repo_full_name === repo) : allPrs;
+	}, [allPrs, tabIndex, views]);
+
+	const handleMerge = useCallback(() => {
+		if (!mergeTarget) return;
+		mergeMutation.mutate(
+			{ repo: mergeTarget.repo_full_name, pullNumber: mergeTarget.number },
+			{
+				onSuccess: () => {
+					showSnackbar(`PR #${mergeTarget.number} merged`, 'success');
+					setMergeTarget(null);
+				},
+				onError: (err) => {
+					showSnackbar(`Merge failed: ${err.message}`, 'error');
+					setMergeTarget(null);
+				},
+			},
+		);
+	}, [mergeTarget, mergeMutation, showSnackbar]);
 
 	// No views
 	if (views.length === 0) {
@@ -269,10 +435,10 @@ export default function PullRequestsList() {
 				>
 					<FolderOpenRoundedIcon sx={{ fontSize: 64, color: 'text.disabled' }} />
 					<Typography variant="h6" color="text.secondary">
-						No project selected
+						Aucun projet sélectionné
 					</Typography>
 					<Typography variant="body2" color="text.disabled" sx={{ mb: 2 }}>
-						Add a repository in Settings first.
+						Ajoutez d&apos;abord un dépôt dans les paramètres.
 					</Typography>
 					<Button
 						variant="outlined"
@@ -288,7 +454,7 @@ export default function PullRequestsList() {
 							},
 						}}
 					>
-						Add Project
+						Ajouter un projet
 					</Button>
 				</Box>
 			</Box>
@@ -311,19 +477,17 @@ export default function PullRequestsList() {
 				Pull Requests
 			</Typography>
 
-			{/* Tabs: All + per repo */}
+			{/* Tabs per repo */}
 			<DraggableTabs
-				tabs={['All', ...views.map((v) => v.label)]}
+				tabs={views.map((v) => v.label)}
 				activeTab={tabIndex}
 				onTabChange={setTabIndex}
 				onReorder={(newOrder) => {
-					// "All" stays, reorder only the view tabs
-					const viewLabels = newOrder.filter((t) => t !== 'All');
-					reorderViews(viewLabels);
+					reorderViews(newOrder);
 				}}
 				color="#4CAF50"
 				trailing={
-					<Tooltip title="Add project">
+					<Tooltip title="Ajouter un projet">
 						<IconButton
 							size="small"
 							onClick={() => addView()}
@@ -355,7 +519,7 @@ export default function PullRequestsList() {
 				>
 					<MergeTypeRoundedIcon sx={{ fontSize: 48, color: 'text.disabled' }} />
 					<Typography variant="body1" color="text.secondary">
-						No open pull requests
+						Aucune pull request ouverte
 					</Typography>
 				</Box>
 			)}
@@ -364,10 +528,90 @@ export default function PullRequestsList() {
 			{!isLoading && filteredPrs.length > 0 && (
 				<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
 					{filteredPrs.map((pr) => (
-						<PRCard key={pr.id} pr={pr} />
+						<PRCard key={pr.id} pr={pr} onMerge={setMergeTarget} />
 					))}
 				</Box>
 			)}
+
+			{/* Merge confirmation dialog */}
+			<Dialog
+				open={!!mergeTarget}
+				onClose={() => setMergeTarget(null)}
+				maxWidth="xs"
+				fullWidth
+				PaperProps={{
+					sx: {
+						bgcolor: '#222',
+						borderRadius: 2,
+						border: '1px solid',
+						borderColor: 'divider',
+					},
+				}}
+			>
+				<DialogTitle sx={{ fontWeight: 600, fontSize: '1rem' }}>
+					Squash and Merge
+				</DialogTitle>
+				<DialogContent>
+					{mergeTarget && (
+						<Box>
+							<Typography variant="body2" sx={{ mb: 1 }}>
+								Merge <strong>#{mergeTarget.number}</strong> into{' '}
+								<Chip
+									label={mergeTarget.base.ref}
+									size="small"
+									sx={{
+										height: 20,
+										fontSize: '0.7rem',
+										bgcolor: alpha('#7C5CFF', 0.15),
+										color: '#7C5CFF',
+									}}
+								/>
+								 ?
+							</Typography>
+							<Typography
+								variant="body2"
+								sx={{ color: 'text.secondary', fontStyle: 'italic' }}
+							>
+								{mergeTarget.title}
+							</Typography>
+							<Typography
+								variant="caption"
+								sx={{ color: 'text.disabled', mt: 1, display: 'block' }}
+							>
+								{mergeTarget.head.ref} → {mergeTarget.base.ref} · squash merge
+							</Typography>
+						</Box>
+					)}
+				</DialogContent>
+				<DialogActions sx={{ px: 3, pb: 2 }}>
+					<Button
+						onClick={() => setMergeTarget(null)}
+						sx={{ textTransform: 'none', color: 'text.secondary' }}
+					>
+						Annuler
+					</Button>
+					<Button
+						variant="contained"
+						onClick={handleMerge}
+						disabled={mergeMutation.isPending}
+						startIcon={
+							mergeMutation.isPending ? (
+								<CircularProgress size={14} />
+							) : (
+								<MergeTypeRoundedIcon sx={{ fontSize: 16 }} />
+							)
+						}
+						sx={{
+							textTransform: 'none',
+							fontWeight: 600,
+							bgcolor: '#7C5CFF',
+							'&:hover': { bgcolor: '#6A4DE0' },
+						}}
+					>
+						{mergeMutation.isPending ? 'Merging...' : 'Confirm Merge'}
+					</Button>
+				</DialogActions>
+			</Dialog>
 		</Box>
 	);
 }

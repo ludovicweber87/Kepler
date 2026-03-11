@@ -1,11 +1,16 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import Box from '@mui/material/Box';
-import { alpha } from '@mui/material/styles';
+import { alpha, type SxProps, type Theme } from '@mui/material/styles';
+
+export interface TabItem {
+	key: string;
+	label: ReactNode;
+}
 
 interface DraggableTabsProps {
-	tabs: string[];
+	tabs: (string | TabItem)[];
 	activeTab: number;
 	onTabChange: (index: number) => void;
 	onReorder: (newOrder: string[]) => void;
@@ -13,7 +18,19 @@ interface DraggableTabsProps {
 	/** Accent color — defaults to #7C5CFF */
 	color?: string;
 	/** Trailing element (e.g. Add button) */
-	trailing?: React.ReactNode;
+	trailing?: ReactNode;
+	/** Override bottom margin (defaults to 3) */
+	mb?: number;
+	/** Extra sx for the container */
+	sx?: SxProps<Theme>;
+}
+
+function getKey(tab: string | TabItem): string {
+	return typeof tab === 'string' ? tab : tab.key;
+}
+
+function getLabel(tab: string | TabItem): ReactNode {
+	return typeof tab === 'string' ? tab : tab.label;
 }
 
 export default function DraggableTabs({
@@ -24,6 +41,8 @@ export default function DraggableTabs({
 	counts,
 	color = '#7C5CFF',
 	trailing,
+	mb = 3,
+	sx: sxOverride,
 }: DraggableTabsProps) {
 	const dragIdx = useRef<number | null>(null);
 	const [dropTarget, setDropTarget] = useState<number | null>(null);
@@ -47,12 +66,13 @@ export default function DraggableTabs({
 		setDropTarget(null);
 		const from = dragIdx.current;
 		if (from === null || from === idx) return;
-		const newTabs = [...tabs];
-		const [moved] = newTabs.splice(from, 1);
-		newTabs.splice(idx, 0, moved);
-		const activeName = tabs[activeTab];
-		const newActiveIdx = newTabs.indexOf(activeName);
-		onReorder(newTabs);
+		const keys = tabs.map(getKey);
+		const newKeys = [...keys];
+		const [moved] = newKeys.splice(from, 1);
+		newKeys.splice(idx, 0, moved);
+		const activeKey = keys[activeTab];
+		const newActiveIdx = newKeys.indexOf(activeKey);
+		onReorder(newKeys);
 		if (newActiveIdx !== activeTab) {
 			onTabChange(newActiveIdx);
 		}
@@ -66,21 +86,24 @@ export default function DraggableTabs({
 
 	return (
 		<Box
-			sx={{
-				display: 'flex',
-				alignItems: 'center',
-				gap: 0.5,
-				mb: 3,
-				overflowX: 'auto',
-				'&::-webkit-scrollbar': { display: 'none' },
-			}}
+			sx={[
+				{
+					display: 'flex',
+					alignItems: 'center',
+					gap: 0.5,
+					mb,
+					overflowX: 'auto',
+					'&::-webkit-scrollbar': { display: 'none' },
+				},
+				...(Array.isArray(sxOverride) ? sxOverride : sxOverride ? [sxOverride] : []),
+			]}
 		>
 			{tabs.map((tab, idx) => {
 				const isActive = idx === activeTab;
 				const isDropTarget = dropTarget === idx;
 				return (
 					<Box
-						key={tab}
+						key={getKey(tab)}
 						draggable
 						onDragStart={handleDragStart(idx)}
 						onDragOver={handleDragOver(idx)}
@@ -117,7 +140,7 @@ export default function DraggableTabs({
 							},
 						}}
 					>
-						{tab}
+						{getLabel(tab)}
 						{counts && counts[idx] !== undefined && (
 							<Box
 								component="span"

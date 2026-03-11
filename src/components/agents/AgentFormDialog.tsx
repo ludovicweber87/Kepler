@@ -80,26 +80,26 @@ export default function AgentFormDialog({ open, onClose, onSave, preset }: Agent
 			}}
 		>
 			<DialogTitle sx={{ fontWeight: 600 }}>
-				{preset ? 'Edit Agent' : 'New Agent'}
+				{preset ? 'Modifier l\'agent' : 'Nouvel agent'}
 			</DialogTitle>
 			<DialogContent
 				sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: '8px !important' }}
 			>
 				<Box sx={{ display: 'flex', gap: 2 }}>
 					<TextField
-						label="Icon"
+						label="Icône"
 						value={icon}
 						onChange={(e) => setIcon(e.target.value)}
 						sx={{ width: 80 }}
 						inputProps={{ style: { fontSize: '1.5rem', textAlign: 'center' } }}
 					/>
 					<TextField
-						label="Name"
+						label="Nom"
 						value={name}
 						onChange={(e) => setName(e.target.value)}
 						required
 						fullWidth
-						placeholder="e.g. Fix Bug"
+						placeholder="ex. Fix Bug"
 					/>
 				</Box>
 
@@ -108,22 +108,22 @@ export default function AgentFormDialog({ open, onClose, onSave, preset }: Agent
 					value={description}
 					onChange={(e) => setDescription(e.target.value)}
 					fullWidth
-					placeholder="Short description of what this agent does"
+					placeholder="Courte description de ce que fait cet agent"
 				/>
 
 				<TextField
-					label="Prompt Template"
+					label="Template de prompt"
 					value={promptTemplate}
 					onChange={(e) => setPromptTemplate(e.target.value)}
 					required
 					fullWidth
 					multiline
 					rows={6}
-					placeholder="The prompt template sent to Claude..."
+					placeholder="Le template de prompt envoyé à Claude..."
 				/>
 
 				<Box>
-					<Box sx={{ mb: 1, fontSize: '0.75rem', color: 'text.secondary' }}>Color</Box>
+					<Box sx={{ mb: 1, fontSize: '0.75rem', color: 'text.secondary' }}>Couleur</Box>
 					<Box sx={{ display: 'flex', gap: 1 }}>
 						{COLOR_OPTIONS.map((c) => (
 							<Box
@@ -151,7 +151,7 @@ export default function AgentFormDialog({ open, onClose, onSave, preset }: Agent
 			</DialogContent>
 			<DialogActions sx={{ px: 3, pb: 2.5 }}>
 				<Button onClick={onClose} sx={{ color: 'text.secondary' }}>
-					Cancel
+					Annuler
 				</Button>
 				<Button
 					onClick={handleSave}
@@ -162,7 +162,7 @@ export default function AgentFormDialog({ open, onClose, onSave, preset }: Agent
 						'&:hover': { bgcolor: alpha(color, 0.85) },
 					}}
 				>
-					Save
+					Enregistrer
 				</Button>
 			</DialogActions>
 		</Dialog>

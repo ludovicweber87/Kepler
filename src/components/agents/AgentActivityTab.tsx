@@ -15,9 +15,7 @@ import PublishRoundedIcon from '@mui/icons-material/PublishRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { createNotification } from '@/hooks/useNotifications';
 import { useSnackbar } from '@/hooks/useSnackbar';
-import { useProjectConfig } from '@/hooks/useProjectConfig';
 import type { AgentSession, AgentActivityLog } from '@/hooks/useAgentSession';
 
 const LOG_TYPE_COLORS: Record<AgentActivityLog['log_type'], string> = {
@@ -41,7 +39,7 @@ interface AgentActivityTabProps {
 
 function buildReport(session: AgentSession, logs: AgentActivityLog[]): string {
 	const lines: string[] = [];
-	lines.push(`## 🤖 Agent Report`);
+	lines.push(`## 🤖 Rapport agent`);
 	lines.push('');
 	if (session.branch) lines.push(`**Branch:** \`${session.branch}\``);
 	lines.push('');
@@ -76,8 +74,6 @@ export default function AgentActivityTab({
 	const [published, setPublished] = useState(false);
 	const qc = useQueryClient();
 	const { showSnackbar } = useSnackbar();
-	const { selectedViewMappings } = useProjectConfig();
-
 	// Derive issue context from session DB fields
 	const hasIssue = !!(session?.issue_owner && session?.issue_repo && session?.issue_number);
 	const alreadyPublished = !!session?.report_published_at;
@@ -174,38 +170,6 @@ export default function AgentActivityTab({
 				})
 				.eq('id', session.id);
 
-			// Resolve view_name from repo
-			const repoFull =
-				session.issue_owner && session.issue_repo
-					? `${session.issue_owner}/${session.issue_repo}`
-					: null;
-			const viewName = repoFull
-				? (selectedViewMappings.find(
-					(m) =>
-						m.repos?.includes(repoFull) ||
-						m.issues?.some(
-							(i) => i.repo === repoFull && i.number === session.issue_number,
-						),
-				)?.viewName ?? null)
-				: null;
-
-			// Create notification
-			const issueLabel = session.issue_title
-				? `${session.issue_repo}#${session.issue_number} ${session.issue_title}`
-				: session.project_name;
-			await createNotification({
-				type: 'report_published',
-				title: `Rapport publié — ${issueLabel}`,
-				message: `L'agent ${session.agent_name ?? 'Claude'} a terminé et publié son rapport.`,
-				issue_owner: session.issue_owner ?? undefined,
-				issue_repo: session.issue_repo ?? undefined,
-				issue_number: session.issue_number ?? undefined,
-				issue_title: session.issue_title ?? undefined,
-				session_id: session.session_id,
-				view_name: viewName ?? undefined,
-			});
-
-			qc.invalidateQueries({ queryKey: ['notifications'] });
 			qc.invalidateQueries({ queryKey: ['claude-activity'] });
 			qc.invalidateQueries({ queryKey: ['agent-session', session.session_id] });
 			qc.invalidateQueries({ queryKey: ['agent-sessions', 'history'] });
@@ -218,7 +182,7 @@ export default function AgentActivityTab({
 		} finally {
 			setPublishing(false);
 		}
-	}, [session, hasIssue, logs, qc, showSnackbar, selectedViewMappings]);
+	}, [session, hasIssue, logs, qc, showSnackbar]);
 
 	if (!session) {
 		return (
@@ -245,14 +209,14 @@ export default function AgentActivityTab({
 				: '#636B78';
 
 	return (
-		<Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#1A1A1A' }}>
+		<Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: 'background.default' }}>
 			{/* Header */}
 			<Box
 				sx={{
 					px: 2,
 					py: 1.5,
 					borderBottom: 1,
-					borderColor: alpha('#fff', 0.06),
+					borderColor: 'divider',
 					display: 'flex',
 					alignItems: 'center',
 					gap: 1,
@@ -284,8 +248,8 @@ export default function AgentActivityTab({
 							height: 18,
 							fontSize: '0.6rem',
 							bgcolor: 'transparent',
-							color: alpha('#00E5FF', 0.7),
-							'& .MuiChip-icon': { color: alpha('#00E5FF', 0.7) },
+							color: 'secondary.main',
+							'& .MuiChip-icon': { color: 'secondary.main' },
 						}}
 					/>
 				)}
@@ -315,7 +279,7 @@ export default function AgentActivityTab({
 						}}
 					>
 						<Typography variant="caption" sx={{ color: 'text.disabled' }}>
-							No activity yet
+							Aucune activité
 						</Typography>
 					</Box>
 				) : (
@@ -343,7 +307,7 @@ export default function AgentActivityTab({
 										py: 0.75,
 										px: 2,
 										borderBottom: '1px solid',
-										borderColor: alpha('#fff', 0.04),
+										borderColor: 'divider',
 									}}
 								>
 									{/* Time */}
@@ -436,7 +400,7 @@ export default function AgentActivityTab({
 										variant="caption"
 										sx={{ color: alpha('#7C5CFF', 0.6), fontSize: '0.72rem' }}
 									>
-										working...
+										en cours...
 									</Typography>
 								</Box>
 							</Box>
@@ -445,14 +409,14 @@ export default function AgentActivityTab({
 				)}
 			</Box>
 
-			{/* Publish report button — visible when Claude is done */}
-			{!isStreaming && logs.length > 0 && (
+			{/* Publish report button — visible when Claude is done and issue is linked */}
+			{!isStreaming && logs.length > 0 && hasIssue && (
 				<Box
 					sx={{
 						px: 2,
 						py: 1.5,
 						borderTop: 1,
-						borderColor: alpha('#fff', 0.06),
+						borderColor: 'divider',
 						flexShrink: 0,
 						display: 'flex',
 						justifyContent: 'flex-end',

@@ -46,14 +46,14 @@ function BranchCard({
 			sx={{
 				p: 2,
 				borderRadius: 1,
-				bgcolor: branch.isCurrent ? alpha('#7C5CFF', 0.06) : alpha('#fff', 0.02),
+				bgcolor: branch.isCurrent ? alpha('#7C5CFF', 0.06) : 'background.paper',
 				border: 1,
-				borderColor: branch.isCurrent ? alpha('#7C5CFF', 0.15) : alpha('#fff', 0.06),
+				borderColor: branch.isCurrent ? alpha('#7C5CFF', 0.15) : 'divider',
 				cursor: 'pointer',
 				transition: 'all 0.15s',
 				'&:hover': {
-					bgcolor: branch.isCurrent ? alpha('#7C5CFF', 0.12) : alpha('#fff', 0.05),
-					borderColor: branch.isCurrent ? alpha('#7C5CFF', 0.25) : alpha('#fff', 0.12),
+					bgcolor: branch.isCurrent ? alpha('#7C5CFF', 0.12) : 'action.hover',
+					borderColor: branch.isCurrent ? alpha('#7C5CFF', 0.25) : 'action.disabled',
 					transform: 'translateY(-1px)',
 				},
 			}}
@@ -85,7 +85,7 @@ function BranchCard({
 								sx={{ fontSize: '8px !important', color: '#4CAF50 !important' }}
 							/>
 						}
-						label="current"
+						label="actuelle"
 						size="small"
 						sx={{
 							height: 20,
@@ -230,8 +230,8 @@ export default function WorkspaceView() {
 							height: 22,
 							fontSize: '0.65rem',
 							fontWeight: 600,
-							bgcolor: alpha('#00E5FF', 0.1),
-							color: '#00E5FF',
+							bgcolor: (t: { palette: { secondary: { main: string } } }) => alpha(t.palette.secondary.main, 0.1),
+							color: 'secondary.main',
 						}}
 					/>
 				</Box>

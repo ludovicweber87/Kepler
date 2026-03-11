@@ -67,7 +67,7 @@ export default function SkillEditorDialog({
 			}}
 		>
 			<DialogTitle sx={{ fontWeight: 600 }}>
-				{skill ? `Edit — ${skill.name}` : 'New Skill'}
+				{skill ? `Modifier — ${skill.name}` : 'Nouveau skill'}
 			</DialogTitle>
 			<DialogContent
 				sx={{
@@ -81,27 +81,27 @@ export default function SkillEditorDialog({
 			>
 				{!skill && (
 					<TextField
-						label="Filename"
+						label="Nom du fichier"
 						value={filename}
 						onChange={(e) => setFilename(e.target.value)}
 						required
 						fullWidth
-						placeholder="e.g. deployment-workflow"
-						helperText="Will be saved as .claude/skills/{name}.md"
+						placeholder="ex. deployment-workflow"
+						helperText="Sera enregistré dans .claude/skills/{name}.md"
 						size="small"
 						sx={{ flexShrink: 0 }}
 					/>
 				)}
 
 				<TextField
-					label="Skill Content"
+					label="Contenu du skill"
 					value={content}
 					onChange={(e) => setContent(e.target.value)}
 					required
 					fullWidth
 					multiline
 					rows={undefined}
-					placeholder="Write the skill content in markdown..."
+					placeholder="Écrivez le contenu du skill en markdown..."
 					sx={{
 						flex: 1,
 						minHeight: 0,
@@ -124,7 +124,7 @@ export default function SkillEditorDialog({
 			</DialogContent>
 			<DialogActions sx={{ px: 3, pb: 2.5 }}>
 				<Button onClick={onClose} sx={{ color: 'text.secondary' }}>
-					Cancel
+					Annuler
 				</Button>
 				<Button
 					onClick={handleSave}
@@ -132,11 +132,11 @@ export default function SkillEditorDialog({
 					disabled={!canSave}
 					sx={{
 						bgcolor: '#00E5FF',
-						color: '#1A1A1A',
+						color: 'background.default',
 						'&:hover': { bgcolor: alpha('#00E5FF', 0.85) },
 					}}
 				>
-					Save
+					Enregistrer
 				</Button>
 			</DialogActions>
 		</Dialog>

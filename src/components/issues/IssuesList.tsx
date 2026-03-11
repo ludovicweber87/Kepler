@@ -1,14 +1,18 @@
 'use client';
 
-import { useState, useMemo, useRef, useCallback } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { LayoutGroup, type PanInfo } from 'framer-motion';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Skeleton from '@mui/material/Skeleton';
 import Alert from '@mui/material/Alert';
+import InputAdornment from '@mui/material/InputAdornment';
+import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
+import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
+import ClearRoundedIcon from '@mui/icons-material/ClearRounded';
 import KanbanColumn from './KanbanColumn';
 import CreateBranchModal from './CreateBranchModal';
 import DraggableTabs from '@/components/shared/DraggableTabs';
@@ -45,7 +49,16 @@ interface DropTarget {
 }
 
 export default function IssuesList() {
-	const { config, selectedViewMappings, reorderViews } = useProjectConfig();
+	const { config, selectedViewMappings, reorderViews, syncViews } = useProjectConfig();
+
+	// Auto-sync Project V2 data on mount to pick up new issues
+	const hasSynced = useRef(false);
+	useEffect(() => {
+		if (config && !hasSynced.current) {
+			hasSynced.current = true;
+			syncViews();
+		}
+	}, [config, syncViews]);
 
 	const allIssueRefs = useMemo(() => {
 		if (selectedViewMappings.length === 0) return undefined;
@@ -67,6 +80,7 @@ export default function IssuesList() {
 
 	const { data, error, isLoading, refetch, isFetching } = useDashboard(allIssueRefs);
 	const [activeTab, setActiveTab] = useState(0);
+	const [search, setSearch] = useState('');
 	const mutation = useUpdateIssueStatus();
 	const todoQc = useQueryClient();
 
@@ -82,13 +96,12 @@ export default function IssuesList() {
 	const hasViews = selectedViewMappings.length > 0;
 	const isDragEnabled = !!config && (config.statusColumns?.length ?? 0) > 0;
 
-	const openIssues = useMemo(() => {
+	const allIssues = useMemo(() => {
 		if (!data) return [];
 		const isTargetedMode = data.repos.length === 0;
 		const knownRepos = isTargetedMode ? null : new Set(data.repos.map((r) => r.full_name));
 		return data.issues.filter(
 			(i) =>
-				i.state === 'open' &&
 				i.repo_full_name &&
 				(isTargetedMode || knownRepos!.has(i.repo_full_name)) &&
 				i.assignees.some((a) => a.login === data.user),
@@ -99,22 +112,33 @@ export default function IssuesList() {
 	const safeTab = activeTab >= tabs.length ? 0 : activeTab;
 
 	const filteredIssues = useMemo(() => {
-		if (!hasViews) return openIssues;
+		if (!hasViews) return allIssues;
 		const mapping = selectedViewMappings[safeTab];
-		if (!mapping) return openIssues;
+		if (!mapping) return allIssues;
 		if (mapping.issues?.length) {
 			const issueKeys = new Set(mapping.issues.map((i) => `${i.repo}#${i.number}`));
-			return openIssues.filter(
+			return allIssues.filter(
 				(i) => i.repo_full_name && issueKeys.has(`${i.repo_full_name}#${i.number}`),
 			);
 		}
 		const viewRepos = new Set(mapping.repos ?? []);
-		return openIssues.filter((i) => i.repo_full_name && viewRepos.has(i.repo_full_name));
-	}, [openIssues, selectedViewMappings, safeTab, hasViews]);
+		return allIssues.filter((i) => i.repo_full_name && viewRepos.has(i.repo_full_name));
+	}, [allIssues, selectedViewMappings, safeTab, hasViews]);
+
+	const searchedIssues = useMemo(() => {
+		const q = search.trim().toLowerCase();
+		if (!q) return filteredIssues;
+		return filteredIssues.filter(
+			(i) =>
+				i.title.toLowerCase().includes(q) ||
+				String(i.number).includes(q) ||
+				`#${i.number}`.includes(q),
+		);
+	}, [filteredIssues, search]);
 
 	const columns = useMemo(
-		() => buildColumns(filteredIssues, config?.statusColumns ?? []),
-		[filteredIssues, config?.statusColumns],
+		() => buildColumns(searchedIssues, config?.statusColumns ?? []),
+		[searchedIssues, config?.statusColumns],
 	);
 
 	// Ref registration for columns
@@ -268,18 +292,62 @@ export default function IssuesList() {
 				>
 					Issues
 				</Typography>
-				<Tooltip title="Refresh">
-					<IconButton
-						onClick={() => refetch()}
-						disabled={isFetching}
-						sx={{
-							color: 'text.secondary',
-							animation: isFetching ? 'spin 1s linear infinite' : 'none',
+				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+					<TextField
+						size="small"
+						placeholder="Rechercher #id ou titre…"
+						value={search}
+						onChange={(e) => setSearch(e.target.value)}
+						slotProps={{
+							input: {
+								startAdornment: (
+									<InputAdornment position="start">
+										<SearchRoundedIcon
+											sx={{ fontSize: 18, color: 'text.secondary' }}
+										/>
+									</InputAdornment>
+								),
+								endAdornment: search ? (
+									<InputAdornment position="end">
+										<IconButton
+											size="small"
+											onClick={() => setSearch('')}
+											sx={{ p: 0.25 }}
+										>
+											<ClearRoundedIcon
+												sx={{ fontSize: 16, color: 'text.secondary' }}
+											/>
+										</IconButton>
+									</InputAdornment>
+								) : null,
+							},
 						}}
-					>
-						<RefreshRoundedIcon />
-					</IconButton>
-				</Tooltip>
+						sx={{
+							width: 240,
+							'& .MuiOutlinedInput-root': {
+								fontSize: '0.82rem',
+								borderRadius: 1,
+								bgcolor: 'background.paper',
+								'& fieldset': { borderColor: 'divider' },
+							},
+						}}
+					/>
+					<Tooltip title="Refresh">
+						<IconButton
+							onClick={() => {
+								syncViews();
+								refetch();
+							}}
+							disabled={isFetching}
+							sx={{
+								color: 'text.secondary',
+								animation: isFetching ? 'spin 1s linear infinite' : 'none',
+							}}
+						>
+							<RefreshRoundedIcon />
+						</IconButton>
+					</Tooltip>
+				</Box>
 			</Box>
 
 			{hasViews && (
@@ -293,14 +361,14 @@ export default function IssuesList() {
 							const m = selectedViewMappings[idx];
 							if (m?.issues?.length) {
 								const keys = new Set(m.issues.map((i) => `${i.repo}#${i.number}`));
-								return openIssues.filter(
+								return allIssues.filter(
 									(i) =>
 										i.repo_full_name &&
 										keys.has(`${i.repo_full_name}#${i.number}`),
 								).length;
 							}
 							const viewRepos = new Set(m?.repos ?? []);
-							return openIssues.filter(
+							return allIssues.filter(
 								(i) => i.repo_full_name && viewRepos.has(i.repo_full_name),
 							).length;
 						})}
@@ -311,10 +379,10 @@ export default function IssuesList() {
 			{filteredIssues.length === 0 ? (
 				<Box sx={{ textAlign: 'center', py: 8 }}>
 					<Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
-						No open issues
+						Aucune issue ouverte
 					</Typography>
 					<Typography variant="body2">
-						No open issues are assigned to you here.
+						Aucune issue ouverte ne vous est assignée ici.
 					</Typography>
 				</Box>
 			) : (

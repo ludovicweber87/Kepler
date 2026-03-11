@@ -1,208 +1,78 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
+import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
-import { alpha } from '@mui/material/styles';
-import Link from 'next/link';
-import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded';
-import AssignmentRoundedIcon from '@mui/icons-material/AssignmentRounded';
-import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
-import DoneAllRoundedIcon from '@mui/icons-material/DoneAllRounded';
-import TrendingUpRoundedIcon from '@mui/icons-material/TrendingUpRounded';
-import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
-import ChecklistRoundedIcon from '@mui/icons-material/ChecklistRounded';
-import SyncRoundedIcon from '@mui/icons-material/SyncRounded';
 import IconButton from '@mui/material/IconButton';
-import Tooltip from '@mui/material/Tooltip';
-import {
-	XAxis,
-	YAxis,
-	CartesianGrid,
-	Tooltip as RechartsTooltip,
-	ResponsiveContainer,
-	BarChart,
-	Bar,
-} from 'recharts';
-import Tabs from '@mui/material/Tabs';
-import Tab from '@mui/material/Tab';
+import Button from '@mui/material/Button';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import { alpha } from '@mui/material/styles';
+import Collapse from '@mui/material/Collapse';
 import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
-import { useDashboard } from '@/hooks/useGitHub';
+import FiberManualRecordRoundedIcon from '@mui/icons-material/FiberManualRecordRounded';
+import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
+import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
+import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded';
+import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded';
+import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded';
+import StopCircleRoundedIcon from '@mui/icons-material/StopCircleRounded';
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
+import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
+import AssignmentRoundedIcon from '@mui/icons-material/AssignmentRounded';
+import SummarizeRoundedIcon from '@mui/icons-material/SummarizeRounded';
+import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
+import Timeline from '@mui/lab/Timeline';
+import TimelineItem from '@mui/lab/TimelineItem';
+import TimelineSeparator from '@mui/lab/TimelineSeparator';
+import TimelineConnector from '@mui/lab/TimelineConnector';
+import TimelineContent from '@mui/lab/TimelineContent';
+import TimelineDot from '@mui/lab/TimelineDot';
+import TimelineOppositeContent from '@mui/lab/TimelineOppositeContent';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import { useActiveSessions, type ActiveSession } from '@/hooks/useActiveSessions';
+import { useAgentSessionHistory, type AgentSession } from '@/hooks/useAgentSession';
+import { useAgentViews } from '@/hooks/useAgentViews';
+import { useAgentSummaries, type AgentSummary } from '@/hooks/useRecentLogs';
 import { usePendingTodoCount } from '@/hooks/usePendingTodoCount';
-import { useWeeklyActivity } from '@/hooks/useWeeklyActivity';
-import { useClaudeActivity } from '@/hooks/useClaudeActivity';
-import { useTodos } from '@/hooks/useTodos';
+import dynamic from 'next/dynamic';
 import DraggableTabs from '@/components/shared/DraggableTabs';
-import { useAgentViews, type AgentView } from '@/hooks/useAgentViews';
 
-function StatCard({
-	label,
-	value,
-	icon,
-	color,
-	subtitle,
-}: {
-	label: string;
-	value: number;
-	icon: React.ReactNode;
-	color: string;
-	subtitle?: string;
-}) {
-	return (
-		<Box
-			sx={{
-				flex: '1 1 0',
-				minWidth: 160,
-				bgcolor: 'background.paper',
-				borderRadius: 1,
-				border: 1,
-				borderColor: 'divider',
-				p: 2.5,
-				display: 'flex',
-				flexDirection: 'column',
-				gap: 1,
-				transition: 'transform 0.15s, box-shadow 0.15s',
-				'&:hover': {
-					transform: 'translateY(-2px)',
-					boxShadow: `0 8px 24px ${alpha(color, 0.15)}`,
-				},
-			}}
-		>
-			<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-				<Box
-					sx={{
-						width: 40,
-						height: 40,
-						borderRadius: 1,
-						bgcolor: alpha(color, 0.12),
-						display: 'flex',
-						alignItems: 'center',
-						justifyContent: 'center',
-						color,
-					}}
-				>
-					{icon}
-				</Box>
-				<Typography variant="h4" sx={{ fontWeight: 700, color }}>
-					{value}
-				</Typography>
-			</Box>
-			<Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
-				{label}
-			</Typography>
-			{subtitle && (
-				<Typography variant="caption" sx={{ color: 'text.disabled', mt: -0.5 }}>
-					{subtitle}
-				</Typography>
-			)}
-		</Box>
-	);
+const AgentTerminalModal = dynamic(() => import('@/components/agents/AgentTerminalModal'), {
+	ssr: false,
+});
+
+/* ── Helpers ── */
+function formatDate(dateStr: string): string {
+	return new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 }
 
-function TodoCardContent({ repoFullName }: { repoFullName: string }) {
-	const { todos, isLoading } = useTodos(repoFullName);
-	const pending = useMemo(() => todos.filter((t) => !t.done).slice(0, 5), [todos]);
-	const totalPending = useMemo(() => todos.filter((t) => !t.done).length, [todos]);
+function formatDateTime(dateStr: string): string {
+	return new Date(dateStr).toLocaleDateString('fr-FR', {
+		day: 'numeric',
+		month: 'short',
+		hour: '2-digit',
+		minute: '2-digit',
+	});
+}
 
-	if (isLoading) {
-		return (
-			<Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-				<CircularProgress size={20} sx={{ color: '#FF9800' }} />
-			</Box>
-		);
-	}
-
-	if (pending.length === 0) {
-		return (
-			<Box
-				sx={{
-					flex: 1,
-					display: 'flex',
-					alignItems: 'center',
-					justifyContent: 'center',
-					flexDirection: 'column',
-					gap: 1,
-				}}
-			>
-				<CheckCircleOutlineRoundedIcon sx={{ fontSize: 40, color: '#22C55E' }} />
-				<Typography variant="body2" sx={{ color: 'text.disabled' }}>
-					Rien en attente
-				</Typography>
-			</Box>
-		);
-	}
-
-	return (
-		<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-			{pending.map((todo) => (
-				<Box
-					key={todo.id}
-					sx={{
-						display: 'flex',
-						alignItems: 'center',
-						gap: 1.5,
-						px: 1.5,
-						py: 1,
-						borderRadius: 1,
-						transition: 'background-color 0.15s',
-						'&:hover': { bgcolor: alpha('#FF9800', 0.06) },
-					}}
-				>
-					<Box
-						sx={{
-							width: 8,
-							height: 8,
-							borderRadius: '50%',
-							bgcolor: '#FF9800',
-							flexShrink: 0,
-						}}
-					/>
-					<Box sx={{ flex: 1, minWidth: 0 }}>
-						<Typography
-							variant="body2"
-							sx={{
-								fontWeight: 500,
-								overflow: 'hidden',
-								textOverflow: 'ellipsis',
-								whiteSpace: 'nowrap',
-							}}
-						>
-							{todo.title}
-						</Typography>
-						{todo.description && (
-							<Typography
-								variant="caption"
-								sx={{
-									color: 'text.disabled',
-									overflow: 'hidden',
-									textOverflow: 'ellipsis',
-									whiteSpace: 'nowrap',
-									display: 'block',
-								}}
-							>
-								{todo.description}
-							</Typography>
-						)}
-					</Box>
-					<Typography
-						variant="caption"
-						sx={{ color: 'text.disabled', whiteSpace: 'nowrap', fontSize: '0.65rem' }}
-					>
-						{new Date(todo.created_at).toLocaleDateString('fr-FR', {
-							day: 'numeric',
-							month: 'short',
-						})}
-					</Typography>
-				</Box>
-			))}
-			{totalPending > 5 && (
-				<Typography variant="caption" sx={{ color: 'text.disabled', px: 1.5, mt: 0.5 }}>
-					+{totalPending - 5} autre{totalPending - 5 > 1 ? 's' : ''}
-				</Typography>
-			)}
-		</Box>
-	);
+function timeAgo(ts: number): string {
+	const diff = Date.now() - ts;
+	const mins = Math.floor(diff / 60_000);
+	if (mins < 1) return "a l'instant";
+	if (mins < 60) return `il y a ${mins}m`;
+	const hours = Math.floor(mins / 60);
+	if (hours < 24) return `il y a ${hours}h`;
+	return `il y a ${Math.floor(hours / 24)}j`;
 }
 
 function getGreeting(): string {
@@ -212,44 +82,679 @@ function getGreeting(): string {
 	return 'Bonsoir';
 }
 
+/* ── Live Clock ── */
+function LiveClock() {
+	const [time, setTime] = useState(new Date());
+	useEffect(() => {
+		const timer = setInterval(() => setTime(new Date()), 1000);
+		return () => clearInterval(timer);
+	}, []);
+	return (
+		<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+			<AccessTimeRoundedIcon sx={{ fontSize: 18, color: 'text.disabled' }} />
+			<Typography
+				variant="h5"
+				sx={{
+					fontWeight: 600,
+					fontFamily: 'monospace',
+					color: 'text.secondary',
+					letterSpacing: 1,
+				}}
+			>
+				{time.toLocaleTimeString('fr-FR', {
+					hour: '2-digit',
+					minute: '2-digit',
+					second: '2-digit',
+				})}
+			</Typography>
+		</Box>
+	);
+}
+
+/* ── Active session card ── */
+function ActiveSessionCard({
+	session,
+	onClick,
+	isStreaming,
+	onKill,
+}: {
+	session: ActiveSession;
+	onClick: () => void;
+	isStreaming: boolean;
+	onKill: () => void;
+}) {
+	const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+
+	return (
+		<Box
+			onClick={onClick}
+			sx={{
+				p: 2,
+				borderRadius: 1,
+				bgcolor: alpha('#22C55E', isStreaming ? 0.08 : 0.04),
+				border: 1,
+				borderColor: alpha('#22C55E', isStreaming ? 0.25 : 0.1),
+				borderLeft: 3,
+				borderLeftColor: isStreaming ? '#22C55E' : alpha('#22C55E', 0.2),
+				cursor: 'pointer',
+				transition: 'all 0.2s ease',
+				'&:hover': {
+					bgcolor: alpha('#22C55E', 0.12),
+					borderColor: alpha('#22C55E', 0.3),
+					transform: 'translateX(2px)',
+				},
+			}}
+		>
+			<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+				<FiberManualRecordRoundedIcon
+					sx={{
+						fontSize: 10,
+						color: isStreaming ? '#4CAF50' : '#9E9E9E',
+						...(isStreaming && {
+							animation: 'pulse 2s ease-in-out infinite',
+							'@keyframes pulse': {
+								'0%, 100%': { opacity: 0.4 },
+								'50%': { opacity: 1 },
+							},
+						}),
+					}}
+				/>
+				<Typography
+					variant="body2"
+					sx={{
+						fontWeight: 700,
+						fontSize: '0.85rem',
+						flex: 1,
+						overflow: 'hidden',
+						textOverflow: 'ellipsis',
+						whiteSpace: 'nowrap',
+					}}
+				>
+					{session.agentName ?? 'Claude'}
+				</Typography>
+				{isStreaming && (
+					<Box sx={{ display: 'flex', gap: 0.4, alignItems: 'center' }}>
+						{[0, 1, 2].map((i) => (
+							<Box
+								key={i}
+								sx={{
+									width: 4,
+									height: 4,
+									borderRadius: '50%',
+									bgcolor: '#7C5CFF',
+									animation: 'dotPulse 1.4s ease-in-out infinite',
+									animationDelay: `${i * 0.2}s`,
+									'@keyframes dotPulse': {
+										'0%, 80%, 100%': { opacity: 0.3, transform: 'scale(0.8)' },
+										'40%': { opacity: 1, transform: 'scale(1)' },
+									},
+								}}
+							/>
+						))}
+					</Box>
+				)}
+				<Typography
+					variant="caption"
+					sx={{ color: 'text.disabled', fontSize: '0.7rem', fontFamily: 'monospace' }}
+				>
+					{timeAgo(session.createdAt)}
+				</Typography>
+				<IconButton
+					size="small"
+					onClick={(e) => {
+						e.stopPropagation();
+						setAnchorEl(e.currentTarget);
+					}}
+					sx={{ p: 0.25, color: 'text.disabled', '&:hover': { color: 'text.secondary' } }}
+				>
+					<MoreVertRoundedIcon sx={{ fontSize: 16 }} />
+				</IconButton>
+				<Menu
+					anchorEl={anchorEl}
+					open={Boolean(anchorEl)}
+					onClose={(e: React.SyntheticEvent) => {
+						e.stopPropagation?.();
+						setAnchorEl(null);
+					}}
+					onClick={(e) => e.stopPropagation()}
+					slotProps={{
+						paper: {
+							sx: {
+								bgcolor: 'background.paper',
+								border: 1,
+								borderColor: 'divider',
+								minWidth: 160,
+							},
+						},
+					}}
+				>
+					<MenuItem
+						onClick={(e) => {
+							e.stopPropagation();
+							setAnchorEl(null);
+							onKill();
+						}}
+						sx={{ fontSize: '0.8rem', gap: 1 }}
+					>
+						<ListItemIcon sx={{ minWidth: '28px !important' }}>
+							<StopCircleRoundedIcon sx={{ fontSize: 18, color: '#FF5252' }} />
+						</ListItemIcon>
+						<ListItemText primaryTypographyProps={{ fontSize: '0.8rem' }}>
+							Fermer la session
+						</ListItemText>
+					</MenuItem>
+				</Menu>
+			</Box>
+
+			<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+				<FolderRoundedIcon sx={{ fontSize: 13, color: 'text.disabled' }} />
+				<Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem' }}>
+					{session.projectName}
+				</Typography>
+				{session.branch && (
+					<Chip
+						icon={<AccountTreeRoundedIcon sx={{ fontSize: '12px !important' }} />}
+						label={session.branch}
+						size="small"
+						sx={{
+							height: 20,
+							fontSize: '0.65rem',
+							bgcolor: (t: { palette: { secondary: { main: string } } }) => alpha(t.palette.secondary.main, 0.1),
+							color: 'secondary.main',
+							border: 1,
+							borderColor: (t: { palette: { secondary: { main: string } } }) => alpha(t.palette.secondary.main, 0.2),
+							'& .MuiChip-icon': { color: 'secondary.main' },
+						}}
+					/>
+				)}
+			</Box>
+		</Box>
+	);
+}
+
+/* ── Past session card ── */
+function PastSessionCard({
+	session,
+	onClick,
+	onDelete,
+}: {
+	session: AgentSession;
+	onClick: () => void;
+	onDelete: () => void;
+}) {
+	const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+	const isError = session.status === 'error';
+	const statusColor = isError ? '#FF5252' : '#9E9E9E';
+	const StatusIcon = isError ? ErrorOutlineRoundedIcon : CheckCircleOutlineRoundedIcon;
+
+	return (
+		<Box
+			onClick={onClick}
+			sx={{
+				p: 1.5,
+				borderRadius: 1.5,
+				bgcolor: alpha('#FF9800', 0.03),
+				border: 1,
+				borderColor: alpha('#FF9800', 0.08),
+				cursor: 'pointer',
+				transition: 'all 0.15s',
+				'&:hover': {
+					bgcolor: alpha('#FF9800', 0.07),
+					borderColor: alpha('#FF9800', 0.15),
+				},
+			}}
+		>
+			<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+				<StatusIcon sx={{ fontSize: 14, color: statusColor }} />
+				<Typography
+					variant="body2"
+					sx={{
+						fontWeight: 600,
+						fontSize: '0.75rem',
+						flex: 1,
+						overflow: 'hidden',
+						textOverflow: 'ellipsis',
+						whiteSpace: 'nowrap',
+						color: 'text.secondary',
+					}}
+				>
+					{session.agent_name ?? 'Claude'}
+				</Typography>
+				{session.branch && (
+					<Chip
+						icon={<AccountTreeRoundedIcon sx={{ fontSize: '11px !important' }} />}
+						label={session.branch}
+						size="small"
+						sx={{
+							height: 18,
+							fontSize: '0.6rem',
+							bgcolor: (t: { palette: { secondary: { main: string } } }) => alpha(t.palette.secondary.main, 0.06),
+							color: 'secondary.main',
+							'& .MuiChip-icon': { color: 'secondary.main' },
+						}}
+					/>
+				)}
+				<Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.6rem' }}>
+					{formatDate(session.started_at)}
+				</Typography>
+				<IconButton
+					size="small"
+					onClick={(e) => {
+						e.stopPropagation();
+						setAnchorEl(e.currentTarget);
+					}}
+					sx={{ p: 0.25, color: 'text.disabled', '&:hover': { color: 'text.secondary' } }}
+				>
+					<MoreVertRoundedIcon sx={{ fontSize: 14 }} />
+				</IconButton>
+				<Menu
+					anchorEl={anchorEl}
+					open={Boolean(anchorEl)}
+					onClose={(e: React.SyntheticEvent) => {
+						e.stopPropagation?.();
+						setAnchorEl(null);
+					}}
+					onClick={(e) => e.stopPropagation()}
+					slotProps={{
+						paper: {
+							sx: {
+								bgcolor: 'background.paper',
+								border: 1,
+								borderColor: 'divider',
+								minWidth: 160,
+							},
+						},
+					}}
+				>
+					<MenuItem
+						onClick={(e) => {
+							e.stopPropagation();
+							setAnchorEl(null);
+							onDelete();
+						}}
+						sx={{ fontSize: '0.8rem', gap: 1 }}
+					>
+						<ListItemIcon sx={{ minWidth: '28px !important' }}>
+							<DeleteOutlineRoundedIcon sx={{ fontSize: 18, color: '#FF5252' }} />
+						</ListItemIcon>
+						<ListItemText primaryTypographyProps={{ fontSize: '0.8rem' }}>
+							Supprimer
+						</ListItemText>
+					</MenuItem>
+				</Menu>
+			</Box>
+		</Box>
+	);
+}
+
+/* ── Summary Timeline ── */
+function SummaryTimeline({
+	summaries,
+	onSessionClick,
+}: {
+	summaries: AgentSummary[];
+	onSessionClick: (summary: AgentSummary) => void;
+}) {
+	const [expandedId, setExpandedId] = useState<string | null>(null);
+
+	const toggleExpand = (id: string) => {
+		setExpandedId((prev) => (prev === id ? null : id));
+	};
+
+	return (
+		<Timeline
+			sx={{
+				p: 0,
+				m: 0,
+				'& .MuiTimelineItem-root:before': { display: 'none' },
+			}}
+		>
+			{summaries.map((summary, index) => {
+				const isError = summary.status === 'error';
+				const dotColor = isError ? '#FF5252' : '#22C55E';
+				const isExpanded = expandedId === summary.session_id;
+				const isLast = index === summaries.length - 1;
+
+				// Extract label (title or first meaningful line)
+				const label = summary.title ?? summary.agent_name ?? 'Claude';
+
+				return (
+					<TimelineItem key={summary.session_id}>
+						<TimelineOppositeContent
+							sx={{
+								flex: '0 0 90px',
+								px: 1,
+								pt: 1.5,
+								textAlign: 'right',
+							}}
+						>
+							<Typography
+								variant="caption"
+								sx={{
+									color: 'text.disabled',
+									fontSize: '0.65rem',
+									fontFamily: 'monospace',
+									lineHeight: 1.4,
+								}}
+							>
+								{formatDateTime(
+									summary.summary_at ?? summary.ended_at ?? summary.started_at,
+								)}
+							</Typography>
+						</TimelineOppositeContent>
+
+						<TimelineSeparator>
+							<TimelineDot
+								sx={{
+									bgcolor: dotColor,
+									boxShadow: `0 0 8px ${alpha(dotColor, 0.4)}`,
+									width: 10,
+									height: 10,
+									p: 0,
+									my: 1.5,
+								}}
+							/>
+							{!isLast && (
+								<TimelineConnector sx={{ bgcolor: 'divider', width: 1 }} />
+							)}
+						</TimelineSeparator>
+
+						<TimelineContent sx={{ py: 1, px: 2 }}>
+							{/* Branch above label */}
+							{summary.branch && (
+								<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
+									<AccountTreeRoundedIcon
+										sx={{ fontSize: 11, color: 'secondary.main' }}
+									/>
+									<Typography
+										variant="caption"
+										sx={{
+											color: 'secondary.main',
+											fontSize: '0.6rem',
+											fontWeight: 600,
+											fontFamily: 'monospace',
+										}}
+									>
+										{summary.branch}
+									</Typography>
+								</Box>
+							)}
+
+							{/* Clickable label row */}
+							<Box
+								onClick={() => toggleExpand(summary.session_id)}
+								sx={{
+									display: 'flex',
+									alignItems: 'center',
+									gap: 0.75,
+									cursor: 'pointer',
+									borderRadius: 0.5,
+									mx: -0.75,
+									px: 0.75,
+									py: 0.25,
+									transition: 'background-color 0.15s',
+									'&:hover': {
+										bgcolor: (t: { palette: { action: { hover: string } } }) =>
+											t.palette.action.hover,
+									},
+								}}
+							>
+								{isError ? (
+									<ErrorOutlineRoundedIcon
+										sx={{ fontSize: 14, color: '#FF5252' }}
+									/>
+								) : (
+									<CheckCircleOutlineRoundedIcon
+										sx={{ fontSize: 14, color: '#22C55E' }}
+									/>
+								)}
+								<Typography
+									variant="body2"
+									sx={{
+										fontWeight: 600,
+										fontSize: '0.82rem',
+										flex: 1,
+										overflow: 'hidden',
+										textOverflow: 'ellipsis',
+										whiteSpace: 'nowrap',
+									}}
+								>
+									{label}
+								</Typography>
+								<ExpandMoreRoundedIcon
+									sx={{
+										fontSize: 18,
+										color: 'text.disabled',
+										transition: 'transform 0.2s',
+										transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+									}}
+								/>
+							</Box>
+
+							{/* Expanded content */}
+							<Collapse in={isExpanded} timeout={200}>
+								<Box sx={{ pt: 1.5, pb: 1 }}>
+									{/* Meta */}
+									<Box
+										sx={{
+											display: 'flex',
+											alignItems: 'center',
+											gap: 1,
+											mb: 1.5,
+										}}
+									>
+										<SmartToyRoundedIcon
+											sx={{ fontSize: 12, color: 'text.disabled' }}
+										/>
+										<Typography
+											variant="caption"
+											sx={{
+												color: 'text.disabled',
+												fontSize: '0.65rem',
+											}}
+										>
+											{summary.agent_name ?? 'Claude'}
+										</Typography>
+										<FolderRoundedIcon
+											sx={{ fontSize: 11, color: 'text.disabled' }}
+										/>
+										<Typography
+											variant="caption"
+											sx={{
+												color: 'text.disabled',
+												fontSize: '0.65rem',
+											}}
+										>
+											{summary.project_name}
+										</Typography>
+									</Box>
+
+									{/* Markdown summary */}
+									{summary.summary ? (
+										<Box
+											sx={{
+												color: 'text.secondary',
+												fontSize: '0.78rem',
+												lineHeight: 1.7,
+												'& p': { m: 0 },
+												'& p + p': { mt: 1 },
+												'& h2': {
+													fontSize: '0.82rem',
+													fontWeight: 700,
+													color: 'text.primary',
+													mt: 2,
+													mb: 0.5,
+												},
+												'& h3': {
+													fontSize: '0.78rem',
+													fontWeight: 600,
+													color: 'text.primary',
+													mt: 1.5,
+													mb: 0.5,
+												},
+												'& ul, & ol': {
+													pl: 2.5,
+													my: 0.5,
+												},
+												'& li': {
+													fontSize: '0.78rem',
+													mb: 0.25,
+												},
+												'& code': {
+													fontFamily: '"JetBrains Mono", monospace',
+													fontSize: '0.72em',
+													bgcolor: 'rgba(255,255,255,0.06)',
+													px: 0.5,
+													py: 0.15,
+													borderRadius: 0.5,
+												},
+												'& pre': {
+													bgcolor: 'rgba(0,0,0,0.3)',
+													p: 1.5,
+													borderRadius: 1,
+													overflow: 'auto',
+													my: 1,
+												},
+												'& pre code': {
+													bgcolor: 'transparent',
+													p: 0,
+												},
+											}}
+										>
+											<ReactMarkdown remarkPlugins={[remarkGfm]}>
+												{summary.summary}
+											</ReactMarkdown>
+										</Box>
+									) : (
+										<Typography
+											variant="caption"
+											sx={{
+												color: 'text.disabled',
+												fontStyle: 'italic',
+											}}
+										>
+											{isError
+												? 'Session terminée avec erreur'
+												: 'Aucun rapport disponible'}
+										</Typography>
+									)}
+
+									{/* Open session button */}
+									<Typography
+										variant="caption"
+										onClick={(e) => {
+											e.stopPropagation();
+											onSessionClick(summary);
+										}}
+										sx={{
+											display: 'inline-block',
+											mt: 1.5,
+											color: '#7C5CFF',
+											fontSize: '0.7rem',
+											fontWeight: 600,
+											cursor: 'pointer',
+											'&:hover': {
+												textDecoration: 'underline',
+											},
+										}}
+									>
+										Voir la session →
+									</Typography>
+								</Box>
+							</Collapse>
+						</TimelineContent>
+					</TimelineItem>
+				);
+			})}
+		</Timeline>
+	);
+}
+
+/* ── Selected session state ── */
+type SelectedItem =
+	| { type: 'active'; session: ActiveSession }
+	| { type: 'past'; session: AgentSession };
+
+/* ── Main Dashboard ── */
 export default function Dashboard() {
-	const [ghEnabled, setGhEnabled] = useState(false);
-	const {
-		data: dashboardData,
-		isLoading: dashLoading,
-		refetch: refetchGh,
-	} = useDashboard(undefined, { enabled: ghEnabled });
-	const pendingCount = usePendingTodoCount();
-	const { data: weeklyData, isLoading: weekLoading } = useWeeklyActivity();
-	const { data: claudeData, isLoading: claudeLoading } = useClaudeActivity();
+	const queryClient = useQueryClient();
+	const { data: sessions = [] } = useActiveSessions();
+	const { data: pastSessions = [] } = useAgentSessionHistory();
 	const { views, reorderViews } = useAgentViews();
-	const [todoTabIndex, setTodoTabIndex] = useState(0);
-	const [chartTab, setChartTab] = useState(0);
-	const activeTodoView = views[todoTabIndex] ?? views[0];
+	const { data: summaries = [], isLoading: summariesLoading } = useAgentSummaries();
+	const pendingCount = usePendingTodoCount();
+	const [tabIndex, setTabIndex] = useState(0);
+	const [selected, setSelected] = useState<SelectedItem | null>(null);
+	const [newAgentOpen, setNewAgentOpen] = useState(false);
 
-	const ghLoaded = !!dashboardData;
+	// Exclude active sessions from past list
+	const activeSessionIds = useMemo(() => new Set(sessions.map((s) => s.sessionId)), [sessions]);
+	const filteredPast = useMemo(
+		() => pastSessions.filter((s) => !activeSessionIds.has(s.session_id)),
+		[pastSessions, activeSessionIds],
+	);
 
-	// Compute stats from GitHub data
-	const stats = useMemo(() => {
-		if (!dashboardData) return { open: 0, inProgress: 0, closedRecently: 0, assigned: 0 };
+	// Filter by view
+	const activeView = views[tabIndex];
+	const filteredActiveSessions = useMemo(() => {
+		if (!activeView) return sessions;
+		return sessions.filter((s) => s.cwd.startsWith(activeView.path));
+	}, [sessions, activeView]);
 
-		const issues = dashboardData.issues;
-		const open = issues.filter((i) => i.state === 'open').length;
-		const inProgress = issues.filter((i) => {
-			const col = i.project_columns?.[0]?.column;
-			return col && col.toLowerCase().includes('progress');
-		}).length;
-		const sevenDaysAgo = new Date();
-		sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-		const closedRecently = issues.filter(
-			(i) => i.state === 'closed' && i.closed_at && new Date(i.closed_at) > sevenDaysAgo,
-		).length;
-		const assigned = issues.filter(
-			(i) => i.state === 'open' && i.assignees?.some((a) => a.login === dashboardData.user),
-		).length;
+	const filteredPastSessions = useMemo(() => {
+		if (!activeView) return filteredPast;
+		return filteredPast.filter(
+			(s) =>
+				s.project_path.startsWith(activeView.path) || s.project_name === activeView.label,
+		);
+	}, [filteredPast, activeView]);
 
-		return { open, inProgress, closedRecently, assigned };
-	}, [dashboardData]);
+	const filteredSummaries = useMemo(() => {
+		if (!activeView) return summaries;
+		return summaries.filter((s) => s.project_path.startsWith(activeView.path));
+	}, [summaries, activeView]);
+
+	const activeViewPath = views[tabIndex]?.path ?? views[0]?.path ?? null;
+
+	const handleKillSession = useCallback(
+		async (sessionId: string) => {
+			try {
+				await fetch(`/api/agent-sessions/${encodeURIComponent(sessionId)}/kill`, {
+					method: 'POST',
+				});
+				queryClient.invalidateQueries({ queryKey: ['sessions', 'active'] });
+				queryClient.invalidateQueries({ queryKey: ['agent-sessions', 'history'] });
+			} catch {
+				// ignore
+			}
+		},
+		[queryClient],
+	);
+
+	const handleDeleteSession = useCallback(
+		async (id: string) => {
+			try {
+				await supabase.from('agent_activity_logs').delete().eq('agent_session_id', id);
+				await supabase.from('agent_sessions').delete().eq('id', id);
+				queryClient.invalidateQueries({ queryKey: ['agent-sessions', 'history'] });
+				queryClient.invalidateQueries({ queryKey: ['agent-summaries'] });
+			} catch {
+				// ignore
+			}
+		},
+		[queryClient],
+	);
+
+	// Find matching AgentSession for a summary (to open terminal modal)
+	const handleSummaryClick = useCallback(
+		(summary: AgentSummary) => {
+			const match = pastSessions.find((s) => s.session_id === summary.session_id);
+			if (match) {
+				setSelected({ type: 'past', session: match });
+			}
+		},
+		[pastSessions],
+	);
 
 	const todayStr = new Date().toLocaleDateString('fr-FR', {
 		weekday: 'long',
@@ -258,574 +763,441 @@ export default function Dashboard() {
 		year: 'numeric',
 	});
 
-	const handleLoadGitHub = () => {
-		setGhEnabled(true);
-		refetchGh();
-	};
+	// Modal props
+	const modalOpen = !!selected;
+	const modalProps =
+		selected?.type === 'active'
+			? {
+				projectPath: selected.session.cwd,
+				existingSessionId: selected.session.sessionId,
+			}
+			: selected?.type === 'past'
+				? {
+					projectPath: selected.session.project_path || undefined,
+					existingSessionId: selected.session.session_id,
+					isPastSession: true,
+				}
+				: {};
 
 	return (
-		<Box sx={{ p: 4, maxWidth: 1100, mx: 'auto' }}>
-			{/* Welcome */}
-			<Box sx={{ mb: 4 }}>
-				<Typography
-					variant="h4"
-					sx={{
-						fontWeight: 700,
-						background: 'linear-gradient(135deg, #7C5CFF 0%, #00E5FF 100%)',
-						WebkitBackgroundClip: 'text',
-						WebkitTextFillColor: 'transparent',
-					}}
-				>
-					{getGreeting()}, Ludovic
-				</Typography>
-				<Typography
-					variant="body2"
-					sx={{ color: 'text.disabled', mt: 0.5, textTransform: 'capitalize' }}
-				>
-					{todayStr}
-				</Typography>
-				{pendingCount > 0 && (
-					<Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
-						Tu as{' '}
-						<strong style={{ color: '#FF9800' }}>
-							{pendingCount} todo{pendingCount > 1 ? 's' : ''}
-						</strong>{' '}
-						en attente
-						{ghLoaded && stats.inProgress > 0 && (
-							<>
-								{' '}
-								et{' '}
-								<strong style={{ color: '#7C5CFF' }}>
-									{stats.inProgress} issue{stats.inProgress > 1 ? 's' : ''}
-								</strong>{' '}
-								en cours
-							</>
-						)}
-						.
-					</Typography>
-				)}
-			</Box>
-
-			{/* Stats */}
-			<Box sx={{ display: 'flex', gap: 2, mb: 4, flexWrap: 'wrap' }}>
-				<StatCard
-					label="Todos en attente"
-					value={pendingCount}
-					icon={<AssignmentRoundedIcon />}
-					color="#FF9800"
-					subtitle="Tous les repos"
-				/>
-				{ghLoaded ? (
-					<>
-						<StatCard
-							label="In Progress"
-							value={stats.inProgress}
-							icon={<TrendingUpRoundedIcon />}
-							color="#7C5CFF"
-							subtitle="Issues GitHub"
-						/>
-						<StatCard
-							label="Assign. ouvertes"
-							value={stats.assigned}
-							icon={<BugReportRoundedIcon />}
-							color="#00E5FF"
-							subtitle="Qui te sont assignees"
-						/>
-						<StatCard
-							label="Fermees (7j)"
-							value={stats.closedRecently}
-							icon={<DoneAllRoundedIcon />}
-							color="#22C55E"
-							subtitle="Cette semaine"
-						/>
-					</>
-				) : (
-					<Box
-						onClick={handleLoadGitHub}
-						sx={{
-							flex: '3 1 0',
-							minWidth: 320,
-							bgcolor: 'background.paper',
-							borderRadius: 1,
-							border: 1,
-							borderColor: 'divider',
-							p: 2.5,
-							display: 'flex',
-							alignItems: 'center',
-							justifyContent: 'center',
-							gap: 1.5,
-							cursor: 'pointer',
-							transition: 'all 0.15s',
-							'&:hover': {
-								borderColor: alpha('#7C5CFF', 0.4),
-								bgcolor: alpha('#7C5CFF', 0.04),
-							},
-						}}
-					>
-						{dashLoading ? (
-							<CircularProgress size={20} sx={{ color: '#7C5CFF' }} />
-						) : (
-							<SyncRoundedIcon sx={{ color: '#7C5CFF' }} />
-						)}
-						<Typography
-							variant="body2"
-							sx={{ color: 'text.secondary', fontWeight: 500 }}
-						>
-							{dashLoading
-								? 'Chargement des issues GitHub...'
-								: 'Charger les stats GitHub'}
-						</Typography>
-					</Box>
-				)}
-			</Box>
-
-			{/* Two-column layout: Todos + Chart */}
-			<Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-				{/* Pending todos with tabs */}
+		<>
+			<Box sx={{ p: 4, maxWidth: 1400, mx: 'auto' }}>
+				{/* ── Header: Greeting + Clock ── */}
 				<Box
 					sx={{
-						flex: '1 1 320px',
-						bgcolor: 'background.paper',
-						borderRadius: 1,
-						border: 1,
-						borderColor: 'divider',
-						p: 3,
-						minHeight: 280,
 						display: 'flex',
-						flexDirection: 'column',
+						alignItems: 'flex-end',
+						justifyContent: 'space-between',
+						mb: 3,
 					}}
 				>
-					<Box
-						sx={{
-							display: 'flex',
-							alignItems: 'center',
-							justifyContent: 'space-between',
-							mb: 1.5,
-						}}
-					>
-						<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-							<ChecklistRoundedIcon sx={{ color: '#FF9800', fontSize: '1.2rem' }} />
-							<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-								A faire
-							</Typography>
-						</Box>
-						<Link href="/todos" style={{ textDecoration: 'none' }}>
-							<Box
-								sx={{
-									display: 'flex',
-									alignItems: 'center',
-									gap: 0.5,
-									color: '#FF9800',
-									fontSize: '0.8rem',
-									fontWeight: 500,
-									cursor: 'pointer',
-									'&:hover': { textDecoration: 'underline' },
-								}}
-							>
-								Voir tout <ArrowForwardRoundedIcon sx={{ fontSize: 14 }} />
-							</Box>
-						</Link>
-					</Box>
-
-					{/* Repo tabs */}
-					{views.length > 1 && (
-						<DraggableTabs
-							tabs={views.map((v) => v.label)}
-							activeTab={todoTabIndex}
-							onTabChange={setTodoTabIndex}
-							onReorder={reorderViews}
-							color="#FF9800"
-						/>
-					)}
-
-					{/* Todo list for active tab */}
-					{views.length === 0 ? (
-						<Box
+					<Box>
+						<Typography
+							variant="h4"
 							sx={{
-								flex: 1,
-								display: 'flex',
-								alignItems: 'center',
-								justifyContent: 'center',
+								fontWeight: 700,
+								background: 'linear-gradient(135deg, #7C5CFF 0%, #00E5FF 100%)',
+								WebkitBackgroundClip: 'text',
+								WebkitTextFillColor: 'transparent',
 							}}
 						>
-							<Typography variant="body2" sx={{ color: 'text.disabled' }}>
-								Aucun projet configure
-							</Typography>
-						</Box>
-					) : (
-						<TodoCardContent repoFullName={activeTodoView.repoFullName} />
-					)}
-				</Box>
-
-				{/* Weekly activity chart with tabs */}
-				<Box
-					sx={{
-						flex: '1 1 400px',
-						bgcolor: 'background.paper',
-						borderRadius: 1,
-						border: 1,
-						borderColor: 'divider',
-						p: 3,
-						minHeight: 280,
-						display: 'flex',
-						flexDirection: 'column',
-					}}
-				>
-					<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-						<TrendingUpRoundedIcon sx={{ color: '#7C5CFF', fontSize: '1.2rem' }} />
-						<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-							Activite de la semaine
+							{getGreeting()}, Ludovic
+						</Typography>
+						<Typography
+							variant="body2"
+							sx={{ color: 'text.disabled', mt: 0.5, textTransform: 'capitalize' }}
+						>
+							{todayStr}
 						</Typography>
 					</Box>
-
-					<Tabs
-						value={chartTab}
-						onChange={(_, v) => setChartTab(v)}
-						sx={{
-							minHeight: 30,
-							mb: 1.5,
-							'& .MuiTab-root': {
-								minHeight: 30,
-								minWidth: 0,
-								px: 1.5,
-								py: 0.25,
-								fontSize: '0.72rem',
-								fontWeight: 600,
-								textTransform: 'none',
-								color: 'text.disabled',
-								gap: 0.5,
-								'&.Mui-selected': { color: '#7C5CFF' },
-							},
-							'& .MuiTabs-indicator': { bgcolor: '#7C5CFF', height: 2 },
-						}}
-					>
-						<Tab label="Todos" />
-						<Tab
-							icon={<SmartToyRoundedIcon sx={{ fontSize: 14 }} />}
-							iconPosition="start"
-							label="Claude Reports"
-						/>
-						<Tab
-							icon={<SmartToyRoundedIcon sx={{ fontSize: 14 }} />}
-							iconPosition="start"
-							label="Sessions"
-						/>
-					</Tabs>
-
-					{/* Todos chart */}
-					{chartTab === 0 &&
-						(weekLoading ? (
-							<Box
-								sx={{
-									flex: 1,
-									display: 'flex',
-									alignItems: 'center',
-									justifyContent: 'center',
-								}}
-							>
-								<CircularProgress size={24} sx={{ color: '#7C5CFF' }} />
-							</Box>
-						) : (
-							<Box sx={{ flex: 1, minHeight: 0 }}>
-								<ResponsiveContainer width="100%" height="100%">
-									<BarChart
-										data={weeklyData}
-										margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
-									>
-										<CartesianGrid
-											strokeDasharray="3 3"
-											stroke="rgba(255,255,255,0.06)"
-										/>
-										<XAxis
-											dataKey="day"
-											tick={{ fill: '#888', fontSize: 12 }}
-											axisLine={false}
-											tickLine={false}
-										/>
-										<YAxis
-											allowDecimals={false}
-											tick={{ fill: '#888', fontSize: 12 }}
-											axisLine={false}
-											tickLine={false}
-										/>
-										<RechartsTooltip
-											contentStyle={{
-												backgroundColor: '#2A2A2A',
-												border: '1px solid #3A3A3A',
-												borderRadius: 1,
-												fontSize: 13,
-											}}
-											labelStyle={{ color: '#fff', fontWeight: 600 }}
-										/>
-										<Bar
-											dataKey="added"
-											name="Ajoutees"
-											fill="#FF9800"
-											radius={[4, 4, 0, 0]}
-											barSize={16}
-										/>
-										<Bar
-											dataKey="completed"
-											name="Completees"
-											fill="#22C55E"
-											radius={[4, 4, 0, 0]}
-											barSize={16}
-										/>
-									</BarChart>
-								</ResponsiveContainer>
-							</Box>
-						))}
-
-					{/* Claude Reports chart */}
-					{chartTab === 1 &&
-						(claudeLoading ? (
-							<Box
-								sx={{
-									flex: 1,
-									display: 'flex',
-									alignItems: 'center',
-									justifyContent: 'center',
-								}}
-							>
-								<CircularProgress size={24} sx={{ color: '#7C5CFF' }} />
-							</Box>
-						) : (
-							<Box sx={{ flex: 1, minHeight: 0 }}>
-								<ResponsiveContainer width="100%" height="100%">
-									<BarChart
-										data={claudeData}
-										margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
-									>
-										<CartesianGrid
-											strokeDasharray="3 3"
-											stroke="rgba(255,255,255,0.06)"
-										/>
-										<XAxis
-											dataKey="day"
-											tick={{ fill: '#888', fontSize: 12 }}
-											axisLine={false}
-											tickLine={false}
-										/>
-										<YAxis
-											allowDecimals={false}
-											tick={{ fill: '#888', fontSize: 12 }}
-											axisLine={false}
-											tickLine={false}
-										/>
-										<RechartsTooltip
-											contentStyle={{
-												backgroundColor: '#2A2A2A',
-												border: '1px solid #3A3A3A',
-												borderRadius: 1,
-												fontSize: 13,
-											}}
-											labelStyle={{ color: '#fff', fontWeight: 600 }}
-										/>
-										<Bar
-											dataKey="reports"
-											name="Rapports publiés"
-											fill="#7C5CFF"
-											radius={[4, 4, 0, 0]}
-											barSize={16}
-										/>
-										<Bar
-											dataKey="completed"
-											name="Complétées"
-											fill="#22C55E"
-											radius={[4, 4, 0, 0]}
-											barSize={16}
-										/>
-										<Bar
-											dataKey="errors"
-											name="Erreurs"
-											fill="#FF5252"
-											radius={[4, 4, 0, 0]}
-											barSize={16}
-										/>
-									</BarChart>
-								</ResponsiveContainer>
-							</Box>
-						))}
-
-					{/* Claude Sessions chart */}
-					{chartTab === 2 &&
-						(claudeLoading ? (
-							<Box
-								sx={{
-									flex: 1,
-									display: 'flex',
-									alignItems: 'center',
-									justifyContent: 'center',
-								}}
-							>
-								<CircularProgress size={24} sx={{ color: '#7C5CFF' }} />
-							</Box>
-						) : (
-							<Box sx={{ flex: 1, minHeight: 0 }}>
-								<ResponsiveContainer width="100%" height="100%">
-									<BarChart
-										data={claudeData}
-										margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
-									>
-										<CartesianGrid
-											strokeDasharray="3 3"
-											stroke="rgba(255,255,255,0.06)"
-										/>
-										<XAxis
-											dataKey="day"
-											tick={{ fill: '#888', fontSize: 12 }}
-											axisLine={false}
-											tickLine={false}
-										/>
-										<YAxis
-											allowDecimals={false}
-											tick={{ fill: '#888', fontSize: 12 }}
-											axisLine={false}
-											tickLine={false}
-										/>
-										<RechartsTooltip
-											contentStyle={{
-												backgroundColor: '#2A2A2A',
-												border: '1px solid #3A3A3A',
-												borderRadius: 1,
-												fontSize: 13,
-											}}
-											labelStyle={{ color: '#fff', fontWeight: 600 }}
-										/>
-										<Bar
-											dataKey="sessions"
-											name="Sessions lancées"
-											fill="#00E5FF"
-											radius={[4, 4, 0, 0]}
-											barSize={16}
-										/>
-										<Bar
-											dataKey="completed"
-											name="Complétées"
-											fill="#22C55E"
-											radius={[4, 4, 0, 0]}
-											barSize={16}
-										/>
-										<Bar
-											dataKey="errors"
-											name="Erreurs"
-											fill="#FF5252"
-											radius={[4, 4, 0, 0]}
-											barSize={16}
-										/>
-									</BarChart>
-								</ResponsiveContainer>
-							</Box>
-						))}
+					<LiveClock />
 				</Box>
-			</Box>
 
-			{/* Issues In Progress */}
-			{ghLoaded && stats.inProgress > 0 && dashboardData && (
-				<Box
-					sx={{
-						mt: 3,
-						bgcolor: 'background.paper',
-						borderRadius: 1,
-						border: 1,
-						borderColor: 'divider',
-						p: 3,
-					}}
-				>
+				{/* ── Quick stats bar ── */}
+				<Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
 					<Box
 						sx={{
 							display: 'flex',
 							alignItems: 'center',
-							justifyContent: 'space-between',
-							mb: 2,
+							gap: 1,
+							px: 2,
+							py: 1,
+							borderRadius: 1,
+							bgcolor: alpha('#7C5CFF', 0.08),
+							border: 1,
+							borderColor: alpha('#7C5CFF', 0.15),
 						}}
 					>
-						<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-							<BugReportRoundedIcon sx={{ color: '#7C5CFF', fontSize: '1.2rem' }} />
-							<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-								Issues en cours
+						<SmartToyRoundedIcon sx={{ fontSize: 18, color: '#7C5CFF' }} />
+						<Typography variant="body2" sx={{ fontWeight: 600, color: '#7C5CFF' }}>
+							{sessions.length}
+						</Typography>
+						<Typography variant="caption" sx={{ color: 'text.secondary' }}>
+							agent{sessions.length !== 1 ? 's' : ''} actif
+							{sessions.length !== 1 ? 's' : ''}
+						</Typography>
+					</Box>
+					{sessions.filter((s) => s.isStreaming).length > 0 && (
+						<Box
+							sx={{
+								display: 'flex',
+								alignItems: 'center',
+								gap: 1,
+								px: 2,
+								py: 1,
+								borderRadius: 1,
+								bgcolor: alpha('#4CAF50', 0.08),
+								border: 1,
+								borderColor: alpha('#4CAF50', 0.15),
+							}}
+						>
+							<FiberManualRecordRoundedIcon
+								sx={{
+									fontSize: 10,
+									color: '#4CAF50',
+									animation: 'pulse 2s ease-in-out infinite',
+									'@keyframes pulse': {
+										'0%, 100%': { opacity: 0.4 },
+										'50%': { opacity: 1 },
+									},
+								}}
+							/>
+							<Typography variant="body2" sx={{ fontWeight: 600, color: '#4CAF50' }}>
+								{sessions.filter((s) => s.isStreaming).length}
+							</Typography>
+							<Typography variant="caption" sx={{ color: 'text.secondary' }}>
+								en streaming
 							</Typography>
 						</Box>
-						<Link href="/issues" style={{ textDecoration: 'none' }}>
-							<Box
-								sx={{
-									display: 'flex',
-									alignItems: 'center',
-									gap: 0.5,
-									color: '#7C5CFF',
-									fontSize: '0.8rem',
-									fontWeight: 500,
-									cursor: 'pointer',
-									'&:hover': { textDecoration: 'underline' },
-								}}
-							>
-								Voir tout <ArrowForwardRoundedIcon sx={{ fontSize: 14 }} />
-							</Box>
-						</Link>
+					)}
+					{pendingCount > 0 && (
+						<Box
+							sx={{
+								display: 'flex',
+								alignItems: 'center',
+								gap: 1,
+								px: 2,
+								py: 1,
+								borderRadius: 1,
+								bgcolor: alpha('#FF9800', 0.08),
+								border: 1,
+								borderColor: alpha('#FF9800', 0.15),
+							}}
+						>
+							<AssignmentRoundedIcon sx={{ fontSize: 18, color: '#FF9800' }} />
+							<Typography variant="body2" sx={{ fontWeight: 600, color: '#FF9800' }}>
+								{pendingCount}
+							</Typography>
+							<Typography variant="caption" sx={{ color: 'text.secondary' }}>
+								todo{pendingCount > 1 ? 's' : ''} en attente
+							</Typography>
+						</Box>
+					)}
+				</Box>
+
+				{/* ── View tabs ── */}
+				{views.length > 0 && (
+					<Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+						<DraggableTabs
+							tabs={views.map((v) => v.label)}
+							activeTab={tabIndex}
+							onTabChange={setTabIndex}
+							onReorder={reorderViews}
+							counts={views.map(
+								(v) => sessions.filter((s) => s.cwd.startsWith(v.path)).length,
+							)}
+							mb={0}
+						/>
 					</Box>
-					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-						{dashboardData.issues
-							.filter((i) => {
-								const col = i.project_columns?.[0]?.column;
-								return (
-									i.state === 'open' &&
-									col &&
-									col.toLowerCase().includes('progress')
-								);
-							})
-							.slice(0, 6)
-							.map((issue) => (
+				)}
+
+				{/* ── Main content: Agents (left) + Summaries (right) ── */}
+				<Box sx={{ display: 'flex', gap: 3, alignItems: 'flex-start' }}>
+					{/* Left: Agents panel */}
+					<Box
+						sx={{ flex: '0 0 380px', display: 'flex', flexDirection: 'column', gap: 2 }}
+					>
+						{/* Start Agent */}
+						<Button
+							fullWidth
+							variant="outlined"
+							startIcon={<AddRoundedIcon />}
+							onClick={() => setNewAgentOpen(true)}
+							sx={{
+								textTransform: 'none',
+								fontWeight: 600,
+								fontSize: '0.85rem',
+								py: 1.25,
+								borderRadius: 1,
+								color: '#7C5CFF',
+								borderColor: alpha('#7C5CFF', 0.3),
+								'&:hover': {
+									borderColor: '#7C5CFF',
+									bgcolor: alpha('#7C5CFF', 0.08),
+								},
+							}}
+						>
+							Lancer un agent
+						</Button>
+
+						{/* Active sessions */}
+						{filteredActiveSessions.length > 0 && (
+							<Box>
 								<Box
-									key={issue.id}
-									component="a"
-									href={issue.html_url}
-									target="_blank"
-									rel="noopener noreferrer"
 									sx={{
 										display: 'flex',
 										alignItems: 'center',
-										gap: 1.5,
-										px: 1.5,
-										py: 1,
-										borderRadius: 1,
-										textDecoration: 'none',
-										color: 'inherit',
-										transition: 'background-color 0.15s',
-										'&:hover': { bgcolor: alpha('#7C5CFF', 0.06) },
+										gap: 1,
+										mb: 1.5,
 									}}
 								>
+									<SmartToyRoundedIcon sx={{ fontSize: 16, color: '#7C5CFF' }} />
+									<Typography
+										variant="caption"
+										sx={{
+											color: 'text.disabled',
+											fontWeight: 700,
+											fontSize: '0.68rem',
+											letterSpacing: 0.5,
+											textTransform: 'uppercase',
+										}}
+									>
+										Agents actifs
+									</Typography>
 									<Box
 										sx={{
-											width: 8,
-											height: 8,
-											borderRadius: '50%',
-											bgcolor: '#7C5CFF',
-											flexShrink: 0,
+											ml: 'auto',
+											bgcolor: alpha('#4CAF50', 0.15),
+											color: '#4CAF50',
+											fontSize: '0.65rem',
+											fontWeight: 700,
+											px: 0.75,
+											py: 0.15,
+											borderRadius: 1,
 										}}
+									>
+										{filteredActiveSessions.length}
+									</Box>
+								</Box>
+								<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+									{filteredActiveSessions.map((session) => (
+										<ActiveSessionCard
+											key={session.sessionId}
+											session={session}
+											isStreaming={session.isStreaming}
+											onClick={() => setSelected({ type: 'active', session })}
+											onKill={() => handleKillSession(session.sessionId)}
+										/>
+									))}
+								</Box>
+							</Box>
+						)}
+
+						{/* Past sessions */}
+						{filteredPastSessions.length > 0 && (
+							<Box>
+								<Box
+									sx={{
+										display: 'flex',
+										alignItems: 'center',
+										gap: 1,
+										mb: 1.5,
+									}}
+								>
+									<HistoryRoundedIcon
+										sx={{ fontSize: 14, color: 'text.disabled' }}
+									/>
+									<Typography
+										variant="caption"
+										sx={{
+											color: 'text.disabled',
+											fontWeight: 600,
+											fontSize: '0.65rem',
+											letterSpacing: 0.5,
+											textTransform: 'uppercase',
+										}}
+									>
+										Sessions passees
+									</Typography>
+								</Box>
+								<Box
+									sx={{
+										display: 'flex',
+										flexDirection: 'column',
+										gap: 0.75,
+										maxHeight: 400,
+										overflowY: 'auto',
+										'&::-webkit-scrollbar': { width: 3 },
+										'&::-webkit-scrollbar-thumb': {
+											bgcolor: 'divider',
+											borderRadius: 1,
+										},
+									}}
+								>
+									{filteredPastSessions.slice(0, 15).map((session) => (
+										<PastSessionCard
+											key={session.id}
+											session={session}
+											onClick={() => setSelected({ type: 'past', session })}
+											onDelete={() => handleDeleteSession(session.id)}
+										/>
+									))}
+								</Box>
+							</Box>
+						)}
+
+						{/* Empty state */}
+						{filteredActiveSessions.length === 0 &&
+							filteredPastSessions.length === 0 && (
+								<Box
+									sx={{
+										bgcolor: 'background.paper',
+										borderRadius: 1,
+										border: 1,
+										borderColor: 'divider',
+										p: 4,
+										display: 'flex',
+										flexDirection: 'column',
+										alignItems: 'center',
+										gap: 1.5,
+									}}
+								>
+									<SmartToyRoundedIcon
+										sx={{ fontSize: 40, color: 'text.disabled' }}
 									/>
 									<Typography
 										variant="body2"
-										sx={{
-											flex: 1,
-											fontWeight: 500,
-											overflow: 'hidden',
-											textOverflow: 'ellipsis',
-											whiteSpace: 'nowrap',
-										}}
+										sx={{ color: 'text.disabled', textAlign: 'center' }}
 									>
-										{issue.title}
+										Aucune session sur ce projet
 									</Typography>
 									<Typography
 										variant="caption"
-										sx={{ color: 'text.disabled', whiteSpace: 'nowrap' }}
+										sx={{ color: 'text.disabled', textAlign: 'center' }}
 									>
-										{issue.repo_full_name?.split('/').pop()} #{issue.number}
+										Lance un agent pour commencer
 									</Typography>
 								</Box>
-							))}
+							)}
+					</Box>
+
+					{/* Right: Summaries panel */}
+					<Box
+						sx={{
+							flex: '1 1 0',
+							display: 'flex',
+							flexDirection: 'column',
+							minHeight: 400,
+						}}
+					>
+						<Box
+							sx={{
+								display: 'flex',
+								alignItems: 'center',
+								gap: 0.75,
+								px: 2,
+								py: 1,
+								mb: 2,
+								borderBottom: 2,
+								borderColor: '#7C5CFF',
+							}}
+						>
+							<SummarizeRoundedIcon sx={{ fontSize: 18 }} />
+							<Typography
+								variant="body2"
+								sx={{ fontWeight: 600, fontSize: '0.82rem' }}
+							>
+								Rapports
+							</Typography>
+							<Chip
+								label={filteredSummaries.length}
+								size="small"
+								sx={{
+									height: 18,
+									fontSize: '0.6rem',
+									fontWeight: 700,
+									bgcolor: alpha('#7C5CFF', 0.12),
+									color: '#7C5CFF',
+								}}
+							/>
+						</Box>
+
+						<Box
+							sx={{
+								flex: 1,
+								overflowY: 'auto',
+								maxHeight: 'calc(100vh - 370px)',
+								'&::-webkit-scrollbar': { width: 4 },
+								'&::-webkit-scrollbar-thumb': {
+									bgcolor: 'divider',
+									borderRadius: 1,
+								},
+							}}
+						>
+							{summariesLoading ? (
+								<Box
+									sx={{
+										display: 'flex',
+										alignItems: 'center',
+										justifyContent: 'center',
+										py: 8,
+									}}
+								>
+									<CircularProgress
+										size={24}
+										sx={{ color: '#7C5CFF' }}
+									/>
+								</Box>
+							) : filteredSummaries.length === 0 ? (
+								<Box
+									sx={{
+										display: 'flex',
+										flexDirection: 'column',
+										alignItems: 'center',
+										justifyContent: 'center',
+										py: 8,
+										gap: 1,
+									}}
+								>
+									<SummarizeRoundedIcon
+										sx={{ fontSize: 40, color: 'text.disabled' }}
+									/>
+									<Typography
+										variant="body2"
+										sx={{ color: 'text.disabled' }}
+									>
+										Aucun rapport pour l{"'"}instant
+									</Typography>
+									<Typography
+										variant="caption"
+										sx={{ color: 'text.disabled' }}
+									>
+										Les rapports apparaissent quand un agent termine
+										sa session
+									</Typography>
+								</Box>
+							) : (
+								<SummaryTimeline
+									summaries={filteredSummaries}
+									onSessionClick={handleSummaryClick}
+								/>
+							)}
+						</Box>
 					</Box>
 				</Box>
-			)}
-		</Box>
+			</Box>
+
+			{/* Terminal modals */}
+			<AgentTerminalModal
+				open={modalOpen}
+				onClose={() => setSelected(null)}
+				{...modalProps}
+			/>
+			<AgentTerminalModal
+				open={newAgentOpen}
+				onClose={() => setNewAgentOpen(false)}
+				projectPath={activeViewPath}
+			/>
+		</>
 	);
 }

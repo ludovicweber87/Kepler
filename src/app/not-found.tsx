@@ -23,14 +23,14 @@ export default function NotFound() {
 				404
 			</Typography>
 			<Typography variant="h5" sx={{ mb: 1 }}>
-				Page not found
+				Page introuvable
 			</Typography>
 			<Typography variant="body1" sx={{ color: 'text.secondary', mb: 4 }}>
-				The task you&apos;re looking for doesn&apos;t exist or has been removed.
+				La tâche que vous cherchez n&apos;existe pas ou a été supprimée.
 			</Typography>
 			<Link href="/" style={{ textDecoration: 'none' }}>
 				<Button variant="outlined" startIcon={<ArrowBackRoundedIcon />}>
-					Back to dashboard
+					Retour au tableau de bord
 				</Button>
 			</Link>
 		</Box>

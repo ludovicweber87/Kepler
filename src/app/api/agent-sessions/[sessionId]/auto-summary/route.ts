@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { execSync } from 'child_process';
 import { supabase } from '@/lib/supabase';
 
+const CLAUDE_BIN = '/opt/homebrew/bin/claude';
+
 export async function POST(
 	req: NextRequest,
 	{ params }: { params: Promise<{ sessionId: string }> },
@@ -18,7 +20,7 @@ export async function POST(
 		// Find the DB session
 		const { data: session } = await supabase
 			.from('agent_sessions')
-			.select('id')
+			.select('id, session_id, project_name, agent_name, issue_owner, issue_repo, issue_number, issue_title')
 			.eq('session_id', sessionId)
 			.maybeSingle();
 
@@ -43,13 +45,32 @@ export async function POST(
 		const truncated = paneContent.slice(-8000);
 
 		// Use claude CLI in --print mode (non-interactive, single response)
-		const prompt = `Résume cette session de terminal d'un agent Claude en 3-5 bullet points concis en français. Ne réponds qu'avec les bullet points, rien d'autre.\n\n---\n${truncated}`;
+		const prompt = `Analyse cette session de terminal d'un agent Claude et produis un rapport structuré en français. Réponds UNIQUEMENT avec le rapport, rien d'autre.
+
+Format attendu :
+## Ce qui a été fait
+- (liste les actions concrètes réalisées)
+
+## Fichiers modifiés
+- \`path/to/file.ts\` : description courte du changement
+(si tu ne peux pas identifier les fichiers, omets cette section)
+
+## Décisions techniques
+- (choix d'implémentation ou d'architecture notables, si applicable)
+
+## Reste à faire
+- (ce qui manque ou nécessite une review, si applicable — sinon "Rien")
+
+---
+${truncated}`;
 		const escaped = prompt.replace(/'/g, "'\\''");
 
-		const summary = execSync(`claude --print '${escaped}'`, {
+		const { CLAUDECODE, CLAUDE_CODE_ENTRYPOINT, ...cleanEnv } = process.env;
+		const summary = execSync(`${CLAUDE_BIN} --print '${escaped}'`, {
 			encoding: 'utf-8',
 			timeout: 30_000,
 			maxBuffer: 1024 * 1024,
+			env: cleanEnv,
 		}).trim();
 
 		if (!summary) {

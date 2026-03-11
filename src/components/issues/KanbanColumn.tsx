@@ -102,9 +102,12 @@ const KanbanColumn = forwardRef<HTMLDivElement, KanbanColumnProps>(function Kanb
 				flexShrink: 0,
 				display: 'flex',
 				flexDirection: 'column',
-				bgcolor: alpha('#fff', 0.02),
+				bgcolor: 'background.paper',
 				borderRadius: 1,
-				boxShadow: `0 1px 4px ${alpha('#000', 0.18)}, 0 0 1px ${alpha('#000', 0.25)}`,
+				boxShadow: (t: { palette: { mode: string } }) =>
+					t.palette.mode === 'dark'
+						? `0 1px 4px ${alpha('#000', 0.18)}, 0 0 1px ${alpha('#000', 0.25)}`
+						: `0 1px 4px ${alpha('#000', 0.06)}, 0 0 1px ${alpha('#000', 0.1)}`,
 				p: 1.5,
 				transition: 'box-shadow 0.2s',
 				...(isDropTarget && {
@@ -149,7 +152,7 @@ const KanbanColumn = forwardRef<HTMLDivElement, KanbanColumnProps>(function Kanb
 					height: 'calc(100vh - 250px)',
 					scrollbarWidth: 'thin',
 					'&::-webkit-scrollbar': { width: 4 },
-					'&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 2 },
+					'&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 1 },
 					transition: 'background 0.2s',
 					...(isDropTarget && {
 						background: alpha('#7C5CFF', 0.04),

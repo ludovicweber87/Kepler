@@ -49,9 +49,6 @@ let wss: WebSocketServer | null = null;
 const sessionOutputTimestamps = new Map<string, number>();
 // Track pane content hash for sessions not attached via WS
 const sessionPaneHashes = new Map<string, string>();
-// Streaming watcher state
-const sessionWasStreaming = new Map<string, boolean>();
-const sessionSummarySent = new Map<string, boolean>();
 
 export function getLastOutputTimestamp(sessionId: string): number | undefined {
 	return sessionOutputTimestamps.get(sessionId);
@@ -170,6 +167,10 @@ function createTmuxSession(sessionId: string, cwd: string): void {
 	execSync(`${TMUX} new-session -d -s ${sessionId} -x 120 -y 40 -c ${JSON.stringify(cwd)}`, {
 		stdio: 'ignore',
 	});
+	// Enable mouse support so scroll wheel works for buffer scrollback
+	execSync(`${TMUX} set-option -t ${sessionId} mouse on`, {
+		stdio: 'ignore',
+	});
 }
 
 function spawnTmuxAttach(sessionId: string, cols: number, rows: number): IPty {
@@ -201,71 +202,12 @@ export function capturePaneBuffer(sessionId: string): string | null {
 	}
 }
 
-const SILENCE_THRESHOLD = 15_000; // 15s of silence = streaming ended
-
-function startStreamingWatcher() {
-	setInterval(() => {
-		const now = Date.now();
-		let activeSessions: string[];
-		try {
-			const out = execSync(`${TMUX} list-sessions -F "#{session_name}"`, {
-				encoding: 'utf-8',
-				stdio: ['pipe', 'pipe', 'ignore'],
-			});
-			activeSessions = out
-				.trim()
-				.split('\n')
-				.filter((s) => s.startsWith('devora-') && !s.endsWith('-shell'));
-		} catch {
-			return;
-		}
-
-		// Clean up state for sessions that no longer exist
-		for (const id of sessionWasStreaming.keys()) {
-			if (!activeSessions.includes(id)) {
-				sessionWasStreaming.delete(id);
-				sessionSummarySent.delete(id);
-			}
-		}
-
-		for (const sessionId of activeSessions) {
-			const lastOutput = sessionOutputTimestamps.get(sessionId) ?? 0;
-			const isCurrentlyActive = lastOutput > 0 && now - lastOutput < SILENCE_THRESHOLD;
-
-			const wasStreaming = sessionWasStreaming.get(sessionId) ?? false;
-			const summarySent = sessionSummarySent.get(sessionId) ?? false;
-
-			if (isCurrentlyActive) {
-				sessionWasStreaming.set(sessionId, true);
-			} else if (wasStreaming && !summarySent) {
-				// Transition: was streaming → now silent for 15s+
-				sessionSummarySent.set(sessionId, true);
-				const paneContent = capturePaneBuffer(sessionId);
-				if (paneContent && paneContent.trim().length > 50) {
-					// Fire and forget — auto-summary endpoint
-					fetch(
-						`http://localhost:4000/api/agent-sessions/${encodeURIComponent(sessionId)}/auto-summary`,
-						{
-							method: 'POST',
-							headers: { 'Content-Type': 'application/json' },
-							body: JSON.stringify({ paneContent }),
-						},
-					).catch(() => {
-						/* ignore */
-					});
-				}
-			}
-		}
-	}, 10_000);
-}
 
 export function startTerminalServer(port: number) {
 	if (wss) return;
 
 	wss = new WebSocketServer({ port });
 	console.log(`[terminal-server] WebSocket server started on port ${port}`);
-
-	startStreamingWatcher();
 
 	wss.on('connection', (ws: WebSocket) => {
 		let pty: IPty | null = null;

@@ -16,6 +16,7 @@
 		"@emotion/react": "^11.14.0",
 		"@emotion/styled": "^11.14.1",
 		"@mui/icons-material": "^7.3.9",
+		"@mui/lab": "^7.0.1-beta.23",
 		"@mui/material": "^7.3.9",
 		"@mui/material-nextjs": "^7.3.9",
 		"@supabase/supabase-js": "^2.98.0",
@@ -35,6 +36,7 @@
 		"ws": "^8.19.0"
 	},
 	"devDependencies": {
+		"@evaneos/front-config": "^5.0.0",
 		"@types/node": "^20",
 		"@types/react": "^19",
 		"@types/react-dom": "^19",
@@ -44,7 +46,6 @@
 		"eslint-config-next": "16.1.6",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-prettier": "^5.5.5",
-		"@evaneos/front-config": "^5.0.0",
 		"prettier": "^3.8.1",
 		"tsx": "^4.21.0",
 		"typescript": "^5"

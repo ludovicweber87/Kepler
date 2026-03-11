@@ -18,6 +18,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import AgentTerminalModal from './AgentTerminalModal';
 import AgentEditorDialog from './AgentEditorDialog';
+import AgentBuilderDialog from './AgentBuilderDialog';
 import DraggableTabs from '@/components/shared/DraggableTabs';
 import { useAgentViews } from '@/hooks/useAgentViews';
 import { useAgentFiles, type AgentFile } from '@/hooks/useAgentFiles';
@@ -32,6 +33,7 @@ export default function AgentsList() {
 	const [terminalAgent, setTerminalAgent] = useState<AgentFile | undefined>(undefined);
 	const [editorOpen, setEditorOpen] = useState(false);
 	const [editingAgent, setEditingAgent] = useState<AgentFile | undefined>(undefined);
+	const [builderOpen, setBuilderOpen] = useState(false);
 
 	const handleLaunch = (agent?: AgentFile) => {
 		setTerminalAgent(agent);
@@ -77,10 +79,10 @@ export default function AgentsList() {
 				>
 					<FolderOpenRoundedIcon sx={{ fontSize: 64, color: 'text.disabled' }} />
 					<Typography variant="h6" color="text.secondary">
-						No project selected
+						Aucun projet sélectionné
 					</Typography>
 					<Typography variant="body2" color="text.disabled" sx={{ mb: 2 }}>
-						Select a project folder to manage its agents.
+						Sélectionnez un dossier projet pour gérer ses agents.
 					</Typography>
 					<Button
 						variant="outlined"
@@ -96,7 +98,7 @@ export default function AgentsList() {
 							},
 						}}
 					>
-						Add Project
+						Ajouter un projet
 					</Button>
 				</Box>
 			</Box>
@@ -111,7 +113,7 @@ export default function AgentsList() {
 					display: 'flex',
 					alignItems: 'center',
 					justifyContent: 'space-between',
-					mb: 3,
+					mb: 1,
 				}}
 			>
 				<Typography
@@ -129,7 +131,7 @@ export default function AgentsList() {
 					variant="contained"
 					size="small"
 					startIcon={<AddRoundedIcon />}
-					onClick={() => handleLaunch()}
+					onClick={() => setBuilderOpen(true)}
 					sx={{
 						bgcolor: '#7C5CFF',
 						'&:hover': { bgcolor: alpha('#7C5CFF', 0.85) },
@@ -138,9 +140,18 @@ export default function AgentsList() {
 						fontWeight: 600,
 					}}
 				>
-					New Agent
+					Nouvel agent
 				</Button>
 			</Box>
+			<Typography
+				variant="body2"
+				sx={{ color: 'text.secondary', mb: 3, maxWidth: 640, lineHeight: 1.6 }}
+			>
+				Les agents sont des prompts système (<code>.md</code>) qui spécialisent Claude sur une
+				tâche précise. L&apos;Agent Builder vous guide étape par étape pour créer un agent
+				adapté à votre projet — revue de code, tests, refactoring — avec un prompt optimisé
+				généré par IA.
+			</Typography>
 
 			{/* Tabs */}
 			<DraggableTabs
@@ -149,7 +160,7 @@ export default function AgentsList() {
 				onTabChange={setActiveIndex}
 				onReorder={reorderViews}
 				trailing={
-					<Tooltip title="Add project">
+					<Tooltip title="Ajouter un projet">
 						<IconButton
 							size="small"
 							onClick={() => addView()}
@@ -182,20 +193,20 @@ export default function AgentsList() {
 				>
 					<SmartToyRoundedIcon sx={{ fontSize: 64, color: 'text.disabled' }} />
 					<Typography variant="h6" color="text.secondary">
-						No agents yet
+						Aucun agent
 					</Typography>
 					<Typography
 						variant="body2"
 						color="text.disabled"
 						sx={{ mb: 2, textAlign: 'center' }}
 					>
-						Create a <code>.md</code> file in{' '}
+						Créez un fichier <code>.md</code> dans{' '}
 						<code>{activeView?.path}/.claude/agents/</code>
 					</Typography>
 					<Button
 						variant="outlined"
 						startIcon={<AddRoundedIcon />}
-						onClick={() => handleLaunch()}
+						onClick={() => setBuilderOpen(true)}
 						sx={{
 							borderColor: '#7C5CFF',
 							color: '#7C5CFF',
@@ -206,7 +217,7 @@ export default function AgentsList() {
 							},
 						}}
 					>
-						Create Agent
+						Créer un agent
 					</Button>
 				</Box>
 			)}
@@ -298,7 +309,7 @@ export default function AgentsList() {
 										gap: 0.5,
 									}}
 								>
-									<Tooltip title="Edit">
+									<Tooltip title="Modifier">
 										<IconButton
 											size="small"
 											onClick={(e) => {
@@ -313,7 +324,7 @@ export default function AgentsList() {
 											<EditRoundedIcon fontSize="small" />
 										</IconButton>
 									</Tooltip>
-									<Tooltip title="Delete">
+									<Tooltip title="Supprimer">
 										<IconButton
 											size="small"
 											onClick={(e) => {
@@ -352,6 +363,16 @@ export default function AgentsList() {
 				}}
 				onSave={handleSaveAgent}
 				agent={editingAgent}
+			/>
+
+			{/* Builder dialog */}
+			<AgentBuilderDialog
+				open={builderOpen}
+				onClose={() => setBuilderOpen(false)}
+				onSave={(filename, content) => {
+					saveAgent(filename, content);
+					setBuilderOpen(false);
+				}}
 			/>
 		</Box>
 	);

@@ -12,14 +12,22 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
 	try {
-		const [user, repos, issues] = await Promise.all([
-			fetchUserLogin(),
-			fetchUserRepos(),
-			fetchAssignedIssues(),
-		]);
+		// Fetch issues first, then enrich in parallel with repos/user
+		const issuesPromise = fetchAssignedIssues();
 
+		// Start user + repos in parallel immediately
+		const userPromise = fetchUserLogin();
+		const reposPromise = fetchUserRepos();
+
+		// As soon as issues arrive, start enrichment in parallel
+		const issues = await issuesPromise;
 		const nodeIds = issues.map((i) => i.node_id).filter(Boolean);
-		const columnsMap = await fetchProjectColumns(nodeIds);
+
+		const [user, repos, columnsMap] = await Promise.all([
+			userPromise,
+			reposPromise,
+			fetchProjectColumns(nodeIds),
+		]);
 
 		const enrichedIssues = issues.map((issue) => ({
 			...issue,
@@ -43,10 +51,17 @@ export async function POST(request: Request) {
 			return NextResponse.json({ error: 'issues array required' }, { status: 400 });
 		}
 
-		const [user, issues] = await Promise.all([fetchUserLogin(), fetchSpecificIssues(refs)]);
+		// Start user fetch in parallel immediately
+		const userPromise = fetchUserLogin();
 
+		// Fetch issues, then enrich in parallel with user
+		const issues = await fetchSpecificIssues(refs);
 		const nodeIds = issues.map((i) => i.node_id).filter(Boolean);
-		const columnsMap = await fetchProjectColumns(nodeIds);
+
+		const [user, columnsMap] = await Promise.all([
+			userPromise,
+			fetchProjectColumns(nodeIds),
+		]);
 
 		const enrichedIssues = issues.map((issue) => ({
 			...issue,

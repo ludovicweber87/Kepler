@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import Box from '@mui/material/Box';
@@ -8,8 +8,8 @@ import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
-import Tabs from '@mui/material/Tabs';
-import Tab from '@mui/material/Tab';
+import DraggableTabs from '@/components/shared/DraggableTabs';
+import type { TabItem } from '@/components/shared/DraggableTabs';
 import CircularProgress from '@mui/material/CircularProgress';
 import { alpha } from '@mui/material/styles';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
@@ -20,7 +20,7 @@ import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
 import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
 import FiberManualRecordRoundedIcon from '@mui/icons-material/FiberManualRecordRounded';
 import TimelineRoundedIcon from '@mui/icons-material/TimelineRounded';
-import ReplayRoundedIcon from '@mui/icons-material/ReplayRounded';
+import DifferenceRoundedIcon from '@mui/icons-material/DifferenceRounded';
 import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
@@ -31,6 +31,7 @@ import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useAgentSession } from '@/hooks/useAgentSession';
 import { useOverlayTerminal } from '@/hooks/useOverlayTerminal';
 import AgentActivityTab from './AgentActivityTab';
+import AgentDiffTab from './AgentDiffTab';
 import AgentIssueTab from './AgentIssueTab';
 
 interface IssueContext {
@@ -90,12 +91,7 @@ function buildSessionId(
 }
 
 function buildReportingPrompt(sessionId: string): string {
-	const endpoint = `http://localhost:4000/api/agent-sessions/log`;
-	const curlBase = [
-		`curl -s -X POST ${endpoint} \\`,
-		`  -H "Content-Type: application/json" \\`,
-		`  -d '<JSON>'`,
-	].join('\n');
+	const logEndpoint = `http://localhost:4000/api/agent-sessions/log`;
 
 	return [
 		'',
@@ -103,27 +99,54 @@ function buildReportingPrompt(sessionId: string): string {
 		'',
 		"Tu DOIS reporter ton activité en continu via l'API ci-dessous. Chaque log est une synthèse concise (1-2 phrases) de ce que tu viens de faire.",
 		'',
-		`Endpoint : POST ${endpoint}`,
+		`Endpoint : POST ${logEndpoint}`,
 		`Payload JSON : { "sessionId": "${sessionId}", "content": "<MESSAGE>", "logType": "<TYPE>" }`,
+		'',
+		'### Titre de session (OBLIGATOIRE en premier) :',
+		'Dès que tu comprends la tâche, envoie IMMÉDIATEMENT un log de type `title` avec un résumé court (3-5 mots) de la tâche :',
+		'```bash',
+		`curl -s -X POST ${logEndpoint} \\`,
+		'  -H "Content-Type: application/json" \\',
+		`  -d '{"sessionId": "${sessionId}", "content": "<TITRE COURT 3-5 mots>", "logType": "title"}'`,
+		'```',
+		'Exemples de bons titres : "Refactor auth middleware", "Fix sidebar scroll bug", "Add dark mode toggle"',
 		'',
 		'### Types de logs et quand les utiliser :',
 		"- **info** : décisions prises, début d'analyse, changement d'approche",
 		'- **file_change** : fichiers créés/modifiés/supprimés (lister les fichiers)',
 		'- **commit** : quand tu fais un commit (inclure le message de commit)',
 		'- **error** : erreurs rencontrées, blocages',
-		'- **summary** : uniquement à la FIN de ta tâche, résumé global (3-5 bullet points)',
+		'- **summary** : uniquement à la FIN de ta tâche, rapport structuré (voir format ci-dessous)',
+		'',
+		'### Format du summary final :',
+		'Le summary DOIT suivre ce format structuré en markdown :',
+		'',
+		'```',
+		'## Ce qui a été fait',
+		'- Point 1',
+		'- Point 2',
+		'',
+		'## Fichiers modifiés',
+		'- `path/to/file.ts` : description courte du changement',
+		'',
+		'## Décisions techniques',
+		'- Décision prise et pourquoi (si applicable)',
+		'',
+		'## Reste à faire',
+		'- Ce qui manque ou nécessite une review (si applicable, sinon "Rien")',
+		'```',
 		'',
 		'### Règles :',
 		'1. Envoie un log **après chaque action significative** (pas avant, après)',
 		'2. Pour le summary final, ajoute `"branch": "<BRANCHE>"` et `"status": "completed"` (ou `"error"`)',
 		'3. Sois concis : pas de blabla, juste les faits',
+		'4. Le summary DOIT être exhaustif — liste TOUS les fichiers modifiés et TOUTES les décisions prises',
 		'',
-		'### Exemple :',
+		'### Exemple de log :',
 		'```bash',
-		curlBase.replace(
-			'<JSON>',
-			`'{"sessionId": "${sessionId}", "content": "Modifié src/components/Header.tsx : ajout du bouton de navigation", "logType": "file_change"}'`,
-		),
+		`curl -s -X POST ${logEndpoint} \\`,
+		'  -H "Content-Type: application/json" \\',
+		`  -d '{"sessionId": "${sessionId}", "content": "Modifié src/components/Header.tsx : ajout du bouton de navigation", "logType": "file_change"}'`,
 		'```',
 	].join('\n');
 }
@@ -141,9 +164,9 @@ export default function AgentTerminalModal({
 	const [termNode, setTermNode] = useState<HTMLDivElement | null>(null);
 	const [resumed, setResumed] = useState(false);
 	const [activeTab, setActiveTab] = useState(0);
+	const [termTabOrder, setTermTabOrder] = useState<string[] | null>(null);
 	const [isStreaming, setIsStreaming] = useState(false);
 	const isStreamingRef = useRef(false);
-	const [reopened, setReopened] = useState(false);
 	const terminalRef = useRef<Terminal | null>(null);
 	const wsRef = useRef<WebSocket | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
@@ -172,7 +195,7 @@ export default function AgentTerminalModal({
 	}
 	const sessionId = existingSessionId ?? generatedIdRef.current ?? '';
 
-	const { session, logs, ensureSession, reopenSession } = useAgentSession(
+	const { session, logs, ensureSession } = useAgentSession(
 		open ? sessionId : undefined,
 	);
 	const overlay = useOverlayTerminal();
@@ -221,13 +244,12 @@ export default function AgentTerminalModal({
 		if (!open) {
 			setResolvedPath(null);
 			setActiveTab(0);
-			setReopened(false);
 			shellInitialized.current = false;
 		}
 	}, [open]);
 
 	// Ensure DB session exists — only for NEW sessions (not viewing existing ones from sidebar)
-	const isNewSession = !existingSessionId || (isPastSession && reopened);
+	const isNewSession = !existingSessionId;
 	useEffect(() => {
 		if (!open || !projectPath || !sessionId || !isNewSession) return;
 		const projectName = projectPath.split('/').filter(Boolean).pop() ?? 'unknown';
@@ -244,23 +266,89 @@ export default function AgentTerminalModal({
 		});
 	}, [open, sessionId, projectPath, agentFile, issueContext, ensureSession, isNewSession]);
 
+	// Build draggable terminal tabs
+	const hasIssue = !!(issueContext || session?.issue_number);
+	const termTabs = useMemo(() => {
+		const items: TabItem[] = [];
+		// Hide Claude tab for past (closed) sessions — no terminal to show
+		if (!isPastSession) {
+			items.push({
+				key: 'claude',
+				label: (
+					<>
+						<SmartToyRoundedIcon sx={{ fontSize: 16 }} /> Claude
+					</>
+				),
+			});
+		}
+		items.push({
+			key: 'activity',
+			label: (
+				<>
+					<TimelineRoundedIcon sx={{ fontSize: 16 }} /> Activity
+				</>
+			),
+		});
+		items.push({
+			key: 'diff',
+			label: (
+				<>
+					<DifferenceRoundedIcon sx={{ fontSize: 16 }} /> Fichiers
+				</>
+			),
+		});
+		if (!isPastSession) {
+			items.push({
+				key: 'terminal',
+				label: (
+					<>
+						<TerminalRoundedIcon sx={{ fontSize: 16 }} /> Terminal
+					</>
+				),
+			});
+		}
+		if (hasIssue) {
+			items.push({
+				key: 'issue',
+				label: (
+					<>
+						<BugReportRoundedIcon sx={{ fontSize: 16 }} /> Issue
+					</>
+				),
+			});
+		}
+		return items;
+	}, [hasIssue, isPastSession]);
+
+	const orderedTermTabs = useMemo(() => {
+		if (!termTabOrder) return termTabs;
+		const map = new Map(termTabs.map((t) => [t.key, t]));
+		const ordered = termTabOrder.map((k) => map.get(k)).filter(Boolean) as TabItem[];
+		for (const t of termTabs) {
+			if (!termTabOrder.includes(t.key)) ordered.push(t);
+		}
+		return ordered;
+	}, [termTabs, termTabOrder]);
+
+	const activeTabKey = orderedTermTabs[activeTab]?.key ?? 'claude';
+
 	// Refit + refocus terminal when switching tabs
 	useEffect(() => {
-		if (activeTab === 0) {
+		if (activeTabKey === 'claude') {
 			requestAnimationFrame(() => {
 				fitAddonRef.current?.fit();
 				terminalRef.current?.focus();
 			});
-		} else if (activeTab === 2) {
+		} else if (activeTabKey === 'terminal') {
 			requestAnimationFrame(() => {
 				shellFitAddonRef.current?.fit();
 				shellTerminalRef.current?.focus();
 			});
 		}
-	}, [activeTab]);
+	}, [activeTabKey]);
 
-	// Don't connect terminal for past sessions until reopened
-	const terminalEnabled = !isPastSession || reopened;
+	// Don't connect terminal for past sessions
+	const terminalEnabled = !isPastSession;
 
 	useEffect(() => {
 		if (!open || !projectPath || !termNode || !terminalEnabled) return;
@@ -271,6 +359,7 @@ export default function AgentTerminalModal({
 			cursorBlink: true,
 			fontSize: 14,
 			fontFamily: '"JetBrains Mono", "Fira Code", "Cascadia Code", monospace',
+			scrollback: 5000,
 			theme: {
 				background: '#1A1A1A',
 				foreground: '#E0E0E0',
@@ -318,7 +407,7 @@ export default function AgentTerminalModal({
 		const ws = new WebSocket('ws://localhost:4001');
 		wsRef.current = ws;
 
-		const isReopen = isPastSession && reopened;
+		const isReopen = false;
 
 		ws.onopen = () => {
 			ws.send(
@@ -343,7 +432,7 @@ export default function AgentTerminalModal({
 							const basePrompt = agentFile ? agentFile.content : '';
 							const fullPrompt = basePrompt + reporting;
 							const escaped = fullPrompt.replace(/'/g, "'\\''");
-							const claudeCmd = `claude --system-prompt '${escaped}'\n`;
+							const claudeCmd = `unset CLAUDECODE CLAUDE_CODE_ENTRYPOINT && /opt/homebrew/bin/claude --system-prompt '${escaped}'\n`;
 
 							if (issueContext) {
 								// Create branch + checkout, then start Claude
@@ -398,6 +487,23 @@ export default function AgentTerminalModal({
 			}
 		});
 
+		// Intercept wheel events and forward as SGR mouse sequences to tmux
+		// tmux uses alternate screen buffer which disables xterm.js scrollback,
+		// so we manually send wheel escape sequences that tmux (with mouse on) interprets as scroll
+		const handleWheel = (e: WheelEvent) => {
+			e.preventDefault();
+			e.stopPropagation();
+			if (ws.readyState !== WebSocket.OPEN) return;
+			const lines = Math.max(1, Math.round(Math.abs(e.deltaY) / 40));
+			// SGR mouse: button 64 = wheel up, 65 = wheel down
+			const button = e.deltaY < 0 ? 64 : 65;
+			const seq = `\x1b[<${button};1;1M`;
+			for (let i = 0; i < lines; i++) {
+				ws.send(JSON.stringify({ type: 'input', data: seq }));
+			}
+		};
+		termNode.addEventListener('wheel', handleWheel, { passive: false });
+
 		let resizeTimer: ReturnType<typeof setTimeout> | null = null;
 		const observer = new ResizeObserver(() => {
 			if (resizeTimer) clearTimeout(resizeTimer);
@@ -417,6 +523,7 @@ export default function AgentTerminalModal({
 		observer.observe(termNode);
 
 		return () => {
+			termNode.removeEventListener('wheel', handleWheel);
 			if (resizeTimer) clearTimeout(resizeTimer);
 			observer.disconnect();
 			ws.close();
@@ -437,7 +544,6 @@ export default function AgentTerminalModal({
 		sessionId,
 		terminalEnabled,
 		isPastSession,
-		reopened,
 	]);
 
 	// Plain shell terminal (tab 2) — lazy init when tab is first selected
@@ -450,6 +556,7 @@ export default function AgentTerminalModal({
 			cursorBlink: true,
 			fontSize: 14,
 			fontFamily: '"JetBrains Mono", "Fira Code", "Cascadia Code", monospace',
+			scrollback: 5000,
 			theme: {
 				background: '#1A1A1A',
 				foreground: '#E0E0E0',
@@ -531,6 +638,20 @@ export default function AgentTerminalModal({
 			}
 		});
 
+		// Wheel → SGR mouse sequences for tmux scroll (same as Claude terminal)
+		const handleWheel = (e: WheelEvent) => {
+			e.preventDefault();
+			e.stopPropagation();
+			if (ws.readyState !== WebSocket.OPEN) return;
+			const lines = Math.max(1, Math.round(Math.abs(e.deltaY) / 40));
+			const button = e.deltaY < 0 ? 64 : 65;
+			const seq = `\x1b[<${button};1;1M`;
+			for (let i = 0; i < lines; i++) {
+				ws.send(JSON.stringify({ type: 'input', data: seq }));
+			}
+		};
+		shellTermNode.addEventListener('wheel', handleWheel, { passive: false });
+
 		let resizeTimer: ReturnType<typeof setTimeout> | null = null;
 		const observer = new ResizeObserver(() => {
 			if (resizeTimer) clearTimeout(resizeTimer);
@@ -550,6 +671,7 @@ export default function AgentTerminalModal({
 		observer.observe(shellTermNode);
 
 		return () => {
+			shellTermNode.removeEventListener('wheel', handleWheel);
 			if (resizeTimer) clearTimeout(resizeTimer);
 			observer.disconnect();
 			ws.close();
@@ -579,8 +701,8 @@ export default function AgentTerminalModal({
 		: issueContext
 			? `Agent — #${issueContext.issueNumber}`
 			: existingSessionId
-				? 'Active Session'
-				: 'New Session';
+				? 'Session active'
+				: 'Nouvelle session';
 
 	const subtitleText = issueContext?.issueTitle;
 
@@ -595,9 +717,9 @@ export default function AgentTerminalModal({
 			disableRestoreFocus
 			PaperProps={{
 				sx: {
-					bgcolor: '#1E1E1E',
-					maxWidth: 1000,
-					height: '80vh',
+					bgcolor: 'background.paper',
+					maxWidth: 1400,
+					height: '90vh',
 					borderRadius: 1,
 					display: 'flex',
 					flexDirection: 'column',
@@ -610,7 +732,7 @@ export default function AgentTerminalModal({
 					display: 'flex',
 					alignItems: 'center',
 					justifyContent: 'space-between',
-					pb: 5,
+					pb: 1,
 					flexShrink: 0,
 				}}
 			>
@@ -643,7 +765,7 @@ export default function AgentTerminalModal({
 									}}
 								/>
 							}
-							label="Resumed"
+							label="Reprise"
 							size="small"
 							sx={{
 								height: 22,
@@ -681,64 +803,27 @@ export default function AgentTerminalModal({
 			</DialogTitle>
 
 			{/* Tabs */}
-			<Tabs
-				value={activeTab}
-				onChange={(_, v) => setActiveTab(v)}
-				sx={{
-					minHeight: 36,
-					px: 2,
-					borderBottom: 1,
-					borderColor: 'divider',
-					flexShrink: 0,
-					'& .MuiTab-root': {
-						minHeight: 36,
-						minWidth: 0,
-						px: 2,
-						py: 0.5,
-						fontSize: '0.8rem',
-						fontWeight: 600,
-						textTransform: 'none',
-						color: 'text.secondary',
-						gap: 0.75,
-						'&.Mui-selected': { color: '#7C5CFF' },
-					},
-					'& .MuiTabs-indicator': { bgcolor: '#7C5CFF', height: 2 },
-				}}
-			>
-				<Tab
-					icon={<SmartToyRoundedIcon sx={{ fontSize: 16 }} />}
-					iconPosition="start"
-					label="Claude"
-				/>
-				<Tab
-					icon={<TimelineRoundedIcon sx={{ fontSize: 16 }} />}
-					iconPosition="start"
-					label="Activity"
-				/>
-				<Tab
-					icon={<TerminalRoundedIcon sx={{ fontSize: 16 }} />}
-					iconPosition="start"
-					label="Terminal"
-				/>
-				{(issueContext || session?.issue_number) && (
-					<Tab
-						icon={<BugReportRoundedIcon sx={{ fontSize: 16 }} />}
-						iconPosition="start"
-						label="Issue"
-					/>
-				)}
-			</Tabs>
+			<DraggableTabs
+				tabs={orderedTermTabs}
+				activeTab={activeTab}
+				onTabChange={setActiveTab}
+				onReorder={setTermTabOrder}
+				mb={0}
+				sx={{ px: 2, py: 1, borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}
+			/>
 
 			{/* Terminal panel */}
 			<Box
+				onWheel={(e) => e.stopPropagation()}
 				sx={{
 					flex: 1,
 					overflow: 'hidden',
-					display: activeTab === 0 ? 'flex' : 'none',
+					display: activeTabKey === 'claude' ? 'flex' : 'none',
 					alignItems: 'stretch',
-					bgcolor: '#1A1A1A',
+					bgcolor: '#1A1A1A', // Terminal always dark
 					'& .xterm': { height: '100%', p: 1 },
 					'& .xterm-viewport': {
+						overflowY: 'scroll !important',
 						'&::-webkit-scrollbar': { width: 6 },
 						'&::-webkit-scrollbar-thumb': { bgcolor: '#3A3A3A', borderRadius: 3 },
 					},
@@ -758,7 +843,7 @@ export default function AgentTerminalModal({
 					>
 						<CircularProgress size={28} sx={{ color: '#7C5CFF' }} />
 						<Typography variant="body2" color="text.secondary">
-							Select repository directory...
+							Sélection du répertoire...
 						</Typography>
 					</Box>
 				)}
@@ -777,8 +862,8 @@ export default function AgentTerminalModal({
 					</Box>
 				)}
 
-				{/* Reopen state for past sessions */}
-				{isPastSession && !reopened && projectPath && (
+				{/* Past session — terminal disabled */}
+				{isPastSession && projectPath && (
 					<Box
 						sx={{
 							flex: 1,
@@ -793,22 +878,6 @@ export default function AgentTerminalModal({
 						<Typography variant="body2" sx={{ color: 'text.secondary' }}>
 							Session terminée
 						</Typography>
-						<Button
-							variant="contained"
-							startIcon={<ReplayRoundedIcon />}
-							onClick={() => {
-								setReopened(true);
-								reopenSession();
-							}}
-							sx={{
-								bgcolor: '#7C5CFF',
-								textTransform: 'none',
-								fontWeight: 600,
-								'&:hover': { bgcolor: alpha('#7C5CFF', 0.85) },
-							}}
-						>
-							Reopen session
-						</Button>
 					</Box>
 				)}
 
@@ -819,22 +888,34 @@ export default function AgentTerminalModal({
 			</Box>
 
 			{/* Activity panel */}
-			{activeTab === 1 && (
+			{activeTabKey === 'activity' && (
 				<Box sx={{ flex: 1, overflow: 'hidden' }}>
 					<AgentActivityTab session={session} logs={logs} isStreaming={isStreaming} />
 				</Box>
 			)}
 
+			{/* Diff panel */}
+			{activeTabKey === 'diff' && (
+				<Box sx={{ flex: 1, overflow: 'hidden' }}>
+					<AgentDiffTab
+						projectPath={projectPath ?? null}
+						branch={session?.branch ?? null}
+					/>
+				</Box>
+			)}
+
 			{/* Plain shell terminal panel */}
 			<Box
+				onWheel={(e) => e.stopPropagation()}
 				sx={{
 					flex: 1,
 					overflow: 'hidden',
-					display: activeTab === 2 ? 'flex' : 'none',
+					display: activeTabKey === 'terminal' ? 'flex' : 'none',
 					alignItems: 'stretch',
-					bgcolor: '#1A1A1A',
+					bgcolor: '#1A1A1A', // Terminal always dark
 					'& .xterm': { height: '100%', p: 1 },
 					'& .xterm-viewport': {
+						overflowY: 'scroll !important',
 						'&::-webkit-scrollbar': { width: 6 },
 						'&::-webkit-scrollbar-thumb': { bgcolor: '#3A3A3A', borderRadius: 3 },
 					},
@@ -844,7 +925,7 @@ export default function AgentTerminalModal({
 			</Box>
 
 			{/* Issue panel */}
-			{activeTab === 3 && (issueContext || session?.issue_number) && (
+			{activeTabKey === 'issue' && (issueContext || session?.issue_number) && (
 				<Box sx={{ flex: 1, overflow: 'hidden' }}>
 					<AgentIssueTab
 						owner={issueContext?.owner ?? session!.issue_owner!}

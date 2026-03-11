@@ -207,7 +207,7 @@ export default function OverlayTerminal() {
 				width: OVERLAY_W,
 				height: OVERLAY_H,
 				zIndex: 1400,
-				borderRadius: 2,
+				borderRadius: 1,
 				overflow: 'hidden',
 				border: 1,
 				borderColor: alpha('#7C5CFF', 0.3),
@@ -274,7 +274,7 @@ export default function OverlayTerminal() {
 					'& .xterm': { height: '100%', p: 0.5 },
 					'& .xterm-viewport': {
 						'&::-webkit-scrollbar': { width: 4 },
-						'&::-webkit-scrollbar-thumb': { bgcolor: '#3A3A3A', borderRadius: 2 },
+						'&::-webkit-scrollbar-thumb': { bgcolor: '#3A3A3A', borderRadius: 1 },
 					},
 				}}
 			/>

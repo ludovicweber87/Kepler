@@ -104,9 +104,9 @@ export default function BranchDetail({ branch, localPath, repoFullName }: Branch
 									sx={{
 										p: 1.5,
 										borderRadius: 1,
-										bgcolor: alpha('#fff', 0.02),
+										bgcolor: 'background.paper',
 										border: 1,
-										borderColor: alpha('#fff', 0.06),
+										borderColor: 'divider',
 									}}
 								>
 									<Box
@@ -216,7 +216,7 @@ export default function BranchDetail({ branch, localPath, repoFullName }: Branch
 						sx={{
 							borderRadius: 1,
 							border: 1,
-							borderColor: alpha('#fff', 0.06),
+							borderColor: 'divider',
 							overflow: 'hidden',
 						}}
 					>
@@ -230,9 +230,9 @@ export default function BranchDetail({ branch, localPath, repoFullName }: Branch
 									px: 2,
 									py: 1.25,
 									borderBottom: i < commits.length - 1 ? 1 : 0,
-									borderColor: alpha('#fff', 0.04),
+									borderColor: 'divider',
 									transition: 'background-color 0.1s',
-									'&:hover': { bgcolor: alpha('#fff', 0.02) },
+									'&:hover': { bgcolor: 'background.paper' },
 								}}
 							>
 								{/* Commit dot */}

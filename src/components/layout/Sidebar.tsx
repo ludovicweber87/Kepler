@@ -18,32 +18,25 @@ import AutoFixHighRoundedIcon from '@mui/icons-material/AutoFixHighRounded';
 import ChecklistRoundedIcon from '@mui/icons-material/ChecklistRounded';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
-import NotificationsRoundedIcon from '@mui/icons-material/NotificationsRounded';
 import Image from 'next/image';
 import { usePendingTodoCount } from '@/hooks/usePendingTodoCount';
-import { useNotifications } from '@/hooks/useNotifications';
 
 export const SIDEBAR_WIDTH = 220;
 
 export default function Sidebar() {
 	const pathname = usePathname();
 	const pendingCount = usePendingTodoCount();
-	const { unreadCount } = useNotifications();
-
 	const mainItems = [
-		{ label: 'Dashboard', href: '/dashboard', icon: <DashboardRoundedIcon /> },
+		{ label: 'Tableau de bord', href: '/dashboard', icon: <DashboardRoundedIcon /> },
 		{ label: 'Issues', href: '/issues', icon: <BugReportRoundedIcon /> },
 		{ label: 'PRs', href: '/prs', icon: <MergeTypeRoundedIcon /> },
 		{ label: 'Workspace', href: '/workspace', icon: <AccountTreeRoundedIcon /> },
 		{ label: 'Agents', href: '/agents', icon: <SmartToyRoundedIcon /> },
 		{ label: 'Skills', href: '/skills', icon: <AutoFixHighRoundedIcon /> },
-		{ label: 'Todos', href: '/todos', icon: <ChecklistRoundedIcon />, badge: pendingCount },
+		{ label: 'Tâches', href: '/todos', icon: <ChecklistRoundedIcon />, badge: pendingCount },
 	];
 
-	const bottomItems = [
-		{ label: 'Notifications', href: '/notifications', icon: <NotificationsRoundedIcon />, badge: unreadCount },
-		{ label: 'Settings', href: '/settings', icon: <SettingsRoundedIcon /> },
-	];
+	const bottomItems = [{ label: 'Paramètres', href: '/settings', icon: <SettingsRoundedIcon /> }];
 
 	return (
 		<Drawer

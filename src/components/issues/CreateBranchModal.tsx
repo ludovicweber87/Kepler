@@ -95,7 +95,7 @@ export default function CreateBranchModal({ open, onClose, issue }: CreateBranch
 				fullWidth
 				PaperProps={{ sx: { borderRadius: 1 } }}
 			>
-				<DialogTitle sx={{ fontWeight: 600 }}>Create Branch</DialogTitle>
+				<DialogTitle sx={{ fontWeight: 600 }}>Créer une branche</DialogTitle>
 				<DialogContent>
 					<Box sx={{ mb: 2.5 }}>
 						<Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
@@ -118,7 +118,7 @@ export default function CreateBranchModal({ open, onClose, issue }: CreateBranch
 					)}
 
 					<TextField
-						label="Branch name"
+						label="Nom de la branche"
 						fullWidth
 						size="small"
 						value={branchName}
@@ -128,7 +128,7 @@ export default function CreateBranchModal({ open, onClose, issue }: CreateBranch
 					/>
 
 					<Typography variant="caption" color="text.secondary">
-						Will run: git checkout main → git pull --rebase → git checkout -b{' '}
+						Exécutera : git checkout main → git pull --rebase → git checkout -b{' '}
 						{branchName}
 					</Typography>
 
@@ -141,7 +141,7 @@ export default function CreateBranchModal({ open, onClose, issue }: CreateBranch
 
 				<DialogActions sx={{ px: 3, pb: 2.5 }}>
 					<Button onClick={handleClose} disabled={status === 'loading'}>
-						Cancel
+						Annuler
 					</Button>
 					<Button
 						variant="contained"
@@ -154,10 +154,10 @@ export default function CreateBranchModal({ open, onClose, issue }: CreateBranch
 						}
 					>
 						{status === 'loading'
-							? 'Creating...'
+							? 'Création...'
 							: status === 'success'
-								? 'Created'
-								: 'Create branch'}
+								? 'Créée'
+								: 'Créer la branche'}
 					</Button>
 				</DialogActions>
 			</Dialog>
@@ -169,7 +169,7 @@ export default function CreateBranchModal({ open, onClose, issue }: CreateBranch
 				anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
 			>
 				<Alert onClose={() => setToast(false)} severity="success" variant="filled">
-					Branch {branchName} created
+					Branche {branchName} créée
 				</Alert>
 			</Snackbar>
 		</>
