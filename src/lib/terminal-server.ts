@@ -50,10 +50,6 @@ const sessionOutputTimestamps = new Map<string, number>();
 // Track pane content hash for sessions not attached via WS
 const sessionPaneHashes = new Map<string, string>();
 
-export function getLastOutputTimestamp(sessionId: string): number | undefined {
-	return sessionOutputTimestamps.get(sessionId);
-}
-
 function simpleHash(str: string): string {
 	let h = 0;
 	for (let i = 0; i < str.length; i++) {
@@ -185,21 +181,6 @@ function spawnTmuxAttach(sessionId: string, cols: number, rows: number): IPty {
 			COLORTERM: 'truecolor',
 		} as Record<string, string>,
 	});
-}
-
-/**
- * Capture the last N lines of a tmux pane buffer.
- */
-export function capturePaneBuffer(sessionId: string): string | null {
-	try {
-		return execSync(`${TMUX} capture-pane -t ${sessionId} -p -S -200`, {
-			encoding: 'utf-8',
-			stdio: ['pipe', 'pipe', 'ignore'],
-			timeout: 3000,
-		});
-	} catch {
-		return null;
-	}
 }
 
 
