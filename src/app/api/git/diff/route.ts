@@ -31,8 +31,23 @@ export async function GET(req: NextRequest) {
 		let stats = '';
 
 			if (branch && branch !== baseBranch) {
-			// Diff base branch vs current working tree (commits + staged + unstaged)
+			// Compare branch commits against base branch
+			// Using explicit branch range so it works even when cwd is not the worktree
+			// (e.g. past sessions whose worktree was deleted)
 			try {
+				diff = execSync(`git diff ${baseBranch}..${branch}`, {
+					cwd,
+					encoding: 'utf-8',
+					timeout: 15000,
+					maxBuffer: 5 * 1024 * 1024,
+				});
+				stats = execSync(`git diff --stat ${baseBranch}..${branch}`, {
+					cwd,
+					encoding: 'utf-8',
+					timeout: 5000,
+				});
+			} catch {
+				// Fallback: diff against working tree (worktree still active)
 				diff = execSync(`git diff ${baseBranch}`, {
 					cwd,
 					encoding: 'utf-8',
@@ -40,19 +55,6 @@ export async function GET(req: NextRequest) {
 					maxBuffer: 5 * 1024 * 1024,
 				});
 				stats = execSync(`git diff --stat ${baseBranch}`, {
-					cwd,
-					encoding: 'utf-8',
-					timeout: 5000,
-				});
-			} catch {
-				// Fallback: committed changes only
-				diff = execSync(`git diff ${baseBranch}..HEAD`, {
-					cwd,
-					encoding: 'utf-8',
-					timeout: 15000,
-					maxBuffer: 5 * 1024 * 1024,
-				});
-				stats = execSync(`git diff --stat ${baseBranch}..HEAD`, {
 					cwd,
 					encoding: 'utf-8',
 					timeout: 5000,
