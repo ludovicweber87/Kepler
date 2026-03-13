@@ -161,6 +161,28 @@ function listTmuxSessions(): string[] {
 	}
 }
 
+/**
+ * Find an existing devora tmux session running in the given cwd.
+ * Returns the session name if found, null otherwise.
+ */
+function findSessionByCwd(cwd: string): string | null {
+	try {
+		const out = execSync(
+			`${TMUX} list-sessions -F "#{session_name}|#{pane_current_path}"`,
+			{ encoding: 'utf-8', stdio: ['pipe', 'pipe', 'ignore'] },
+		);
+		for (const line of out.trim().split('\n')) {
+			const [name, path] = line.split('|');
+			if (name.startsWith('devora-') && !name.endsWith('-shell') && path === cwd) {
+				return name;
+			}
+		}
+	} catch {
+		// ignore
+	}
+	return null;
+}
+
 function createTmuxSession(sessionId: string, cwd: string): void {
 	execSync(`${TMUX} new-session -d -s ${sessionId} -x 120 -y 40 -c ${JSON.stringify(cwd)}`, {
 		stdio: 'ignore',
@@ -210,21 +232,34 @@ export function startTerminalServer(port: number) {
 			}
 
 			if (msg.type === 'init') {
-				const existed = tmuxSessionExists(msg.sessionId);
+				let attachId = msg.sessionId;
+				let existed = tmuxSessionExists(msg.sessionId);
 
+				// Safety net: if no tmux session with this ID, check if one already
+				// exists for the same cwd (avoids launching a duplicate Claude)
 				if (!existed) {
-					createTmuxSession(msg.sessionId, msg.cwd);
+					const existing = findSessionByCwd(msg.cwd);
+					if (existing) {
+						attachId = existing;
+						existed = true;
+					} else {
+						createTmuxSession(msg.sessionId, msg.cwd);
+					}
 				}
 
 				// Spawn PTY attached to the tmux session
-				pty = spawnTmuxAttach(msg.sessionId, msg.cols, msg.rows);
+				pty = spawnTmuxAttach(attachId, msg.cols, msg.rows);
 
-				// Tell the client whether this is a resumed session
-				ws.send(JSON.stringify({ type: 'init-ack', resumed: existed }));
+				// Tell the client whether this is a resumed session (+ actual session ID if different)
+				ws.send(JSON.stringify({
+					type: 'init-ack',
+					resumed: existed,
+					...(attachId !== msg.sessionId ? { actualSessionId: attachId } : {}),
+				}));
 
 				// Forward PTY output to WebSocket + track activity
 				pty.onData((data: string) => {
-					sessionOutputTimestamps.set(msg.sessionId, Date.now());
+					sessionOutputTimestamps.set(attachId, Date.now());
 					if (ws.readyState === WebSocket.OPEN) {
 						ws.send(data);
 					}

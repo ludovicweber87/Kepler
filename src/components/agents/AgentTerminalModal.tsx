@@ -248,6 +248,7 @@ export default function AgentTerminalModal({
 		if (!open) {
 			setResolvedPath(null);
 			setActiveTab(0);
+			setTermTabOrder(null);
 			setStep('branch');
 			setBranchInput('');
 			setWorktreePath(null);
@@ -398,7 +399,7 @@ export default function AgentTerminalModal({
 		return ordered;
 	}, [termTabs, termTabOrder]);
 
-	const activeTabKey = orderedTermTabs[activeTab]?.key ?? 'claude';
+	const activeTabKey = orderedTermTabs[activeTab]?.key ?? orderedTermTabs[0]?.key ?? 'activity';
 
 	// Refit + refocus terminal when switching tabs
 	useEffect(() => {
@@ -496,6 +497,10 @@ export default function AgentTerminalModal({
 					const msg = JSON.parse(event.data);
 					if (msg.type === 'init-ack') {
 						setResumed(msg.resumed);
+						// If server attached to a different existing session, log it
+						if (msg.actualSessionId) {
+							console.log(`[AgentTerminalModal] Attached to existing session: ${msg.actualSessionId}`);
+						}
 						if (!msg.resumed) {
 							// Worktree is already on the right branch — just launch Claude
 							const reporting = buildReportingPrompt(sessionId);
