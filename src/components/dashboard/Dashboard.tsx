@@ -6,7 +6,6 @@ import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import IconButton from '@mui/material/IconButton';
-import Button from '@mui/material/Button';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
@@ -22,7 +21,6 @@ import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded';
 import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded';
 import StopCircleRoundedIcon from '@mui/icons-material/StopCircleRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
-import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import AssignmentRoundedIcon from '@mui/icons-material/AssignmentRounded';
@@ -692,7 +690,6 @@ export default function Dashboard() {
 	const pendingCount = usePendingTodoCount();
 	const [tabIndex, setTabIndex] = useState(0);
 	const [selected, setSelected] = useState<SelectedItem | null>(null);
-	const [newAgentOpen, setNewAgentOpen] = useState(false);
 
 	// Exclude active sessions from past list
 	const activeSessionIds = useMemo(() => new Set(sessions.map((s) => s.sessionId)), [sessions]);
@@ -721,7 +718,6 @@ export default function Dashboard() {
 		return summaries.filter((s) => s.project_path.startsWith(activeView.path));
 	}, [summaries, activeView]);
 
-	const activeViewPath = views[tabIndex]?.path ?? views[0]?.path ?? null;
 
 	const handleKillSession = useCallback(
 		async (sessionId: string) => {
@@ -923,30 +919,7 @@ export default function Dashboard() {
 					<Box
 						sx={{ flex: '0 0 380px', display: 'flex', flexDirection: 'column', gap: 2 }}
 					>
-						{/* Start Agent */}
-						<Button
-							fullWidth
-							variant="outlined"
-							startIcon={<AddRoundedIcon />}
-							onClick={() => setNewAgentOpen(true)}
-							sx={{
-								textTransform: 'none',
-								fontWeight: 600,
-								fontSize: '0.85rem',
-								py: 1.25,
-								borderRadius: 1,
-								color: '#7C5CFF',
-								borderColor: alpha('#7C5CFF', 0.3),
-								'&:hover': {
-									borderColor: '#7C5CFF',
-									bgcolor: alpha('#7C5CFF', 0.08),
-								},
-							}}
-						>
-							{t('launchAgent')}
-						</Button>
-
-						{/* Active sessions */}
+							{/* Active sessions */}
 						{filteredActiveSessions.length > 0 && (
 							<Box>
 								<Box
@@ -1199,11 +1172,6 @@ export default function Dashboard() {
 				open={modalOpen}
 				onClose={() => setSelected(null)}
 				{...modalProps}
-			/>
-			<AgentTerminalModal
-				open={newAgentOpen}
-				onClose={() => setNewAgentOpen(false)}
-				projectPath={activeViewPath}
 			/>
 		</>
 	);
