@@ -4,225 +4,20 @@ import { useState, useCallback, useRef, useMemo } from 'react';
 import Box from '@mui/material/Box';
 import Drawer from '@mui/material/Drawer';
 import Typography from '@mui/material/Typography';
-import Chip from '@mui/material/Chip';
-import IconButton from '@mui/material/IconButton';
 import { alpha } from '@mui/material/styles';
-import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
-import FiberManualRecordRoundedIcon from '@mui/icons-material/FiberManualRecordRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
-import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
-import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded';
-import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded';
-import StopCircleRoundedIcon from '@mui/icons-material/StopCircleRounded';
 import { useAgentViews } from '@/hooks/useAgentViews';
 import { useRightSidebar } from '@/hooks/useRightSidebar';
 import { useWorktrees, type WorktreeInfo } from '@/hooks/useWorktrees';
-import { useSessionManager, type ActiveSession, type AgentSession } from '@/hooks/useSessionManager';
+import { useSessionManager } from '@/hooks/useSessionManager';
 import DraggableTabs from '@/components/shared/DraggableTabs';
+import SessionCard from '@/components/shared/SessionCard';
 import AgentTerminalModal from '@/components/agents/AgentTerminalModal';
 
 export const RIGHT_SIDEBAR_WIDTH = 400;
 const MIN_WIDTH = 400;
 const MAX_WIDTH = 400;
 
-/* ── Worktree card for sidebar ── */
-function SidebarWorktreeCard({
-	worktree,
-	onClick,
-	onStop,
-	activeSession,
-	pastSession,
-}: {
-	worktree: WorktreeInfo;
-	onClick: () => void;
-	onStop?: () => void;
-	activeSession: ActiveSession | null;
-	pastSession: AgentSession | null;
-}) {
-	const isActive = !!activeSession;
-	const isFinished = !isActive && !!pastSession;
-	const isError = pastSession?.status === 'error';
-	const isStreaming = activeSession?.isStreaming ?? false;
-
-	const borderColor = isActive
-		? alpha('#22C55E', isStreaming ? 0.25 : 0.1)
-		: isFinished
-			? alpha(isError ? '#EF4444' : '#9E9E9E', 0.15)
-			: 'divider';
-
-	const bgColor = isActive
-		? alpha('#22C55E', isStreaming ? 0.08 : 0.04)
-		: isFinished
-			? alpha(isError ? '#EF4444' : '#9E9E9E', 0.04)
-			: 'background.paper';
-
-	return (
-		<Box
-			onClick={onClick}
-			sx={{
-				p: 1.5,
-				borderRadius: 1,
-				bgcolor: bgColor,
-				border: 1,
-				borderColor,
-				borderLeft: isActive && isStreaming ? 3 : 1,
-				borderLeftColor: isActive && isStreaming ? '#22C55E' : borderColor,
-				cursor: 'pointer',
-				transition: 'all 0.15s',
-				opacity: isFinished ? 0.6 : 1,
-				'&:hover': {
-					bgcolor: isActive
-						? alpha('#22C55E', 0.12)
-						: isFinished
-							? alpha(isError ? '#EF4444' : '#9E9E9E', 0.08)
-							: 'action.hover',
-					borderColor: isActive
-						? alpha('#22C55E', 0.3)
-						: isFinished
-							? alpha(isError ? '#EF4444' : '#9E9E9E', 0.25)
-							: 'action.disabled',
-					transform: 'translateX(-2px)',
-					opacity: isFinished ? 0.8 : 1,
-				},
-			}}
-		>
-			<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-				{/* Status indicator */}
-				{isActive ? (
-					<FiberManualRecordRoundedIcon
-						sx={{ fontSize: 8, color: isStreaming ? '#4CAF50' : '#9E9E9E' }}
-					/>
-				) : isFinished ? (
-					isError ? (
-						<ErrorOutlineRoundedIcon sx={{ fontSize: 14, color: '#EF4444' }} />
-					) : (
-						<CheckCircleOutlineRoundedIcon sx={{ fontSize: 14, color: '#9E9E9E' }} />
-					)
-				) : (
-					<AccountTreeRoundedIcon sx={{ fontSize: 14, color: '#7C5CFF' }} />
-				)}
-
-				{/* Branch name */}
-				<Typography
-					variant="body2"
-					sx={{
-						fontWeight: 600,
-						fontSize: '0.75rem',
-						flex: 1,
-						overflow: 'hidden',
-						textOverflow: 'ellipsis',
-						whiteSpace: 'nowrap',
-						color: isFinished ? 'text.secondary' : 'text.primary',
-					}}
-				>
-					{worktree.branch}
-				</Typography>
-
-				{/* Streaming dots */}
-				{isStreaming && (
-					<Box sx={{ display: 'flex', gap: 0.4, alignItems: 'center' }}>
-						{[0, 1, 2].map((i) => (
-							<Box
-								key={i}
-								sx={{
-									width: 4,
-									height: 4,
-									borderRadius: '50%',
-									bgcolor: '#7C5CFF',
-									animation: 'dotPulse 1.4s ease-in-out infinite',
-									animationDelay: `${i * 0.2}s`,
-									'@keyframes dotPulse': {
-										'0%, 80%, 100%': { opacity: 0.3, transform: 'scale(0.8)' },
-										'40%': { opacity: 1, transform: 'scale(1)' },
-									},
-								}}
-							/>
-						))}
-					</Box>
-				)}
-
-				{/* Status chips */}
-				{isActive && (
-					<Chip
-						label="Active"
-						size="small"
-						sx={{
-							height: 18,
-							fontSize: '0.6rem',
-							fontWeight: 600,
-							bgcolor: alpha('#22C55E', 0.12),
-							color: '#22C55E',
-							border: `1px solid ${alpha('#22C55E', 0.2)}`,
-						}}
-					/>
-				)}
-				{isFinished && !isError && (
-					<Chip
-						label="Terminé"
-						size="small"
-						sx={{
-							height: 18,
-							fontSize: '0.6rem',
-							fontWeight: 600,
-							bgcolor: alpha('#9E9E9E', 0.12),
-							color: '#9E9E9E',
-							border: `1px solid ${alpha('#9E9E9E', 0.2)}`,
-						}}
-					/>
-				)}
-				{isFinished && isError && (
-					<Chip
-						label="Erreur"
-						size="small"
-						sx={{
-							height: 18,
-							fontSize: '0.6rem',
-							fontWeight: 600,
-							bgcolor: alpha('#EF4444', 0.12),
-							color: '#EF4444',
-							border: `1px solid ${alpha('#EF4444', 0.2)}`,
-						}}
-					/>
-				)}
-
-				{/* Stop button */}
-				{isActive && onStop && (
-					<IconButton
-						size="small"
-						onClick={(e) => {
-							e.stopPropagation();
-							onStop();
-						}}
-						sx={{
-							p: 0.25,
-							color: '#EF4444',
-							'&:hover': { bgcolor: alpha('#EF4444', 0.1) },
-						}}
-					>
-						<StopCircleRoundedIcon sx={{ fontSize: 16 }} />
-					</IconButton>
-				)}
-			</Box>
-
-			{/* Path */}
-			<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-				<FolderRoundedIcon sx={{ fontSize: 11, color: 'text.disabled' }} />
-				<Typography
-					variant="caption"
-					sx={{
-						color: 'text.disabled',
-						fontSize: '0.6rem',
-						overflow: 'hidden',
-						textOverflow: 'ellipsis',
-						whiteSpace: 'nowrap',
-					}}
-				>
-					{worktree.path.split('/').slice(-2).join('/')}
-				</Typography>
-			</Box>
-		</Box>
-	);
-}
 
 export default function RightSidebar() {
 	const { open, width, setWidth } = useRightSidebar();
@@ -407,14 +202,21 @@ export default function RightSidebar() {
 							{worktrees.map((wt) => {
 								const active = getActiveForPath(wt.path);
 								const past = !active ? getPastForPath(wt.path, wt.branch) : null;
+								const isError = past?.status === 'error';
 								return (
-									<SidebarWorktreeCard
+									<SessionCard
 										key={wt.path}
-										worktree={wt}
-										activeSession={active}
-										pastSession={past}
+										name={wt.branch}
+										subtitle={wt.path.split('/').slice(-2).join('/')}
+										status={
+											active ? 'active'
+												: past ? (isError ? 'error' : 'completed')
+													: 'idle'
+										}
+										isStreaming={active?.isStreaming}
 										onClick={() => handleWorktreeClick(wt)}
 										onStop={active ? () => killSession(active.sessionId) : undefined}
+										compact
 									/>
 								);
 							})}

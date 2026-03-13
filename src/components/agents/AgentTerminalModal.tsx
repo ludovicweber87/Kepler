@@ -168,6 +168,8 @@ export default function AgentTerminalModal({
 	const fitAddonRef = useRef<FitAddon | null>(null);
 	const streamTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const readyRef = useRef(false);
+	const claudeLaunchedRef = useRef(false);
+	const idleKillTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	// Plain shell terminal refs (tab 2)
 	const [shellTermNode, setShellTermNode] = useState<HTMLDivElement | null>(null);
@@ -200,6 +202,15 @@ export default function AgentTerminalModal({
 	const { session, logs, ensureSession } = useAgentSession(open ? sessionId : undefined);
 	const queryClient = useQueryClient();
 	const overlay = useOverlayTerminal();
+
+	// Auto-kill session when Claude exits naturally
+	const killAndMarkDone = useCallback(async (sid: string) => {
+		try {
+			await fetch(`/api/agent-sessions/${encodeURIComponent(sid)}/kill`, { method: 'POST' });
+			queryClient.invalidateQueries({ queryKey: ['sessions', 'active'] });
+			queryClient.invalidateQueries({ queryKey: ['agent-sessions', 'history'] });
+		} catch { /* ignore */ }
+	}, [queryClient]);
 
 	// Effective working path: worktree path when available, else projectPath
 	// For past sessions without worktree_path in DB, derive from projectPath + branch
@@ -512,6 +523,7 @@ export default function AgentTerminalModal({
 						}
 						if (!msg.resumed) {
 							// Worktree is already on the right branch — just launch Claude
+							claudeLaunchedRef.current = true;
 							const reporting = buildReportingPrompt(sessionId);
 							const basePrompt = agentFile ? agentFile.content : '';
 							const fullPrompt = basePrompt + reporting;
@@ -521,6 +533,9 @@ export default function AgentTerminalModal({
 							setTimeout(() => {
 								ws.send(JSON.stringify({ type: 'input', data: claudeCmd }));
 							}, 800);
+						} else {
+							// Resumed existing session — Claude was already running
+							claudeLaunchedRef.current = true;
 						}
 						setTimeout(() => {
 							readyRef.current = true;
@@ -537,10 +552,22 @@ export default function AgentTerminalModal({
 						isStreamingRef.current = true;
 						setIsStreaming(true);
 					}
+					// Cancel any pending idle-kill timer while output is flowing
+					if (idleKillTimerRef.current) {
+						clearTimeout(idleKillTimerRef.current);
+						idleKillTimerRef.current = null;
+					}
 					if (streamTimeoutRef.current) clearTimeout(streamTimeoutRef.current);
 					streamTimeoutRef.current = setTimeout(() => {
 						isStreamingRef.current = false;
 						setIsStreaming(false);
+						// After streaming stops and Claude was launched, schedule auto-kill
+						// if no new output arrives within 15s (Claude has exited to shell)
+						if (claudeLaunchedRef.current && sessionId) {
+							idleKillTimerRef.current = setTimeout(() => {
+								killAndMarkDone(sessionId);
+							}, 15_000);
+						}
 					}, 3000);
 				}
 			}
@@ -597,11 +624,13 @@ export default function AgentTerminalModal({
 			wsRef.current = null;
 			fitAddonRef.current = null;
 			if (streamTimeoutRef.current) clearTimeout(streamTimeoutRef.current);
+			if (idleKillTimerRef.current) clearTimeout(idleKillTimerRef.current);
 			isStreamingRef.current = false;
+			claudeLaunchedRef.current = false;
 			setIsStreaming(false);
 			readyRef.current = false;
 		};
-	}, [open, worktreePath, projectPath, agentFile, termNode, sessionId, terminalEnabled]);
+	}, [open, worktreePath, projectPath, agentFile, termNode, sessionId, terminalEnabled, killAndMarkDone]);
 
 	// Plain shell terminal — lazy init, uses worktree path
 	useEffect(() => {

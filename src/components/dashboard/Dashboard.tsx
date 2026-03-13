@@ -6,10 +6,6 @@ import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import IconButton from '@mui/material/IconButton';
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import ListItemText from '@mui/material/ListItemText';
 import { alpha } from '@mui/material/styles';
 import Collapse from '@mui/material/Collapse';
 import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
@@ -18,9 +14,6 @@ import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
 import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded';
 import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded';
-import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded';
-import StopCircleRoundedIcon from '@mui/icons-material/StopCircleRounded';
-import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import AssignmentRoundedIcon from '@mui/icons-material/AssignmentRounded';
@@ -45,6 +38,7 @@ import { usePendingTodoCount } from '@/hooks/usePendingTodoCount';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import DraggableTabs from '@/components/shared/DraggableTabs';
+import SessionCard from '@/components/shared/SessionCard';
 
 const AgentTerminalModal = dynamic(() => import('@/components/agents/AgentTerminalModal'), {
 	ssr: false,
@@ -110,284 +104,7 @@ function LiveClock() {
 	);
 }
 
-/* ── Active session card ── */
-function ActiveSessionCard({
-	session,
-	onClick,
-	isStreaming,
-	onKill,
-	t,
-}: {
-	session: ActiveSession;
-	onClick: () => void;
-	isStreaming: boolean;
-	onKill: () => void;
-	t: (key: string, values?: Record<string, number>) => string;
-}) {
-	const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
-	return (
-		<Box
-			onClick={onClick}
-			sx={{
-				p: 2,
-				borderRadius: 1,
-				bgcolor: alpha('#22C55E', isStreaming ? 0.08 : 0.04),
-				border: 1,
-				borderColor: alpha('#22C55E', isStreaming ? 0.25 : 0.1),
-				borderLeft: 3,
-				borderLeftColor: isStreaming ? '#22C55E' : alpha('#22C55E', 0.2),
-				cursor: 'pointer',
-				transition: 'all 0.2s ease',
-				'&:hover': {
-					bgcolor: alpha('#22C55E', 0.12),
-					borderColor: alpha('#22C55E', 0.3),
-					transform: 'translateX(2px)',
-				},
-			}}
-		>
-			<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-				<FiberManualRecordRoundedIcon
-					sx={{
-						fontSize: 10,
-						color: isStreaming ? '#4CAF50' : '#9E9E9E',
-						...(isStreaming && {
-							animation: 'pulse 2s ease-in-out infinite',
-							'@keyframes pulse': {
-								'0%, 100%': { opacity: 0.4 },
-								'50%': { opacity: 1 },
-							},
-						}),
-					}}
-				/>
-				<Typography
-					variant="body2"
-					sx={{
-						fontWeight: 700,
-						fontSize: '0.85rem',
-						flex: 1,
-						overflow: 'hidden',
-						textOverflow: 'ellipsis',
-						whiteSpace: 'nowrap',
-					}}
-				>
-					{session.agentName ?? 'Claude'}
-				</Typography>
-				{isStreaming && (
-					<Box sx={{ display: 'flex', gap: 0.4, alignItems: 'center' }}>
-						{[0, 1, 2].map((i) => (
-							<Box
-								key={i}
-								sx={{
-									width: 4,
-									height: 4,
-									borderRadius: '50%',
-									bgcolor: '#7C5CFF',
-									animation: 'dotPulse 1.4s ease-in-out infinite',
-									animationDelay: `${i * 0.2}s`,
-									'@keyframes dotPulse': {
-										'0%, 80%, 100%': { opacity: 0.3, transform: 'scale(0.8)' },
-										'40%': { opacity: 1, transform: 'scale(1)' },
-									},
-								}}
-							/>
-						))}
-					</Box>
-				)}
-				<Typography
-					variant="caption"
-					sx={{ color: 'text.disabled', fontSize: '0.7rem', fontFamily: 'monospace' }}
-				>
-					{timeAgo(session.createdAt, t)}
-				</Typography>
-				<IconButton
-					size="small"
-					onClick={(e) => {
-						e.stopPropagation();
-						setAnchorEl(e.currentTarget);
-					}}
-					sx={{ p: 0.25, color: 'text.disabled', '&:hover': { color: 'text.secondary' } }}
-				>
-					<MoreVertRoundedIcon sx={{ fontSize: 16 }} />
-				</IconButton>
-				<Menu
-					anchorEl={anchorEl}
-					open={Boolean(anchorEl)}
-					onClose={(e: React.SyntheticEvent) => {
-						e.stopPropagation?.();
-						setAnchorEl(null);
-					}}
-					onClick={(e) => e.stopPropagation()}
-					slotProps={{
-						paper: {
-							sx: {
-								bgcolor: 'background.paper',
-								border: 1,
-								borderColor: 'divider',
-								minWidth: 160,
-							},
-						},
-					}}
-				>
-					<MenuItem
-						onClick={(e) => {
-							e.stopPropagation();
-							setAnchorEl(null);
-							onKill();
-						}}
-						sx={{ fontSize: '0.8rem', gap: 1 }}
-					>
-						<ListItemIcon sx={{ minWidth: '28px !important' }}>
-							<StopCircleRoundedIcon sx={{ fontSize: 18, color: '#FF5252' }} />
-						</ListItemIcon>
-						<ListItemText primaryTypographyProps={{ fontSize: '0.8rem' }}>
-							{t('closeSession')}
-						</ListItemText>
-					</MenuItem>
-				</Menu>
-			</Box>
-
-			<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-				<FolderRoundedIcon sx={{ fontSize: 13, color: 'text.disabled' }} />
-				<Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem' }}>
-					{session.projectName}
-				</Typography>
-				{session.branch && (
-					<Chip
-						icon={<AccountTreeRoundedIcon sx={{ fontSize: '12px !important' }} />}
-						label={session.branch}
-						size="small"
-						sx={{
-							height: 20,
-							fontSize: '0.65rem',
-							bgcolor: (t: { palette: { secondary: { main: string } } }) => alpha(t.palette.secondary.main, 0.1),
-							color: 'secondary.main',
-							border: 1,
-							borderColor: (t: { palette: { secondary: { main: string } } }) => alpha(t.palette.secondary.main, 0.2),
-							'& .MuiChip-icon': { color: 'secondary.main' },
-						}}
-					/>
-				)}
-			</Box>
-		</Box>
-	);
-}
-
-/* ── Past session card ── */
-function PastSessionCard({
-	session,
-	onClick,
-	onDelete,
-}: {
-	session: AgentSession;
-	onClick: () => void;
-	onDelete: () => void;
-}) {
-	const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-	const tc = useTranslations('common');
-	const isError = session.status === 'error';
-	const statusColor = isError ? '#FF5252' : '#9E9E9E';
-	const StatusIcon = isError ? ErrorOutlineRoundedIcon : CheckCircleOutlineRoundedIcon;
-
-	return (
-		<Box
-			onClick={onClick}
-			sx={{
-				p: 1.5,
-				borderRadius: 1.5,
-				bgcolor: alpha('#FF9800', 0.03),
-				border: 1,
-				borderColor: alpha('#FF9800', 0.08),
-				cursor: 'pointer',
-				transition: 'all 0.15s',
-				'&:hover': {
-					bgcolor: alpha('#FF9800', 0.07),
-					borderColor: alpha('#FF9800', 0.15),
-				},
-			}}
-		>
-			<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-				<StatusIcon sx={{ fontSize: 14, color: statusColor }} />
-				<Typography
-					variant="body2"
-					sx={{
-						fontWeight: 600,
-						fontSize: '0.75rem',
-						flex: 1,
-						overflow: 'hidden',
-						textOverflow: 'ellipsis',
-						whiteSpace: 'nowrap',
-						color: 'text.secondary',
-					}}
-				>
-					{session.agent_name ?? 'Claude'}
-				</Typography>
-				{session.branch && (
-					<Chip
-						icon={<AccountTreeRoundedIcon sx={{ fontSize: '11px !important' }} />}
-						label={session.branch}
-						size="small"
-						sx={{
-							height: 18,
-							fontSize: '0.6rem',
-							bgcolor: (t: { palette: { secondary: { main: string } } }) => alpha(t.palette.secondary.main, 0.06),
-							color: 'secondary.main',
-							'& .MuiChip-icon': { color: 'secondary.main' },
-						}}
-					/>
-				)}
-				<Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.6rem' }}>
-					{formatDate(session.started_at)}
-				</Typography>
-				<IconButton
-					size="small"
-					onClick={(e) => {
-						e.stopPropagation();
-						setAnchorEl(e.currentTarget);
-					}}
-					sx={{ p: 0.25, color: 'text.disabled', '&:hover': { color: 'text.secondary' } }}
-				>
-					<MoreVertRoundedIcon sx={{ fontSize: 14 }} />
-				</IconButton>
-				<Menu
-					anchorEl={anchorEl}
-					open={Boolean(anchorEl)}
-					onClose={(e: React.SyntheticEvent) => {
-						e.stopPropagation?.();
-						setAnchorEl(null);
-					}}
-					onClick={(e) => e.stopPropagation()}
-					slotProps={{
-						paper: {
-							sx: {
-								bgcolor: 'background.paper',
-								border: 1,
-								borderColor: 'divider',
-								minWidth: 160,
-							},
-						},
-					}}
-				>
-					<MenuItem
-						onClick={(e) => {
-							e.stopPropagation();
-							setAnchorEl(null);
-							onDelete();
-						}}
-						sx={{ fontSize: '0.8rem', gap: 1 }}
-					>
-						<ListItemIcon sx={{ minWidth: '28px !important' }}>
-							<DeleteOutlineRoundedIcon sx={{ fontSize: 18, color: '#FF5252' }} />
-						</ListItemIcon>
-						<ListItemText primaryTypographyProps={{ fontSize: '0.8rem' }}>
-							{tc('delete')}
-						</ListItemText>
-					</MenuItem>
-				</Menu>
-			</Box>
-		</Box>
-	);
-}
 
 /* ── Summary Timeline ── */
 function SummaryTimeline({
@@ -960,13 +677,16 @@ export default function Dashboard() {
 								</Box>
 								<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
 									{filteredActiveSessions.map((session) => (
-										<ActiveSessionCard
+										<SessionCard
 											key={session.sessionId}
-											session={session}
+											name={session.agentName ?? 'Claude'}
+											subtitle={session.projectName}
+											branch={session.branch ?? undefined}
+											status="active"
 											isStreaming={session.isStreaming}
+											date={timeAgo(session.createdAt, t)}
 											onClick={() => setSelected({ type: 'active', session })}
-											onKill={() => handleKillSession(session.sessionId)}
-											t={t}
+											onStop={() => handleKillSession(session.sessionId)}
 										/>
 									))}
 								</Box>
@@ -1015,11 +735,15 @@ export default function Dashboard() {
 									}}
 								>
 									{filteredPastSessions.slice(0, 15).map((session) => (
-										<PastSessionCard
+										<SessionCard
 											key={session.id}
-											session={session}
+											name={session.agent_name ?? 'Claude'}
+											branch={session.branch ?? undefined}
+											status={session.status === 'error' ? 'error' : 'completed'}
+											date={formatDate(session.started_at)}
 											onClick={() => setSelected({ type: 'past', session })}
 											onDelete={() => handleDeleteSession(session.id)}
+											compact
 										/>
 									))}
 								</Box>
