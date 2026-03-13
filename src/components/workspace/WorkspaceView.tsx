@@ -11,215 +11,18 @@ import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
-import Chip from '@mui/material/Chip';
 import { alpha } from '@mui/material/styles';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
-import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
-import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
-import StopCircleRoundedIcon from '@mui/icons-material/StopCircleRounded';
-import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded';
-import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded';
 import DraggableTabs from '@/components/shared/DraggableTabs';
+import SessionCard from '@/components/shared/SessionCard';
 import { useAgentViews } from '@/hooks/useAgentViews';
 import { useWorktrees, type WorktreeInfo } from '@/hooks/useWorktrees';
-import { useSessionManager, type AgentSession } from '@/hooks/useSessionManager';
+import { useSessionManager } from '@/hooks/useSessionManager';
 import AgentTerminalModal from '@/components/agents/AgentTerminalModal';
 
-function WorktreeCard({
-	worktree,
-	onClick,
-	onDelete,
-	onStop,
-	hasActiveSession,
-	pastSession,
-}: {
-	worktree: WorktreeInfo;
-	onClick: () => void;
-	onDelete: () => void;
-	onStop?: () => void;
-	hasActiveSession?: boolean;
-	pastSession?: AgentSession | null;
-}) {
-	const isFinished = !hasActiveSession && !!pastSession;
-	const isError = pastSession?.status === 'error';
-
-	const borderColor = hasActiveSession
-		? alpha('#22C55E', 0.25)
-		: isFinished
-			? alpha(isError ? '#EF4444' : '#9E9E9E', 0.2)
-			: 'divider';
-	const bgColor = hasActiveSession
-		? alpha('#22C55E', 0.04)
-		: isFinished
-			? alpha(isError ? '#EF4444' : '#9E9E9E', 0.04)
-			: 'background.paper';
-
-	return (
-		<Box
-			onClick={onClick}
-			sx={{
-				p: 2,
-				borderRadius: 1,
-				bgcolor: bgColor,
-				border: 1,
-				borderColor,
-				transition: 'all 0.15s',
-				cursor: 'pointer',
-				opacity: isFinished ? 0.55 : 1,
-				'&:hover': {
-					bgcolor: hasActiveSession
-						? alpha('#22C55E', 0.08)
-						: isFinished
-							? alpha(isError ? '#EF4444' : '#9E9E9E', 0.08)
-							: 'action.hover',
-					borderColor: hasActiveSession
-						? alpha('#22C55E', 0.35)
-						: isFinished
-							? alpha(isError ? '#EF4444' : '#9E9E9E', 0.3)
-							: 'action.disabled',
-					transform: 'translateY(-1px)',
-					opacity: isFinished ? 0.75 : 1,
-				},
-			}}
-		>
-			<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.75 }}>
-				{isFinished ? (
-					isError ? (
-						<ErrorOutlineRoundedIcon sx={{ fontSize: 16, color: '#EF4444' }} />
-					) : (
-						<CheckCircleOutlineRoundedIcon sx={{ fontSize: 16, color: '#9E9E9E' }} />
-					)
-				) : (
-					<AccountTreeRoundedIcon sx={{ fontSize: 16, color: '#7C5CFF' }} />
-				)}
-				<Typography
-					variant="body2"
-					sx={{
-						fontWeight: 600,
-						fontSize: '0.85rem',
-						flex: 1,
-						overflow: 'hidden',
-						textOverflow: 'ellipsis',
-						whiteSpace: 'nowrap',
-						color: isFinished ? 'text.secondary' : 'text.primary',
-					}}
-				>
-					{worktree.branch}
-				</Typography>
-
-				{hasActiveSession && (
-					<Chip
-						label="Active"
-						size="small"
-						sx={{
-							height: 20,
-							fontSize: '0.65rem',
-							fontWeight: 600,
-							bgcolor: alpha('#22C55E', 0.12),
-							color: '#22C55E',
-							border: `1px solid ${alpha('#22C55E', 0.25)}`,
-						}}
-					/>
-				)}
-				{isFinished && !isError && (
-					<Chip
-						label="Terminé"
-						size="small"
-						sx={{
-							height: 20,
-							fontSize: '0.65rem',
-							fontWeight: 600,
-							bgcolor: alpha('#9E9E9E', 0.12),
-							color: '#9E9E9E',
-							border: `1px solid ${alpha('#9E9E9E', 0.25)}`,
-						}}
-					/>
-				)}
-				{isFinished && isError && (
-					<Chip
-						label="Erreur"
-						size="small"
-						sx={{
-							height: 20,
-							fontSize: '0.65rem',
-							fontWeight: 600,
-							bgcolor: alpha('#EF4444', 0.12),
-							color: '#EF4444',
-							border: `1px solid ${alpha('#EF4444', 0.25)}`,
-						}}
-					/>
-				)}
-
-				{isFinished && pastSession?.agent_name && (
-					<Typography
-						variant="caption"
-						sx={{
-							color: 'text.disabled',
-							fontSize: '0.6rem',
-							fontWeight: 600,
-						}}
-					>
-						{pastSession.agent_name}
-					</Typography>
-				)}
-
-				{hasActiveSession && onStop && (
-					<Tooltip title="Arrêter la session">
-						<IconButton
-							size="small"
-							onClick={(e) => {
-								e.stopPropagation();
-								onStop();
-							}}
-							sx={{
-								color: '#EF4444',
-								'&:hover': { bgcolor: alpha('#EF4444', 0.1) },
-							}}
-						>
-							<StopCircleRoundedIcon fontSize="small" />
-						</IconButton>
-					</Tooltip>
-				)}
-
-				<Tooltip title="Delete worktree">
-					<IconButton
-						size="small"
-						onClick={(e) => {
-							e.stopPropagation();
-							onDelete();
-						}}
-						sx={{
-							color: 'text.disabled',
-							'&:hover': { color: '#EF4444', bgcolor: alpha('#EF4444', 0.1) },
-						}}
-					>
-						<DeleteOutlineRoundedIcon fontSize="small" />
-					</IconButton>
-				</Tooltip>
-			</Box>
-
-			<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-				<FolderRoundedIcon sx={{ fontSize: 12, color: 'text.disabled' }} />
-				<Typography
-					variant="caption"
-					sx={{
-						color: 'text.disabled',
-						fontSize: '0.65rem',
-						overflow: 'hidden',
-						textOverflow: 'ellipsis',
-						whiteSpace: 'nowrap',
-						flex: 1,
-					}}
-				>
-					{worktree.path}
-				</Typography>
-			</Box>
-		</Box>
-	);
-}
 
 export default function WorkspaceView() {
 	const { views, activeIndex, setActiveIndex, addView, reorderViews } = useAgentViews();
@@ -406,15 +209,21 @@ export default function WorkspaceView() {
 					{worktrees.map((wt) => {
 						const active = getActiveForPath(wt.path);
 						const past = !active ? getPastForPath(wt.path, wt.branch) : null;
+						const isError = past?.status === 'error';
 						return (
-							<WorktreeCard
+							<SessionCard
 								key={wt.path}
-								worktree={wt}
+								name={wt.branch}
+								subtitle={wt.path}
+								status={
+									active ? 'active'
+										: past ? (isError ? 'error' : 'completed')
+											: 'idle'
+								}
+								isStreaming={active?.isStreaming}
 								onClick={() => handleWorktreeClick(wt)}
-								onDelete={() => setDeleteTarget(wt)}
-								hasActiveSession={!!active}
-								pastSession={past}
 								onStop={active ? () => killSession(active.sessionId) : undefined}
+								onDelete={() => setDeleteTarget(wt)}
 							/>
 						);
 					})}
