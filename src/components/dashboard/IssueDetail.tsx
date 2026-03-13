@@ -43,6 +43,7 @@ import CheckBoxRoundedIcon from '@mui/icons-material/CheckBoxRounded';
 import CheckBoxOutlineBlankRoundedIcon from '@mui/icons-material/CheckBoxOutlineBlankRounded';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { useIssue } from '@/hooks/useGitHub';
 import { useTodos, useIssueTodos } from '@/hooks/useTodos';
 import { supabase } from '@/lib/supabase';
@@ -277,6 +278,9 @@ export default function IssueDetail({
 	repo: string;
 	number: string;
 }) {
+	const t = useTranslations('issueDetail');
+	const tc = useTranslations('common');
+	const ti = useTranslations('agentIssue');
 	const { data, error, isLoading } = useIssue(owner, repo, number);
 	const repoFullName = `${owner}/${repo}`;
 	const issueNum = parseInt(number, 10);
@@ -446,11 +450,11 @@ export default function IssueDetail({
 						startIcon={<ArrowBackRoundedIcon />}
 						sx={{ mb: 3, color: 'text.secondary' }}
 					>
-						Retour aux issues
+						{t('backToIssues')}
 					</Button>
 				</Link>
 				<Alert severity="error" sx={{ borderRadius: 1 }}>
-					Erreur de chargement : {error.message}
+					{t('loadError', { message: error.message })}
 				</Alert>
 			</Box>
 		);
@@ -469,7 +473,7 @@ export default function IssueDetail({
 					startIcon={<ArrowBackRoundedIcon />}
 					sx={{ mb: 3, color: 'text.secondary' }}
 				>
-					Retour aux issues
+					{t('backToIssues')}
 				</Button>
 			</Link>
 
@@ -594,7 +598,7 @@ export default function IssueDetail({
 								startIcon={<SmartToyRoundedIcon />}
 								onClick={() => setTerminalOpen(true)}
 							>
-								Lancer un agent
+								{t('launchAgent')}
 							</Button>
 							<Button
 								variant="outlined"
@@ -603,8 +607,8 @@ export default function IssueDetail({
 								onClick={(e) => setTaskAnchor(e.currentTarget)}
 							>
 								{issueTodos.length > 0
-									? `${issueTodos.length} tâche${issueTodos.length > 1 ? 's' : ''}`
-									: 'Associer une tâche'}
+									? t('tasksCount', { count: issueTodos.length })
+									: t('associateTask')}
 							</Button>
 							<Menu
 								anchorEl={taskAnchor}
@@ -689,7 +693,7 @@ export default function IssueDetail({
 											fontWeight: 600,
 										}}
 									>
-										Créer une tâche
+										{t('createTask')}
 									</ListItemText>
 								</MenuItem>
 							</Menu>
@@ -699,7 +703,7 @@ export default function IssueDetail({
 								startIcon={<HistoryRoundedIcon />}
 								onClick={() => setTimelineOpen(true)}
 							>
-								Historique
+								{t('history')}
 							</Button>
 							<Button
 								variant="outlined"
@@ -746,7 +750,7 @@ export default function IssueDetail({
 								sx={{ fontSize: 18, color: 'text.secondary' }}
 							/>
 							<Typography variant="body2">
-								{comments.length} commentaire{comments.length !== 1 ? 's' : ''}
+								{ti('comments', { count: comments.length })}
 							</Typography>
 						</Box>
 					</Box>
@@ -761,7 +765,7 @@ export default function IssueDetail({
 								maxRows={20}
 								fullWidth
 								autoFocus
-								placeholder="Description (Markdown)"
+								placeholder={ti('descriptionPlaceholder')}
 								sx={{
 									mb: 1.5,
 									'& .MuiInputBase-root': {
@@ -776,7 +780,7 @@ export default function IssueDetail({
 									onClick={() => setEditingBody(false)}
 									sx={{ textTransform: 'none', color: 'text.secondary' }}
 								>
-									Annuler
+									{tc('cancel')}
 								</Button>
 								<Button
 									variant="contained"
@@ -796,7 +800,7 @@ export default function IssueDetail({
 										'&:hover': { bgcolor: alpha('#7C5CFF', 0.85) },
 									}}
 								>
-									Enregistrer
+									{tc('save')}
 								</Button>
 							</Box>
 						</Box>
@@ -841,7 +845,7 @@ export default function IssueDetail({
 									variant="body2"
 									sx={{ fontStyle: 'italic', color: 'text.secondary' }}
 								>
-									Aucune description. Cliquez pour en ajouter une.
+									{t('noDescription')}
 								</Typography>
 							)}
 						</Box>
@@ -852,7 +856,7 @@ export default function IssueDetail({
 			{comments.length > 0 && (
 				<Box>
 					<Typography variant="h6" sx={{ mb: 2 }}>
-						Commentaires ({comments.length})
+						{t('commentsTitle', { count: comments.length })}
 					</Typography>
 					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
 						{comments.map((comment, index) => (
@@ -866,7 +870,7 @@ export default function IssueDetail({
 			<Card sx={{ mt: 3, mb: 3 }}>
 				<CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
 					<Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>
-						Ajouter un commentaire
+						{t('addComment')}
 					</Typography>
 					<TextField
 						value={newComment}
@@ -875,7 +879,7 @@ export default function IssueDetail({
 						minRows={3}
 						maxRows={10}
 						fullWidth
-						placeholder="Ecrire un commentaire (Markdown)..."
+						placeholder={t('commentPlaceholder')}
 						sx={{
 							mb: 1.5,
 							'& .MuiInputBase-root': { fontSize: '0.85rem' },
@@ -901,7 +905,7 @@ export default function IssueDetail({
 								'&:hover': { bgcolor: alpha('#7C5CFF', 0.85) },
 							}}
 						>
-							Envoyer
+							{t('send')}
 						</Button>
 					</Box>
 				</CardContent>

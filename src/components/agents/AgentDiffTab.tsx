@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, memo, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Collapse from '@mui/material/Collapse';
@@ -275,6 +276,7 @@ const DiffRow = memo(function DiffRow({ row }: { row: SideBySideRow }) {
 
 /* ── File Diff Viewer (side-by-side, lazy + truncated) ── */
 const FileDiffView = memo(function FileDiffView({ file }: { file: FileDiff }) {
+	const t = useTranslations('agentDiff');
 	const [expanded, setExpanded] = useState(false);
 	const [showAll, setShowAll] = useState(false);
 
@@ -428,7 +430,7 @@ const FileDiffView = memo(function FileDiffView({ file }: { file: FileDiff }) {
 									color: '#7C5CFF',
 								}}
 							>
-								Afficher {hiddenCount} lignes restantes
+								{t('showRemainingLines', { count: hiddenCount })}
 							</Button>
 						</Box>
 					)}
@@ -445,6 +447,7 @@ interface AgentDiffTabProps {
 }
 
 export default function AgentDiffTab({ projectPath, branch }: AgentDiffTabProps) {
+	const t = useTranslations('agentDiff');
 	const { data, isLoading, error } = useQuery({
 		queryKey: ['git-diff', projectPath, branch],
 		queryFn: async () => {
@@ -475,7 +478,7 @@ export default function AgentDiffTab({ projectPath, branch }: AgentDiffTabProps)
 		return (
 			<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
 				<Typography variant="caption" sx={{ color: 'text.disabled' }}>
-					Erreur lors du chargement du diff
+					{t('loadError')}
 				</Typography>
 			</Box>
 		);
@@ -495,7 +498,7 @@ export default function AgentDiffTab({ projectPath, branch }: AgentDiffTabProps)
 			>
 				<InsertDriveFileRoundedIcon sx={{ fontSize: 40, color: 'text.disabled' }} />
 				<Typography variant="body2" sx={{ color: 'text.disabled' }}>
-					Aucune modification détectée
+					{t('noChanges')}
 				</Typography>
 			</Box>
 		);
@@ -520,8 +523,7 @@ export default function AgentDiffTab({ projectPath, branch }: AgentDiffTabProps)
 					variant="caption"
 					sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.75rem' }}
 				>
-					{files.length} fichier{files.length > 1 ? 's' : ''} modifié
-					{files.length > 1 ? 's' : ''}
+					{t('filesChanged', { count: files.length })}
 				</Typography>
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
 					<AddRoundedIcon sx={{ fontSize: 14, color: '#22C55E' }} />
