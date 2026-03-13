@@ -294,7 +294,7 @@ export default function AgentTerminalModal({
 	const branchRef = useRef<string | null>(null);
 	if (open && !branchRef.current) {
 		if (issueContext) {
-			branchRef.current = buildBranchName(issueContext);
+			branchRef.current = buildBranchNameFallback(issueContext);
 		} else {
 			const now = new Date();
 			const ts = [
@@ -326,13 +326,13 @@ export default function AgentTerminalModal({
 			projectPath,
 			projectName,
 			agentName: agentFile?.name ?? (issueContext ? `#${issueContext.issueNumber}` : null),
-			branch: branchName ?? null,
+			branch: branchName ?? branch ?? null,
 			issueOwner: issueContext?.owner ?? null,
 			issueRepo: issueContext?.repo ?? null,
 			issueNumber: issueContext?.issueNumber ?? null,
 			issueTitle: issueContext?.issueTitle ?? null,
 		});
-	}, [open, sessionId, projectPath, agentFile, issueContext, branchName, ensureSession, isNewSession]);
+	}, [open, sessionId, projectPath, agentFile, issueContext, branchName, branch, ensureSession, isNewSession]);
 
 	// Build draggable terminal tabs
 	const hasIssue = !!(issueContext || session?.issue_number);
@@ -514,6 +514,15 @@ export default function AgentTerminalModal({
 									setTimeout(() => {
 										ws.send(JSON.stringify({ type: 'input', data: claudeCmd }));
 									}, 1500);
+								}, 800);
+							} else if (branch) {
+								// Sidebar launch: checkout main, pull, create tmp branch
+								const gitCmd = `git checkout main && git pull origin main && git checkout -b ${branch}\n`;
+								setTimeout(() => {
+									ws.send(JSON.stringify({ type: 'input', data: gitCmd }));
+									setTimeout(() => {
+										ws.send(JSON.stringify({ type: 'input', data: claudeCmd }));
+									}, 2500);
 								}, 800);
 							} else {
 								setTimeout(() => {
