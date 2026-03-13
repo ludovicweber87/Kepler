@@ -23,8 +23,8 @@ Développeur frontend senior / expert :
 
 ## Skills & Plugins
 
-- **OBLIGATOIRE : Avant chaque tâche**, spawn le skill `superpowers` en premier (via l'outil Skill). C'est un prérequis systématique avant toute action : recherche, implémentation, debug, refactoring, etc.
-- Ne jamais commencer à travailler sans avoir d'abord invoqué `superpowers`
+- **OBLIGATOIRE : Avant chaque tâche**, spawn le skill `brainstorming` en premier (via l'outil Skill). C'est un prérequis systématique avant toute action : recherche, implémentation, debug, refactoring, etc.
+- Ne jamais commencer à travailler sans avoir d'abord invoqué `brainstorming`
 
 ---
 

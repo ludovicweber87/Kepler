@@ -2,14 +2,17 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import Box from '@mui/material/Box';
+import { useSession } from 'next-auth/react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import RightSidebar, { RIGHT_SIDEBAR_WIDTH } from './RightSidebar';
 import OverlayTerminal from './OverlayTerminal';
+import AppLoadingSplash from './AppLoadingSplash';
 import { RightSidebarContext } from '@/hooks/useRightSidebar';
 import { OverlayTerminalContext, type OverlaySession } from '@/hooks/useOverlayTerminal';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
+	const { status } = useSession();
 	const [rightOpen, setRightOpen] = useState(true);
 	const [rightWidth, setRightWidth] = useState(RIGHT_SIDEBAR_WIDTH);
 	const [overlaySession, setOverlaySession] = useState<OverlaySession | null>(null);
@@ -31,6 +34,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 		() => ({ session: overlaySession, open: openOverlay, close: closeOverlay }),
 		[overlaySession, openOverlay, closeOverlay],
 	);
+
+	if (status === 'loading') return <AppLoadingSplash />;
 
 	return (
 		<RightSidebarContext.Provider value={rightCtx}>

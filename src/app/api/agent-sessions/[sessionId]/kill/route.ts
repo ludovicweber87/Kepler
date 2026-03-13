@@ -24,17 +24,27 @@ export async function POST(
 	const { sessionId } = await params;
 
 	try {
-		// 1. Kill tmux session
+		// 1. Kill shell companion tmux session (if exists)
+		try {
+			execSync(`${TMUX} kill-session -t ${sessionId}-shell`, { stdio: 'ignore' });
+		} catch {
+			// Shell session might not exist — that's fine
+		}
+
+		// 2. Kill main tmux session
 		try {
 			execSync(`${TMUX} kill-session -t ${sessionId}`, { stdio: 'ignore' });
 		} catch {
 			// Session might already be dead — that's fine
 		}
 
-		// 2. Update DB: mark as completed + set ended_at
+		// 3. Update DB: mark as completed + set ended_at
 		await supabase
 			.from('agent_sessions')
-			.update({ status: 'completed', ended_at: new Date().toISOString() })
+			.update({
+				status: 'completed',
+				ended_at: new Date().toISOString(),
+			})
 			.eq('session_id', sessionId);
 
 		return NextResponse.json({ ok: true });

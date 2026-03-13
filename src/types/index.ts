@@ -121,6 +121,7 @@ export interface ProjectV2Config {
 	viewRepoMappings: ViewRepoMapping[];
 	statusColumns: string[];
 	views: ProjectV2View[]; // all available views (cached from GitHub)
+	ownerType?: 'organization' | 'user'; // owner type for GraphQL queries
 }
 
 // Timeline event types

@@ -51,16 +51,16 @@ interface DropTarget {
 
 export default function IssuesList() {
 	const t = useTranslations('issues');
-	const { config, selectedViewMappings, reorderViews, syncViews } = useProjectConfig();
+	const { configs, selectedViewMappings, reorderViews, syncViews, getConfigForRepo } = useProjectConfig();
 
 	// Auto-sync Project V2 data on mount to pick up new issues
 	const hasSynced = useRef(false);
 	useEffect(() => {
-		if (config && !hasSynced.current) {
+		if (configs.length > 0 && !hasSynced.current) {
 			hasSynced.current = true;
 			syncViews();
 		}
-	}, [config, syncViews]);
+	}, [configs, syncViews]);
 
 	const allIssueRefs = useMemo(() => {
 		if (selectedViewMappings.length === 0) return undefined;
@@ -96,7 +96,6 @@ export default function IssuesList() {
 	const dropTargetRef = useRef<DropTarget | null>(null);
 
 	const hasViews = selectedViewMappings.length > 0;
-	const isDragEnabled = !!config && (config.statusColumns?.length ?? 0) > 0;
 
 	const isProjectMode = !!allIssueRefs;
 
@@ -137,9 +136,21 @@ export default function IssuesList() {
 		);
 	}, [filteredIssues, search]);
 
+	// Resolve statusColumns for the active tab's owning project
+	const activeStatusColumns = useMemo(() => {
+		if (!hasViews) return [];
+		const activeView = selectedViewMappings[safeTab]?.viewName;
+		if (!activeView) return [];
+		// Find which config owns this view
+		const owningConfig = configs.find((c) => c.selectedViews.includes(activeView));
+		return owningConfig?.statusColumns ?? [];
+	}, [configs, selectedViewMappings, safeTab, hasViews]);
+
+	const isDragEnabled = activeStatusColumns.length > 0;
+
 	const columns = useMemo(
-		() => buildColumns(searchedIssues, config?.statusColumns ?? []),
-		[searchedIssues, config?.statusColumns],
+		() => buildColumns(searchedIssues, activeStatusColumns),
+		[searchedIssues, activeStatusColumns],
 	);
 
 	// Ref registration for columns
@@ -195,13 +206,19 @@ export default function IssuesList() {
 	}, []);
 
 	const handleCardDragEnd = useCallback(() => {
-		if (dragState && dropTarget && dropTarget.column !== dragState.sourceColumn && config) {
+		if (dragState && dropTarget && dropTarget.column !== dragState.sourceColumn) {
+			// Resolve which project config owns this issue
+			const issueRepo = dragState.issue.repo_full_name;
+			const issueConfig = issueRepo ? getConfigForRepo(issueRepo) : configs[0];
+			if (!issueConfig) return;
+
 			// Always update status
 			mutation.mutate({
 				issueNodeId: dragState.issue.node_id,
 				newStatus: dropTarget.column,
-				org: config.org,
-				projectNumber: config.projectNumber,
+				org: issueConfig.org,
+				projectNumber: issueConfig.projectNumber,
+				ownerType: issueConfig.ownerType,
 			});
 
 			// Open branch modal when dropping on a column containing "In Progress"
@@ -224,7 +241,7 @@ export default function IssuesList() {
 		setDragState(null);
 		setDropTarget(null);
 		dropTargetRef.current = null;
-	}, [dragState, dropTarget, config, mutation]);
+	}, [dragState, dropTarget, configs, getConfigForRepo, mutation]);
 
 	if (isLoading) {
 		return (

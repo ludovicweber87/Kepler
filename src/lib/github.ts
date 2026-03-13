@@ -511,12 +511,17 @@ export async function fetchOrgProjects(
 export interface OrgWithProjects {
 	org: string;
 	projects: { id: string; title: string; number: number }[];
+	ownerType: 'organization' | 'user';
 }
 
 export async function fetchViewerOrgProjects(token: string): Promise<OrgWithProjects[]> {
 	const query = `
     query {
       viewer {
+        login
+        projectsV2(first: 20, orderBy: { field: UPDATED_AT, direction: DESC }) {
+          nodes { id title number }
+        }
         organizations(first: 50) {
           nodes {
             login
@@ -529,13 +534,40 @@ export async function fetchViewerOrgProjects(token: string): Promise<OrgWithProj
     }
   `;
 	const data = await graphqlRequest(query, {}, token);
-	const orgs = data.viewer.organizations.nodes as {
+	const viewer = data.viewer as {
 		login: string;
 		projectsV2: { nodes: { id: string; title: string; number: number }[] };
-	}[];
-	return orgs
-		.filter((o) => o.projectsV2.nodes.length > 0)
-		.map((o) => ({ org: o.login, projects: o.projectsV2.nodes }));
+		organizations: {
+			nodes: {
+				login: string;
+				projectsV2: { nodes: { id: string; title: string; number: number }[] };
+			}[];
+		};
+	};
+
+	const result: OrgWithProjects[] = [];
+
+	// Personal projects
+	if (viewer.projectsV2.nodes.length > 0) {
+		result.push({
+			org: viewer.login,
+			projects: viewer.projectsV2.nodes,
+			ownerType: 'user',
+		});
+	}
+
+	// Organization projects
+	for (const o of viewer.organizations.nodes) {
+		if (o.projectsV2.nodes.length > 0) {
+			result.push({
+				org: o.login,
+				projects: o.projectsV2.nodes,
+				ownerType: 'organization',
+			});
+		}
+	}
+
+	return result;
 }
 
 // --- Status mutation helpers ---
@@ -550,29 +582,39 @@ export async function fetchStatusFieldInfo(
 	org: string,
 	projectNumber: number,
 	token: string,
+	ownerType: 'organization' | 'user' = 'organization',
 ): Promise<StatusFieldInfo> {
-	const query = `
-    query($org: String!, $num: Int!) {
-      organization(login: $org) {
-        projectV2(number: $num) {
-          id
-          field(name: "Status") {
-            ... on ProjectV2SingleSelectField {
-              id
-              options { id name }
+	async function tryFetch(type: 'organization' | 'user') {
+		const query = `
+      query($org: String!, $num: Int!) {
+        ${type}(login: $org) {
+          projectV2(number: $num) {
+            id
+            field(name: "Status") {
+              ... on ProjectV2SingleSelectField {
+                id
+                options { id name }
+              }
             }
           }
         }
       }
-    }
-  `;
-	const data = await graphqlRequest(query, { org, num: projectNumber }, token);
-	const project = data.organization.projectV2;
-	return {
-		projectId: project.id,
-		fieldId: project.field.id,
-		options: project.field.options,
-	};
+    `;
+		const data = await graphqlRequest(query, { org, num: projectNumber }, token);
+		const project = data[type].projectV2;
+		return {
+			projectId: project.id,
+			fieldId: project.field.id,
+			options: project.field.options,
+		};
+	}
+
+	try {
+		return await tryFetch(ownerType);
+	} catch {
+		// Fallback: try the other type
+		return await tryFetch(ownerType === 'organization' ? 'user' : 'organization');
+	}
 }
 
 export async function findProjectItemId(issueNodeId: string, projectId: string, token: string): Promise<string> {
@@ -629,11 +671,13 @@ export async function fetchProjectV2Data(
 	org: string,
 	projectNumber: number,
 	token: string,
+	ownerType: 'organization' | 'user' = 'organization',
 ): Promise<ProjectV2Data> {
+	const ownerField = ownerType === 'user' ? 'user' : 'organization';
 	// First fetch project info + views + first page of items in a single query
 	const combinedQuery = `
     query($org: String!, $num: Int!) {
-      organization(login: $org) {
+      ${ownerField}(login: $org) {
         projectV2(number: $num) {
           id
           title
@@ -677,7 +721,7 @@ export async function fetchProjectV2Data(
     }
   `;
 	const initialData = await graphqlRequest(combinedQuery, { org, num: projectNumber }, token);
-	const project = initialData.organization.projectV2;
+	const project = initialData[ownerField].projectV2;
 
 	const views: ProjectV2View[] = project.views.nodes.map(
 		(v: { id: string; name: string; filter: string | null }) => ({
@@ -724,7 +768,7 @@ export async function fetchProjectV2Data(
 	while (hasNext) {
 		const itemsQuery = `
       query($org: String!, $num: Int!, $cursor: String) {
-        organization(login: $org) {
+        ${ownerField}(login: $org) {
           projectV2(number: $num) {
             items(first: 100, after: $cursor) {
               nodes {
@@ -757,7 +801,7 @@ export async function fetchProjectV2Data(
       }
     `;
 		const data = await graphqlRequest(itemsQuery, { org, num: projectNumber, cursor }, token);
-		const itemsPage = data.organization.projectV2.items;
+		const itemsPage = data[ownerField].projectV2.items;
 		items.push(...parseItemNodes(itemsPage.nodes));
 		hasNext = itemsPage.pageInfo.hasNextPage;
 		cursor = itemsPage.pageInfo.endCursor;

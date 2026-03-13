@@ -30,22 +30,22 @@ export async function GET(req: NextRequest) {
 		let diff = '';
 		let stats = '';
 
-		if (branch && branch !== baseBranch) {
-			// Diff between base branch and current branch (committed changes)
+			if (branch && branch !== baseBranch) {
+			// Diff base branch vs current working tree (commits + staged + unstaged)
 			try {
-				diff = execSync(`git diff ${baseBranch}...${branch}`, {
+				diff = execSync(`git diff ${baseBranch}`, {
 					cwd,
 					encoding: 'utf-8',
 					timeout: 15000,
 					maxBuffer: 5 * 1024 * 1024,
 				});
-				stats = execSync(`git diff --stat ${baseBranch}...${branch}`, {
+				stats = execSync(`git diff --stat ${baseBranch}`, {
 					cwd,
 					encoding: 'utf-8',
 					timeout: 5000,
 				});
 			} catch {
-				// Branch might not exist on remote, try local diff
+				// Fallback: committed changes only
 				diff = execSync(`git diff ${baseBranch}..HEAD`, {
 					cwd,
 					encoding: 'utf-8',

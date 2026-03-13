@@ -3,14 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
-import Select from '@mui/material/Select';
-import MenuItem from '@mui/material/MenuItem';
-import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
-import ListSubheader from '@mui/material/ListSubheader';
 import Alert from '@mui/material/Alert';
 import Chip from '@mui/material/Chip';
 import Skeleton from '@mui/material/Skeleton';
@@ -21,6 +15,7 @@ import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import InputAdornment from '@mui/material/InputAdornment';
 import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
 import { alpha } from '@mui/material/styles';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
@@ -29,7 +24,7 @@ import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
-import type { ProjectV2View, ViewRepoMapping } from '@/types';
+import type { ProjectV2Config, ProjectV2View, ViewRepoMapping } from '@/types';
 import { useProjectConfig } from '@/hooks/useProjectConfig';
 import { useTranslations } from 'next-intl';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
@@ -43,6 +38,7 @@ interface OrgProject {
 interface OrgWithProjects {
 	org: string;
 	projects: OrgProject[];
+	ownerType: 'organization' | 'user';
 }
 
 interface ProjectViewsData {
@@ -61,59 +57,250 @@ const accordionSx = {
 	'&.Mui-expanded': { margin: '0 !important' },
 };
 
-export default function SettingsPanel() {
-	const t = useTranslations('settings');
-	const tc = useTranslations('common');
-	const { config, saveConfig, clearConfig } = useProjectConfig();
-	const { repoPaths, savePath, deletePath } = useRepoPaths();
+const projectAccordionSx = {
+	bgcolor: 'transparent',
+	border: 1,
+	borderColor: 'divider',
+	borderRadius: '4px !important',
+	'&::before': { display: 'none' },
+	'&.Mui-expanded': { margin: '0 !important' },
+};
 
-	const [orgProjects, setOrgProjects] = useState<OrgWithProjects[]>([]);
-	const [selectedKey, setSelectedKey] = useState<string>(
-		config ? `${config.org}/${config.projectNumber}` : '',
-	);
+/** Individual project accordion with lazy-loaded views */
+function ProjectAccordion({
+	project,
+	org,
+	ownerType,
+	savedConfig,
+	onSave,
+	onToast,
+}: {
+	project: OrgProject;
+	org: string;
+	ownerType: 'organization' | 'user';
+	savedConfig: ProjectV2Config | undefined;
+	onSave: (config: ProjectV2Config) => void;
+	onToast: (msg: string) => void;
+}) {
 	const [viewsData, setViewsData] = useState<ProjectViewsData | null>(() => {
-		if (config?.views?.length) {
+		if (savedConfig?.views?.length) {
 			return {
-				project: { id: '', title: config.projectTitle, number: config.projectNumber },
-				views: config.views,
-				viewRepoMappings: config.viewRepoMappings,
-				statusColumns: config.statusColumns,
+				project: { id: '', title: savedConfig.projectTitle, number: savedConfig.projectNumber },
+				views: savedConfig.views,
+				viewRepoMappings: savedConfig.viewRepoMappings,
+				statusColumns: savedConfig.statusColumns,
 			};
 		}
 		return null;
 	});
-	const [selectedViews, setSelectedViews] = useState<Set<string>>(
-		new Set(config?.selectedViews ?? []),
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const [hasFetched, setHasFetched] = useState(!!savedConfig?.views?.length);
+
+	const selectedViews = new Set(savedConfig?.selectedViews ?? []);
+	const selectedCount = selectedViews.size;
+
+	const fetchViews = useCallback(async () => {
+		setLoading(true);
+		setError(null);
+		try {
+			const res = await fetch(
+				`/api/github/projects?org=${encodeURIComponent(org)}&projectNumber=${project.number}&ownerType=${ownerType}`,
+			);
+			if (!res.ok) throw new Error(`Failed to load project views: ${res.status}`);
+			const data = await res.json();
+			if (data.error) throw new Error(data.error);
+			const fetched = data as ProjectViewsData;
+			setViewsData(fetched);
+			setHasFetched(true);
+
+			// Cache all views in DB (preserve selected_views if any)
+			onSave({
+				org,
+				projectNumber: project.number,
+				projectTitle: project.title,
+				selectedViews: savedConfig?.selectedViews ?? [],
+				activeView: savedConfig?.activeView ?? null,
+				viewOrder: savedConfig?.viewOrder ?? [],
+				viewRepoMappings: fetched.viewRepoMappings,
+				statusColumns: fetched.statusColumns ?? [],
+				views: fetched.views,
+				ownerType,
+			});
+		} catch (err) {
+			setError(err instanceof Error ? err.message : 'Failed to load views');
+		} finally {
+			setLoading(false);
+		}
+	}, [org, project.number, project.title, ownerType, savedConfig, onSave]);
+
+	const handleAccordionChange = (_: unknown, expanded: boolean) => {
+		if (expanded && !hasFetched) {
+			fetchViews();
+		}
+	};
+
+	const toggleView = (viewName: string) => {
+		const next = new Set(selectedViews);
+		if (next.has(viewName)) {
+			next.delete(viewName);
+		} else {
+			next.add(viewName);
+		}
+		const views = Array.from(next);
+
+		// Auto-save
+		onSave({
+			org,
+			projectNumber: project.number,
+			projectTitle: project.title,
+			selectedViews: views,
+			activeView: views[0] ?? null,
+			viewOrder: views,
+			viewRepoMappings: viewsData?.viewRepoMappings ?? savedConfig?.viewRepoMappings ?? [],
+			statusColumns: viewsData?.statusColumns ?? savedConfig?.statusColumns ?? [],
+			views: viewsData?.views ?? savedConfig?.views ?? [],
+			ownerType,
+		});
+		onToast(next.has(viewName) ? `Vue "${viewName}" activée` : `Vue "${viewName}" désactivée`);
+	};
+
+	const displayViews = viewsData?.views ?? savedConfig?.views ?? [];
+	const displayMappings = viewsData?.viewRepoMappings ?? savedConfig?.viewRepoMappings ?? [];
+
+	return (
+		<Accordion
+			sx={projectAccordionSx}
+			onChange={handleAccordionChange}
+		>
+			<AccordionSummary expandIcon={<ExpandMoreIcon />}>
+				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
+					<Typography variant="subtitle1" sx={{ fontWeight: 600, flex: 1 }}>
+						{project.title}
+					</Typography>
+					{selectedCount > 0 && (
+						<Chip
+							label={`${selectedCount} vue${selectedCount > 1 ? 's' : ''}`}
+							size="small"
+							color="primary"
+							variant="outlined"
+							sx={{ fontSize: '0.75rem' }}
+						/>
+					)}
+				</Box>
+			</AccordionSummary>
+			<AccordionDetails sx={{ pt: 0 }}>
+				{error && (
+					<Alert severity="error" sx={{ mb: 2, borderRadius: 1 }}>
+						{error}
+					</Alert>
+				)}
+
+				{loading && (
+					<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+						<CircularProgress size={18} />
+						<Typography variant="body2" color="text.secondary">
+							Chargement des vues...
+						</Typography>
+					</Box>
+				)}
+
+				{!loading && displayViews.length > 0 && (
+					<Box>
+						<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+							<Typography variant="body2" color="text.secondary">
+								{displayViews.length} vue{displayViews.length > 1 ? 's' : ''} disponible{displayViews.length > 1 ? 's' : ''}
+							</Typography>
+							<Tooltip title="Rafraîchir depuis GitHub">
+								<IconButton
+									size="small"
+									onClick={(e) => {
+										e.stopPropagation();
+										fetchViews();
+									}}
+									disabled={loading}
+									sx={{
+										color: 'text.secondary',
+										animation: loading ? 'spin 1s linear infinite' : 'none',
+										'@keyframes spin': {
+											from: { transform: 'rotate(0deg)' },
+											to: { transform: 'rotate(360deg)' },
+										},
+									}}
+								>
+									<RefreshRoundedIcon fontSize="small" />
+								</IconButton>
+							</Tooltip>
+						</Box>
+						{displayViews.map((view) => {
+							const mapping = displayMappings.find((m) => m.viewName === view.name);
+							const repoCount = mapping?.repos.length ?? 0;
+							return (
+								<Box
+									key={view.id}
+									sx={{
+										display: 'flex',
+										alignItems: 'center',
+										gap: 1,
+										py: 0.5,
+										px: 1,
+										borderRadius: 1,
+										'&:hover': {
+											bgcolor: (t) => alpha(t.palette.primary.main, 0.04),
+										},
+									}}
+								>
+									<FormControlLabel
+										control={
+											<Checkbox
+												checked={selectedViews.has(view.name)}
+												onChange={() => toggleView(view.name)}
+												size="small"
+											/>
+										}
+										label={view.name}
+										sx={{ flex: 1, mr: 0 }}
+									/>
+									<Chip
+										label={`${repoCount} dépôt${repoCount !== 1 ? 's' : ''}`}
+										size="small"
+										variant="outlined"
+										sx={{ fontSize: '0.75rem' }}
+									/>
+								</Box>
+							);
+						})}
+					</Box>
+				)}
+
+				{!loading && !hasFetched && displayViews.length === 0 && (
+					<Typography variant="body2" color="text.secondary">
+						Ouvrez cet accordion pour charger les vues depuis GitHub.
+					</Typography>
+				)}
+
+				{!loading && hasFetched && displayViews.length === 0 && !error && (
+					<Typography variant="body2" color="text.secondary">
+						Aucune vue trouvée pour ce projet.
+					</Typography>
+				)}
+			</AccordionDetails>
+		</Accordion>
 	);
+}
+
+export default function SettingsPanel() {
+	const t = useTranslations('settings');
+	const { configs, saveConfig, clearConfig } = useProjectConfig();
+	const { repoPaths, savePath, deletePath } = useRepoPaths();
+
+	const [orgProjects, setOrgProjects] = useState<OrgWithProjects[]>([]);
 	const [loadingProjects, setLoadingProjects] = useState(true);
-	const [loadingViews, setLoadingViews] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [toast, setToast] = useState(false);
 	const [toastMessage, setToastMessage] = useState('');
 	const [localPaths, setLocalPaths] = useState<Record<string, string>>({});
 	const [pickingRepo, setPickingRepo] = useState<string | null>(null);
-
-	// Sync selectedViews when config loads async
-	useEffect(() => {
-		if (config?.selectedViews?.length) {
-			setSelectedViews(new Set(config.selectedViews));
-		}
-	}, [config?.selectedViews?.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
-
-	// Restore viewsData from config, or fetch if views not cached yet (retro-compat)
-	useEffect(() => {
-		if (viewsData || !config) return;
-		if (config.views?.length) {
-			setViewsData({
-				project: { id: '', title: config.projectTitle, number: config.projectNumber },
-				views: config.views,
-				viewRepoMappings: config.viewRepoMappings,
-				statusColumns: config.statusColumns,
-			});
-		} else {
-			loadProjectViews(config.org, config.projectNumber);
-		}
-	}, [config]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	// Sync local paths from DB
 	useEffect(() => {
@@ -152,68 +339,17 @@ export default function SettingsPanel() {
 		};
 	}, []);
 
-	const loadProjectViews = useCallback(async (org: string, projectNumber: number) => {
-		setLoadingViews(true);
-		setError(null);
-		setViewsData(null);
-		try {
-			const res = await fetch(
-				`/api/github/projects?org=${encodeURIComponent(org)}&projectNumber=${projectNumber}`,
-			);
-			if (!res.ok) throw new Error(`Failed to load project views: ${res.status}`);
-			const data = await res.json();
-			if (data.error) throw new Error(data.error);
-			setViewsData(data as ProjectViewsData);
-		} catch (err) {
-			setError(err instanceof Error ? err.message : 'Failed to load project views');
-		} finally {
-			setLoadingViews(false);
-		}
+	const showToast = useCallback((msg: string) => {
+		setToastMessage(msg);
+		setToast(true);
 	}, []);
 
-	const handleProjectChange = (key: string) => {
-		setSelectedKey(key);
-		setViewsData(null);
-		setSelectedViews(new Set());
-		const [org, numStr] = key.split('/');
-		loadProjectViews(org, parseInt(numStr, 10));
-	};
-
-	const toggleView = (viewName: string) => {
-		setSelectedViews((prev) => {
-			const next = new Set(prev);
-			if (next.has(viewName)) next.delete(viewName);
-			else next.add(viewName);
-			return next;
-		});
-	};
-
-	const selectedOrg = selectedKey.split('/')[0] ?? '';
-
-	const handleSave = () => {
-		if (!viewsData || selectedViews.size === 0) return;
-		const views = Array.from(selectedViews);
-		saveConfig({
-			org: selectedOrg,
-			projectNumber: viewsData.project.number,
-			projectTitle: viewsData.project.title,
-			selectedViews: views,
-			activeView: views[0],
-			viewOrder: views,
-			viewRepoMappings: viewsData.viewRepoMappings,
-			statusColumns: viewsData.statusColumns ?? [],
-			views: viewsData.views,
-		});
-		setToastMessage(t('viewsSaved'));
-		setToast(true);
-	};
-
-	const handleClear = () => {
-		clearConfig();
-		setSelectedKey('');
-		setViewsData(null);
-		setSelectedViews(new Set());
-	};
+	const findSavedConfig = useCallback(
+		(org: string, projectNumber: number): ProjectV2Config | undefined => {
+			return configs.find((c) => c.org === org && c.projectNumber === projectNumber);
+		},
+		[configs],
+	);
 
 	const pickDirectory = async (repo: string) => {
 		setPickingRepo(repo);
@@ -223,8 +359,7 @@ export default function SettingsPanel() {
 			if (path) {
 				setLocalPaths((prev) => ({ ...prev, [repo]: path }));
 				savePath(repo, path);
-				setToastMessage(t('pathSaved'));
-				setToast(true);
+				showToast(t('pathSaved'));
 			}
 		} finally {
 			setPickingRepo(null);
@@ -232,6 +367,7 @@ export default function SettingsPanel() {
 	};
 
 	const totalProjects = orgProjects.reduce((sum, o) => sum + o.projects.length, 0);
+	const totalConfigured = configs.filter((c) => c.selectedViews.length > 0).length;
 
 	return (
 		<Box>
@@ -256,14 +392,22 @@ export default function SettingsPanel() {
 						<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
 							<GitHubIcon sx={{ color: 'text.secondary' }} />
 							<Typography variant="h6" sx={{ fontWeight: 600 }}>
-								Vues de projet GitHub
+								Projets GitHub
 							</Typography>
+							{totalConfigured > 0 && (
+								<Chip
+									label={`${totalConfigured} configuré${totalConfigured > 1 ? 's' : ''}`}
+									size="small"
+									color="primary"
+									variant="outlined"
+									sx={{ fontSize: '0.75rem' }}
+								/>
+							)}
 						</Box>
 					</AccordionSummary>
 					<AccordionDetails sx={{ pt: 0 }}>
-						<Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-							Sélectionnez un projet de vos organisations pour filtrer les données
-							par vue.
+						<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+							Sélectionnez les vues à afficher dans le kanban pour chaque projet.
 						</Typography>
 
 						{error && (
@@ -273,146 +417,60 @@ export default function SettingsPanel() {
 						)}
 
 						{loadingProjects && (
-							<Skeleton
-								variant="rounded"
-								height={40}
-								sx={{ borderRadius: 1, mb: 2.5 }}
-							/>
+							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+								<Skeleton variant="rounded" height={48} sx={{ borderRadius: 1 }} />
+								<Skeleton variant="rounded" height={48} sx={{ borderRadius: 1 }} />
+							</Box>
 						)}
 
 						{!loadingProjects && totalProjects === 0 && !error && (
 							<Alert severity="info" sx={{ mb: 2, borderRadius: 1 }}>
-								Aucun projet trouvé dans vos organisations.
+								Aucun projet trouvé.
 							</Alert>
 						)}
 
 						{!loadingProjects && totalProjects > 0 && (
-							<FormControl fullWidth size="small" sx={{ mb: 2.5 }}>
-								<InputLabel>Projet</InputLabel>
-								<Select
-									value={selectedKey}
-									label="Projet"
-									onChange={(e) => handleProjectChange(e.target.value)}
-								>
-									{orgProjects.map((o) => [
-										<ListSubheader
-											key={`header-${o.org}`}
-											sx={{ bgcolor: 'background.paper' }}
-										>
-											{o.org}
-										</ListSubheader>,
-										...o.projects.map((p) => (
-											<MenuItem key={p.id} value={`${o.org}/${p.number}`}>
-												{p.title}
-											</MenuItem>
-										)),
-									])}
-								</Select>
-							</FormControl>
-						)}
-
-						{loadingViews && (
-							<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-								<CircularProgress size={20} />
-								<Typography variant="body2" color="text.secondary">
-									Chargement des vues et éléments...
-								</Typography>
-							</Box>
-						)}
-
-						{viewsData && viewsData.views.length > 0 && (
-							<Box sx={{ mb: 2.5 }}>
-								<Box
-									sx={{
-										display: 'flex',
-										alignItems: 'center',
-										justifyContent: 'space-between',
-										mb: 1,
-									}}
-								>
-									<Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-										Vues
-									</Typography>
-									<Tooltip title="Rafraîchir les vues depuis GitHub">
-										<IconButton
-											size="small"
-											onClick={() => {
-												const [org, numStr] = selectedKey.split('/');
-												if (org && numStr)
-													loadProjectViews(org, parseInt(numStr, 10));
-											}}
-											disabled={loadingViews || !selectedKey}
-											sx={{
-												color: 'text.secondary',
-												animation: loadingViews
-													? 'spin 1s linear infinite'
-													: 'none',
-												'@keyframes spin': {
-													from: { transform: 'rotate(0deg)' },
-													to: { transform: 'rotate(360deg)' },
-												},
-											}}
-										>
-											<RefreshRoundedIcon fontSize="small" />
-										</IconButton>
-									</Tooltip>
-								</Box>
-								{viewsData.views.map((view) => {
-									const mapping = viewsData.viewRepoMappings.find(
-										(m) => m.viewName === view.name,
-									);
-									const repoCount = mapping?.repos.length ?? 0;
-									return (
-										<Box
-											key={view.id}
-											sx={{
-												display: 'flex',
-												alignItems: 'center',
-												gap: 1,
-												py: 0.5,
-												px: 1,
-												borderRadius: 1,
-												'&:hover': {
-													bgcolor: (t) =>
-														alpha(t.palette.primary.main, 0.04),
-												},
-											}}
-										>
-											<FormControlLabel
-												control={
-													<Checkbox
-														checked={selectedViews.has(view.name)}
-														onChange={() => toggleView(view.name)}
-														size="small"
-													/>
-												}
-												label={view.name}
-												sx={{ flex: 1, mr: 0 }}
-											/>
-											<Chip
-												label={`${repoCount} dépôt${repoCount !== 1 ? 's' : ''}`}
-												size="small"
-												variant="outlined"
-												sx={{ fontSize: '0.75rem' }}
-											/>
+							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+								{orgProjects.map((o) => (
+									<Box key={o.org}>
+										{orgProjects.length > 1 && (
+											<Typography
+												variant="overline"
+												color="text.secondary"
+												sx={{ display: 'block', mb: 0.5, ml: 0.5 }}
+											>
+												{o.org}{o.ownerType === 'user' ? ' (personnel)' : ''}
+											</Typography>
+										)}
+										<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+											{o.projects.map((p) => (
+												<ProjectAccordion
+													key={p.id}
+													project={p}
+													org={o.org}
+													ownerType={o.ownerType}
+													savedConfig={findSavedConfig(o.org, p.number)}
+													onSave={saveConfig}
+													onToast={showToast}
+												/>
+											))}
 										</Box>
-									);
-								})}
-							</Box>
-						)}
+									</Box>
+								))}
 
-						{(viewsData || config) && (
-							<Box sx={{ display: 'flex', gap: 1.5 }}>
-								<Button
-									variant="contained"
-									onClick={handleSave}
-									disabled={!viewsData || selectedViews.size === 0}
-								>
-									{tc('save')}
-								</Button>
-								<Button variant="outlined" color="secondary" onClick={handleClear}>
-									Effacer
-								</Button>
+								{totalConfigured > 0 && (
+									<Box sx={{ mt: 1 }}>
+										<Button
+											variant="outlined"
+											color="error"
+											size="small"
+											onClick={clearConfig}
+											sx={{ textTransform: 'none' }}
+										>
+											Tout effacer
+										</Button>
+									</Box>
+								)}
 							</Box>
 						)}
 					</AccordionDetails>
@@ -510,15 +568,13 @@ export default function SettingsPanel() {
 									const { path } = await res.json();
 									if (path) {
 										const name = path.split('/').filter(Boolean).pop() || path;
-										// Prompt for repo name
 										const repoName = window.prompt(
 											'Repository name (e.g. owner/repo):',
 											name,
 										);
 										if (repoName?.trim()) {
 											savePath(repoName.trim(), path);
-											setToastMessage(t('pathSaved'));
-											setToast(true);
+											showToast(t('pathSaved'));
 										}
 									}
 								} finally {
@@ -544,7 +600,7 @@ export default function SettingsPanel() {
 
 			<Snackbar
 				open={toast}
-				autoHideDuration={3000}
+				autoHideDuration={2000}
 				onClose={() => setToast(false)}
 				anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
 			>

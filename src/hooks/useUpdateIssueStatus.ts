@@ -7,6 +7,7 @@ interface UpdateStatusParams {
 	newStatus: string;
 	org: string;
 	projectNumber: number;
+	ownerType?: 'organization' | 'user';
 }
 
 const DASHBOARD_KEY_PREFIX = ['github', 'dashboard'];

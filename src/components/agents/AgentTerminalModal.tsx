@@ -72,7 +72,14 @@ function buildBranchNameFallback(issueContext: IssueContext): string {
 		.replace(/^-|-$/g, '')
 		.slice(0, 40);
 
-	return `${prefix}/${issueContext.issueNumber}-${slug}`;
+	// Timestamp suffix (MMDD + 1 random char) pour garantir l'unicité
+	const now = new Date();
+	const mm = String(now.getMonth() + 1).padStart(2, '0');
+	const dd = String(now.getDate()).padStart(2, '0');
+	const rand = Math.random().toString(36).charAt(2);
+	const suffix = `${mm}${dd}${rand}`;
+
+	return `${prefix}/${issueContext.issueNumber}-${slug}-${suffix}`;
 }
 
 async function generateBranchName(issueContext: IssueContext): Promise<string> {
@@ -186,6 +193,7 @@ export default function AgentTerminalModal({
 	const [activeTab, setActiveTab] = useState(0);
 	const [termTabOrder, setTermTabOrder] = useState<string[] | null>(null);
 	const [isStreaming, setIsStreaming] = useState(false);
+	// worktreePath is no longer managed by us — Claude handles it via --worktree
 	const isStreamingRef = useRef(false);
 	const terminalRef = useRef<Terminal | null>(null);
 	const wsRef = useRef<WebSocket | null>(null);
@@ -231,9 +239,7 @@ export default function AgentTerminalModal({
 	}
 	const sessionId = existingSessionId ?? generatedIdRef.current ?? '';
 
-	const { session, logs, ensureSession } = useAgentSession(
-		open ? sessionId : undefined,
-	);
+	const { session, logs, ensureSession } = useAgentSession(open ? sessionId : undefined);
 	const overlay = useOverlayTerminal();
 
 	const handlePip = useCallback(() => {
@@ -283,6 +289,30 @@ export default function AgentTerminalModal({
 			shellInitialized.current = false;
 		}
 	}, [open]);
+
+	// Compute branch name once (stable across renders)
+	const branchRef = useRef<string | null>(null);
+	if (open && !branchRef.current) {
+		if (issueContext) {
+			branchRef.current = buildBranchName(issueContext);
+		} else {
+			const now = new Date();
+			const ts = [
+				now.getFullYear(),
+				String(now.getMonth() + 1).padStart(2, '0'),
+				String(now.getDate()).padStart(2, '0'),
+				'-',
+				String(now.getHours()).padStart(2, '0'),
+				String(now.getMinutes()).padStart(2, '0'),
+				String(now.getSeconds()).padStart(2, '0'),
+			].join('');
+			branchRef.current = `tmp/${ts}`;
+		}
+	}
+	if (!open) {
+		branchRef.current = null;
+	}
+	const branch = branchRef.current;
 
 	// Ensure DB session exists — only for NEW sessions (not viewing existing ones from sidebar)
 	const isNewSession = !existingSessionId;
@@ -468,6 +498,7 @@ export default function AgentTerminalModal({
 					if (msg.type === 'init-ack') {
 						setResumed(msg.resumed);
 						if (!msg.resumed && !isReopen) {
+							// Create branch then launch Claude with --worktree
 							const reporting = buildReportingPrompt(sessionId);
 							const basePrompt = agentFile ? agentFile.content : '';
 							const fullPrompt = basePrompt + reporting;
@@ -940,7 +971,7 @@ export default function AgentTerminalModal({
 				<Box sx={{ flex: 1, overflow: 'hidden' }}>
 					<AgentDiffTab
 						projectPath={projectPath ?? null}
-						branch={session?.branch ?? null}
+						branch={session?.branch ?? branch}
 					/>
 				</Box>
 			)}

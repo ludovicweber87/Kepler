@@ -27,11 +27,16 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		const { data: config } = await supabase
+		// Find the project config that contains this repo in its view_repo_mappings
+		const repoFullName = `${owner}/${repo}`;
+		const { data: allConfigs } = await supabase
 			.from('project_configs')
-			.select('org, project_number')
-			.limit(1)
-			.single();
+			.select('org, project_number, view_repo_mappings');
+
+		const config = allConfigs?.find((c) => {
+			const mappings = c.view_repo_mappings as { repos?: string[] }[] | null;
+			return mappings?.some((m) => m.repos?.includes(repoFullName));
+		}) ?? allConfigs?.[0];
 
 		if (!config) {
 			return NextResponse.json({ error: 'No project config found' }, { status: 404 });

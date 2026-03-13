@@ -17,6 +17,8 @@ function findTmux(): string {
 
 const TMUX = findTmux();
 
+// ── Message types ──
+
 interface InitMessage {
 	type: 'init';
 	sessionId: string;

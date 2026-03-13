@@ -9,6 +9,7 @@ export interface AgentSession {
 	project_path: string;
 	project_name: string;
 	branch: string | null;
+	worktree_path: string | null;
 	agent_name: string | null;
 	status: 'active' | 'completed' | 'error';
 	started_at: string;

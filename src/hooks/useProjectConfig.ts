@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { supabase } from '@/lib/supabase';
@@ -47,20 +47,23 @@ function configToRow(config: ProjectV2Config) {
 	};
 }
 
-async function fetchConfig(userId: string): Promise<ProjectV2Config | null> {
+async function fetchConfigs(userId: string): Promise<ProjectV2Config[]> {
 	const { data, error } = await supabase
 		.from('project_configs')
 		.select('*')
-		.eq('user_id', userId)
-		.limit(1)
-		.single();
+		.eq('user_id', userId);
 
-	if (error) {
-		if (error.code === 'PGRST116') return null; // no rows
-		throw error;
-	}
+	if (error) throw error;
+	if (!data || data.length === 0) return [];
 
-	return rowToConfig(data as ProjectConfigRow);
+	return (data as ProjectConfigRow[]).map(rowToConfig);
+}
+
+/** Find the config that owns a given repo based on viewRepoMappings */
+function findConfigForRepo(configs: ProjectV2Config[], repoFullName: string): ProjectV2Config | undefined {
+	return configs.find((c) =>
+		c.viewRepoMappings.some((m) => m.repos.includes(repoFullName)),
+	);
 }
 
 export function useProjectConfig() {
@@ -68,26 +71,55 @@ export function useProjectConfig() {
 	const { data: session } = useSession();
 	const userId = session?.user?.id ?? null;
 
-	const { data: config = null } = useQuery({
+	const { data: configs = [] } = useQuery({
 		queryKey: QUERY_KEY,
-		queryFn: () => fetchConfig(userId!),
+		queryFn: () => fetchConfigs(userId!),
 		enabled: !!userId,
 	});
+
+	// Backward compat: expose first config as `config` for consumers that need a single one
+	const config = configs.length > 0 ? configs[0] : null;
 
 	const saveMutation = useMutation({
 		mutationFn: async (newConfig: ProjectV2Config) => {
 			const row = configToRow(newConfig);
-			const { error } = await supabase
+			// Check if row exists for this user + project combo
+			const { data: existing } = await supabase
 				.from('project_configs')
-				.upsert({ ...row, user_id: userId }, { onConflict: 'user_id,org,project_number' });
-			if (error) throw error;
+				.select('id')
+				.eq('user_id', userId)
+				.eq('org', newConfig.org)
+				.eq('project_number', newConfig.projectNumber)
+				.maybeSingle();
+
+			if (existing) {
+				const { error } = await supabase
+					.from('project_configs')
+					.update(row)
+					.eq('id', existing.id);
+				if (error) throw error;
+			} else {
+				const { error } = await supabase
+					.from('project_configs')
+					.insert({ ...row, user_id: userId });
+				if (error) throw error;
+			}
 		},
 		onMutate: async (newConfig) => {
 			await queryClient.cancelQueries({ queryKey: QUERY_KEY });
-			queryClient.setQueryData(QUERY_KEY, newConfig);
+			const previous = queryClient.getQueryData<ProjectV2Config[]>(QUERY_KEY) ?? [];
+			const key = `${newConfig.org}/${newConfig.projectNumber}`;
+			const exists = previous.some((c) => `${c.org}/${c.projectNumber}` === key);
+			const updated = exists
+				? previous.map((c) => (`${c.org}/${c.projectNumber}` === key ? newConfig : c))
+				: [...previous, newConfig];
+			queryClient.setQueryData(QUERY_KEY, updated);
+			return { previous };
 		},
-		onError: () => {
-			queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+		onError: (_err, _newConfig, context) => {
+			if (context?.previous) {
+				queryClient.setQueryData(QUERY_KEY, context.previous);
+			}
 		},
 	});
 
@@ -96,94 +128,144 @@ export function useProjectConfig() {
 		[saveMutation],
 	);
 
+	const removeConfig = useCallback(
+		async (org: string, projectNumber: number) => {
+			await supabase
+				.from('project_configs')
+				.delete()
+				.eq('user_id', userId)
+				.eq('org', org)
+				.eq('project_number', projectNumber);
+			const previous = queryClient.getQueryData<ProjectV2Config[]>(QUERY_KEY) ?? [];
+			queryClient.setQueryData(
+				QUERY_KEY,
+				previous.filter((c) => !(c.org === org && c.projectNumber === projectNumber)),
+			);
+		},
+		[userId, queryClient],
+	);
+
 	const clearConfig = useCallback(() => {
 		supabase
 			.from('project_configs')
 			.delete()
-			.not('id', 'is', null)
-			.then(() => queryClient.setQueryData(QUERY_KEY, null));
-	}, [queryClient]);
+			.eq('user_id', userId)
+			.then(() => queryClient.setQueryData(QUERY_KEY, []));
+	}, [userId, queryClient]);
 
 	const setActiveView = useCallback(
 		(viewName: string | null) => {
-			if (!config) return;
-			saveMutation.mutate({ ...config, activeView: viewName });
+			// Find which config contains this view
+			const target = configs.find((c) =>
+				c.selectedViews.includes(viewName ?? ''),
+			) ?? configs[0];
+			if (!target) return;
+			saveMutation.mutate({ ...target, activeView: viewName });
 		},
-		[config, saveMutation],
+		[configs, saveMutation],
 	);
 
 	const reorderViews = useCallback(
 		(orderedNames: string[]) => {
-			if (!config) return;
-			saveMutation.mutate({ ...config, viewOrder: orderedNames });
+			// Reorder affects all configs — distribute view names back to their owning configs
+			for (const c of configs) {
+				const relevant = orderedNames.filter((n) => c.selectedViews.includes(n));
+				if (relevant.length > 0) {
+					saveMutation.mutate({ ...c, viewOrder: relevant });
+				}
+			}
 		},
-		[config, saveMutation],
+		[configs, saveMutation],
 	);
 
 	const getViewRepos = useCallback(
 		(viewName: string): string[] | undefined => {
-			if (!config) return undefined;
-			const mapping = config.viewRepoMappings.find(
-				(m: ViewRepoMapping) => m.viewName === viewName,
-			);
-			return mapping?.repos;
+			for (const c of configs) {
+				const mapping = c.viewRepoMappings.find(
+					(m: ViewRepoMapping) => m.viewName === viewName,
+				);
+				if (mapping) return mapping.repos;
+			}
+			return undefined;
 		},
-		[config],
+		[configs],
 	);
 
+	// Aggregate selectedViewMappings from all configs
 	const selectedViewMappings = (() => {
-		if (!config) return [];
-		const all = config.viewRepoMappings.filter((m: ViewRepoMapping) =>
-			config.selectedViews.includes(m.viewName),
-		);
-		const order = config.viewOrder;
-		if (!order?.length) return all;
+		const all: ViewRepoMapping[] = [];
+		const allOrders: string[] = [];
+
+		for (const c of configs) {
+			const selected = c.viewRepoMappings.filter((m: ViewRepoMapping) =>
+				c.selectedViews.includes(m.viewName),
+			);
+			all.push(...selected);
+			if (c.viewOrder?.length) {
+				allOrders.push(...c.viewOrder);
+			}
+		}
+
+		if (allOrders.length === 0) return all;
+
 		const byName = new Map(all.map((m) => [m.viewName, m]));
-		const ordered = order.filter((n) => byName.has(n)).map((n) => byName.get(n)!);
+		const ordered = allOrders.filter((n) => byName.has(n)).map((n) => byName.get(n)!);
 		for (const m of all) {
-			if (!order.includes(m.viewName)) ordered.push(m);
+			if (!allOrders.includes(m.viewName)) ordered.push(m);
 		}
 		return ordered;
 	})();
 
-	// Background sync: re-fetch Project V2 data from GitHub and update mappings
+	// Background sync: re-fetch Project V2 data from GitHub for all configs
 	const syncingRef = useRef(false);
 	const syncViews = useCallback(async () => {
-		if (!config || syncingRef.current) return;
+		if (configs.length === 0 || syncingRef.current) return;
 		syncingRef.current = true;
 		try {
 			const { apiFetch } = await import('@/lib/api-fetch');
-			const res = await apiFetch(
-				`/api/github/projects?org=${config.org}&projectNumber=${config.projectNumber}`,
-			);
-			if (!res.ok) return;
-			const data = await res.json();
-			const newMappings: ViewRepoMapping[] = data.viewRepoMappings ?? [];
-			const newViews: ProjectV2View[] = data.views ?? [];
-			const newStatusColumns: string[] = data.statusColumns ?? config.statusColumns;
+			for (const c of configs) {
+				const res = await apiFetch(
+					`/api/github/projects?org=${c.org}&projectNumber=${c.projectNumber}&ownerType=${c.ownerType ?? 'organization'}`,
+				);
+				if (!res.ok) continue;
+				const data = await res.json();
+				const newMappings: ViewRepoMapping[] = data.viewRepoMappings ?? [];
+				const newViews: ProjectV2View[] = data.views ?? [];
+				const newStatusColumns: string[] = data.statusColumns ?? c.statusColumns;
 
-			// Merge: keep user settings, update GitHub data
-			saveMutation.mutate({
-				...config,
-				viewRepoMappings: newMappings,
-				views: newViews,
-				statusColumns: newStatusColumns,
-			});
+				saveMutation.mutate({
+					...c,
+					viewRepoMappings: newMappings,
+					views: newViews,
+					statusColumns: newStatusColumns,
+				});
+			}
 		} catch {
 			// Sync failed silently — stale data is still usable
 		} finally {
 			syncingRef.current = false;
 		}
-	}, [config, saveMutation]);
+	}, [configs, saveMutation]);
+
+	/** Find the config that owns a repo (for status mutations) */
+	const getConfigForRepo = useCallback(
+		(repoFullName: string): ProjectV2Config | undefined => {
+			return findConfigForRepo(configs, repoFullName);
+		},
+		[configs],
+	);
 
 	return {
 		config,
+		configs,
 		saveConfig,
+		removeConfig,
 		clearConfig,
 		setActiveView,
 		reorderViews,
 		getViewRepos,
 		selectedViewMappings,
 		syncViews,
+		getConfigForRepo,
 	};
 }
