@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import Box from '@mui/material/Box';
@@ -183,7 +184,9 @@ export default function AgentTerminalModal({
 	const projectPath = projectPathProp ?? resolvedPath;
 
 	// Worktree management
-	const { createWorktree, isCreating, deleteWorktree, isDeleting } = useWorktrees(projectPath ?? undefined);
+	const { createWorktree, isCreating, deleteWorktree, isDeleting } = useWorktrees(
+		projectPath ?? undefined,
+	);
 
 	const generatedIdRef = useRef<string | null>(null);
 	if (open && !existingSessionId && !generatedIdRef.current) {
@@ -195,6 +198,7 @@ export default function AgentTerminalModal({
 	const sessionId = existingSessionId ?? generatedIdRef.current ?? '';
 
 	const { session, logs, ensureSession } = useAgentSession(open ? sessionId : undefined);
+	const queryClient = useQueryClient();
 	const overlay = useOverlayTerminal();
 
 	// Effective working path: worktree path when available, else projectPath
@@ -274,7 +278,8 @@ export default function AgentTerminalModal({
 				sessionId,
 				projectPath,
 				projectName,
-				agentName: agentFile?.name ?? (issueContext ? `#${issueContext.issueNumber}` : null),
+				agentName:
+					agentFile?.name ?? (issueContext ? `#${issueContext.issueNumber}` : null),
 				branch: branchInput.trim(),
 				worktreePath: result.worktreePath,
 				issueOwner: issueContext?.owner ?? null,
@@ -285,9 +290,19 @@ export default function AgentTerminalModal({
 
 			setStep('terminal');
 		} catch (err) {
-			setWorktreeError(err instanceof Error ? err.message : 'Erreur lors de la création du worktree');
+			setWorktreeError(
+				err instanceof Error ? err.message : 'Erreur lors de la création du worktree',
+			);
 		}
-	}, [branchInput, projectPath, createWorktree, sessionId, agentFile, issueContext, ensureSession]);
+	}, [
+		branchInput,
+		projectPath,
+		createWorktree,
+		sessionId,
+		agentFile,
+		issueContext,
+		ensureSession,
+	]);
 
 	// Handle worktree deletion
 	const handleDeleteWorktree = useCallback(() => {
@@ -548,15 +563,7 @@ export default function AgentTerminalModal({
 			setIsStreaming(false);
 			readyRef.current = false;
 		};
-	}, [
-		open,
-		worktreePath,
-		projectPath,
-		agentFile,
-		termNode,
-		sessionId,
-		terminalEnabled,
-	]);
+	}, [open, worktreePath, projectPath, agentFile, termNode, sessionId, terminalEnabled]);
 
 	// Plain shell terminal — lazy init, uses worktree path
 	useEffect(() => {
@@ -873,9 +880,12 @@ export default function AgentTerminalModal({
 					<Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
 						Nom de la branche
 					</Typography>
-					<Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'center', maxWidth: 450 }}>
-						Un worktree isolé sera créé dans <code>.worktrees/</code> pour cette session.
-						Tous les changements resteront dans ce worktree.
+					<Typography
+						variant="body2"
+						sx={{ color: 'text.secondary', textAlign: 'center', maxWidth: 450 }}
+					>
+						Un worktree isolé sera créé dans <code>.worktrees/</code> pour cette
+						session. Tous les changements resteront dans ce worktree.
 					</Typography>
 
 					<Box
@@ -913,7 +923,13 @@ export default function AgentTerminalModal({
 							type="submit"
 							variant="contained"
 							disabled={!branchInput.trim() || isCreating || !projectPath}
-							startIcon={isCreating ? <CircularProgress size={16} color="inherit" /> : <RocketLaunchRoundedIcon sx={{ fontSize: 18 }} />}
+							startIcon={
+								isCreating ? (
+									<CircularProgress size={16} color="inherit" />
+								) : (
+									<RocketLaunchRoundedIcon sx={{ fontSize: 18 }} />
+								)
+							}
 							sx={{
 								bgcolor: '#7C5CFF',
 								textTransform: 'none',
@@ -954,7 +970,13 @@ export default function AgentTerminalModal({
 						onTabChange={setActiveTab}
 						onReorder={setTermTabOrder}
 						mb={0}
-						sx={{ px: 2, py: 1, borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}
+						sx={{
+							px: 2,
+							py: 1,
+							borderBottom: 1,
+							borderColor: 'divider',
+							flexShrink: 0,
+						}}
 					/>
 
 					{/* Terminal panel */}
@@ -970,7 +992,10 @@ export default function AgentTerminalModal({
 							'& .xterm-viewport': {
 								overflowY: 'scroll !important',
 								'&::-webkit-scrollbar': { width: 6 },
-								'&::-webkit-scrollbar-thumb': { bgcolor: '#3A3A3A', borderRadius: 3 },
+								'&::-webkit-scrollbar-thumb': {
+									bgcolor: '#3A3A3A',
+									borderRadius: 3,
+								},
 							},
 						}}
 					>
@@ -1003,7 +1028,9 @@ export default function AgentTerminalModal({
 									gap: 2,
 								}}
 							>
-								<TerminalRoundedIcon sx={{ fontSize: 48, color: 'text.disabled' }} />
+								<TerminalRoundedIcon
+									sx={{ fontSize: 48, color: 'text.disabled' }}
+								/>
 								<Typography variant="body2" sx={{ color: 'text.secondary' }}>
 									Session terminée
 								</Typography>
@@ -1019,7 +1046,11 @@ export default function AgentTerminalModal({
 					{/* Activity panel */}
 					{activeTabKey === 'activity' && (
 						<Box sx={{ flex: 1, overflow: 'hidden' }}>
-							<AgentActivityTab session={session} logs={logs} isStreaming={isStreaming} />
+							<AgentActivityTab
+								session={session}
+								logs={logs}
+								isStreaming={isStreaming}
+							/>
 						</Box>
 					)}
 
@@ -1027,7 +1058,9 @@ export default function AgentTerminalModal({
 					{activeTabKey === 'diff' && (
 						<Box sx={{ flex: 1, overflow: 'hidden' }}>
 							<AgentDiffTab
-								projectPath={session?.worktree_path ?? worktreePath ?? projectPath ?? null}
+								projectPath={
+									session?.worktree_path ?? worktreePath ?? projectPath ?? null
+								}
 								branch={session?.branch ?? branchInput ?? null}
 							/>
 						</Box>
@@ -1046,7 +1079,10 @@ export default function AgentTerminalModal({
 							'& .xterm-viewport': {
 								overflowY: 'scroll !important',
 								'&::-webkit-scrollbar': { width: 6 },
-								'&::-webkit-scrollbar-thumb': { bgcolor: '#3A3A3A', borderRadius: 3 },
+								'&::-webkit-scrollbar-thumb': {
+									bgcolor: '#3A3A3A',
+									borderRadius: 3,
+								},
 							},
 						}}
 					>

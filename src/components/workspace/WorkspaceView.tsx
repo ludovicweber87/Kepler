@@ -16,25 +16,25 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
-import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
-import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
 import DraggableTabs from '@/components/shared/DraggableTabs';
 import { useAgentViews } from '@/hooks/useAgentViews';
 import { useWorktrees, type WorktreeInfo } from '@/hooks/useWorktrees';
+import { useActiveSessions } from '@/hooks/useActiveSessions';
 import AgentTerminalModal from '@/components/agents/AgentTerminalModal';
 
 function WorktreeCard({
 	worktree,
+	onClick,
 	onDelete,
-	onStartAgent,
 }: {
 	worktree: WorktreeInfo;
+	onClick: () => void;
 	onDelete: () => void;
-	onStartAgent: () => void;
 }) {
 	return (
 		<Box
+			onClick={onClick}
 			sx={{
 				p: 2,
 				borderRadius: 1,
@@ -42,6 +42,7 @@ function WorktreeCard({
 				border: 1,
 				borderColor: 'divider',
 				transition: 'all 0.15s',
+				cursor: 'pointer',
 				'&:hover': {
 					bgcolor: 'action.hover',
 					borderColor: 'action.disabled',
@@ -64,22 +65,13 @@ function WorktreeCard({
 				>
 					{worktree.branch}
 				</Typography>
-				<Tooltip title="Start Agent">
-					<IconButton
-						size="small"
-						onClick={onStartAgent}
-						sx={{
-							color: '#7C5CFF',
-							'&:hover': { bgcolor: alpha('#7C5CFF', 0.1) },
-						}}
-					>
-						<PlayArrowRoundedIcon fontSize="small" />
-					</IconButton>
-				</Tooltip>
 				<Tooltip title="Delete worktree">
 					<IconButton
 						size="small"
-						onClick={onDelete}
+						onClick={(e) => {
+							e.stopPropagation();
+							onDelete();
+						}}
 						sx={{
 							color: 'text.disabled',
 							'&:hover': { color: '#EF4444', bgcolor: alpha('#EF4444', 0.1) },
@@ -112,11 +104,23 @@ function WorktreeCard({
 export default function WorkspaceView() {
 	const { views, activeIndex, setActiveIndex, addView, reorderViews } = useAgentViews();
 	const [deleteTarget, setDeleteTarget] = useState<WorktreeInfo | null>(null);
-	const [terminalWorktree, setTerminalWorktree] = useState<WorktreeInfo | null>(null);
-	const [newAgentOpen, setNewAgentOpen] = useState(false);
+	const [selectedWorktree, setSelectedWorktree] = useState<{
+		worktree: WorktreeInfo;
+		existingSessionId?: string;
+	} | null>(null);
 
 	const activeView = views[activeIndex] ?? null;
 	const { worktrees, isLoading, deleteWorktree } = useWorktrees(activeView?.path);
+	const { data: activeSessions } = useActiveSessions();
+
+	const handleWorktreeClick = (wt: WorktreeInfo) => {
+		// Find active session whose cwd matches this worktree path
+		const session = activeSessions?.find((s) => s.cwd === wt.path);
+		setSelectedWorktree({
+			worktree: wt,
+			existingSessionId: session?.sessionId,
+		});
+	};
 
 	const handleConfirmDelete = () => {
 		if (deleteTarget) {
@@ -275,8 +279,8 @@ export default function WorkspaceView() {
 						<WorktreeCard
 							key={wt.path}
 							worktree={wt}
+							onClick={() => handleWorktreeClick(wt)}
 							onDelete={() => setDeleteTarget(wt)}
-							onStartAgent={() => setTerminalWorktree(wt)}
 						/>
 					))}
 				</Box>
@@ -316,21 +320,10 @@ export default function WorkspaceView() {
 
 			{/* Agent terminal modal — existing worktree */}
 			<AgentTerminalModal
-				open={!!terminalWorktree}
-				onClose={() => setTerminalWorktree(null)}
-				projectPath={terminalWorktree?.path}
-				existingWorktree={
-					terminalWorktree
-						? { branch: terminalWorktree.branch, worktreePath: terminalWorktree.path }
-						: undefined
-				}
-			/>
-
-			{/* Agent terminal modal — new agent (creates worktree) */}
-			<AgentTerminalModal
-				open={newAgentOpen}
-				onClose={() => setNewAgentOpen(false)}
-				projectPath={activeView?.path}
+				open={!!selectedWorktree}
+				onClose={() => setSelectedWorktree(null)}
+				projectPath={selectedWorktree?.worktree.path}
+				existingSessionId={selectedWorktree?.existingSessionId}
 			/>
 		</Box>
 	);
