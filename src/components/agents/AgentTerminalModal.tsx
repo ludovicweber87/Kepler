@@ -202,7 +202,16 @@ export default function AgentTerminalModal({
 	const overlay = useOverlayTerminal();
 
 	// Effective working path: worktree path when available, else projectPath
-	const effectivePath = worktreePath ?? session?.worktree_path ?? projectPath;
+	// For past sessions without worktree_path in DB, derive from projectPath + branch
+	const effectivePath = useMemo(() => {
+		if (worktreePath) return worktreePath;
+		if (session?.worktree_path) return session.worktree_path;
+		if (projectPath && session?.branch && session.branch !== 'main' && session.branch !== 'master') {
+			return `${projectPath}/.worktrees/${session.branch}`;
+		}
+		if (projectPath && existingWorktree?.worktreePath) return existingWorktree.worktreePath;
+		return projectPath;
+	}, [worktreePath, session?.worktree_path, session?.branch, projectPath, existingWorktree?.worktreePath]);
 
 	const handlePip = useCallback(() => {
 		if (!sessionId || !effectivePath) return;
