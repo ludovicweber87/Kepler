@@ -56,7 +56,7 @@ interface AgentTerminalModalProps {
 	isPastSession?: boolean;
 }
 
-function buildBranchName(issueContext: IssueContext): string {
+function buildBranchNameFallback(issueContext: IssueContext): string {
 	const labels = (issueContext.labels ?? []).map((l) => l.toLowerCase());
 	let prefix = 'feat';
 	if (labels.some((l) => l.includes('bug') || l.includes('fix'))) prefix = 'fix';
@@ -70,7 +70,7 @@ function buildBranchName(issueContext: IssueContext): string {
 		.toLowerCase()
 		.replace(/[^a-z0-9]+/g, '-')
 		.replace(/^-|-$/g, '')
-		.slice(0, 50);
+		.slice(0, 40);
 
 	// Timestamp suffix (MMDD + 1 random char) pour garantir l'unicité
 	const now = new Date();
@@ -80,6 +80,26 @@ function buildBranchName(issueContext: IssueContext): string {
 	const suffix = `${mm}${dd}${rand}`;
 
 	return `${prefix}/${issueContext.issueNumber}-${slug}-${suffix}`;
+}
+
+async function generateBranchName(issueContext: IssueContext): Promise<string> {
+	try {
+		const res = await fetch('/api/git/generate-branch-name', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				issueTitle: issueContext.issueTitle,
+				issueNumber: issueContext.issueNumber,
+				labels: issueContext.labels,
+			}),
+		});
+		if (!res.ok) throw new Error(`API error ${res.status}`);
+		const { branchName } = await res.json();
+		if (!branchName) throw new Error('Empty branch name');
+		return branchName;
+	} catch {
+		return buildBranchNameFallback(issueContext);
+	}
 }
 
 function buildSessionId(
@@ -193,6 +213,22 @@ export default function AgentTerminalModal({
 	const [resolvedPath, setResolvedPath] = useState<string | null>(null);
 	const [picking, setPicking] = useState(false);
 
+	// AI-generated branch name
+	const [branchName, setBranchName] = useState<string | null>(null);
+	useEffect(() => {
+		if (!open || !issueContext) {
+			setBranchName(null);
+			return;
+		}
+		let cancelled = false;
+		generateBranchName(issueContext).then((name) => {
+			if (!cancelled) setBranchName(name);
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, [open, issueContext]);
+
 	const projectPath = projectPathProp ?? resolvedPath;
 	const generatedIdRef = useRef<string | null>(null);
 	if (open && !existingSessionId && !generatedIdRef.current) {
@@ -282,28 +318,21 @@ export default function AgentTerminalModal({
 	const isNewSession = !existingSessionId;
 	useEffect(() => {
 		if (!open || !projectPath || !sessionId || !isNewSession) return;
+		// Wait for branch name to be generated when launching from an issue
+		if (issueContext && !branchName) return;
 		const projectName = projectPath.split('/').filter(Boolean).pop() ?? 'unknown';
 		ensureSession({
 			sessionId,
 			projectPath,
 			projectName,
 			agentName: agentFile?.name ?? (issueContext ? `#${issueContext.issueNumber}` : null),
-			branch,
+			branch: branchName ?? null,
 			issueOwner: issueContext?.owner ?? null,
 			issueRepo: issueContext?.repo ?? null,
 			issueNumber: issueContext?.issueNumber ?? null,
 			issueTitle: issueContext?.issueTitle ?? null,
 		});
-	}, [
-		open,
-		sessionId,
-		projectPath,
-		agentFile,
-		issueContext,
-		ensureSession,
-		isNewSession,
-		branch,
-	]);
+	}, [open, sessionId, projectPath, agentFile, issueContext, branchName, ensureSession, isNewSession]);
 
 	// Build draggable terminal tabs
 	const hasIssue = !!(issueContext || session?.issue_number);
@@ -391,6 +420,8 @@ export default function AgentTerminalModal({
 
 	useEffect(() => {
 		if (!open || !projectPath || !termNode || !terminalEnabled) return;
+		// Wait for AI-generated branch name before connecting terminal
+		if (issueContext && !branchName) return;
 
 		setResumed(false);
 
@@ -472,14 +503,23 @@ export default function AgentTerminalModal({
 							const basePrompt = agentFile ? agentFile.content : '';
 							const fullPrompt = basePrompt + reporting;
 							const escaped = fullPrompt.replace(/'/g, "'\\''");
-							const branchCmd = branch
-								? `git checkout -b ${branch} 2>/dev/null; `
-								: '';
-							const claudeCmd = `unset CLAUDECODE CLAUDE_CODE_ENTRYPOINT && ${branchCmd}/opt/homebrew/bin/claude --worktree --system-prompt '${escaped}'\n`;
+							const claudeCmd = `unset CLAUDECODE CLAUDE_CODE_ENTRYPOINT && /opt/homebrew/bin/claude --system-prompt '${escaped}'\n`;
 
-							setTimeout(() => {
-								ws.send(JSON.stringify({ type: 'input', data: claudeCmd }));
-							}, 800);
+							if (issueContext && branchName) {
+								// Create branch + checkout, then start Claude
+								const gitCmd = `git checkout -b ${branchName} 2>/dev/null || git checkout ${branchName}\n`;
+								setTimeout(() => {
+									ws.send(JSON.stringify({ type: 'input', data: gitCmd }));
+									// Wait for git to finish, then launch Claude
+									setTimeout(() => {
+										ws.send(JSON.stringify({ type: 'input', data: claudeCmd }));
+									}, 1500);
+								}, 800);
+							} else {
+								setTimeout(() => {
+									ws.send(JSON.stringify({ type: 'input', data: claudeCmd }));
+								}, 800);
+							}
 						}
 						// Wait for initial buffer to flush before tracking streaming
 						setTimeout(() => {
@@ -566,7 +606,17 @@ export default function AgentTerminalModal({
 			setIsStreaming(false);
 			readyRef.current = false;
 		};
-	}, [open, projectPath, agentFile, termNode, sessionId, terminalEnabled, isPastSession]);
+	}, [
+		open,
+		projectPath,
+		agentFile,
+		termNode,
+		sessionId,
+		terminalEnabled,
+		isPastSession,
+		branchName,
+		issueContext,
+	]);
 
 	// Plain shell terminal (tab 2) — lazy init when tab is first selected
 	useEffect(() => {
