@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
@@ -21,11 +21,14 @@ import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
 import StopCircleRoundedIcon from '@mui/icons-material/StopCircleRounded';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
+import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded';
+import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded';
 import { useQueryClient } from '@tanstack/react-query';
 import DraggableTabs from '@/components/shared/DraggableTabs';
 import { useAgentViews } from '@/hooks/useAgentViews';
 import { useWorktrees, type WorktreeInfo } from '@/hooks/useWorktrees';
 import { useActiveSessions } from '@/hooks/useActiveSessions';
+import { useAgentSessionHistory, type AgentSession } from '@/hooks/useAgentSession';
 import { useDevServers } from '@/hooks/useDevServers';
 import AgentTerminalModal from '@/components/agents/AgentTerminalModal';
 
@@ -40,6 +43,7 @@ function WorktreeCard({
 	onDelete,
 	onStop,
 	hasActiveSession,
+	pastSession,
 	devServer,
 	onStartDevServer,
 	onStopDevServer,
@@ -50,31 +54,64 @@ function WorktreeCard({
 	onDelete: () => void;
 	onStop?: () => void;
 	hasActiveSession?: boolean;
+	pastSession?: AgentSession | null;
 	devServer: DevServerInfo | null;
 	onStartDevServer: () => void;
 	onStopDevServer: () => void;
 	isStartingServer?: boolean;
 }) {
+	const isFinished = !hasActiveSession && !!pastSession;
+	const isError = pastSession?.status === 'error';
+
+	// Border/bg styling based on state
+	const borderColor = hasActiveSession
+		? alpha('#22C55E', 0.25)
+		: isFinished
+			? alpha(isError ? '#EF4444' : '#9E9E9E', 0.2)
+			: 'divider';
+	const bgColor = hasActiveSession
+		? alpha('#22C55E', 0.04)
+		: isFinished
+			? alpha(isError ? '#EF4444' : '#9E9E9E', 0.04)
+			: 'background.paper';
+
 	return (
 		<Box
 			onClick={onClick}
 			sx={{
 				p: 2,
 				borderRadius: 1,
-				bgcolor: 'background.paper',
+				bgcolor: bgColor,
 				border: 1,
-				borderColor: 'divider',
+				borderColor,
 				transition: 'all 0.15s',
 				cursor: 'pointer',
 				'&:hover': {
-					bgcolor: 'action.hover',
-					borderColor: 'action.disabled',
+					bgcolor: hasActiveSession
+						? alpha('#22C55E', 0.08)
+						: isFinished
+							? alpha(isError ? '#EF4444' : '#9E9E9E', 0.08)
+							: 'action.hover',
+					borderColor: hasActiveSession
+						? alpha('#22C55E', 0.35)
+						: isFinished
+							? alpha(isError ? '#EF4444' : '#9E9E9E', 0.3)
+							: 'action.disabled',
 					transform: 'translateY(-1px)',
 				},
 			}}
 		>
 			<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.75 }}>
-				<AccountTreeRoundedIcon sx={{ fontSize: 16, color: '#7C5CFF' }} />
+				{/* Icon based on state */}
+				{isFinished ? (
+					isError ? (
+						<ErrorOutlineRoundedIcon sx={{ fontSize: 16, color: '#EF4444' }} />
+					) : (
+						<CheckCircleOutlineRoundedIcon sx={{ fontSize: 16, color: '#9E9E9E' }} />
+					)
+				) : (
+					<AccountTreeRoundedIcon sx={{ fontSize: 16, color: '#7C5CFF' }} />
+				)}
 				<Typography
 					variant="body2"
 					sx={{
@@ -84,66 +121,85 @@ function WorktreeCard({
 						overflow: 'hidden',
 						textOverflow: 'ellipsis',
 						whiteSpace: 'nowrap',
+						color: isFinished ? 'text.secondary' : 'text.primary',
 					}}
 				>
 					{worktree.branch}
 				</Typography>
 
-				{/* Dev server: start or open */}
-				{devServer ? (
+				{/* Agent name chip for finished sessions */}
+				{isFinished && pastSession?.agent_name && (
+					<Typography
+						variant="caption"
+						sx={{
+							color: 'text.disabled',
+							fontSize: '0.6rem',
+							fontWeight: 600,
+						}}
+					>
+						{pastSession.agent_name}
+					</Typography>
+				)}
+
+				{/* Dev server: start or open — hidden when session is finished */}
+				{!isFinished && (
 					<>
-						<Tooltip title={`Ouvrir localhost:${devServer.port}`}>
-							<IconButton
-								size="small"
-								onClick={(e) => {
-									e.stopPropagation();
-									window.open(`http://localhost:${devServer.port}`, '_blank');
-								}}
-								sx={{
-									color: '#22C55E',
-									'&:hover': { bgcolor: alpha('#22C55E', 0.1) },
-								}}
-							>
-								<OpenInNewRoundedIcon sx={{ fontSize: 18 }} />
-							</IconButton>
-						</Tooltip>
-						<Tooltip title="Arrêter le serveur de dev">
-							<IconButton
-								size="small"
-								onClick={(e) => {
-									e.stopPropagation();
-									onStopDevServer();
-								}}
-								sx={{
-									color: '#F59E0B',
-									'&:hover': { bgcolor: alpha('#F59E0B', 0.1) },
-								}}
-							>
-								<StopCircleRoundedIcon sx={{ fontSize: 18 }} />
-							</IconButton>
-						</Tooltip>
+						{devServer ? (
+							<>
+								<Tooltip title={`Ouvrir localhost:${devServer.port}`}>
+									<IconButton
+										size="small"
+										onClick={(e) => {
+											e.stopPropagation();
+											window.open(`http://localhost:${devServer.port}`, '_blank');
+										}}
+										sx={{
+											color: '#22C55E',
+											'&:hover': { bgcolor: alpha('#22C55E', 0.1) },
+										}}
+									>
+										<OpenInNewRoundedIcon sx={{ fontSize: 18 }} />
+									</IconButton>
+								</Tooltip>
+								<Tooltip title="Arrêter le serveur de dev">
+									<IconButton
+										size="small"
+										onClick={(e) => {
+											e.stopPropagation();
+											onStopDevServer();
+										}}
+										sx={{
+											color: '#F59E0B',
+											'&:hover': { bgcolor: alpha('#F59E0B', 0.1) },
+										}}
+									>
+										<StopCircleRoundedIcon sx={{ fontSize: 18 }} />
+									</IconButton>
+								</Tooltip>
+							</>
+						) : (
+							<Tooltip title="Lancer le serveur de dev">
+								<IconButton
+									size="small"
+									disabled={isStartingServer}
+									onClick={(e) => {
+										e.stopPropagation();
+										onStartDevServer();
+									}}
+									sx={{
+										color: '#22C55E',
+										'&:hover': { bgcolor: alpha('#22C55E', 0.1) },
+									}}
+								>
+									{isStartingServer ? (
+										<CircularProgress size={16} sx={{ color: '#22C55E' }} />
+									) : (
+										<PlayArrowRoundedIcon sx={{ fontSize: 18 }} />
+									)}
+								</IconButton>
+							</Tooltip>
+						)}
 					</>
-				) : (
-					<Tooltip title="Lancer le serveur de dev">
-						<IconButton
-							size="small"
-							disabled={isStartingServer}
-							onClick={(e) => {
-								e.stopPropagation();
-								onStartDevServer();
-							}}
-							sx={{
-								color: '#22C55E',
-								'&:hover': { bgcolor: alpha('#22C55E', 0.1) },
-							}}
-						>
-							{isStartingServer ? (
-								<CircularProgress size={16} sx={{ color: '#22C55E' }} />
-							) : (
-								<PlayArrowRoundedIcon sx={{ fontSize: 18 }} />
-							)}
-						</IconButton>
-					</Tooltip>
 				)}
 
 				{/* Stop agent session */}
@@ -224,13 +280,31 @@ export default function WorkspaceView() {
 	const [selectedWorktree, setSelectedWorktree] = useState<{
 		worktree: WorktreeInfo;
 		existingSessionId?: string;
+		isPastSession?: boolean;
 	} | null>(null);
 
 	const queryClient = useQueryClient();
 	const activeView = views[activeIndex] ?? null;
 	const { worktrees, isLoading, deleteWorktree } = useWorktrees(activeView?.path);
 	const { data: activeSessions } = useActiveSessions();
+	const { data: pastSessions = [] } = useAgentSessionHistory();
 	const { startServer, stopServer, getServerForPath, isStarting } = useDevServers();
+
+	// Build a map: worktree path → most recent past session (completed/error)
+	const pastSessionByWorktree = useMemo(() => {
+		const map = new Map<string, AgentSession>();
+		const activeIds = new Set(activeSessions?.map((s) => s.sessionId) ?? []);
+		for (const s of pastSessions) {
+			if (activeIds.has(s.session_id)) continue;
+			if (s.status !== 'completed' && s.status !== 'error') continue;
+			if (!s.worktree_path) continue;
+			// pastSessions is ordered by started_at desc, so first match is most recent
+			if (!map.has(s.worktree_path)) {
+				map.set(s.worktree_path, s);
+			}
+		}
+		return map;
+	}, [pastSessions, activeSessions]);
 
 	const handleKillSession = useCallback(
 		async (sessionId: string) => {
@@ -249,14 +323,27 @@ export default function WorkspaceView() {
 
 	const handleWorktreeClick = (wt: WorktreeInfo) => {
 		// Find active session whose cwd matches this worktree path
-		const session = activeSessions?.find((s) => s.cwd === wt.path);
-		if (session) {
+		const activeSession = activeSessions?.find((s) => s.cwd === wt.path);
+		if (activeSession) {
 			// Re-attach to existing session
-			setSelectedWorktree({ worktree: wt, existingSessionId: session.sessionId });
-		} else {
-			// Open in existing worktree — skip branch step
-			setSelectedWorktree({ worktree: wt });
+			setSelectedWorktree({ worktree: wt, existingSessionId: activeSession.sessionId });
+			return;
 		}
+
+		// Check for a past (completed/error) session on this worktree
+		const pastSession = pastSessionByWorktree.get(wt.path);
+		if (pastSession) {
+			// Open in past-session mode → activity report, no Claude terminal
+			setSelectedWorktree({
+				worktree: wt,
+				existingSessionId: pastSession.session_id,
+				isPastSession: true,
+			});
+			return;
+		}
+
+		// No session — open in existing worktree, skip branch step
+		setSelectedWorktree({ worktree: wt });
 	};
 
 	const handleConfirmDelete = () => {
@@ -414,6 +501,7 @@ export default function WorkspaceView() {
 				<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
 					{worktrees.map((wt) => {
 						const activeSession = activeSessions?.find((s) => s.cwd === wt.path);
+						const pastSession = pastSessionByWorktree.get(wt.path);
 						const devServer = getServerForPath(wt.path);
 						return (
 							<WorktreeCard
@@ -422,6 +510,7 @@ export default function WorkspaceView() {
 								onClick={() => handleWorktreeClick(wt)}
 								onDelete={() => setDeleteTarget(wt)}
 								hasActiveSession={!!activeSession}
+								pastSession={!activeSession ? pastSession : undefined}
 								onStop={activeSession ? () => handleKillSession(activeSession.sessionId) : undefined}
 								devServer={devServer ? { pid: devServer.pid, port: devServer.port } : null}
 								onStartDevServer={() => startServer({ cwd: wt.path, branch: wt.branch })}
@@ -478,6 +567,7 @@ export default function WorkspaceView() {
 				onClose={() => setSelectedWorktree(null)}
 				projectPath={activeView?.path}
 				existingSessionId={selectedWorktree?.existingSessionId}
+				isPastSession={selectedWorktree?.isPastSession}
 				existingWorktree={
 					selectedWorktree && !selectedWorktree.existingSessionId
 						? {
