@@ -9,7 +9,7 @@ import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import ViewKanbanRoundedIcon from '@mui/icons-material/ViewKanbanRounded';
 import MergeTypeRoundedIcon from '@mui/icons-material/MergeTypeRounded';
@@ -27,14 +27,19 @@ const FEATURE_ICONS = [
 	<DashboardRoundedIcon key="workspace" sx={{ fontSize: 32 }} />,
 ];
 
-const FEATURE_COLORS = ['#7C5CFF', '#00D4FF', '#22C55E', '#F59E0B'];
-
 export default function LoginPage() {
+	const theme = useTheme();
 	const t = useTranslations('landing');
+	const FEATURE_COLORS = [
+		theme.palette.primary.main,
+		theme.palette.secondary.main,
+		theme.palette.success.main,
+		theme.palette.warning.main,
+	];
 	const handleSignIn = () => signIn('github', { callbackUrl: '/dashboard' });
 
 	return (
-		<Box sx={{ bgcolor: '#0D0D0D', minHeight: '100vh', color: '#fff' }}>
+		<Box sx={{ bgcolor: 'background.default', minHeight: '100vh', color: 'text.primary' }}>
 			{/* Navbar */}
 			<Box
 				component="nav"
@@ -49,9 +54,9 @@ export default function LoginPage() {
 					display: 'flex',
 					alignItems: 'center',
 					justifyContent: 'space-between',
-					bgcolor: alpha('#0D0D0D', 0.85),
+					bgcolor: alpha(theme.palette.background.default, 0.85),
 					backdropFilter: 'blur(16px)',
-					borderBottom: `1px solid ${alpha('#fff', 0.06)}`,
+					borderBottom: `1px solid ${alpha(theme.palette.text.primary, 0.06)}`,
 				}}
 			>
 				<Image src="/logo.svg" alt="Devora" width={140} height={33} priority />
@@ -65,16 +70,16 @@ export default function LoginPage() {
 						startIcon={<GitHubIcon sx={{ fontSize: '18px !important' }} />}
 						onClick={handleSignIn}
 						sx={{
-							color: '#fff',
-							borderColor: alpha('#fff', 0.2),
+							color: 'text.primary',
+							borderColor: alpha(theme.palette.text.primary, 0.2),
 							textTransform: 'none',
 							fontWeight: 600,
 							fontSize: '0.8rem',
 							borderRadius: 2,
 							px: 2,
 							'&:hover': {
-								borderColor: '#7C5CFF',
-								bgcolor: alpha('#7C5CFF', 0.08),
+								borderColor: theme.palette.primary.main,
+								bgcolor: alpha(theme.palette.primary.main, 0.08),
 							},
 						}}
 					>
@@ -103,7 +108,7 @@ export default function LoginPage() {
 						width: 700,
 						height: 700,
 						borderRadius: '50%',
-						background: `radial-gradient(circle, ${alpha('#7C5CFF', 0.12)} 0%, transparent 70%)`,
+						background: `radial-gradient(circle, ${alpha(theme.palette.primary.main, 0.12)} 0%, transparent 70%)`,
 						filter: 'blur(80px)',
 						pointerEvents: 'none',
 					}}
@@ -133,7 +138,7 @@ export default function LoginPage() {
 								lineHeight: 1.08,
 								letterSpacing: '-0.03em',
 								mb: 3,
-								background: 'linear-gradient(135deg, #FFFFFF 0%, #B3B3B3 50%, #7C5CFF 100%)',
+								background: `linear-gradient(135deg, ${theme.palette.text.primary} 0%, ${theme.palette.text.secondary} 50%, ${theme.palette.primary.main} 100%)`,
 								WebkitBackgroundClip: 'text',
 								WebkitTextFillColor: 'transparent',
 							}}
@@ -144,7 +149,7 @@ export default function LoginPage() {
 						<Typography
 							sx={{
 								fontSize: { xs: '1rem', md: '1.1rem' },
-								color: '#888',
+								color: 'text.secondary',
 								lineHeight: 1.7,
 								maxWidth: 480,
 								mx: 'auto',
@@ -166,12 +171,12 @@ export default function LoginPage() {
 								fontWeight: 600,
 								textTransform: 'none',
 								borderRadius: 2.5,
-								bgcolor: '#fff',
-								color: '#000',
-								boxShadow: `0 0 40px ${alpha('#7C5CFF', 0.3)}`,
+								bgcolor: 'text.primary',
+								color: theme.palette.background.default,
+								boxShadow: `0 0 40px ${alpha(theme.palette.primary.main, 0.3)}`,
 								'&:hover': {
-									bgcolor: '#f0f0f0',
-									boxShadow: `0 0 60px ${alpha('#7C5CFF', 0.5)}`,
+									bgcolor: alpha(theme.palette.text.primary, 0.9),
+									boxShadow: `0 0 60px ${alpha(theme.palette.primary.main, 0.5)}`,
 								},
 							}}
 						>
@@ -199,15 +204,15 @@ export default function LoginPage() {
 							disableGutters
 							elevation={0}
 							sx={{
-								bgcolor: alpha('#fff', 0.03),
-								border: `1px solid ${alpha('#fff', 0.06)}`,
+								bgcolor: alpha(theme.palette.text.primary, 0.03),
+								border: `1px solid ${alpha(theme.palette.text.primary, 0.06)}`,
 								borderRadius: '12px !important',
 								overflow: 'hidden',
 								animation: `fadeInUp 0.5s ease-out ${0.12 * i + 0.3}s both`,
 								transition: 'all 0.3s ease',
 								'&:before': { display: 'none' },
 								'&:hover': {
-									bgcolor: alpha('#fff', 0.05),
+									bgcolor: alpha(theme.palette.text.primary, 0.05),
 									borderColor: alpha(FEATURE_COLORS[i], 0.3),
 								},
 								'&.Mui-expanded': {
@@ -217,7 +222,7 @@ export default function LoginPage() {
 							}}
 						>
 							<AccordionSummary
-								expandIcon={<ExpandMoreRoundedIcon sx={{ color: '#666', fontSize: 20 }} />}
+								expandIcon={<ExpandMoreRoundedIcon sx={{ color: 'text.disabled', fontSize: 20 }} />}
 								sx={{
 									px: 2.5,
 									py: 0.5,
@@ -248,7 +253,7 @@ export default function LoginPage() {
 									<Typography sx={{ fontSize: '0.88rem', fontWeight: 600, lineHeight: 1.3 }}>
 										{t(`features.${key}.title`)}
 									</Typography>
-									<Typography sx={{ fontSize: '0.75rem', color: '#777', lineHeight: 1.4, mt: 0.2 }}>
+									<Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', lineHeight: 1.4, mt: 0.2 }}>
 										{t(`features.${key}.desc`)}
 									</Typography>
 								</Box>
@@ -257,9 +262,9 @@ export default function LoginPage() {
 								<Typography
 									sx={{
 										fontSize: '0.8rem',
-										color: '#999',
+										color: 'text.secondary',
 										lineHeight: 1.65,
-										borderTop: `1px solid ${alpha('#fff', 0.06)}`,
+										borderTop: `1px solid ${alpha(theme.palette.text.primary, 0.06)}`,
 										pt: 2,
 									}}
 								>

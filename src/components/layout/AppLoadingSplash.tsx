@@ -4,6 +4,7 @@ import Box from '@mui/material/Box';
 import LinearProgress from '@mui/material/LinearProgress';
 import Image from 'next/image';
 import { keyframes } from '@emotion/react';
+import { alpha, useTheme } from '@mui/material/styles';
 
 const fadeIn = keyframes`
   from {
@@ -17,6 +18,8 @@ const fadeIn = keyframes`
 `;
 
 export default function AppLoadingSplash() {
+	const theme = useTheme();
+
 	return (
 		<Box
 			sx={{
@@ -35,9 +38,9 @@ export default function AppLoadingSplash() {
 					mt: 3,
 					width: 200,
 					borderRadius: 1,
-					bgcolor: 'rgba(124, 92, 255, 0.15)',
+					bgcolor: alpha(theme.palette.primary.main, 0.15),
 					'& .MuiLinearProgress-bar': {
-						bgcolor: '#7C5CFF',
+						bgcolor: 'primary.main',
 					},
 				}}
 			/>

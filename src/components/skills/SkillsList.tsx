@@ -7,7 +7,7 @@ import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import CircularProgress from '@mui/material/CircularProgress';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
@@ -25,6 +25,7 @@ import { useTranslations } from 'next-intl';
 import { useSkillFiles, type SkillFile } from '@/hooks/useSkillFiles';
 
 export default function SkillsList() {
+	const theme = useTheme();
 	const t = useTranslations('skills');
 	const tc = useTranslations('common');
 	const { views, activeIndex, activeView, setActiveIndex, addView, reorderViews } =
@@ -60,7 +61,7 @@ export default function SkillsList() {
 					sx={{
 						fontWeight: 700,
 						mb: 4,
-						background: 'linear-gradient(135deg, #00E5FF 0%, #7C5CFF 100%)',
+						background: `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${theme.palette.primary.main} 100%)`,
 						WebkitBackgroundClip: 'text',
 						WebkitTextFillColor: 'transparent',
 					}}
@@ -89,12 +90,12 @@ export default function SkillsList() {
 						startIcon={<AddRoundedIcon />}
 						onClick={() => addView()}
 						sx={{
-							borderColor: '#00E5FF',
-							color: '#00E5FF',
+							borderColor: theme.palette.secondary.main,
+							color: theme.palette.secondary.main,
 							textTransform: 'none',
 							'&:hover': {
-								borderColor: '#00E5FF',
-								bgcolor: alpha('#00E5FF', 0.08),
+								borderColor: theme.palette.secondary.main,
+								bgcolor: alpha(theme.palette.secondary.main, 0.08),
 							},
 						}}
 					>
@@ -120,7 +121,7 @@ export default function SkillsList() {
 					variant="h4"
 					sx={{
 						fontWeight: 700,
-						background: 'linear-gradient(135deg, #00E5FF 0%, #7C5CFF 100%)',
+						background: `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${theme.palette.primary.main} 100%)`,
 						WebkitBackgroundClip: 'text',
 						WebkitTextFillColor: 'transparent',
 					}}
@@ -137,14 +138,14 @@ export default function SkillsList() {
 						target="_blank"
 						rel="noopener noreferrer"
 						sx={{
-							borderColor: alpha('#00E5FF', 0.4),
-							color: '#00E5FF',
+							borderColor: alpha(theme.palette.secondary.main, 0.4),
+							color: theme.palette.secondary.main,
 							textTransform: 'none',
 							fontWeight: 600,
 							borderRadius: 1,
 							'&:hover': {
-								borderColor: '#00E5FF',
-								bgcolor: alpha('#00E5FF', 0.08),
+								borderColor: theme.palette.secondary.main,
+								bgcolor: alpha(theme.palette.secondary.main, 0.08),
 							},
 						}}
 					>
@@ -156,9 +157,9 @@ export default function SkillsList() {
 						startIcon={<AddRoundedIcon />}
 						onClick={() => handleLaunch()}
 						sx={{
-							bgcolor: '#00E5FF',
+							bgcolor: theme.palette.secondary.main,
 							color: 'background.default',
-							'&:hover': { bgcolor: alpha('#00E5FF', 0.85) },
+							'&:hover': { bgcolor: alpha(theme.palette.secondary.main, 0.85) },
 							borderRadius: 1,
 							textTransform: 'none',
 							fontWeight: 600,
@@ -181,13 +182,13 @@ export default function SkillsList() {
 				activeTab={activeIndex}
 				onTabChange={setActiveIndex}
 				onReorder={reorderViews}
-				color="#00E5FF"
+				color={theme.palette.secondary.main}
 				trailing={
 					<Tooltip title={t('addProject')}>
 						<IconButton
 							size="small"
 							onClick={() => addView()}
-							sx={{ color: 'text.disabled', '&:hover': { color: '#00E5FF' } }}
+							sx={{ color: 'text.disabled', '&:hover': { color: theme.palette.secondary.main } }}
 						>
 							<AddRoundedIcon fontSize="small" />
 						</IconButton>
@@ -198,7 +199,7 @@ export default function SkillsList() {
 			{/* Loading */}
 			{isLoading && (
 				<Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-					<CircularProgress size={28} sx={{ color: '#00E5FF' }} />
+					<CircularProgress size={28} sx={{ color: theme.palette.secondary.main }} />
 				</Box>
 			)}
 
@@ -230,12 +231,12 @@ export default function SkillsList() {
 						startIcon={<AddRoundedIcon />}
 						onClick={() => handleLaunch()}
 						sx={{
-							borderColor: '#00E5FF',
-							color: '#00E5FF',
+							borderColor: theme.palette.secondary.main,
+							color: theme.palette.secondary.main,
 							textTransform: 'none',
 							'&:hover': {
-								borderColor: '#00E5FF',
-								bgcolor: alpha('#00E5FF', 0.08),
+								borderColor: theme.palette.secondary.main,
+								bgcolor: alpha(theme.palette.secondary.main, 0.08),
 							},
 						}}
 					>
@@ -266,11 +267,11 @@ export default function SkillsList() {
 								transition: 'transform 0.15s, box-shadow 0.15s',
 								'&:hover': {
 									transform: 'translateY(-2px)',
-									boxShadow: `0 8px 24px ${alpha('#00E5FF', 0.15)}`,
+									boxShadow: `0 8px 24px ${alpha(theme.palette.secondary.main, 0.15)}`,
 								},
 							}}
 						>
-							<Box sx={{ height: 4, bgcolor: '#00E5FF' }} />
+							<Box sx={{ height: 4, bgcolor: theme.palette.secondary.main }} />
 							<Box sx={{ p: 2.5 }}>
 								<Box
 									sx={{
@@ -282,11 +283,11 @@ export default function SkillsList() {
 								>
 									{skill.isFolder ? (
 										<FolderRoundedIcon
-											sx={{ fontSize: '1.25rem', color: '#00E5FF' }}
+											sx={{ fontSize: '1.25rem', color: theme.palette.secondary.main }}
 										/>
 									) : (
 										<DescriptionRoundedIcon
-											sx={{ fontSize: '1.25rem', color: '#00E5FF' }}
+											sx={{ fontSize: '1.25rem', color: theme.palette.secondary.main }}
 										/>
 									)}
 									<Typography
@@ -312,7 +313,7 @@ export default function SkillsList() {
 										'& code': {
 											fontFamily: '"JetBrains Mono", monospace',
 											fontSize: '0.75em',
-											bgcolor: 'rgba(255,255,255,0.06)',
+											bgcolor: alpha(theme.palette.text.primary, 0.06),
 											px: 0.5,
 											borderRadius: 1,
 										},
@@ -346,7 +347,7 @@ export default function SkillsList() {
 											}}
 											sx={{
 												color: 'text.secondary',
-												'&:hover': { color: '#00E5FF' },
+												'&:hover': { color: theme.palette.secondary.main },
 											}}
 										>
 											<EditRoundedIcon fontSize="small" />
@@ -361,7 +362,7 @@ export default function SkillsList() {
 											}}
 											sx={{
 												color: 'text.secondary',
-												'&:hover': { color: '#F44336' },
+												'&:hover': { color: 'error.main' },
 											}}
 										>
 											<DeleteRoundedIcon fontSize="small" />

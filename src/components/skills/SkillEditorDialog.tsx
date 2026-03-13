@@ -133,11 +133,11 @@ export default function SkillEditorDialog({
 					onClick={handleSave}
 					variant="contained"
 					disabled={!canSave}
-					sx={{
-						bgcolor: '#00E5FF',
+					sx={(theme) => ({
+						bgcolor: theme.palette.secondary.main,
 						color: 'background.default',
-						'&:hover': { bgcolor: alpha('#00E5FF', 0.85) },
-					}}
+						'&:hover': { bgcolor: alpha(theme.palette.secondary.main, 0.85) },
+					})}
 				>
 					{tc('save')}
 				</Button>

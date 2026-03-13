@@ -8,7 +8,7 @@ import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
 import Box from '@mui/material/Box';
 import Avatar from '@mui/material/Avatar';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import CircleRoundedIcon from '@mui/icons-material/CircleRounded';
@@ -30,8 +30,9 @@ function formatRelativeDate(dateStr: string): string {
 }
 
 export default function IssueCard({ issue }: { issue: GitHubIssue }) {
+	const theme = useTheme();
 	const isOpen = issue.state === 'open';
-	const stateColor = isOpen ? '#22C55E' : '#808080';
+	const stateColor = isOpen ? theme.palette.success.main : theme.palette.text.disabled;
 	const stateLabel = isOpen ? 'Open' : 'Closed';
 	const [owner, repo] = (issue.repo_full_name ?? '').split('/');
 	const href = `/task/${owner}/${repo}/${issue.number}`;
@@ -120,9 +121,9 @@ export default function IssueCard({ issue }: { issue: GitHubIssue }) {
 									size="small"
 									sx={{
 										height: 26,
-										bgcolor: alpha('#9A84FF', 0.12),
-										color: '#9A84FF',
-										'& .MuiChip-icon': { color: '#9A84FF' },
+										bgcolor: alpha(theme.palette.primary.light, 0.12),
+										color: 'primary.light',
+										'& .MuiChip-icon': { color: 'primary.light' },
 									}}
 								/>
 							))}

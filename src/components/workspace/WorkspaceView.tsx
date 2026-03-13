@@ -9,7 +9,7 @@ import Tooltip from '@mui/material/Tooltip';
 import CircularProgress from '@mui/material/CircularProgress';
 import Button from '@mui/material/Button';
 import Popover from '@mui/material/Popover';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
@@ -23,6 +23,7 @@ import AgentTerminalModal from '@/components/agents/AgentTerminalModal';
 
 
 export default function WorkspaceView() {
+	const theme = useTheme();
 	const t = useTranslations('workspace');
 	const { views, activeIndex, setActiveIndex, addView, reorderViews } = useAgentViews();
 	const [deleteTarget, setDeleteTarget] = useState<WorktreeInfo | null>(null);
@@ -78,7 +79,7 @@ export default function WorkspaceView() {
 					sx={{
 						fontWeight: 700,
 						mb: 4,
-						background: 'linear-gradient(135deg, #7C5CFF 0%, #00E5FF 100%)',
+						background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
 						WebkitBackgroundClip: 'text',
 						WebkitTextFillColor: 'transparent',
 					}}
@@ -107,12 +108,12 @@ export default function WorkspaceView() {
 						startIcon={<AddRoundedIcon />}
 						onClick={() => addView()}
 						sx={{
-							borderColor: '#7C5CFF',
-							color: '#7C5CFF',
+							borderColor: theme.palette.primary.main,
+							color: theme.palette.primary.main,
 							textTransform: 'none',
 							'&:hover': {
-								borderColor: '#7C5CFF',
-								bgcolor: alpha('#7C5CFF', 0.08),
+								borderColor: theme.palette.primary.main,
+								bgcolor: alpha(theme.palette.primary.main, 0.08),
 							},
 						}}
 					>
@@ -130,7 +131,7 @@ export default function WorkspaceView() {
 				sx={{
 					fontWeight: 700,
 					mb: 3,
-					background: 'linear-gradient(135deg, #7C5CFF 0%, #00E5FF 100%)',
+					background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
 					WebkitBackgroundClip: 'text',
 					WebkitTextFillColor: 'transparent',
 				}}
@@ -150,7 +151,7 @@ export default function WorkspaceView() {
 							onClick={() => addView()}
 							sx={{
 								color: 'text.disabled',
-								'&:hover': { color: '#7C5CFF' },
+								'&:hover': { color: theme.palette.primary.main },
 							}}
 						>
 							<AddRoundedIcon fontSize="small" />
@@ -169,11 +170,11 @@ export default function WorkspaceView() {
 						textTransform: 'none',
 						fontWeight: 600,
 						fontSize: '0.8rem',
-						color: '#7C5CFF',
-						borderColor: alpha('#7C5CFF', 0.3),
+						color: theme.palette.primary.main,
+						borderColor: alpha(theme.palette.primary.main, 0.3),
 						'&:hover': {
-							borderColor: '#7C5CFF',
-							bgcolor: alpha('#7C5CFF', 0.08),
+							borderColor: theme.palette.primary.main,
+							bgcolor: alpha(theme.palette.primary.main, 0.08),
 						},
 					}}
 				>
@@ -183,7 +184,7 @@ export default function WorkspaceView() {
 
 			{isLoading && (
 				<Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-					<CircularProgress size={28} sx={{ color: '#7C5CFF' }} />
+					<CircularProgress size={28} sx={{ color: theme.palette.primary.main }} />
 				</Box>
 			)}
 
@@ -269,8 +270,8 @@ export default function WorkspaceView() {
 						justifyContent: 'flex-start',
 						textTransform: 'none',
 						fontWeight: 600,
-						color: '#EF4444',
-						'&:hover': { bgcolor: alpha('#EF4444', 0.08) },
+						color: theme.palette.error.main,
+						'&:hover': { bgcolor: alpha(theme.palette.error.main, 0.08) },
 					}}
 				>
 					{t('worktreeOnly')}
@@ -283,8 +284,8 @@ export default function WorkspaceView() {
 						justifyContent: 'flex-start',
 						textTransform: 'none',
 						fontWeight: 600,
-						color: '#EF4444',
-						'&:hover': { bgcolor: alpha('#EF4444', 0.08) },
+						color: theme.palette.error.main,
+						'&:hover': { bgcolor: alpha(theme.palette.error.main, 0.08) },
 					}}
 				>
 					{t('worktreeAndBranch')}

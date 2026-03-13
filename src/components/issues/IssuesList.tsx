@@ -22,6 +22,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useUpdateIssueStatus } from '@/hooks/useUpdateIssueStatus';
 import { completeIssueTodos } from '@/hooks/useTodos';
 import { useTranslations } from 'next-intl';
+import { useTheme } from '@mui/material/styles';
 import { GitHubIssue, ViewIssueRef } from '@/types';
 
 const COLUMN_WIDTH = 300;
@@ -50,6 +51,7 @@ interface DropTarget {
 }
 
 export default function IssuesList() {
+	const theme = useTheme();
 	const t = useTranslations('issues');
 	const { configs, selectedViewMappings, reorderViews, syncViews, getConfigForRepo } = useProjectConfig();
 
@@ -302,7 +304,7 @@ export default function IssuesList() {
 					sx={{
 						fontWeight: 700,
 						background:
-							'linear-gradient(135deg, #7C5CFF 0%, #9A84FF 30%, #00D4FF 100%)',
+							`linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.light} 30%, ${theme.palette.secondary.main} 100%)`,
 						backgroundClip: 'text',
 						WebkitBackgroundClip: 'text',
 						WebkitTextFillColor: 'transparent',

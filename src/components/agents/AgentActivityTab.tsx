@@ -21,11 +21,11 @@ import { useSnackbar } from '@/hooks/useSnackbar';
 import type { AgentSession, AgentActivityLog } from '@/hooks/useAgentSession';
 
 const LOG_TYPE_COLORS: Record<AgentActivityLog['log_type'], string> = {
-	info: '#636B78',
-	commit: '#69F0AE',
-	file_change: '#FFD740',
-	error: '#FF5252',
-	summary: '#7C5CFF',
+	info: 'text.disabled',
+	commit: 'success.main',
+	file_change: 'warning.main',
+	error: 'error.main',
+	summary: 'primary.main',
 };
 
 function formatTime(dateStr: string): string {
@@ -208,10 +208,10 @@ export default function AgentActivityTab({
 
 	const statusColor =
 		session.status === 'active'
-			? '#4CAF50'
+			? 'success.main'
 			: session.status === 'error'
-				? '#FF5252'
-				: '#636B78';
+				? 'error.main'
+				: 'text.disabled';
 
 	return (
 		<Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: 'background.default' }}>
@@ -354,7 +354,7 @@ export default function AgentActivityTab({
 											lineHeight: 1.5,
 											color:
 												log.log_type === 'error'
-													? '#FF5252'
+													? 'error.main'
 													: 'text.primary',
 											whiteSpace: 'pre-wrap',
 											wordBreak: 'break-word',
@@ -383,7 +383,7 @@ export default function AgentActivityTab({
 										width: 7,
 										height: 7,
 										borderRadius: '50%',
-										bgcolor: '#7C5CFF',
+										bgcolor: 'primary.main',
 										flexShrink: 0,
 										mx: 1,
 										position: 'relative',
@@ -399,11 +399,11 @@ export default function AgentActivityTab({
 									sx={{ display: 'flex', alignItems: 'center', gap: 0.75, pl: 1 }}
 								>
 									<SmartToyRoundedIcon
-										sx={{ fontSize: 13, color: alpha('#7C5CFF', 0.6) }}
+										sx={(theme) => ({ fontSize: 13, color: alpha(theme.palette.primary.main, 0.6) })}
 									/>
 									<Typography
 										variant="caption"
-										sx={{ color: alpha('#7C5CFF', 0.6), fontSize: '0.72rem' }}
+										sx={(theme) => ({ color: alpha(theme.palette.primary.main, 0.6), fontSize: '0.72rem' })}
 									>
 										{t('inProgress')}
 									</Typography>
@@ -441,22 +441,22 @@ export default function AgentActivityTab({
 								<PublishRoundedIcon sx={{ fontSize: 16 }} />
 							)
 						}
-						sx={{
+						sx={(theme) => ({
 							textTransform: 'none',
 							fontWeight: 600,
 							fontSize: '0.78rem',
-							bgcolor: published || alreadyPublished ? '#4CAF50' : '#7C5CFF',
+							bgcolor: published || alreadyPublished ? theme.palette.success.main : theme.palette.primary.main,
 							'&:hover': {
 								bgcolor:
 									published || alreadyPublished
-										? '#4CAF50'
-										: alpha('#7C5CFF', 0.85),
+										? theme.palette.success.main
+										: theme.palette.primary.dark,
 							},
 							'&.Mui-disabled':
 								published || alreadyPublished
-									? { bgcolor: alpha('#4CAF50', 0.7), color: '#fff' }
+									? { bgcolor: alpha(theme.palette.success.main, 0.7), color: theme.palette.text.primary }
 									: undefined,
-						}}
+						})}
 					>
 						{published || alreadyPublished ? t('reportPublished') : t('publishReport')}
 					</Button>

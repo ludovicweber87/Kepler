@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import type { Theme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
@@ -52,7 +53,7 @@ const markdownSx = {
 	'& code': {
 		fontFamily: '"JetBrains Mono", monospace',
 		fontSize: '0.8em',
-		bgcolor: 'rgba(255,255,255,0.06)',
+		bgcolor: (theme: Theme) => alpha(theme.palette.text.primary, 0.06),
 		px: 0.5,
 		py: 0.15,
 		borderRadius: 0.5,
@@ -96,16 +97,16 @@ const markdownSx = {
 		position: 'relative',
 		top: '-1px',
 		'&:hover': {
-			borderColor: '#7C5CFF',
-			bgcolor: 'rgba(255,255,255,0.06)',
+			borderColor: 'primary.main',
+			bgcolor: (theme: Theme) => alpha(theme.palette.text.primary, 0.06),
 		},
 		'&.checked': {
-			borderColor: '#22C55E',
-			bgcolor: alpha('#22C55E', 0.15),
-			'& svg': { color: '#22C55E' },
+			borderColor: 'success.main',
+			bgcolor: (theme: Theme) => alpha(theme.palette.success.main, 0.15),
+			'& svg': { color: 'success.main' },
 		},
 		'&.unchecked': {
-			borderColor: '#666',
+			borderColor: 'text.disabled',
 		},
 	},
 	'& li:has(.task-checkbox)': {
@@ -365,7 +366,7 @@ export default function AgentIssueTab({ owner, repo, issueNumber }: AgentIssueTa
 					height: '100%',
 				}}
 			>
-				<CircularProgress size={24} sx={{ color: '#7C5CFF' }} />
+				<CircularProgress size={24} sx={{ color: 'primary.main' }} />
 			</Box>
 		);
 	}
@@ -374,8 +375,6 @@ export default function AgentIssueTab({ owner, repo, issueNumber }: AgentIssueTa
 
 	const { issue, comments } = data;
 	const isOpen = issue.state === 'open';
-	const stateColor = isOpen ? '#22C55E' : '#808080';
-
 	return (
 		<Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: 'background.default' }}>
 			<Box sx={{ flex: 1, overflow: 'auto', p: 2.5 }}>
@@ -404,7 +403,7 @@ export default function AgentIssueTab({ owner, repo, issueNumber }: AgentIssueTa
 							size="small"
 							onClick={handleSaveTitle}
 							disabled={saving}
-							sx={{ color: '#22C55E' }}
+							sx={{ color: 'success.main' }}
 						>
 							{saving ? (
 								<CircularProgress size={16} />
@@ -473,13 +472,16 @@ export default function AgentIssueTab({ owner, repo, issueNumber }: AgentIssueTa
 						}
 						label={isOpen ? 'Open' : 'Closed'}
 						size="small"
-						sx={{
-							height: 22,
-							fontSize: '0.7rem',
-							fontWeight: 600,
-							bgcolor: alpha(stateColor, 0.12),
-							color: stateColor,
-							'& .MuiChip-icon': { color: stateColor },
+						sx={(theme) => {
+							const sc = isOpen ? theme.palette.success.main : theme.palette.text.disabled;
+							return {
+								height: 22,
+								fontSize: '0.7rem',
+								fontWeight: 600,
+								bgcolor: alpha(sc, 0.12),
+								color: sc,
+								'& .MuiChip-icon': { color: sc },
+							};
 						}}
 					/>
 					{issue.labels.map((label) => (
@@ -595,8 +597,8 @@ export default function AgentIssueTab({ owner, repo, issueNumber }: AgentIssueTa
 								sx={{
 									textTransform: 'none',
 									fontSize: '0.75rem',
-									bgcolor: '#7C5CFF',
-									'&:hover': { bgcolor: alpha('#7C5CFF', 0.85) },
+									bgcolor: 'primary.main',
+									'&:hover': { bgcolor: 'primary.dark' },
 								}}
 							>
 								{tc('save')}
@@ -763,9 +765,9 @@ export default function AgentIssueTab({ owner, repo, issueNumber }: AgentIssueTa
 					sx={{ fontSize: '0.8rem', gap: 1 }}
 				>
 					<ListItemIcon sx={{ minWidth: '28px !important' }}>
-						<DeleteOutlineRoundedIcon sx={{ fontSize: 16, color: '#EF4444' }} />
+						<DeleteOutlineRoundedIcon sx={{ fontSize: 16, color: 'error.main' }} />
 					</ListItemIcon>
-					<ListItemText primaryTypographyProps={{ fontSize: '0.8rem', color: '#EF4444' }}>
+					<ListItemText primaryTypographyProps={{ fontSize: '0.8rem', color: 'error.main' }}>
 						{tc('delete')}
 					</ListItemText>
 				</MenuItem>
@@ -801,8 +803,8 @@ export default function AgentIssueTab({ owner, repo, issueNumber }: AgentIssueTa
 						sx={{
 							textTransform: 'none',
 							fontWeight: 600,
-							bgcolor: '#7C5CFF',
-							'&:hover': { bgcolor: alpha('#7C5CFF', 0.85) },
+							bgcolor: 'primary.main',
+							'&:hover': { bgcolor: 'primary.dark' },
 						}}
 					>
 						{tc('save')}
@@ -834,8 +836,8 @@ export default function AgentIssueTab({ owner, repo, issueNumber }: AgentIssueTa
 						sx={{
 							textTransform: 'none',
 							fontWeight: 600,
-							bgcolor: '#EF4444',
-							'&:hover': { bgcolor: alpha('#EF4444', 0.85) },
+							bgcolor: 'error.main',
+							'&:hover': { bgcolor: 'error.dark' },
 						}}
 					>
 						{tc('delete')}
@@ -871,7 +873,7 @@ export default function AgentIssueTab({ owner, repo, issueNumber }: AgentIssueTa
 					<IconButton
 						onClick={handleSendComment}
 						disabled={!newComment.trim() || sendingComment}
-						sx={{ color: '#7C5CFF', '&.Mui-disabled': { color: 'text.disabled' } }}
+						sx={{ color: 'primary.main', '&.Mui-disabled': { color: 'text.disabled' } }}
 					>
 						{sendingComment ? (
 							<CircularProgress size={18} />

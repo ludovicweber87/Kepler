@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import OpenInFullRoundedIcon from '@mui/icons-material/OpenInFullRounded';
 import DragIndicatorRoundedIcon from '@mui/icons-material/DragIndicatorRounded';
@@ -20,6 +20,7 @@ const OVERLAY_W = 560;
 const OVERLAY_H = 340;
 
 export default function OverlayTerminal() {
+	const theme = useTheme();
 	const { session, close } = useOverlayTerminal();
 	const [termNode, setTermNode] = useState<HTMLDivElement | null>(null);
 	const terminalRef = useRef<Terminal | null>(null);
@@ -56,10 +57,10 @@ export default function OverlayTerminal() {
 			fontSize: 12,
 			fontFamily: '"JetBrains Mono", "Fira Code", "Cascadia Code", monospace',
 			theme: {
-				background: '#1A1A1A',
-				foreground: '#E0E0E0',
-				cursor: '#7C4DFF',
-				selectionBackground: 'rgba(124, 77, 255, 0.3)',
+				background: theme.palette.background.default,
+				foreground: theme.palette.text.primary,
+				cursor: theme.palette.primary.main,
+				selectionBackground: alpha(theme.palette.primary.main, 0.3),
 			},
 			allowProposedApi: true,
 		});
@@ -210,11 +211,11 @@ export default function OverlayTerminal() {
 				borderRadius: 1,
 				overflow: 'hidden',
 				border: 1,
-				borderColor: alpha('#7C5CFF', 0.3),
-				boxShadow: `0 8px 32px ${alpha('#000', 0.5)}`,
+				borderColor: alpha(theme.palette.primary.main, 0.3),
+				boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.5)}`,
 				display: 'flex',
 				flexDirection: 'column',
-				bgcolor: '#1A1A1A',
+				bgcolor: 'background.default',
 			}}
 		>
 			{/* Title bar — draggable */}
@@ -226,16 +227,16 @@ export default function OverlayTerminal() {
 					gap: 0.75,
 					px: 1,
 					py: 0.5,
-					bgcolor: '#222',
+					bgcolor: 'background.paper',
 					cursor: 'grab',
 					flexShrink: 0,
 					borderBottom: 1,
-					borderColor: alpha('#fff', 0.06),
+					borderColor: alpha(theme.palette.common.white, 0.06),
 					'&:active': { cursor: 'grabbing' },
 				}}
 			>
 				<DragIndicatorRoundedIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
-				<SmartToyRoundedIcon sx={{ fontSize: 13, color: '#7C5CFF' }} />
+				<SmartToyRoundedIcon sx={{ fontSize: 13, color: 'primary.main' }} />
 				<Typography
 					variant="caption"
 					sx={{
@@ -260,7 +261,7 @@ export default function OverlayTerminal() {
 				<IconButton
 					size="small"
 					onClick={close}
-					sx={{ p: 0.25, color: 'text.disabled', '&:hover': { color: '#FF5252' } }}
+					sx={{ p: 0.25, color: 'text.disabled', '&:hover': { color: 'error.main' } }}
 				>
 					<CloseRoundedIcon sx={{ fontSize: 14 }} />
 				</IconButton>
@@ -274,7 +275,7 @@ export default function OverlayTerminal() {
 					'& .xterm': { height: '100%', p: 0.5 },
 					'& .xterm-viewport': {
 						'&::-webkit-scrollbar': { width: 4 },
-						'&::-webkit-scrollbar-thumb': { bgcolor: '#3A3A3A', borderRadius: 1 },
+						'&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 1 },
 					},
 				}}
 			/>

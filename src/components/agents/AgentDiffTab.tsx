@@ -159,23 +159,26 @@ const LINE_HEIGHT = '20px';
 const FONT = '"JetBrains Mono", monospace';
 const FONT_SIZE = '0.72rem';
 
-const BG_COLORS = {
-	del: alpha('#EF4444', 0.1),
-	add: alpha('#22C55E', 0.1),
-	ctx: 'transparent',
-	empty: alpha('#fff', 0.015),
-} as const;
+function getBgColor(type: 'del' | 'add' | 'ctx' | 'empty') {
+	if (type === 'ctx') return 'transparent';
+	return (theme: { palette: { error: { main: string }; success: { main: string }; text: { primary: string } } }) => {
+		if (type === 'del') return alpha(theme.palette.error.main, 0.1);
+		if (type === 'add') return alpha(theme.palette.success.main, 0.1);
+		return alpha(theme.palette.text.primary, 0.015);
+	};
+}
 
-const BG_HOVER = {
-	del: alpha('#EF4444', 0.16),
-	add: alpha('#22C55E', 0.16),
-	ctx: alpha('#fff', 0.02),
-	empty: alpha('#fff', 0.02),
-} as const;
+function getBgHover(type: 'del' | 'add' | 'ctx' | 'empty') {
+	return (theme: { palette: { error: { main: string }; success: { main: string }; text: { primary: string } } }) => {
+		if (type === 'del') return alpha(theme.palette.error.main, 0.16);
+		if (type === 'add') return alpha(theme.palette.success.main, 0.16);
+		return alpha(theme.palette.text.primary, 0.02);
+	};
+}
 
 const TEXT_COLORS = {
-	del: '#F87171',
-	add: '#4ADE80',
+	del: 'error.light',
+	add: 'success.light',
 	ctx: undefined, // text.secondary
 	empty: 'transparent',
 } as const;
@@ -196,8 +199,8 @@ function SidePanel({
 				flex: 1,
 				display: 'flex',
 				minWidth: 0,
-				bgcolor: BG_COLORS[type],
-				'&:hover': { bgcolor: BG_HOVER[type] },
+				bgcolor: getBgColor(type),
+				'&:hover': { bgcolor: getBgHover(type) },
 			}}
 		>
 			{/* Line number */}
@@ -231,7 +234,7 @@ function SidePanel({
 					lineHeight: LINE_HEIGHT,
 					fontWeight: 700,
 					color:
-						type === 'del' ? '#EF4444' : type === 'add' ? '#22C55E' : 'transparent',
+						type === 'del' ? 'error.main' : type === 'add' ? 'success.main' : 'transparent',
 				}}
 			>
 				{type === 'del' ? '−' : type === 'add' ? '+' : ' '}
@@ -346,7 +349,7 @@ const FileDiffView = memo(function FileDiffView({ file }: { file: FileDiff }) {
 				{file.additions > 0 && (
 					<Typography
 						variant="caption"
-						sx={{ color: '#22C55E', fontWeight: 700, fontFamily: 'monospace', fontSize: '0.72rem' }}
+						sx={{ color: 'success.main', fontWeight: 700, fontFamily: 'monospace', fontSize: '0.72rem' }}
 					>
 						+{file.additions}
 					</Typography>
@@ -354,7 +357,7 @@ const FileDiffView = memo(function FileDiffView({ file }: { file: FileDiff }) {
 				{file.deletions > 0 && (
 					<Typography
 						variant="caption"
-						sx={{ color: '#EF4444', fontWeight: 700, fontFamily: 'monospace', fontSize: '0.72rem' }}
+						sx={{ color: 'error.main', fontWeight: 700, fontFamily: 'monospace', fontSize: '0.72rem' }}
 					>
 						−{file.deletions}
 					</Typography>
@@ -362,10 +365,10 @@ const FileDiffView = memo(function FileDiffView({ file }: { file: FileDiff }) {
 
 				<Box sx={{ display: 'flex', gap: '2px', ml: 0.5 }}>
 					{Array.from({ length: addBlocks }).map((_, i) => (
-						<Box key={`a${i}`} sx={{ width: 8, height: 8, borderRadius: '1px', bgcolor: '#22C55E' }} />
+						<Box key={`a${i}`} sx={{ width: 8, height: 8, borderRadius: '1px', bgcolor: 'success.main' }} />
 					))}
 					{Array.from({ length: delBlocks }).map((_, i) => (
-						<Box key={`d${i}`} sx={{ width: 8, height: 8, borderRadius: '1px', bgcolor: '#EF4444' }} />
+						<Box key={`d${i}`} sx={{ width: 8, height: 8, borderRadius: '1px', bgcolor: 'error.main' }} />
 					))}
 				</Box>
 			</Box>
@@ -390,7 +393,7 @@ const FileDiffView = memo(function FileDiffView({ file }: { file: FileDiff }) {
 									sx={{
 										px: 1.5,
 										py: 0.5,
-										bgcolor: alpha('#7C5CFF', 0.06),
+										bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
 										borderBottom: 1,
 										borderColor: 'divider',
 										...(idx > 0 && { borderTop: 1 }),
@@ -417,7 +420,7 @@ const FileDiffView = memo(function FileDiffView({ file }: { file: FileDiff }) {
 								py: 1,
 								borderTop: 1,
 								borderColor: 'divider',
-								bgcolor: alpha('#7C5CFF', 0.03),
+								bgcolor: (theme) => alpha(theme.palette.primary.main, 0.03),
 							}}
 						>
 							<Button
@@ -427,7 +430,7 @@ const FileDiffView = memo(function FileDiffView({ file }: { file: FileDiff }) {
 									textTransform: 'none',
 									fontSize: '0.72rem',
 									fontWeight: 600,
-									color: '#7C5CFF',
+									color: 'primary.main',
 								}}
 							>
 								{t('showRemainingLines', { count: hiddenCount })}
@@ -469,7 +472,7 @@ export default function AgentDiffTab({ projectPath, branch }: AgentDiffTabProps)
 	if (isLoading) {
 		return (
 			<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-				<CircularProgress size={24} sx={{ color: '#7C5CFF' }} />
+				<CircularProgress size={24} sx={{ color: 'primary.main' }} />
 			</Box>
 		);
 	}
@@ -526,19 +529,19 @@ export default function AgentDiffTab({ projectPath, branch }: AgentDiffTabProps)
 					{t('filesChanged', { count: files.length })}
 				</Typography>
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-					<AddRoundedIcon sx={{ fontSize: 14, color: '#22C55E' }} />
+					<AddRoundedIcon sx={{ fontSize: 14, color: 'success.main' }} />
 					<Typography
 						variant="caption"
-						sx={{ color: '#22C55E', fontWeight: 700, fontFamily: 'monospace', fontSize: '0.72rem' }}
+						sx={{ color: 'success.main', fontWeight: 700, fontFamily: 'monospace', fontSize: '0.72rem' }}
 					>
 						{totalAdditions}
 					</Typography>
 				</Box>
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-					<RemoveRoundedIcon sx={{ fontSize: 14, color: '#EF4444' }} />
+					<RemoveRoundedIcon sx={{ fontSize: 14, color: 'error.main' }} />
 					<Typography
 						variant="caption"
-						sx={{ color: '#EF4444', fontWeight: 700, fontFamily: 'monospace', fontSize: '0.72rem' }}
+						sx={{ color: 'error.main', fontWeight: 700, fontFamily: 'monospace', fontSize: '0.72rem' }}
 					>
 						{totalDeletions}
 					</Typography>

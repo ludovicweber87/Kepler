@@ -2,7 +2,7 @@
 
 import { useRef, useState, type ReactNode } from 'react';
 import Box from '@mui/material/Box';
-import { alpha, type SxProps, type Theme } from '@mui/material/styles';
+import { alpha, useTheme, type SxProps, type Theme } from '@mui/material/styles';
 
 export interface TabItem {
 	key: string;
@@ -15,7 +15,7 @@ interface DraggableTabsProps {
 	onTabChange: (index: number) => void;
 	onReorder: (newOrder: string[]) => void;
 	counts?: number[];
-	/** Accent color — defaults to #7C5CFF */
+	/** Accent color — defaults to theme.palette.primary.main */
 	color?: string;
 	/** Trailing element (e.g. Add button) */
 	trailing?: ReactNode;
@@ -39,11 +39,13 @@ export default function DraggableTabs({
 	onTabChange,
 	onReorder,
 	counts,
-	color = '#7C5CFF',
+	color: colorProp,
 	trailing,
 	mb = 3,
 	sx: sxOverride,
 }: DraggableTabsProps) {
+	const theme = useTheme();
+	const color = colorProp ?? theme.palette.primary.main;
 	const dragIdx = useRef<number | null>(null);
 	const [dropTarget, setDropTarget] = useState<number | null>(null);
 

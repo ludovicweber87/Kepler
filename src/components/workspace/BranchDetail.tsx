@@ -6,7 +6,7 @@ import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import FiberManualRecordRoundedIcon from '@mui/icons-material/FiberManualRecordRounded';
@@ -49,7 +49,8 @@ interface BranchDetailProps {
 	repoFullName: string | undefined;
 }
 
-export default function BranchDetail({ branch, localPath, repoFullName }: BranchDetailProps) {
+export default function BranchDetail({ branch, localPath, repoFullName: _repoFullName }: BranchDetailProps) {
+	const theme = useTheme();
 	const { data: commits = [], isLoading: loadingCommits } = useBranchLog(localPath, branch.name);
 	const { data: sessions = [], isLoading: loadingSessions } = useBranchSessions(branch.name);
 	const [terminalOpen, setTerminalOpen] = useState(false);
@@ -63,8 +64,8 @@ export default function BranchDetail({ branch, localPath, repoFullName }: Branch
 					startIcon={<PlayArrowRoundedIcon />}
 					onClick={() => setTerminalOpen(true)}
 					sx={{
-						bgcolor: '#7C5CFF',
-						'&:hover': { bgcolor: alpha('#7C5CFF', 0.85) },
+						bgcolor: theme.palette.primary.main,
+						'&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.85) },
 						textTransform: 'none',
 						fontWeight: 600,
 						borderRadius: 1,
@@ -94,10 +95,10 @@ export default function BranchDetail({ branch, localPath, repoFullName }: Branch
 						{sessions.map((session) => {
 							const statusColor =
 								session.status === 'active'
-									? '#4CAF50'
+									? theme.palette.success.main
 									: session.status === 'error'
-										? '#FF5252'
-										: '#9E9E9E';
+										? theme.palette.error.main
+										: theme.palette.text.disabled;
 							return (
 								<Box
 									key={session.id}
@@ -201,7 +202,7 @@ export default function BranchDetail({ branch, localPath, repoFullName }: Branch
 
 				{loadingCommits && (
 					<Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-						<CircularProgress size={24} sx={{ color: '#7C5CFF' }} />
+						<CircularProgress size={24} sx={{ color: theme.palette.primary.main }} />
 					</Box>
 				)}
 
@@ -241,7 +242,7 @@ export default function BranchDetail({ branch, localPath, repoFullName }: Branch
 										width: 8,
 										height: 8,
 										borderRadius: '50%',
-										bgcolor: alpha('#7C5CFF', 0.5),
+										bgcolor: alpha(theme.palette.primary.main, 0.5),
 										flexShrink: 0,
 									}}
 								/>
@@ -286,7 +287,7 @@ export default function BranchDetail({ branch, localPath, repoFullName }: Branch
 										sx={{
 											fontFamily: '"JetBrains Mono", monospace',
 											fontSize: '0.7rem',
-											color: '#7C5CFF',
+											color: theme.palette.primary.main,
 											fontWeight: 600,
 											whiteSpace: 'nowrap',
 										}}

@@ -8,7 +8,7 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import TranslateRoundedIcon from '@mui/icons-material/TranslateRounded';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import { useTranslations } from 'next-intl';
@@ -24,6 +24,7 @@ const LOCALES: { code: Locale; flag: string; label: string }[] = [
 ];
 
 export default function LocaleSwitcher() {
+	const theme = useTheme();
 	const currentLocale = useLocale();
 	const router = useRouter();
 	const [isPending, startTransition] = useTransition();
@@ -52,7 +53,7 @@ export default function LocaleSwitcher() {
 					opacity: isPending ? 0.5 : 1,
 					transition: 'background-color 0.15s, transform 0.15s',
 					'&:hover': {
-						bgcolor: alpha('#7C5CFF', 0.1),
+						bgcolor: alpha(theme.palette.primary.main, 0.1),
 						transform: 'translateX(4px)',
 					},
 				}}
@@ -95,15 +96,15 @@ export default function LocaleSwitcher() {
 							gap: 1.5,
 							fontSize: '0.85rem',
 							'&.Mui-selected': {
-								bgcolor: alpha('#7C5CFF', 0.08),
+								bgcolor: alpha(theme.palette.primary.main, 0.08),
 							},
-							'&:hover': { bgcolor: alpha('#7C5CFF', 0.12) },
+							'&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.12) },
 						}}
 					>
 						<span>{flag}</span>
 						{label}
 						{currentLocale === code && (
-							<CheckRoundedIcon sx={{ fontSize: 16, ml: 'auto', color: '#7C5CFF' }} />
+							<CheckRoundedIcon sx={{ fontSize: 16, ml: 'auto', color: theme.palette.primary.main }} />
 						)}
 					</MenuItem>
 				))}

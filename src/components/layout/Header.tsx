@@ -7,7 +7,7 @@ import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import Badge from '@mui/material/Badge';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
 import LightModeRoundedIcon from '@mui/icons-material/LightModeRounded';
 import DarkModeRoundedIcon from '@mui/icons-material/DarkModeRounded';
@@ -18,6 +18,7 @@ import { useColorMode } from '@/hooks/useColorMode';
 import { useTranslations } from 'next-intl';
 
 export default function Header() {
+	const theme = useTheme();
 	const { open, toggle, width: rightWidth } = useRightSidebar();
 	const { data: sessions = [] } = useActiveSessions();
 	const { mode, toggleColorMode } = useColorMode();
@@ -48,8 +49,8 @@ export default function Header() {
 							sx={{
 								color: 'text.secondary',
 								'&:hover': {
-									bgcolor: alpha('#7C5CFF', 0.15),
-									color: '#7C5CFF',
+									bgcolor: alpha(theme.palette.primary.main, 0.15),
+									color: 'primary.main',
 								},
 							}}
 						>
@@ -67,11 +68,11 @@ export default function Header() {
 							onClick={toggle}
 							size="small"
 							sx={{
-								color: open ? '#7C5CFF' : 'text.secondary',
-								bgcolor: open ? alpha('#7C5CFF', 0.12) : 'transparent',
+								color: open ? 'primary.main' : 'text.secondary',
+								bgcolor: open ? alpha(theme.palette.primary.main, 0.12) : 'transparent',
 								'&:hover': {
-									bgcolor: alpha('#7C5CFF', 0.15),
-									color: '#7C5CFF',
+									bgcolor: alpha(theme.palette.primary.main, 0.15),
+									color: 'primary.main',
 								},
 							}}
 						>
@@ -102,7 +103,7 @@ export default function Header() {
 							fontWeight: 600,
 							transition: 'box-shadow 0.2s',
 							'&:hover': {
-								boxShadow: '0 0 0 2px rgba(124, 92, 255, 0.5)',
+								boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.5)}`,
 							},
 						}}
 					>

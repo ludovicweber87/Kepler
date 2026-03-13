@@ -138,8 +138,8 @@ export default function AgentFormDialog({ open, onClose, onSave, preset }: Agent
 									borderRadius: '50%',
 									bgcolor: c,
 									cursor: 'pointer',
-									border:
-										color === c ? '2px solid #fff' : '2px solid transparent',
+									border: (theme) =>
+										color === c ? `2px solid ${theme.palette.text.primary}` : '2px solid transparent',
 									boxShadow: color === c ? `0 0 0 2px ${c}` : 'none',
 									transition: 'all 0.15s',
 									'&:hover': {

@@ -129,8 +129,8 @@ export default function AgentEditorDialog({
 					variant="contained"
 					disabled={!canSave}
 					sx={{
-						bgcolor: '#7C5CFF',
-						'&:hover': { bgcolor: alpha('#7C5CFF', 0.85) },
+						bgcolor: 'primary.main',
+						'&:hover': { bgcolor: 'primary.dark' },
 					}}
 				>
 					{tc('save')}
