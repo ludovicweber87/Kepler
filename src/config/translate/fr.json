@@ -283,7 +283,7 @@
 	"agentActivity": {
 		"reportTitle": "Rapport agent",
 		"branch": "Branch",
-		"sessionLoading": "Chargement de la session...",
+		"sessionLoading": "L'agent est en cours de travail. Le résultat sera affiché ici.",
 		"noActivity": "Aucune activite",
 		"inProgress": "en cours...",
 		"reportPublished": "Rapport publie",

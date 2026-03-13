@@ -283,7 +283,7 @@
 	"agentActivity": {
 		"reportTitle": "Agent report",
 		"branch": "Branch",
-		"sessionLoading": "Session loading...",
+		"sessionLoading": "The agent is in progress. The result will be displayed here.",
 		"noActivity": "No activity",
 		"inProgress": "in progress...",
 		"reportPublished": "Report published",
