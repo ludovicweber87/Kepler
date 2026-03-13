@@ -1,69 +1,56 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import CircularProgress from '@mui/material/CircularProgress';
-import Chip from '@mui/material/Chip';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import { alpha } from '@mui/material/styles';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
-import FiberManualRecordRoundedIcon from '@mui/icons-material/FiberManualRecordRounded';
-import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
-import Button from '@mui/material/Button';
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
+import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
 import DraggableTabs from '@/components/shared/DraggableTabs';
 import { useAgentViews } from '@/hooks/useAgentViews';
-import { useBranches, type Branch } from '@/hooks/useBranches';
-import BranchDetail from './BranchDetail';
+import { useWorktrees, type WorktreeInfo } from '@/hooks/useWorktrees';
+import AgentTerminalModal from '@/components/agents/AgentTerminalModal';
 
-function timeAgo(dateStr: string): string {
-	if (!dateStr) return '';
-	const diff = Date.now() - new Date(dateStr).getTime();
-	const mins = Math.floor(diff / 60_000);
-	if (mins < 1) return 'now';
-	if (mins < 60) return `${mins}m ago`;
-	const hours = Math.floor(mins / 60);
-	if (hours < 24) return `${hours}h ago`;
-	const days = Math.floor(hours / 24);
-	return `${days}d ago`;
-}
-
-function BranchCard({
-	branch,
-	repoLabel,
-	onClick,
+function WorktreeCard({
+	worktree,
+	onDelete,
+	onStartAgent,
 }: {
-	branch: Branch;
-	repoLabel: string;
-	onClick: () => void;
+	worktree: WorktreeInfo;
+	onDelete: () => void;
+	onStartAgent: () => void;
 }) {
 	return (
 		<Box
-			onClick={onClick}
 			sx={{
 				p: 2,
 				borderRadius: 1,
-				bgcolor: branch.isCurrent ? alpha('#7C5CFF', 0.06) : 'background.paper',
+				bgcolor: 'background.paper',
 				border: 1,
-				borderColor: branch.isCurrent ? alpha('#7C5CFF', 0.15) : 'divider',
-				cursor: 'pointer',
+				borderColor: 'divider',
 				transition: 'all 0.15s',
 				'&:hover': {
-					bgcolor: branch.isCurrent ? alpha('#7C5CFF', 0.12) : 'action.hover',
-					borderColor: branch.isCurrent ? alpha('#7C5CFF', 0.25) : 'action.disabled',
+					bgcolor: 'action.hover',
+					borderColor: 'action.disabled',
 					transform: 'translateY(-1px)',
 				},
 			}}
 		>
 			<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.75 }}>
 				<AccountTreeRoundedIcon
-					sx={{
-						fontSize: 16,
-						color: branch.isCurrent ? '#7C5CFF' : 'text.disabled',
-					}}
+					sx={{ fontSize: 16, color: '#7C5CFF' }}
 				/>
 				<Typography
 					variant="body2"
@@ -76,81 +63,67 @@ function BranchCard({
 						whiteSpace: 'nowrap',
 					}}
 				>
-					{branch.name}
+					{worktree.branch}
 				</Typography>
-				{branch.isCurrent && (
-					<Chip
-						icon={
-							<FiberManualRecordRoundedIcon
-								sx={{ fontSize: '8px !important', color: '#4CAF50 !important' }}
-							/>
-						}
-						label="actuelle"
+				<Tooltip title="Start Agent">
+					<IconButton
 						size="small"
+						onClick={onStartAgent}
 						sx={{
-							height: 20,
-							fontSize: '0.6rem',
-							fontWeight: 600,
-							bgcolor: alpha('#4CAF50', 0.1),
-							color: '#4CAF50',
+							color: '#7C5CFF',
+							'&:hover': { bgcolor: alpha('#7C5CFF', 0.1) },
 						}}
-					/>
-				)}
-				<Typography
-					variant="caption"
-					sx={{ color: 'text.disabled', fontSize: '0.65rem', flexShrink: 0 }}
-				>
-					{timeAgo(branch.lastCommitDate)}
-				</Typography>
+					>
+						<PlayArrowRoundedIcon fontSize="small" />
+					</IconButton>
+				</Tooltip>
+				<Tooltip title="Delete worktree">
+					<IconButton
+						size="small"
+						onClick={onDelete}
+						sx={{
+							color: 'text.disabled',
+							'&:hover': { color: '#EF4444', bgcolor: alpha('#EF4444', 0.1) },
+						}}
+					>
+						<DeleteOutlineRoundedIcon fontSize="small" />
+					</IconButton>
+				</Tooltip>
 			</Box>
 
-			<Typography
-				variant="body2"
-				sx={{
-					fontSize: '0.75rem',
-					color: 'text.secondary',
-					overflow: 'hidden',
-					textOverflow: 'ellipsis',
-					whiteSpace: 'nowrap',
-					mb: 0.5,
-				}}
-			>
-				{branch.lastCommitMessage}
-			</Typography>
-
-			<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-				<Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.65rem' }}>
-					{branch.lastCommitAuthor}
-				</Typography>
-				<Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.6rem' }}>
-					{repoLabel}
+			<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+				<FolderRoundedIcon sx={{ fontSize: 12, color: 'text.disabled' }} />
+				<Typography
+					variant="caption"
+					sx={{
+						color: 'text.disabled',
+						fontSize: '0.65rem',
+						overflow: 'hidden',
+						textOverflow: 'ellipsis',
+						whiteSpace: 'nowrap',
+					}}
+				>
+					{worktree.path}
 				</Typography>
 			</Box>
 		</Box>
 	);
 }
 
-interface SelectedBranch {
-	branch: Branch;
-	viewIndex: number;
-}
-
 export default function WorkspaceView() {
 	const { views, activeIndex, setActiveIndex, addView, reorderViews } = useAgentViews();
-	const [selected, setSelected] = useState<SelectedBranch | null>(null);
+	const [deleteTarget, setDeleteTarget] = useState<WorktreeInfo | null>(null);
+	const [terminalWorktree, setTerminalWorktree] = useState<WorktreeInfo | null>(null);
 
-	// Fetch branches for the active view
 	const activeView = views[activeIndex] ?? null;
-	const { data: branches = [], isLoading } = useBranches(activeView?.path);
+	const { worktrees, isLoading, deleteWorktree } = useWorktrees(activeView?.path);
 
-	// Sort: current branch first, then by date
-	const sortedBranches = useMemo(() => {
-		return [...branches].sort((a, b) => {
-			if (a.isCurrent && !b.isCurrent) return -1;
-			if (!a.isCurrent && b.isCurrent) return 1;
-			return new Date(b.lastCommitDate).getTime() - new Date(a.lastCommitDate).getTime();
-		});
-	}, [branches]);
+	const handleConfirmDelete = () => {
+		if (deleteTarget) {
+			deleteWorktree(deleteTarget.path);
+			setDeleteTarget(null);
+		}
+	};
 
 	// No views — empty state
 	if (views.length === 0) {
@@ -166,7 +139,7 @@ export default function WorkspaceView() {
 						WebkitTextFillColor: 'transparent',
 					}}
 				>
-					Workspace
+					Worktrees
 				</Typography>
 				<Box
 					sx={{
@@ -183,7 +156,7 @@ export default function WorkspaceView() {
 						No project configured
 					</Typography>
 					<Typography variant="body2" color="text.disabled" sx={{ mb: 2 }}>
-						Add a project to see its branches.
+						Add a project to see its worktrees.
 					</Typography>
 					<Button
 						variant="outlined"
@@ -206,44 +179,6 @@ export default function WorkspaceView() {
 		);
 	}
 
-	// Branch detail view
-	if (selected) {
-		const view = views[selected.viewIndex];
-		return (
-			<Box sx={{ p: 4, maxWidth: 1000, mx: 'auto' }}>
-				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-					<IconButton
-						size="small"
-						onClick={() => setSelected(null)}
-						sx={{ color: 'text.secondary' }}
-					>
-						<ArrowBackRoundedIcon />
-					</IconButton>
-					<AccountTreeRoundedIcon sx={{ color: '#7C5CFF', fontSize: 20 }} />
-					<Typography variant="h5" sx={{ fontWeight: 700 }}>
-						{selected.branch.name}
-					</Typography>
-					<Chip
-						label={view?.label}
-						size="small"
-						sx={{
-							height: 22,
-							fontSize: '0.65rem',
-							fontWeight: 600,
-							bgcolor: (t: { palette: { secondary: { main: string } } }) => alpha(t.palette.secondary.main, 0.1),
-							color: 'secondary.main',
-						}}
-					/>
-				</Box>
-				<BranchDetail
-					branch={selected.branch}
-					localPath={view?.path}
-					repoFullName={view?.repoFullName}
-				/>
-			</Box>
-		);
-	}
-
 	return (
 		<Box sx={{ p: 4, maxWidth: 1000, mx: 'auto' }}>
 			{/* Header */}
@@ -257,7 +192,7 @@ export default function WorkspaceView() {
 					WebkitTextFillColor: 'transparent',
 				}}
 			>
-				Workspace
+				Worktrees
 			</Typography>
 
 			{/* View tabs */}
@@ -290,7 +225,7 @@ export default function WorkspaceView() {
 			)}
 
 			{/* Empty state */}
-			{!isLoading && sortedBranches.length === 0 && (
+			{!isLoading && worktrees.length === 0 && (
 				<Box
 					sx={{
 						display: 'flex',
@@ -302,24 +237,66 @@ export default function WorkspaceView() {
 				>
 					<AccountTreeRoundedIcon sx={{ fontSize: 48, color: 'text.disabled' }} />
 					<Typography variant="body1" color="text.secondary">
-						No branches found
+						No active worktrees
+					</Typography>
+					<Typography variant="body2" color="text.disabled">
+						Create a branch from an issue to get started.
 					</Typography>
 				</Box>
 			)}
 
-			{/* Branch list */}
-			{!isLoading && sortedBranches.length > 0 && (
+			{/* Worktree list */}
+			{!isLoading && worktrees.length > 0 && (
 				<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-					{sortedBranches.map((branch) => (
-						<BranchCard
-							key={branch.name}
-							branch={branch}
-							repoLabel={activeView?.label ?? ''}
-							onClick={() => setSelected({ branch, viewIndex: activeIndex })}
+					{worktrees.map((wt) => (
+						<WorktreeCard
+							key={wt.path}
+							worktree={wt}
+							onDelete={() => setDeleteTarget(wt)}
+							onStartAgent={() => setTerminalWorktree(wt)}
 						/>
 					))}
 				</Box>
 			)}
+
+			{/* Delete confirmation dialog */}
+			<Dialog
+				open={!!deleteTarget}
+				onClose={() => setDeleteTarget(null)}
+				maxWidth="xs"
+				fullWidth
+				PaperProps={{ sx: { borderRadius: 1 } }}
+			>
+				<DialogTitle sx={{ fontWeight: 600 }}>Delete worktree</DialogTitle>
+				<DialogContent>
+					<Typography variant="body2" color="text.secondary">
+						This will remove the worktree and attempt to delete the local branch{' '}
+						<strong>{deleteTarget?.branch}</strong>.
+					</Typography>
+				</DialogContent>
+				<DialogActions sx={{ px: 3, pb: 2.5 }}>
+					<Button onClick={() => setDeleteTarget(null)}>Cancel</Button>
+					<Button
+						variant="contained"
+						onClick={handleConfirmDelete}
+						sx={{
+							bgcolor: '#EF4444',
+							'&:hover': { bgcolor: alpha('#EF4444', 0.85) },
+							textTransform: 'none',
+							fontWeight: 600,
+						}}
+					>
+						Delete
+					</Button>
+				</DialogActions>
+			</Dialog>
+
+			{/* Agent terminal modal */}
+			<AgentTerminalModal
+				open={!!terminalWorktree}
+				onClose={() => setTerminalWorktree(null)}
+				projectPath={terminalWorktree?.path}
+			/>
 		</Box>
 	);
 }

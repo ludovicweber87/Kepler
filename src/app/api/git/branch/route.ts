@@ -46,11 +46,17 @@ export async function POST(request: Request) {
 
 		const cwd = data.local_path;
 
-		// Execute git commands sequentially
+		// Slug for worktree directory (replace / with -)
+		const slug = branchName.replace(/\//g, '-');
+		const worktreePath = `${cwd}/.worktrees/${slug}`;
+
+		// Ensure .worktrees directory exists
+		execSync('mkdir -p .worktrees', { cwd, encoding: 'utf-8', timeout: 10000 });
+
+		// Fetch latest main and create worktree with new branch
 		const commands = [
-			'git checkout main',
-			'git pull --rebase',
-			`git checkout -b ${branchName}`,
+			'git fetch origin main',
+			`git worktree add ${JSON.stringify(worktreePath)} -b ${branchName} origin/main`,
 		];
 
 		for (const cmd of commands) {
@@ -60,10 +66,10 @@ export async function POST(request: Request) {
 		// Post branch name as comment on the GitHub issue
 		if (issueNumber) {
 			const [owner, repo] = repoFullName.split('/');
-			await createIssueComment(owner, repo, issueNumber, `Branch \`${branchName}\` created`, auth.accessToken);
+			await createIssueComment(owner, repo, issueNumber, `Branch \`${branchName}\` created (worktree)`, auth.accessToken);
 		}
 
-		return NextResponse.json({ success: true });
+		return NextResponse.json({ success: true, worktreePath });
 	} catch (err) {
 		const message = err instanceof Error ? err.message : 'Failed to create branch';
 		return NextResponse.json({ error: message }, { status: 500 });

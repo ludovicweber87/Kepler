@@ -39,7 +39,7 @@ export default function Sidebar() {
 		{ label: t('dashboard'), href: '/dashboard', icon: <DashboardRoundedIcon /> },
 		{ label: t('issues'), href: '/issues', icon: <BugReportRoundedIcon /> },
 		{ label: t('prs'), href: '/prs', icon: <MergeTypeRoundedIcon /> },
-		{ label: t('workspace'), href: '/workspace', icon: <AccountTreeRoundedIcon /> },
+		{ label: t('worktrees'), href: '/workspace', icon: <AccountTreeRoundedIcon /> },
 		{ label: t('agents'), href: '/agents', icon: <SmartToyRoundedIcon /> },
 		{ label: t('skills'), href: '/skills', icon: <AutoFixHighRoundedIcon /> },
 		{ label: t('todos'), href: '/todos', icon: <ChecklistRoundedIcon />, badge: pendingCount },
