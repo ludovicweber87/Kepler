@@ -77,6 +77,7 @@ export function useAgentSession(sessionId: string | undefined) {
 			projectPath: string;
 			projectName: string;
 			branch?: string | null;
+			worktreePath?: string | null;
 			agentName?: string | null;
 			issueOwner?: string | null;
 			issueRepo?: string | null;
@@ -121,6 +122,7 @@ export function useAgentSession(sessionId: string | undefined) {
 					project_path: params.projectPath,
 					project_name: params.projectName,
 					branch: params.branch ?? null,
+					worktree_path: params.worktreePath ?? null,
 					agent_name: params.agentName ?? null,
 					status: 'active',
 					issue_owner: params.issueOwner ?? null,

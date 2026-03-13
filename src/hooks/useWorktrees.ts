@@ -21,6 +21,24 @@ export function useWorktrees(localPath: string | undefined) {
 		staleTime: 30_000,
 	});
 
+	const createMutation = useMutation({
+		mutationFn: async (branch: string) => {
+			const res = await apiFetch('/api/git/worktrees', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ cwd: localPath, branch }),
+			});
+			if (!res.ok) {
+				const data = await res.json();
+				throw new Error(data.error || 'Failed to create worktree');
+			}
+			return (await res.json()) as { worktreePath: string; branch: string };
+		},
+		onSettled: () => {
+			queryClient.invalidateQueries({ queryKey: ['git-worktrees', localPath] });
+		},
+	});
+
 	const deleteMutation = useMutation({
 		mutationFn: async (worktreePath: string) => {
 			const res = await apiFetch('/api/git/worktrees', {
@@ -57,6 +75,9 @@ export function useWorktrees(localPath: string | undefined) {
 	return {
 		worktrees: query.data ?? [],
 		isLoading: query.isLoading,
+		createWorktree: createMutation.mutateAsync,
+		isCreating: createMutation.isPending,
+		createError: createMutation.error,
 		deleteWorktree: deleteMutation.mutate,
 		isDeleting: deleteMutation.isPending,
 	};

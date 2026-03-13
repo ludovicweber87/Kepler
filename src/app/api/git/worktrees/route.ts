@@ -71,6 +71,70 @@ export async function GET(request: NextRequest) {
 }
 
 /**
+ * POST /api/git/worktrees
+ * Creates a new worktree with a new branch under .worktrees/<branch>.
+ */
+export async function POST(request: Request) {
+	const auth = await requireAuth();
+	if (isAuthError(auth)) return auth;
+
+	try {
+		const { cwd, branch } = await request.json();
+
+		if (!cwd || !branch) {
+			return NextResponse.json(
+				{ error: 'cwd and branch are required' },
+				{ status: 400 },
+			);
+		}
+
+		// Sanitize branch name for directory (replace / with -)
+		const dirName = branch.replace(/\//g, '-');
+		const worktreePath = `${cwd}/.worktrees/${dirName}`;
+
+		// Create the worktree with a new branch based on main
+		// First, try to get the default branch
+		let baseBranch = 'main';
+		try {
+			const head = execSync('git symbolic-ref refs/remotes/origin/HEAD', {
+				cwd,
+				encoding: 'utf-8',
+				timeout: 5000,
+			}).trim();
+			baseBranch = head.replace('refs/remotes/origin/', '');
+		} catch {
+			// Fallback to main
+		}
+
+		// Pull latest from base branch
+		try {
+			execSync(`git fetch origin ${baseBranch}`, {
+				cwd,
+				encoding: 'utf-8',
+				timeout: 30000,
+			});
+		} catch {
+			// May fail if offline — continue anyway
+		}
+
+		// Create worktree with new branch from origin/<baseBranch>
+		execSync(
+			`git worktree add ${JSON.stringify(worktreePath)} -b ${JSON.stringify(branch)} origin/${baseBranch}`,
+			{
+				cwd,
+				encoding: 'utf-8',
+				timeout: 30000,
+			},
+		);
+
+		return NextResponse.json({ worktreePath, branch });
+	} catch (err) {
+		const message = err instanceof Error ? err.message : 'Failed to create worktree';
+		return NextResponse.json({ error: message }, { status: 500 });
+	}
+}
+
+/**
  * DELETE /api/git/worktrees
  * Removes a worktree and optionally its local branch.
  */

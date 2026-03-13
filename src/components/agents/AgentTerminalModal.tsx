@@ -8,10 +8,11 @@ import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
+import TextField from '@mui/material/TextField';
+import Alert from '@mui/material/Alert';
 import DraggableTabs from '@/components/shared/DraggableTabs';
 import type { TabItem } from '@/components/shared/DraggableTabs';
 import CircularProgress from '@mui/material/CircularProgress';
-import { alpha } from '@mui/material/styles';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import PictureInPictureAltRoundedIcon from '@mui/icons-material/PictureInPictureAltRounded';
 import TerminalRoundedIcon from '@mui/icons-material/TerminalRounded';
@@ -22,6 +23,9 @@ import FiberManualRecordRoundedIcon from '@mui/icons-material/FiberManualRecordR
 import TimelineRoundedIcon from '@mui/icons-material/TimelineRounded';
 import DifferenceRoundedIcon from '@mui/icons-material/DifferenceRounded';
 import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
+import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebglAddon } from '@xterm/addon-webgl';
@@ -30,6 +34,7 @@ import type { AgentFile } from '@/hooks/useAgentFiles';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useAgentSession } from '@/hooks/useAgentSession';
 import { useOverlayTerminal } from '@/hooks/useOverlayTerminal';
+import { useWorktrees } from '@/hooks/useWorktrees';
 import AgentActivityTab from './AgentActivityTab';
 import AgentDiffTab from './AgentDiffTab';
 import AgentIssueTab from './AgentIssueTab';
@@ -54,52 +59,6 @@ interface AgentTerminalModalProps {
 	issueContext?: IssueContext;
 	/** Session is from history (completed/error) — show reopen button first */
 	isPastSession?: boolean;
-}
-
-function buildBranchNameFallback(issueContext: IssueContext): string {
-	const labels = (issueContext.labels ?? []).map((l) => l.toLowerCase());
-	let prefix = 'feat';
-	if (labels.some((l) => l.includes('bug') || l.includes('fix'))) prefix = 'fix';
-	else if (labels.some((l) => l.includes('refactor'))) prefix = 'refactor';
-	else if (labels.some((l) => l.includes('docs') || l.includes('documentation'))) prefix = 'docs';
-	else if (labels.some((l) => l.includes('chore'))) prefix = 'chore';
-	else if (labels.some((l) => l.includes('test'))) prefix = 'test';
-	else if (labels.some((l) => l.includes('perf') || l.includes('performance'))) prefix = 'perf';
-
-	const slug = issueContext.issueTitle
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, '-')
-		.replace(/^-|-$/g, '')
-		.slice(0, 40);
-
-	// Timestamp suffix (MMDD + 1 random char) pour garantir l'unicité
-	const now = new Date();
-	const mm = String(now.getMonth() + 1).padStart(2, '0');
-	const dd = String(now.getDate()).padStart(2, '0');
-	const rand = Math.random().toString(36).charAt(2);
-	const suffix = `${mm}${dd}${rand}`;
-
-	return `${prefix}/${issueContext.issueNumber}-${slug}-${suffix}`;
-}
-
-async function generateBranchName(issueContext: IssueContext): Promise<string> {
-	try {
-		const res = await fetch('/api/git/generate-branch-name', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
-				issueTitle: issueContext.issueTitle,
-				issueNumber: issueContext.issueNumber,
-				labels: issueContext.labels,
-			}),
-		});
-		if (!res.ok) throw new Error(`API error ${res.status}`);
-		const { branchName } = await res.json();
-		if (!branchName) throw new Error('Empty branch name');
-		return branchName;
-	} catch {
-		return buildBranchNameFallback(issueContext);
-	}
 }
 
 function buildSessionId(
@@ -187,13 +146,18 @@ export default function AgentTerminalModal({
 	issueContext,
 	isPastSession = false,
 }: AgentTerminalModalProps) {
+	// Step management: 'branch' (input branch name) → 'terminal' (running)
+	const [step, setStep] = useState<'branch' | 'terminal'>('branch');
+	const [branchInput, setBranchInput] = useState('');
+	const [worktreePath, setWorktreePath] = useState<string | null>(null);
+	const [worktreeError, setWorktreeError] = useState<string | null>(null);
+
 	// Claude terminal refs
 	const [termNode, setTermNode] = useState<HTMLDivElement | null>(null);
 	const [resumed, setResumed] = useState(false);
 	const [activeTab, setActiveTab] = useState(0);
 	const [termTabOrder, setTermTabOrder] = useState<string[] | null>(null);
 	const [isStreaming, setIsStreaming] = useState(false);
-	// worktreePath is no longer managed by us — Claude handles it via --worktree
 	const isStreamingRef = useRef(false);
 	const terminalRef = useRef<Terminal | null>(null);
 	const wsRef = useRef<WebSocket | null>(null);
@@ -213,23 +177,11 @@ export default function AgentTerminalModal({
 	const [resolvedPath, setResolvedPath] = useState<string | null>(null);
 	const [picking, setPicking] = useState(false);
 
-	// AI-generated branch name
-	const [branchName, setBranchName] = useState<string | null>(null);
-	useEffect(() => {
-		if (!open || !issueContext) {
-			setBranchName(null);
-			return;
-		}
-		let cancelled = false;
-		generateBranchName(issueContext).then((name) => {
-			if (!cancelled) setBranchName(name);
-		});
-		return () => {
-			cancelled = true;
-		};
-	}, [open, issueContext]);
-
 	const projectPath = projectPathProp ?? resolvedPath;
+
+	// Worktree management
+	const { createWorktree, isCreating, deleteWorktree, isDeleting } = useWorktrees(projectPath ?? undefined);
+
 	const generatedIdRef = useRef<string | null>(null);
 	if (open && !existingSessionId && !generatedIdRef.current) {
 		generatedIdRef.current = buildSessionId(projectPath ?? undefined, agentFile, issueContext);
@@ -242,12 +194,15 @@ export default function AgentTerminalModal({
 	const { session, logs, ensureSession } = useAgentSession(open ? sessionId : undefined);
 	const overlay = useOverlayTerminal();
 
+	// Effective working path: worktree path when available, else projectPath
+	const effectivePath = worktreePath ?? session?.worktree_path ?? projectPath;
+
 	const handlePip = useCallback(() => {
-		if (!sessionId || !projectPath) return;
-		const projectName = projectPath.split('/').filter(Boolean).pop() ?? 'unknown';
-		overlay.open({ sessionId, projectPath, projectName, isPastSession });
+		if (!sessionId || !effectivePath) return;
+		const projectName = effectivePath.split('/').filter(Boolean).pop() ?? 'unknown';
+		overlay.open({ sessionId, projectPath: effectivePath, projectName, isPastSession });
 		onClose();
-	}, [sessionId, projectPath, isPastSession, overlay, onClose]);
+	}, [sessionId, effectivePath, isPastSession, overlay, onClose]);
 
 	// Resolve path from repo_paths when using issueContext
 	const resolveCwd = useCallback(async () => {
@@ -286,59 +241,62 @@ export default function AgentTerminalModal({
 		if (!open) {
 			setResolvedPath(null);
 			setActiveTab(0);
+			setStep('branch');
+			setBranchInput('');
+			setWorktreePath(null);
+			setWorktreeError(null);
 			shellInitialized.current = false;
 		}
 	}, [open]);
 
-	// Compute branch name once (stable across renders)
-	const branchRef = useRef<string | null>(null);
-	if (open && !branchRef.current) {
-		if (issueContext) {
-			branchRef.current = buildBranchNameFallback(issueContext);
-		} else {
-			const now = new Date();
-			const ts = [
-				now.getFullYear(),
-				String(now.getMonth() + 1).padStart(2, '0'),
-				String(now.getDate()).padStart(2, '0'),
-				'-',
-				String(now.getHours()).padStart(2, '0'),
-				String(now.getMinutes()).padStart(2, '0'),
-				String(now.getSeconds()).padStart(2, '0'),
-			].join('');
-			branchRef.current = `tmp/${ts}`;
-		}
-	}
-	if (!open) {
-		branchRef.current = null;
-	}
-	const branch = branchRef.current;
-
-	// Ensure DB session exists — only for NEW sessions (not viewing existing ones from sidebar)
-	const isNewSession = !existingSessionId;
+	// Skip branch step for existing sessions (re-attach / past sessions)
 	useEffect(() => {
-		if (!open || !projectPath || !sessionId || !isNewSession) return;
-		// Wait for branch name to be generated when launching from an issue
-		if (issueContext && !branchName) return;
-		const projectName = projectPath.split('/').filter(Boolean).pop() ?? 'unknown';
-		ensureSession({
-			sessionId,
-			projectPath,
-			projectName,
-			agentName: agentFile?.name ?? (issueContext ? `#${issueContext.issueNumber}` : null),
-			branch: branchName ?? branch ?? null,
-			issueOwner: issueContext?.owner ?? null,
-			issueRepo: issueContext?.repo ?? null,
-			issueNumber: issueContext?.issueNumber ?? null,
-			issueTitle: issueContext?.issueTitle ?? null,
-		});
-	}, [open, sessionId, projectPath, agentFile, issueContext, branchName, branch, ensureSession, isNewSession]);
+		if (open && existingSessionId) {
+			setStep('terminal');
+		}
+	}, [open, existingSessionId]);
+
+	// Handle branch submission + worktree creation
+	const handleLaunch = useCallback(async () => {
+		if (!branchInput.trim() || !projectPath) return;
+		setWorktreeError(null);
+
+		try {
+			const result = await createWorktree(branchInput.trim());
+			setWorktreePath(result.worktreePath);
+
+			// Ensure DB session with worktree info
+			const projectName = projectPath.split('/').filter(Boolean).pop() ?? 'unknown';
+			ensureSession({
+				sessionId,
+				projectPath,
+				projectName,
+				agentName: agentFile?.name ?? (issueContext ? `#${issueContext.issueNumber}` : null),
+				branch: branchInput.trim(),
+				worktreePath: result.worktreePath,
+				issueOwner: issueContext?.owner ?? null,
+				issueRepo: issueContext?.repo ?? null,
+				issueNumber: issueContext?.issueNumber ?? null,
+				issueTitle: issueContext?.issueTitle ?? null,
+			});
+
+			setStep('terminal');
+		} catch (err) {
+			setWorktreeError(err instanceof Error ? err.message : 'Erreur lors de la création du worktree');
+		}
+	}, [branchInput, projectPath, createWorktree, sessionId, agentFile, issueContext, ensureSession]);
+
+	// Handle worktree deletion
+	const handleDeleteWorktree = useCallback(() => {
+		const wtPath = session?.worktree_path ?? worktreePath;
+		if (!wtPath) return;
+		deleteWorktree(wtPath);
+	}, [session?.worktree_path, worktreePath, deleteWorktree]);
 
 	// Build draggable terminal tabs
 	const hasIssue = !!(issueContext || session?.issue_number);
 	const termTabs = useMemo(() => {
 		const items: TabItem[] = [];
-		// Hide Claude tab for past (closed) sessions — no terminal to show
 		if (!isPastSession) {
 			items.push({
 				key: 'claude',
@@ -416,12 +374,14 @@ export default function AgentTerminalModal({
 	}, [activeTabKey]);
 
 	// Don't connect terminal for past sessions
-	const terminalEnabled = !isPastSession;
+	const terminalEnabled = !isPastSession && step === 'terminal';
 
+	// Claude terminal — only connect after worktree is created (step === 'terminal')
 	useEffect(() => {
-		if (!open || !projectPath || !termNode || !terminalEnabled) return;
-		// Wait for AI-generated branch name before connecting terminal
-		if (issueContext && !branchName) return;
+		if (!open || !termNode || !terminalEnabled) return;
+		// Need either worktreePath (new session) or projectPath (existing session)
+		const cwd = worktreePath ?? projectPath;
+		if (!cwd) return;
 
 		setResumed(false);
 
@@ -459,7 +419,6 @@ export default function AgentTerminalModal({
 		terminal.loadAddon(fitAddon);
 		terminal.open(termNode);
 
-		// GPU-accelerated rendering
 		try {
 			terminal.loadAddon(new WebglAddon());
 		} catch {
@@ -477,14 +436,12 @@ export default function AgentTerminalModal({
 		const ws = new WebSocket('ws://localhost:4001');
 		wsRef.current = ws;
 
-		const isReopen = false;
-
 		ws.onopen = () => {
 			ws.send(
 				JSON.stringify({
 					type: 'init',
 					sessionId,
-					cwd: projectPath,
+					cwd,
 					cols: terminal.cols,
 					rows: terminal.rows,
 				}),
@@ -497,40 +454,18 @@ export default function AgentTerminalModal({
 					const msg = JSON.parse(event.data);
 					if (msg.type === 'init-ack') {
 						setResumed(msg.resumed);
-						if (!msg.resumed && !isReopen) {
-							// Create branch then launch Claude with --worktree
+						if (!msg.resumed) {
+							// Worktree is already on the right branch — just launch Claude
 							const reporting = buildReportingPrompt(sessionId);
 							const basePrompt = agentFile ? agentFile.content : '';
 							const fullPrompt = basePrompt + reporting;
 							const escaped = fullPrompt.replace(/'/g, "'\\''");
 							const claudeCmd = `unset CLAUDECODE CLAUDE_CODE_ENTRYPOINT && /opt/homebrew/bin/claude --system-prompt '${escaped}'\n`;
 
-							if (issueContext && branchName) {
-								// Create branch + checkout, then start Claude
-								const gitCmd = `git checkout -b ${branchName} 2>/dev/null || git checkout ${branchName}\n`;
-								setTimeout(() => {
-									ws.send(JSON.stringify({ type: 'input', data: gitCmd }));
-									// Wait for git to finish, then launch Claude
-									setTimeout(() => {
-										ws.send(JSON.stringify({ type: 'input', data: claudeCmd }));
-									}, 1500);
-								}, 800);
-							} else if (branch) {
-								// Sidebar launch: checkout main, pull, create tmp branch
-								const gitCmd = `git checkout main && git pull origin main && git checkout -b ${branch}\n`;
-								setTimeout(() => {
-									ws.send(JSON.stringify({ type: 'input', data: gitCmd }));
-									setTimeout(() => {
-										ws.send(JSON.stringify({ type: 'input', data: claudeCmd }));
-									}, 2500);
-								}, 800);
-							} else {
-								setTimeout(() => {
-									ws.send(JSON.stringify({ type: 'input', data: claudeCmd }));
-								}, 800);
-							}
+							setTimeout(() => {
+								ws.send(JSON.stringify({ type: 'input', data: claudeCmd }));
+							}, 800);
 						}
-						// Wait for initial buffer to flush before tracking streaming
 						setTimeout(() => {
 							readyRef.current = true;
 						}, 2000);
@@ -541,7 +476,6 @@ export default function AgentTerminalModal({
 				}
 				terminal.write(event.data);
 
-				// Track streaming via ref to avoid re-renders on every chunk
 				if (readyRef.current) {
 					if (!isStreamingRef.current) {
 						isStreamingRef.current = true;
@@ -566,15 +500,11 @@ export default function AgentTerminalModal({
 			}
 		});
 
-		// Intercept wheel events and forward as SGR mouse sequences to tmux
-		// tmux uses alternate screen buffer which disables xterm.js scrollback,
-		// so we manually send wheel escape sequences that tmux (with mouse on) interprets as scroll
 		const handleWheel = (e: WheelEvent) => {
 			e.preventDefault();
 			e.stopPropagation();
 			if (ws.readyState !== WebSocket.OPEN) return;
 			const lines = Math.max(1, Math.round(Math.abs(e.deltaY) / 40));
-			// SGR mouse: button 64 = wheel up, 65 = wheel down
 			const button = e.deltaY < 0 ? 64 : 65;
 			const seq = `\x1b[<${button};1;1M`;
 			for (let i = 0; i < lines; i++) {
@@ -617,19 +547,19 @@ export default function AgentTerminalModal({
 		};
 	}, [
 		open,
+		worktreePath,
 		projectPath,
 		agentFile,
 		termNode,
 		sessionId,
 		terminalEnabled,
-		isPastSession,
-		branchName,
-		issueContext,
 	]);
 
-	// Plain shell terminal (tab 2) — lazy init when tab is first selected
+	// Plain shell terminal — lazy init, uses worktree path
 	useEffect(() => {
-		if (!open || !projectPath || !shellTermNode || activeTab !== 2) return;
+		if (!open || !shellTermNode || activeTab !== 2 || step !== 'terminal') return;
+		const cwd = worktreePath ?? projectPath;
+		if (!cwd) return;
 		if (shellInitialized.current) return;
 		shellInitialized.current = true;
 
@@ -690,7 +620,7 @@ export default function AgentTerminalModal({
 				JSON.stringify({
 					type: 'init',
 					sessionId: shellSessionId,
-					cwd: projectPath,
+					cwd,
 					cols: terminal.cols,
 					rows: terminal.rows,
 				}),
@@ -719,7 +649,6 @@ export default function AgentTerminalModal({
 			}
 		});
 
-		// Wheel → SGR mouse sequences for tmux scroll (same as Claude terminal)
 		const handleWheel = (e: WheelEvent) => {
 			e.preventDefault();
 			e.stopPropagation();
@@ -762,7 +691,7 @@ export default function AgentTerminalModal({
 			shellFitAddonRef.current = null;
 			shellInitialized.current = false;
 		};
-	}, [open, projectPath, shellTermNode, sessionId, activeTab]);
+	}, [open, worktreePath, projectPath, shellTermNode, sessionId, activeTab, step]);
 
 	// Display info
 	const folderLabel = issueContext
@@ -786,6 +715,11 @@ export default function AgentTerminalModal({
 				: 'Nouvelle session';
 
 	const subtitleText = issueContext?.issueTitle;
+
+	// Show delete worktree button when session is done and has a worktree
+	const showDeleteWorktree =
+		(session?.status === 'completed' || session?.status === 'error') &&
+		(session?.worktree_path || worktreePath);
 
 	return (
 		<Dialog
@@ -857,8 +791,42 @@ export default function AgentTerminalModal({
 							}}
 						/>
 					)}
+					{step === 'terminal' && (branchInput || session?.branch) && (
+						<Chip
+							icon={<AccountTreeRoundedIcon sx={{ fontSize: '14px !important' }} />}
+							label={branchInput || session?.branch}
+							size="small"
+							sx={{
+								height: 22,
+								fontSize: '0.65rem',
+								bgcolor: 'rgba(124, 92, 255, 0.12)',
+								color: '#7C5CFF',
+								fontWeight: 600,
+								'& .MuiChip-icon': { color: '#7C5CFF' },
+							}}
+						/>
+					)}
 				</Box>
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+					{showDeleteWorktree && (
+						<Button
+							size="small"
+							variant="outlined"
+							color="error"
+							startIcon={<DeleteOutlineRoundedIcon sx={{ fontSize: 16 }} />}
+							onClick={handleDeleteWorktree}
+							disabled={isDeleting}
+							sx={{
+								fontSize: '0.7rem',
+								textTransform: 'none',
+								height: 28,
+								borderColor: 'rgba(239, 68, 68, 0.3)',
+								'&:hover': { borderColor: 'rgba(239, 68, 68, 0.6)' },
+							}}
+						>
+							{isDeleting ? 'Suppression...' : 'Supprimer worktree'}
+						</Button>
+					)}
 					<Chip
 						icon={<FolderOpenRoundedIcon sx={{ fontSize: '14px !important' }} />}
 						label={folderLabel}
@@ -870,150 +838,229 @@ export default function AgentTerminalModal({
 							'& .MuiChip-icon': { color: 'text.secondary' },
 						}}
 					/>
-					<IconButton
-						size="small"
-						onClick={handlePip}
-						sx={{ color: 'text.disabled', '&:hover': { color: '#7C5CFF' } }}
-					>
-						<PictureInPictureAltRoundedIcon sx={{ fontSize: 18 }} />
-					</IconButton>
+					{step === 'terminal' && (
+						<IconButton
+							size="small"
+							onClick={handlePip}
+							sx={{ color: 'text.disabled', '&:hover': { color: '#7C5CFF' } }}
+						>
+							<PictureInPictureAltRoundedIcon sx={{ fontSize: 18 }} />
+						</IconButton>
+					)}
 					<IconButton size="small" onClick={onClose} sx={{ color: 'text.secondary' }}>
 						<CloseRoundedIcon fontSize="small" />
 					</IconButton>
 				</Box>
 			</DialogTitle>
 
-			{/* Tabs */}
-			<DraggableTabs
-				tabs={orderedTermTabs}
-				activeTab={activeTab}
-				onTabChange={setActiveTab}
-				onReorder={setTermTabOrder}
-				mb={0}
-				sx={{ px: 2, py: 1, borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}
-			/>
-
-			{/* Terminal panel */}
-			<Box
-				onWheel={(e) => e.stopPropagation()}
-				sx={{
-					flex: 1,
-					overflow: 'hidden',
-					display: activeTabKey === 'claude' ? 'flex' : 'none',
-					alignItems: 'stretch',
-					bgcolor: '#1A1A1A', // Terminal always dark
-					'& .xterm': { height: '100%', p: 1 },
-					'& .xterm-viewport': {
-						overflowY: 'scroll !important',
-						'&::-webkit-scrollbar': { width: 6 },
-						'&::-webkit-scrollbar-thumb': { bgcolor: '#3A3A3A', borderRadius: 3 },
-					},
-				}}
-			>
-				{/* Picking directory state */}
-				{picking && (
-					<Box
-						sx={{
-							flex: 1,
-							display: 'flex',
-							flexDirection: 'column',
-							alignItems: 'center',
-							justifyContent: 'center',
-							gap: 2,
-						}}
-					>
-						<CircularProgress size={28} sx={{ color: '#7C5CFF' }} />
-						<Typography variant="body2" color="text.secondary">
-							Sélection du répertoire...
-						</Typography>
-					</Box>
-				)}
-
-				{/* Loading state */}
-				{!projectPath && !picking && issueContext && (
-					<Box
-						sx={{
-							flex: 1,
-							display: 'flex',
-							alignItems: 'center',
-							justifyContent: 'center',
-						}}
-					>
-						<CircularProgress size={24} sx={{ color: '#7C5CFF' }} />
-					</Box>
-				)}
-
-				{/* Past session — terminal disabled */}
-				{isPastSession && projectPath && (
-					<Box
-						sx={{
-							flex: 1,
-							display: 'flex',
-							flexDirection: 'column',
-							alignItems: 'center',
-							justifyContent: 'center',
-							gap: 2,
-						}}
-					>
-						<TerminalRoundedIcon sx={{ fontSize: 48, color: 'text.disabled' }} />
-						<Typography variant="body2" sx={{ color: 'text.secondary' }}>
-							Session terminée
-						</Typography>
-					</Box>
-				)}
-
+			{/* Step 1: Branch name input */}
+			{step === 'branch' && (
 				<Box
-					ref={setTermNode}
-					sx={{ flex: 1, display: projectPath && terminalEnabled ? 'flex' : 'none' }}
-				/>
-			</Box>
+					sx={{
+						flex: 1,
+						display: 'flex',
+						flexDirection: 'column',
+						alignItems: 'center',
+						justifyContent: 'center',
+						gap: 3,
+						px: 4,
+					}}
+				>
+					<AccountTreeRoundedIcon sx={{ fontSize: 56, color: '#7C5CFF', opacity: 0.7 }} />
+					<Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+						Nom de la branche
+					</Typography>
+					<Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'center', maxWidth: 450 }}>
+						Un worktree isolé sera créé dans <code>.worktrees/</code> pour cette session.
+						Tous les changements resteront dans ce worktree.
+					</Typography>
 
-			{/* Activity panel */}
-			{activeTabKey === 'activity' && (
-				<Box sx={{ flex: 1, overflow: 'hidden' }}>
-					<AgentActivityTab session={session} logs={logs} isStreaming={isStreaming} />
+					<Box
+						component="form"
+						onSubmit={(e) => {
+							e.preventDefault();
+							handleLaunch();
+						}}
+						sx={{
+							display: 'flex',
+							gap: 1.5,
+							width: '100%',
+							maxWidth: 500,
+							alignItems: 'flex-start',
+						}}
+					>
+						<TextField
+							autoFocus
+							fullWidth
+							size="small"
+							placeholder="feat/my-feature"
+							value={branchInput}
+							onChange={(e) => setBranchInput(e.target.value)}
+							disabled={isCreating}
+							sx={{
+								'& .MuiOutlinedInput-root': {
+									bgcolor: 'rgba(255,255,255,0.03)',
+									'& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
+									'&:hover fieldset': { borderColor: 'rgba(124, 92, 255, 0.4)' },
+									'&.Mui-focused fieldset': { borderColor: '#7C5CFF' },
+								},
+							}}
+						/>
+						<Button
+							type="submit"
+							variant="contained"
+							disabled={!branchInput.trim() || isCreating || !projectPath}
+							startIcon={isCreating ? <CircularProgress size={16} color="inherit" /> : <RocketLaunchRoundedIcon sx={{ fontSize: 18 }} />}
+							sx={{
+								bgcolor: '#7C5CFF',
+								textTransform: 'none',
+								fontWeight: 600,
+								whiteSpace: 'nowrap',
+								height: 40,
+								'&:hover': { bgcolor: '#6A4DE0' },
+							}}
+						>
+							{isCreating ? 'Création...' : 'Lancer'}
+						</Button>
+					</Box>
+
+					{worktreeError && (
+						<Alert severity="error" sx={{ maxWidth: 500, width: '100%' }}>
+							{worktreeError}
+						</Alert>
+					)}
+
+					{!projectPath && issueContext && (
+						<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+							<CircularProgress size={16} sx={{ color: '#7C5CFF' }} />
+							<Typography variant="body2" color="text.secondary">
+								Résolution du chemin...
+							</Typography>
+						</Box>
+					)}
 				</Box>
 			)}
 
-			{/* Diff panel */}
-			{activeTabKey === 'diff' && (
-				<Box sx={{ flex: 1, overflow: 'hidden' }}>
-					<AgentDiffTab
-						projectPath={session?.worktree_path ?? projectPath ?? null}
-						branch={session?.branch ?? branch}
+			{/* Step 2: Terminal */}
+			{step === 'terminal' && (
+				<>
+					{/* Tabs */}
+					<DraggableTabs
+						tabs={orderedTermTabs}
+						activeTab={activeTab}
+						onTabChange={setActiveTab}
+						onReorder={setTermTabOrder}
+						mb={0}
+						sx={{ px: 2, py: 1, borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}
 					/>
-				</Box>
-			)}
 
-			{/* Plain shell terminal panel */}
-			<Box
-				onWheel={(e) => e.stopPropagation()}
-				sx={{
-					flex: 1,
-					overflow: 'hidden',
-					display: activeTabKey === 'terminal' ? 'flex' : 'none',
-					alignItems: 'stretch',
-					bgcolor: '#1A1A1A', // Terminal always dark
-					'& .xterm': { height: '100%', p: 1 },
-					'& .xterm-viewport': {
-						overflowY: 'scroll !important',
-						'&::-webkit-scrollbar': { width: 6 },
-						'&::-webkit-scrollbar-thumb': { bgcolor: '#3A3A3A', borderRadius: 3 },
-					},
-				}}
-			>
-				<Box ref={setShellTermNode} sx={{ flex: 1, display: 'flex' }} />
-			</Box>
+					{/* Terminal panel */}
+					<Box
+						onWheel={(e) => e.stopPropagation()}
+						sx={{
+							flex: 1,
+							overflow: 'hidden',
+							display: activeTabKey === 'claude' ? 'flex' : 'none',
+							alignItems: 'stretch',
+							bgcolor: '#1A1A1A',
+							'& .xterm': { height: '100%', p: 1 },
+							'& .xterm-viewport': {
+								overflowY: 'scroll !important',
+								'&::-webkit-scrollbar': { width: 6 },
+								'&::-webkit-scrollbar-thumb': { bgcolor: '#3A3A3A', borderRadius: 3 },
+							},
+						}}
+					>
+						{picking && (
+							<Box
+								sx={{
+									flex: 1,
+									display: 'flex',
+									flexDirection: 'column',
+									alignItems: 'center',
+									justifyContent: 'center',
+									gap: 2,
+								}}
+							>
+								<CircularProgress size={28} sx={{ color: '#7C5CFF' }} />
+								<Typography variant="body2" color="text.secondary">
+									Sélection du répertoire...
+								</Typography>
+							</Box>
+						)}
 
-			{/* Issue panel */}
-			{activeTabKey === 'issue' && (issueContext || session?.issue_number) && (
-				<Box sx={{ flex: 1, overflow: 'hidden' }}>
-					<AgentIssueTab
-						owner={issueContext?.owner ?? session!.issue_owner!}
-						repo={issueContext?.repo ?? session!.issue_repo!}
-						issueNumber={issueContext?.issueNumber ?? session!.issue_number!}
-					/>
-				</Box>
+						{isPastSession && projectPath && (
+							<Box
+								sx={{
+									flex: 1,
+									display: 'flex',
+									flexDirection: 'column',
+									alignItems: 'center',
+									justifyContent: 'center',
+									gap: 2,
+								}}
+							>
+								<TerminalRoundedIcon sx={{ fontSize: 48, color: 'text.disabled' }} />
+								<Typography variant="body2" sx={{ color: 'text.secondary' }}>
+									Session terminée
+								</Typography>
+							</Box>
+						)}
+
+						<Box
+							ref={setTermNode}
+							sx={{ flex: 1, display: terminalEnabled ? 'flex' : 'none' }}
+						/>
+					</Box>
+
+					{/* Activity panel */}
+					{activeTabKey === 'activity' && (
+						<Box sx={{ flex: 1, overflow: 'hidden' }}>
+							<AgentActivityTab session={session} logs={logs} isStreaming={isStreaming} />
+						</Box>
+					)}
+
+					{/* Diff panel */}
+					{activeTabKey === 'diff' && (
+						<Box sx={{ flex: 1, overflow: 'hidden' }}>
+							<AgentDiffTab
+								projectPath={session?.worktree_path ?? worktreePath ?? projectPath ?? null}
+								branch={session?.branch ?? branchInput ?? null}
+							/>
+						</Box>
+					)}
+
+					{/* Plain shell terminal panel */}
+					<Box
+						onWheel={(e) => e.stopPropagation()}
+						sx={{
+							flex: 1,
+							overflow: 'hidden',
+							display: activeTabKey === 'terminal' ? 'flex' : 'none',
+							alignItems: 'stretch',
+							bgcolor: '#1A1A1A',
+							'& .xterm': { height: '100%', p: 1 },
+							'& .xterm-viewport': {
+								overflowY: 'scroll !important',
+								'&::-webkit-scrollbar': { width: 6 },
+								'&::-webkit-scrollbar-thumb': { bgcolor: '#3A3A3A', borderRadius: 3 },
+							},
+						}}
+					>
+						<Box ref={setShellTermNode} sx={{ flex: 1, display: 'flex' }} />
+					</Box>
+
+					{/* Issue panel */}
+					{activeTabKey === 'issue' && (issueContext || session?.issue_number) && (
+						<Box sx={{ flex: 1, overflow: 'hidden' }}>
+							<AgentIssueTab
+								owner={issueContext?.owner ?? session!.issue_owner!}
+								repo={issueContext?.repo ?? session!.issue_repo!}
+								issueNumber={issueContext?.issueNumber ?? session!.issue_number!}
+							/>
+						</Box>
+					)}
+				</>
 			)}
 		</Dialog>
 	);
