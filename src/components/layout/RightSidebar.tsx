@@ -21,8 +21,6 @@ import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
 import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded';
 import StopCircleRoundedIcon from '@mui/icons-material/StopCircleRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
-import AddRoundedIcon from '@mui/icons-material/AddRounded';
-import Button from '@mui/material/Button';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useActiveSessions, type ActiveSession } from '@/hooks/useActiveSessions';
@@ -345,7 +343,6 @@ export default function RightSidebar() {
 	const { views, reorderViews } = useAgentViews();
 	const queryClient = useQueryClient();
 	const [selected, setSelected] = useState<SelectedItem | null>(null);
-	const [newAgentOpen, setNewAgentOpen] = useState(false);
 	const [tabIndex, setTabIndex] = useState(0);
 	const [isResizing, setIsResizing] = useState(false);
 	const startXRef = useRef(0);
@@ -400,8 +397,6 @@ export default function RightSidebar() {
 		);
 	}, [filteredPast, views, tabIndex]);
 
-	const activeViewPath = views[tabIndex]?.path ?? views[0]?.path;
-
 	const handleMouseDown = useCallback(
 		(e: React.MouseEvent) => {
 			e.preventDefault();
@@ -439,15 +434,15 @@ export default function RightSidebar() {
 	const modalProps =
 		selected?.type === 'active'
 			? {
-				projectPath: selected.session.cwd,
-				existingSessionId: selected.session.sessionId,
-			}
+					projectPath: selected.session.cwd,
+					existingSessionId: selected.session.sessionId,
+				}
 			: selected?.type === 'past'
 				? {
-					projectPath: selected.session.project_path || undefined,
-					existingSessionId: selected.session.session_id,
-					isPastSession: true,
-				}
+						projectPath: selected.session.project_path || undefined,
+						existingSessionId: selected.session.session_id,
+						isPastSession: true,
+					}
 				: {};
 
 	return (
@@ -546,29 +541,6 @@ export default function RightSidebar() {
 					</Box>
 				)}
 
-				{/* Start Agent button */}
-				<Box sx={{ px: 2, pt: 1.5, pb: 0.5, flexShrink: 0 }}>
-					<Button
-						size="small"
-						startIcon={<AddRoundedIcon />}
-						onClick={() => setNewAgentOpen(true)}
-						sx={{
-							textTransform: 'none',
-							fontWeight: 600,
-							fontSize: '0.75rem',
-							color: '#7C5CFF',
-							borderColor: alpha('#7C5CFF', 0.3),
-							'&:hover': {
-								borderColor: '#7C5CFF',
-								bgcolor: alpha('#7C5CFF', 0.08),
-							},
-						}}
-						variant="outlined"
-					>
-						Lancer un agent
-					</Button>
-				</Box>
-
 				{/* Content */}
 				<Box sx={{ p: 2, overflow: 'auto', flex: 1 }}>
 					{/* Active sessions */}
@@ -652,12 +624,6 @@ export default function RightSidebar() {
 				open={modalOpen}
 				onClose={() => setSelected(null)}
 				{...modalProps}
-			/>
-
-			<AgentTerminalModal
-				open={newAgentOpen}
-				onClose={() => setNewAgentOpen(false)}
-				projectPath={activeViewPath}
 			/>
 		</>
 	);

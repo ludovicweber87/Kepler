@@ -59,6 +59,8 @@ interface AgentTerminalModalProps {
 	issueContext?: IssueContext;
 	/** Session is from history (completed/error) — show reopen button first */
 	isPastSession?: boolean;
+	/** Launch agent in an existing worktree — skip branch/worktree creation */
+	existingWorktree?: { branch: string; worktreePath: string };
 }
 
 function buildSessionId(
@@ -145,6 +147,7 @@ export default function AgentTerminalModal({
 	existingSessionId,
 	issueContext,
 	isPastSession = false,
+	existingWorktree,
 }: AgentTerminalModalProps) {
 	// Step management: 'branch' (input branch name) → 'terminal' (running)
 	const [step, setStep] = useState<'branch' | 'terminal'>('branch');

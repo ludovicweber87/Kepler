@@ -17,6 +17,7 @@ import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
+import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
 import DraggableTabs from '@/components/shared/DraggableTabs';
 import { useAgentViews } from '@/hooks/useAgentViews';
@@ -49,9 +50,7 @@ function WorktreeCard({
 			}}
 		>
 			<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.75 }}>
-				<AccountTreeRoundedIcon
-					sx={{ fontSize: 16, color: '#7C5CFF' }}
-				/>
+				<AccountTreeRoundedIcon sx={{ fontSize: 16, color: '#7C5CFF' }} />
 				<Typography
 					variant="body2"
 					sx={{
@@ -114,6 +113,7 @@ export default function WorkspaceView() {
 	const { views, activeIndex, setActiveIndex, addView, reorderViews } = useAgentViews();
 	const [deleteTarget, setDeleteTarget] = useState<WorktreeInfo | null>(null);
 	const [terminalWorktree, setTerminalWorktree] = useState<WorktreeInfo | null>(null);
+	const [newAgentOpen, setNewAgentOpen] = useState(false);
 
 	const activeView = views[activeIndex] ?? null;
 	const { worktrees, isLoading, deleteWorktree } = useWorktrees(activeView?.path);
@@ -217,6 +217,29 @@ export default function WorkspaceView() {
 				}
 			/>
 
+			{/* Start Agent button */}
+			<Box sx={{ pt: 2, pb: 1 }}>
+				<Button
+					size="small"
+					variant="outlined"
+					startIcon={<SmartToyRoundedIcon />}
+					onClick={() => setNewAgentOpen(true)}
+					sx={{
+						textTransform: 'none',
+						fontWeight: 600,
+						fontSize: '0.8rem',
+						color: '#7C5CFF',
+						borderColor: alpha('#7C5CFF', 0.3),
+						'&:hover': {
+							borderColor: '#7C5CFF',
+							bgcolor: alpha('#7C5CFF', 0.08),
+						},
+					}}
+				>
+					Lancer un agent
+				</Button>
+			</Box>
+
 			{/* Loading */}
 			{isLoading && (
 				<Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
@@ -291,11 +314,23 @@ export default function WorkspaceView() {
 				</DialogActions>
 			</Dialog>
 
-			{/* Agent terminal modal */}
+			{/* Agent terminal modal — existing worktree */}
 			<AgentTerminalModal
 				open={!!terminalWorktree}
 				onClose={() => setTerminalWorktree(null)}
 				projectPath={terminalWorktree?.path}
+				existingWorktree={
+					terminalWorktree
+						? { branch: terminalWorktree.branch, worktreePath: terminalWorktree.path }
+						: undefined
+				}
+			/>
+
+			{/* Agent terminal modal — new agent (creates worktree) */}
+			<AgentTerminalModal
+				open={newAgentOpen}
+				onClose={() => setNewAgentOpen(false)}
+				projectPath={activeView?.path}
 			/>
 		</Box>
 	);
