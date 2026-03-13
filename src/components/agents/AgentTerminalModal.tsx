@@ -970,7 +970,7 @@ export default function AgentTerminalModal({
 			{activeTabKey === 'diff' && (
 				<Box sx={{ flex: 1, overflow: 'hidden' }}>
 					<AgentDiffTab
-						projectPath={projectPath ?? null}
+						projectPath={session?.worktree_path ?? projectPath ?? null}
 						branch={session?.branch ?? branch}
 					/>
 				</Box>
