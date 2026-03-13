@@ -16,6 +16,7 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
 import DraggableTabs from '@/components/shared/DraggableTabs';
 import { useAgentViews } from '@/hooks/useAgentViews';
@@ -104,6 +105,7 @@ function WorktreeCard({
 export default function WorkspaceView() {
 	const { views, activeIndex, setActiveIndex, addView, reorderViews } = useAgentViews();
 	const [deleteTarget, setDeleteTarget] = useState<WorktreeInfo | null>(null);
+	const [newAgentOpen, setNewAgentOpen] = useState(false);
 	const [selectedWorktree, setSelectedWorktree] = useState<{
 		worktree: WorktreeInfo;
 		existingSessionId?: string;
@@ -116,10 +118,13 @@ export default function WorkspaceView() {
 	const handleWorktreeClick = (wt: WorktreeInfo) => {
 		// Find active session whose cwd matches this worktree path
 		const session = activeSessions?.find((s) => s.cwd === wt.path);
-		setSelectedWorktree({
-			worktree: wt,
-			existingSessionId: session?.sessionId,
-		});
+		if (session) {
+			// Re-attach to existing session
+			setSelectedWorktree({ worktree: wt, existingSessionId: session.sessionId });
+		} else {
+			// Open in existing worktree — skip branch step
+			setSelectedWorktree({ worktree: wt });
+		}
 	};
 
 	const handleConfirmDelete = () => {
@@ -318,12 +323,27 @@ export default function WorkspaceView() {
 				</DialogActions>
 			</Dialog>
 
-			{/* Agent terminal modal — existing worktree */}
+			{/* Agent terminal modal — new agent (stepper: branch → terminal) */}
+			<AgentTerminalModal
+				open={newAgentOpen}
+				onClose={() => setNewAgentOpen(false)}
+				projectPath={activeView?.path}
+			/>
+
+			{/* Agent terminal modal — existing worktree click */}
 			<AgentTerminalModal
 				open={!!selectedWorktree}
 				onClose={() => setSelectedWorktree(null)}
-				projectPath={selectedWorktree?.worktree.path}
+				projectPath={activeView?.path}
 				existingSessionId={selectedWorktree?.existingSessionId}
+				existingWorktree={
+					selectedWorktree && !selectedWorktree.existingSessionId
+						? {
+								branch: selectedWorktree.worktree.branch,
+								worktreePath: selectedWorktree.worktree.path,
+							}
+						: undefined
+				}
 			/>
 		</Box>
 	);

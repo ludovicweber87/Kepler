@@ -263,6 +263,30 @@ export default function AgentTerminalModal({
 		}
 	}, [open, existingSessionId]);
 
+	// Skip branch step when launching in an existing worktree
+	useEffect(() => {
+		if (open && existingWorktree) {
+			setWorktreePath(existingWorktree.worktreePath);
+			setBranchInput(existingWorktree.branch);
+
+			const projectName = projectPath?.split('/').filter(Boolean).pop() ?? 'unknown';
+			ensureSession({
+				sessionId,
+				projectPath: projectPath ?? '',
+				projectName,
+				agentName: agentFile?.name ?? null,
+				branch: existingWorktree.branch,
+				worktreePath: existingWorktree.worktreePath,
+				issueOwner: null,
+				issueRepo: null,
+				issueNumber: null,
+				issueTitle: null,
+			});
+
+			setStep('terminal');
+		}
+	}, [open, existingWorktree]);
+
 	// Handle branch submission + worktree creation
 	const handleLaunch = useCallback(async () => {
 		if (!branchInput.trim() || !projectPath) return;
