@@ -63,7 +63,7 @@ export default function AgentsList() {
 					sx={{
 						fontWeight: 700,
 						mb: 4,
-						background: 'linear-gradient(135deg, #7C5CFF 0%, #00E5FF 100%)',
+						background: (theme) => `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
 						WebkitBackgroundClip: 'text',
 						WebkitTextFillColor: 'transparent',
 					}}
@@ -92,12 +92,12 @@ export default function AgentsList() {
 						startIcon={<AddRoundedIcon />}
 						onClick={() => addView()}
 						sx={{
-							borderColor: '#7C5CFF',
-							color: '#7C5CFF',
+							borderColor: 'primary.main',
+							color: 'primary.main',
 							textTransform: 'none',
 							'&:hover': {
-								borderColor: '#7C5CFF',
-								bgcolor: alpha('#7C5CFF', 0.08),
+								borderColor: 'primary.main',
+								bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
 							},
 						}}
 					>
@@ -123,7 +123,7 @@ export default function AgentsList() {
 					variant="h4"
 					sx={{
 						fontWeight: 700,
-						background: 'linear-gradient(135deg, #7C5CFF 0%, #00E5FF 100%)',
+						background: (theme) => `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
 						WebkitBackgroundClip: 'text',
 						WebkitTextFillColor: 'transparent',
 					}}
@@ -136,8 +136,8 @@ export default function AgentsList() {
 					startIcon={<AddRoundedIcon />}
 					onClick={() => setBuilderOpen(true)}
 					sx={{
-						bgcolor: '#7C5CFF',
-						'&:hover': { bgcolor: alpha('#7C5CFF', 0.85) },
+						bgcolor: 'primary.main',
+						'&:hover': { bgcolor: 'primary.dark' },
 						borderRadius: 1,
 						textTransform: 'none',
 						fontWeight: 600,
@@ -164,7 +164,7 @@ export default function AgentsList() {
 						<IconButton
 							size="small"
 							onClick={() => addView()}
-							sx={{ color: 'text.disabled', '&:hover': { color: '#7C5CFF' } }}
+							sx={{ color: 'text.disabled', '&:hover': { color: 'primary.main' } }}
 						>
 							<AddRoundedIcon fontSize="small" />
 						</IconButton>
@@ -175,7 +175,7 @@ export default function AgentsList() {
 			{/* Loading */}
 			{isLoading && (
 				<Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-					<CircularProgress size={28} sx={{ color: '#7C5CFF' }} />
+					<CircularProgress size={28} sx={{ color: 'primary.main' }} />
 				</Box>
 			)}
 
@@ -207,12 +207,12 @@ export default function AgentsList() {
 						startIcon={<AddRoundedIcon />}
 						onClick={() => setBuilderOpen(true)}
 						sx={{
-							borderColor: '#7C5CFF',
-							color: '#7C5CFF',
+							borderColor: 'primary.main',
+							color: 'primary.main',
 							textTransform: 'none',
 							'&:hover': {
-								borderColor: '#7C5CFF',
-								bgcolor: alpha('#7C5CFF', 0.08),
+								borderColor: 'primary.main',
+								bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
 							},
 						}}
 					>
@@ -243,11 +243,11 @@ export default function AgentsList() {
 								transition: 'transform 0.15s, box-shadow 0.15s',
 								'&:hover': {
 									transform: 'translateY(-2px)',
-									boxShadow: `0 8px 24px ${alpha('#7C5CFF', 0.15)}`,
+									boxShadow: (theme) => `0 8px 24px ${alpha(theme.palette.primary.main, 0.15)}`,
 								},
 							}}
 						>
-							<Box sx={{ height: 4, bgcolor: '#7C5CFF' }} />
+							<Box sx={{ height: 4, bgcolor: 'primary.main' }} />
 							<Box sx={{ p: 2.5 }}>
 								<Box
 									sx={{
@@ -258,7 +258,7 @@ export default function AgentsList() {
 									}}
 								>
 									<DescriptionRoundedIcon
-										sx={{ fontSize: '1.25rem', color: '#7C5CFF' }}
+										sx={{ fontSize: '1.25rem', color: 'primary.main' }}
 									/>
 									<Typography
 										variant="subtitle1"
@@ -283,7 +283,7 @@ export default function AgentsList() {
 										'& code': {
 											fontFamily: '"JetBrains Mono", monospace',
 											fontSize: '0.75em',
-											bgcolor: 'rgba(255,255,255,0.06)',
+											bgcolor: (theme) => alpha(theme.palette.text.primary, 0.06),
 											px: 0.5,
 											borderRadius: 1,
 										},
@@ -317,7 +317,7 @@ export default function AgentsList() {
 											}}
 											sx={{
 												color: 'text.secondary',
-												'&:hover': { color: '#7C5CFF' },
+												'&:hover': { color: 'primary.main' },
 											}}
 										>
 											<EditRoundedIcon fontSize="small" />
@@ -332,7 +332,7 @@ export default function AgentsList() {
 											}}
 											sx={{
 												color: 'text.secondary',
-												'&:hover': { color: '#F44336' },
+												'&:hover': { color: 'error.main' },
 											}}
 										>
 											<DeleteRoundedIcon fontSize="small" />

@@ -21,7 +21,7 @@ import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
@@ -132,16 +132,16 @@ const markdownSx = {
 		position: 'relative',
 		top: '-1px',
 		'&:hover': {
-			borderColor: '#7C5CFF',
+			borderColor: 'primary.main',
 			bgcolor: (t: { palette: { divider: string } }) => alpha(t.palette.divider, 0.2),
 		},
 		'&.checked': {
-			borderColor: '#22C55E',
-			bgcolor: (t: { palette: { divider: string } }) => alpha('#22C55E', 0.15),
-			'& svg': { color: '#22C55E' },
+			borderColor: 'success.main',
+			bgcolor: (t: { palette: { success: { main: string } } }) => alpha(t.palette.success.main, 0.15),
+			'& svg': { color: 'success.main' },
 		},
 		'&.unchecked': {
-			borderColor: '#666',
+			borderColor: 'text.disabled',
 		},
 	},
 	'& li:has(.task-checkbox)': {
@@ -311,9 +311,9 @@ function Comment({
 										sx={{ fontSize: '0.8rem', gap: 1 }}
 									>
 										<ListItemIcon sx={{ minWidth: '28px !important' }}>
-											<DeleteOutlineRoundedIcon sx={{ fontSize: 16, color: '#EF4444' }} />
+											<DeleteOutlineRoundedIcon sx={{ fontSize: 16, color: 'error.main' }} />
 										</ListItemIcon>
-										<ListItemText primaryTypographyProps={{ fontSize: '0.8rem', color: '#EF4444' }}>
+										<ListItemText primaryTypographyProps={{ fontSize: '0.8rem', color: 'error.main' }}>
 											{tc('delete')}
 										</ListItemText>
 									</MenuItem>
@@ -345,6 +345,7 @@ export default function IssueDetail({
 	repo: string;
 	number: string;
 }) {
+	const theme = useTheme();
 	const t = useTranslations('issueDetail');
 	const tc = useTranslations('common');
 	const ti = useTranslations('agentIssue');
@@ -573,7 +574,7 @@ export default function IssueDetail({
 
 	const { issue, comments } = data;
 	const isOpen = issue.state === 'open';
-	const stateColor = isOpen ? '#22C55E' : '#808080';
+	const stateColor = isOpen ? theme.palette.success.main : theme.palette.text.disabled;
 	const stateLabel = isOpen ? 'Open' : 'Closed';
 	return (
 		<Box sx={{ maxWidth: 860, mx: 'auto' }}>
@@ -615,7 +616,7 @@ export default function IssueDetail({
 									size="small"
 									onClick={handleSaveTitle}
 									disabled={saving}
-									sx={{ color: '#22C55E' }}
+									sx={{ color: 'success.main' }}
 								>
 									{saving ? (
 										<CircularProgress size={18} />
@@ -745,7 +746,7 @@ export default function IssueDetail({
 										<ListItemIcon sx={{ minWidth: '28px !important' }}>
 											{todo.done ? (
 												<CheckBoxRoundedIcon
-													sx={{ fontSize: 18, color: '#22C55E' }}
+													sx={{ fontSize: 18, color: 'success.main' }}
 												/>
 											) : (
 												<CheckBoxOutlineBlankRoundedIcon
@@ -792,13 +793,13 @@ export default function IssueDetail({
 								>
 									<ListItemIcon sx={{ minWidth: '28px !important' }}>
 										<AddTaskRoundedIcon
-											sx={{ fontSize: 18, color: '#7C5CFF' }}
+											sx={{ fontSize: 18, color: 'primary.main' }}
 										/>
 									</ListItemIcon>
 									<ListItemText
 										primaryTypographyProps={{
 											fontSize: '0.8rem',
-											color: '#7C5CFF',
+											color: 'primary.main',
 											fontWeight: 600,
 										}}
 									>
@@ -905,8 +906,8 @@ export default function IssueDetail({
 									}
 									sx={{
 										textTransform: 'none',
-										bgcolor: '#7C5CFF',
-										'&:hover': { bgcolor: alpha('#7C5CFF', 0.85) },
+										bgcolor: 'primary.main',
+										'&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.85) },
 									}}
 								>
 									{tc('save')}
@@ -1020,8 +1021,8 @@ export default function IssueDetail({
 							sx={{
 								textTransform: 'none',
 								fontWeight: 600,
-								bgcolor: '#7C5CFF',
-								'&:hover': { bgcolor: alpha('#7C5CFF', 0.85) },
+								bgcolor: 'primary.main',
+								'&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.85) },
 							}}
 						>
 							{t('send')}
@@ -1060,8 +1061,8 @@ export default function IssueDetail({
 						sx={{
 							textTransform: 'none',
 							fontWeight: 600,
-							bgcolor: '#7C5CFF',
-							'&:hover': { bgcolor: alpha('#7C5CFF', 0.85) },
+							bgcolor: 'primary.main',
+							'&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.85) },
 						}}
 					>
 						{tc('save')}
@@ -1093,8 +1094,8 @@ export default function IssueDetail({
 						sx={{
 							textTransform: 'none',
 							fontWeight: 600,
-							bgcolor: '#EF4444',
-							'&:hover': { bgcolor: alpha('#EF4444', 0.85) },
+							bgcolor: 'error.main',
+							'&:hover': { bgcolor: alpha(theme.palette.error.main, 0.85) },
 						}}
 					>
 						{tc('delete')}

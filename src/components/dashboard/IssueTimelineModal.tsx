@@ -10,7 +10,7 @@ import IconButton from '@mui/material/IconButton';
 import Avatar from '@mui/material/Avatar';
 import Chip from '@mui/material/Chip';
 import Skeleton from '@mui/material/Skeleton';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme, type Theme } from '@mui/material/styles';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
 import ChatBubbleRoundedIcon from '@mui/icons-material/ChatBubbleRounded';
@@ -54,7 +54,7 @@ interface EventConfig {
 	text: React.ReactNode;
 }
 
-function getEventConfig(event: GitHubTimelineEvent): EventConfig | null {
+function getEventConfig(event: GitHubTimelineEvent, theme: Theme): EventConfig | null {
 	switch (event.event) {
 		case 'commented': {
 			const e = event as GitHubTimelineEvent & {
@@ -65,7 +65,7 @@ function getEventConfig(event: GitHubTimelineEvent): EventConfig | null {
 			const preview = e.body.length > 120 ? e.body.slice(0, 120) + '…' : e.body;
 			return {
 				icon: <ChatBubbleRoundedIcon sx={{ fontSize: 16 }} />,
-				color: '#42A5F5',
+				color: theme.palette.info.main,
 				text: (
 					<Box>
 						<Typography variant="body2" component="span" sx={{ fontWeight: 600 }}>
@@ -132,7 +132,7 @@ function getEventConfig(event: GitHubTimelineEvent): EventConfig | null {
 			};
 			return {
 				icon: <LabelRoundedIcon sx={{ fontSize: 16 }} />,
-				color: '#808080',
+				color: theme.palette.text.disabled,
 				text: (
 					<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
 						<Typography variant="body2" component="span" sx={{ fontWeight: 600 }}>
@@ -163,7 +163,7 @@ function getEventConfig(event: GitHubTimelineEvent): EventConfig | null {
 			};
 			return {
 				icon: <PersonRoundedIcon sx={{ fontSize: 16 }} />,
-				color: '#66BB6A',
+				color: theme.palette.success.main,
 				text: (
 					<>
 						<Typography variant="body2" component="span" sx={{ fontWeight: 600 }}>
@@ -187,7 +187,7 @@ function getEventConfig(event: GitHubTimelineEvent): EventConfig | null {
 			};
 			return {
 				icon: <PersonRoundedIcon sx={{ fontSize: 16 }} />,
-				color: '#808080',
+				color: theme.palette.text.disabled,
 				text: (
 					<>
 						<Typography variant="body2" component="span" sx={{ fontWeight: 600 }}>
@@ -212,7 +212,7 @@ function getEventConfig(event: GitHubTimelineEvent): EventConfig | null {
 			const reason = e.state_reason === 'completed' ? ' as completed' : '';
 			return {
 				icon: <CheckCircleRoundedIcon sx={{ fontSize: 16 }} />,
-				color: '#7C4DFF',
+				color: theme.palette.primary.main,
 				text: (
 					<>
 						<Typography variant="body2" component="span" sx={{ fontWeight: 600 }}>
@@ -229,7 +229,7 @@ function getEventConfig(event: GitHubTimelineEvent): EventConfig | null {
 		case 'reopened':
 			return {
 				icon: <CircleRoundedIcon sx={{ fontSize: 16 }} />,
-				color: '#66BB6A',
+				color: theme.palette.success.main,
 				text: (
 					<>
 						<Typography variant="body2" component="span" sx={{ fontWeight: 600 }}>
@@ -249,7 +249,7 @@ function getEventConfig(event: GitHubTimelineEvent): EventConfig | null {
 			};
 			return {
 				icon: <EditRoundedIcon sx={{ fontSize: 16 }} />,
-				color: '#FFA726',
+				color: theme.palette.warning.main,
 				text: (
 					<Box>
 						<Typography variant="body2" component="span" sx={{ fontWeight: 600 }}>
@@ -285,7 +285,7 @@ function getEventConfig(event: GitHubTimelineEvent): EventConfig | null {
 		case 'referenced':
 			return {
 				icon: <LinkRoundedIcon sx={{ fontSize: 16 }} />,
-				color: '#808080',
+				color: theme.palette.text.disabled,
 				text: (
 					<>
 						<Typography variant="body2" component="span" sx={{ fontWeight: 600 }}>
@@ -314,7 +314,7 @@ function getEventConfig(event: GitHubTimelineEvent): EventConfig | null {
 			if (!event.event) return null;
 			return {
 				icon: <EventNoteRoundedIcon sx={{ fontSize: 16 }} />,
-				color: '#808080',
+				color: theme.palette.text.disabled,
 				text: (
 					<>
 						<Typography variant="body2" component="span" sx={{ fontWeight: 600 }}>
@@ -331,7 +331,8 @@ function getEventConfig(event: GitHubTimelineEvent): EventConfig | null {
 }
 
 function TimelineItem({ event, isLast }: { event: GitHubTimelineEvent; isLast: boolean }) {
-	const config = getEventConfig(event);
+	const theme = useTheme();
+	const config = getEventConfig(event, theme);
 	if (!config) return null;
 
 	return (

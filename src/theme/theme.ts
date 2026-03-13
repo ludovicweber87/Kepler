@@ -9,36 +9,36 @@ export function getTheme(mode: PaletteMode) {
 		palette: {
 			mode,
 			primary: {
-				main: '#7C5CFF',
-				light: '#9A84FF',
-				dark: '#6B4CF0',
+				main: isDark ? '#7C5CFF' : '#8B7EC8',
+				light: isDark ? '#9A84FF' : '#A99BC8',
+				dark: isDark ? '#6B4CF0' : '#6E62A6',
 			},
 			secondary: {
-				main: isDark ? '#00D4FF' : '#0891B2',
-				light: isDark ? '#CCF6FF' : '#67E8F9',
-				dark: isDark ? '#00B8E6' : '#0E7490',
+				main: isDark ? '#00D4FF' : '#7A9E8E',
+				light: isDark ? '#CCF6FF' : '#A3C4B5',
+				dark: isDark ? '#00B8E6' : '#5F8272',
 			},
 			background: {
-				default: isDark ? '#1A1A1A' : '#F0EBE0',
-				paper: isDark ? '#222222' : '#FAF7F2',
+				default: isDark ? '#1A1A1A' : '#F5F1EB',
+				paper: isDark ? '#222222' : '#FDFBF8',
 			},
 			error: {
-				main: '#EF4444',
+				main: isDark ? '#EF4444' : '#C76A5B',
 			},
 			warning: {
-				main: '#F59E0B',
+				main: isDark ? '#F59E0B' : '#D4A24C',
 			},
 			success: {
-				main: '#22C55E',
+				main: isDark ? '#22C55E' : '#6BA368',
 			},
 			info: {
-				main: '#00D4FF',
+				main: isDark ? '#00D4FF' : '#7BA4B8',
 			},
 			text: {
-				primary: isDark ? '#FFFFFF' : '#2C2416',
-				secondary: isDark ? '#B3B3B3' : '#7A7060',
+				primary: isDark ? '#FFFFFF' : '#3D3529',
+				secondary: isDark ? '#B3B3B3' : '#8A7F72',
 			},
-			divider: isDark ? '#3A3A3A' : '#DDD5C8',
+			divider: isDark ? '#3A3A3A' : '#E2DCD3',
 		},
 		typography: {
 			fontSize: 12,
@@ -58,7 +58,7 @@ export function getTheme(mode: PaletteMode) {
 				fontWeight: 500,
 			},
 			body2: {
-				color: isDark ? '#B3B3B3' : '#7A7060',
+				color: isDark ? '#B3B3B3' : '#8A7F72',
 			},
 		},
 		shape: {
@@ -69,13 +69,13 @@ export function getTheme(mode: PaletteMode) {
 				styleOverrides: {
 					root: {
 						backgroundImage: 'none',
-						backgroundColor: isDark ? '#222222' : '#FAF7F2',
-						border: `1px solid ${isDark ? '#3A3A3A' : '#DDD5C8'}`,
+						backgroundColor: isDark ? '#222222' : '#FDFBF8',
+						border: `1px solid ${isDark ? '#3A3A3A' : '#E2DCD3'}`,
 						borderRadius: 10,
 						transition: 'background-color 0.2s ease, border-color 0.2s ease',
 						'&:hover': {
-							backgroundColor: isDark ? '#2A2A2A' : '#F5F0E8',
-							borderColor: isDark ? '#444444' : '#D0C8BA',
+							backgroundColor: isDark ? '#2A2A2A' : '#F7F3ED',
+							borderColor: isDark ? '#444444' : '#D8D2C8',
 						},
 					},
 				},
@@ -93,8 +93,8 @@ export function getTheme(mode: PaletteMode) {
 				styleOverrides: {
 					paper: {
 						backgroundImage: 'none',
-						backgroundColor: isDark ? '#1A1A1A' : '#EDE8DC',
-						borderRight: `1px solid ${isDark ? '#3A3A3A' : '#DDD5C8'}`,
+						backgroundColor: isDark ? '#1A1A1A' : '#EDE8E0',
+						borderRight: `1px solid ${isDark ? '#3A3A3A' : '#E2DCD3'}`,
 					},
 				},
 			},

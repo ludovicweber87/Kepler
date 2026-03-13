@@ -432,12 +432,12 @@ export default function AgentBuilderDialog({ open, onClose, onSave }: AgentBuild
 											px: 0.5,
 											borderRadius: 1,
 											cursor: 'pointer',
-											borderColor: selected ? '#7C5CFF' : 'divider',
-											bgcolor: selected ? alpha('#7C5CFF', 0.15) : 'transparent',
-											color: selected ? '#7C5CFF' : 'text.primary',
+											borderColor: selected ? 'primary.main' : 'divider',
+											bgcolor: (theme) => selected ? alpha(theme.palette.primary.main, 0.15) : 'transparent',
+											color: selected ? 'primary.main' : 'text.primary',
 											'&:hover': {
-												bgcolor: alpha('#7C5CFF', 0.1),
-												borderColor: '#7C5CFF',
+												bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+												borderColor: 'primary.main',
 											},
 										}}
 									/>
@@ -484,12 +484,12 @@ export default function AgentBuilderDialog({ open, onClose, onSave }: AgentBuild
 												fontSize: '0.78rem',
 												borderRadius: 1,
 												cursor: 'pointer',
-												borderColor: selected ? '#7C5CFF' : 'divider',
-												bgcolor: selected ? alpha('#7C5CFF', 0.15) : 'transparent',
-												color: selected ? '#7C5CFF' : 'text.primary',
+												borderColor: selected ? 'primary.main' : 'divider',
+												bgcolor: (theme) => selected ? alpha(theme.palette.primary.main, 0.15) : 'transparent',
+												color: selected ? 'primary.main' : 'text.primary',
 												'&:hover': {
-													bgcolor: alpha('#7C5CFF', 0.1),
-													borderColor: '#7C5CFF',
+													bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+													borderColor: 'primary.main',
 												},
 											}}
 										/>
@@ -545,12 +545,12 @@ export default function AgentBuilderDialog({ open, onClose, onSave }: AgentBuild
 												fontSize: '0.78rem',
 												borderRadius: 1,
 												cursor: 'pointer',
-												borderColor: selected ? '#7C5CFF' : 'divider',
-												bgcolor: selected ? alpha('#7C5CFF', 0.15) : 'transparent',
-												color: selected ? '#7C5CFF' : 'text.primary',
+												borderColor: selected ? 'primary.main' : 'divider',
+												bgcolor: (theme) => selected ? alpha(theme.palette.primary.main, 0.15) : 'transparent',
+												color: selected ? 'primary.main' : 'text.primary',
 												'&:hover': {
-													bgcolor: alpha('#7C5CFF', 0.1),
-													borderColor: '#7C5CFF',
+													bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+													borderColor: 'primary.main',
 												},
 											}}
 										/>
@@ -588,12 +588,12 @@ export default function AgentBuilderDialog({ open, onClose, onSave }: AgentBuild
 												fontSize: '0.78rem',
 												borderRadius: 1,
 												cursor: 'pointer',
-												borderColor: selected ? '#7C5CFF' : 'divider',
-												bgcolor: selected ? alpha('#7C5CFF', 0.15) : 'transparent',
-												color: selected ? '#7C5CFF' : 'text.primary',
+												borderColor: selected ? 'primary.main' : 'divider',
+												bgcolor: (theme) => selected ? alpha(theme.palette.primary.main, 0.15) : 'transparent',
+												color: selected ? 'primary.main' : 'text.primary',
 												'&:hover': {
-													bgcolor: alpha('#7C5CFF', 0.1),
-													borderColor: '#7C5CFF',
+													bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+													borderColor: 'primary.main',
 												},
 											}}
 										/>
@@ -622,12 +622,12 @@ export default function AgentBuilderDialog({ open, onClose, onSave }: AgentBuild
 												fontSize: '0.78rem',
 												borderRadius: 1,
 												cursor: 'pointer',
-												borderColor: selected ? '#7C5CFF' : 'divider',
-												bgcolor: selected ? alpha('#7C5CFF', 0.15) : 'transparent',
-												color: selected ? '#7C5CFF' : 'text.primary',
+												borderColor: selected ? 'primary.main' : 'divider',
+												bgcolor: (theme) => selected ? alpha(theme.palette.primary.main, 0.15) : 'transparent',
+												color: selected ? 'primary.main' : 'text.primary',
 												'&:hover': {
-													bgcolor: alpha('#7C5CFF', 0.1),
-													borderColor: '#7C5CFF',
+													bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+													borderColor: 'primary.main',
 												},
 											}}
 										/>
@@ -706,7 +706,7 @@ export default function AgentBuilderDialog({ open, onClose, onSave }: AgentBuild
 										gap: 2,
 									}}
 								>
-									<CircularProgress size={32} sx={{ color: '#7C5CFF' }} />
+									<CircularProgress size={32} sx={{ color: 'primary.main' }} />
 									<Typography
 										variant="body2"
 										sx={{ color: 'text.secondary', fontFamily: 'Poppins' }}
@@ -727,7 +727,7 @@ export default function AgentBuilderDialog({ open, onClose, onSave }: AgentBuild
 										display: 'inline-block',
 										width: 8,
 										height: 16,
-										bgcolor: '#7C5CFF',
+										bgcolor: 'primary.main',
 										animation: 'blink 1s step-end infinite',
 										ml: 0.5,
 										verticalAlign: 'text-bottom',
@@ -745,14 +745,14 @@ export default function AgentBuilderDialog({ open, onClose, onSave }: AgentBuild
 								<IconButton
 									size="small"
 									onClick={handleCopy}
-									sx={{ color: copied ? '#4CAF50' : 'text.secondary' }}
+									sx={{ color: copied ? 'success.main' : 'text.secondary' }}
 								>
 									<ContentCopyRoundedIcon fontSize="small" />
 								</IconButton>
 								<IconButton
 									size="small"
 									onClick={() => generate()}
-									sx={{ color: 'text.secondary', '&:hover': { color: '#7C5CFF' } }}
+									sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
 								>
 									<RefreshRoundedIcon fontSize="small" />
 								</IconButton>
@@ -787,8 +787,8 @@ export default function AgentBuilderDialog({ open, onClose, onSave }: AgentBuild
 									disabled={!feedback.trim()}
 									startIcon={<EditRoundedIcon />}
 									sx={{
-										bgcolor: '#7C5CFF',
-										'&:hover': { bgcolor: alpha('#7C5CFF', 0.85) },
+										bgcolor: 'primary.main',
+										'&:hover': { bgcolor: 'primary.dark' },
 										textTransform: 'none',
 										fontWeight: 600,
 										whiteSpace: 'nowrap',
@@ -832,7 +832,7 @@ export default function AgentBuilderDialog({ open, onClose, onSave }: AgentBuild
 					pb: 1,
 				}}
 			>
-				<AutoFixHighRoundedIcon sx={{ color: '#7C5CFF' }} />
+				<AutoFixHighRoundedIcon sx={{ color: 'primary.main' }} />
 				{t('title')}
 			</DialogTitle>
 
@@ -847,8 +847,8 @@ export default function AgentBuilderDialog({ open, onClose, onSave }: AgentBuild
 										fontSize: '0.75rem',
 										fontWeight: 600,
 									},
-									'& .MuiStepIcon-root.Mui-active': { color: '#7C5CFF' },
-									'& .MuiStepIcon-root.Mui-completed': { color: '#7C5CFF' },
+									'& .MuiStepIcon-root.Mui-active': { color: 'primary.main' },
+									'& .MuiStepIcon-root.Mui-completed': { color: 'primary.main' },
 								}}
 							>
 								{step.label}
@@ -894,8 +894,8 @@ export default function AgentBuilderDialog({ open, onClose, onSave }: AgentBuild
 						disabled={!canNext()}
 						endIcon={<ArrowForwardRoundedIcon />}
 						sx={{
-							bgcolor: '#7C5CFF',
-							'&:hover': { bgcolor: alpha('#7C5CFF', 0.85) },
+							bgcolor: 'primary.main',
+							'&:hover': { bgcolor: 'primary.dark' },
 							textTransform: 'none',
 							fontWeight: 600,
 							borderRadius: 1,
@@ -920,8 +920,8 @@ export default function AgentBuilderDialog({ open, onClose, onSave }: AgentBuild
 							disabled={!generatedPrompt || isGenerating || !state.agentName.trim()}
 							startIcon={<SaveRoundedIcon />}
 							sx={{
-								bgcolor: '#7C5CFF',
-								'&:hover': { bgcolor: alpha('#7C5CFF', 0.85) },
+								bgcolor: 'primary.main',
+								'&:hover': { bgcolor: 'primary.dark' },
 								textTransform: 'none',
 								fontWeight: 600,
 								borderRadius: 1,

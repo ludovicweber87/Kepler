@@ -10,7 +10,7 @@ import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import FiberManualRecordRoundedIcon from '@mui/icons-material/FiberManualRecordRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
@@ -54,6 +54,7 @@ export default function SessionCard({
 	onDelete,
 	compact = false,
 }: SessionCardProps) {
+	const theme = useTheme();
 	const t = useTranslations('sessionCard');
 	const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
@@ -63,10 +64,10 @@ export default function SessionCard({
 	const isIdle = status === 'idle';
 
 	// Colors
-	const activeColor = '#22C55E';
-	const errorColor = '#EF4444';
-	const finishedColor = '#9E9E9E';
-	const idleColor = '#7C5CFF';
+	const activeColor = theme.palette.success.main;
+	const errorColor = theme.palette.error.main;
+	const finishedColor = theme.palette.text.secondary;
+	const idleColor = theme.palette.primary.main;
 
 	const statusColor = isActive
 		? activeColor
@@ -134,7 +135,7 @@ export default function SessionCard({
 					<FiberManualRecordRoundedIcon
 						sx={{
 							fontSize: compact ? 8 : 10,
-							color: isStreaming ? '#4CAF50' : finishedColor,
+							color: isStreaming ? theme.palette.success.main : finishedColor,
 							...(isStreaming && {
 								animation: 'sessionCardPulse 2s ease-in-out infinite',
 								'@keyframes sessionCardPulse': {
@@ -180,7 +181,7 @@ export default function SessionCard({
 									width: 4,
 									height: 4,
 									borderRadius: '50%',
-									bgcolor: '#7C5CFF',
+									bgcolor: 'primary.main',
 									animation: 'sessionCardDotPulse 1.4s ease-in-out infinite',
 									animationDelay: `${i * 0.2}s`,
 									'@keyframes sessionCardDotPulse': {
@@ -317,7 +318,7 @@ export default function SessionCard({
 									sx={{ fontSize: '0.8rem', gap: 1 }}
 								>
 									<ListItemIcon sx={{ minWidth: '28px !important' }}>
-										<StopCircleRoundedIcon sx={{ fontSize: 18, color: '#FF5252' }} />
+										<StopCircleRoundedIcon sx={{ fontSize: 18, color: 'error.main' }} />
 									</ListItemIcon>
 									<ListItemText primaryTypographyProps={{ fontSize: '0.8rem' }}>
 										{t('closeSession')}
@@ -334,7 +335,7 @@ export default function SessionCard({
 									sx={{ fontSize: '0.8rem', gap: 1 }}
 								>
 									<ListItemIcon sx={{ minWidth: '28px !important' }}>
-										<DeleteOutlineRoundedIcon sx={{ fontSize: 18, color: '#FF5252' }} />
+										<DeleteOutlineRoundedIcon sx={{ fontSize: 18, color: 'error.main' }} />
 									</ListItemIcon>
 									<ListItemText primaryTypographyProps={{ fontSize: '0.8rem' }}>
 										{t('delete')}

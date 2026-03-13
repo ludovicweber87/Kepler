@@ -13,7 +13,7 @@ import Button from '@mui/material/Button';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
 import ChecklistRoundedIcon from '@mui/icons-material/ChecklistRounded';
@@ -111,10 +111,10 @@ function TodoAccordion({
 					}}
 					onClick={(e) => e.stopPropagation()}
 					size="small"
-					sx={{
-						color: alpha('#FF9800', 0.4),
-						'&.Mui-checked': { color: '#FF9800' },
-					}}
+					sx={(theme) => ({
+						color: alpha(theme.palette.warning.main, 0.4),
+						'&.Mui-checked': { color: theme.palette.warning.main },
+					})}
 				/>
 				{editingTitle && !done ? (
 					<TextField
@@ -181,7 +181,7 @@ function TodoAccordion({
 						opacity: 0,
 						transition: 'opacity 0.15s',
 						color: 'text.disabled',
-						'&:hover': { color: '#F44336' },
+						'&:hover': { color: 'error.main' },
 					}}
 				>
 					<DeleteRoundedIcon fontSize="small" />
@@ -203,16 +203,16 @@ function TodoAccordion({
 							setDescFocused(true);
 						}}
 						onBlur={commitDesc}
-						sx={{
+						sx={(theme) => ({
 							'& .MuiOutlinedInput-root': {
-								bgcolor: alpha('#FF9800', 0.04),
+								bgcolor: alpha(theme.palette.warning.main, 0.04),
 								fontSize: '0.85rem',
 								borderRadius: 1,
-								'& fieldset': { borderColor: alpha('#FF9800', 0.15) },
-								'&:hover fieldset': { borderColor: alpha('#FF9800', 0.3) },
-								'&.Mui-focused fieldset': { borderColor: '#FF9800' },
+								'& fieldset': { borderColor: alpha(theme.palette.warning.main, 0.15) },
+								'&:hover fieldset': { borderColor: alpha(theme.palette.warning.main, 0.3) },
+								'&.Mui-focused fieldset': { borderColor: theme.palette.warning.main },
 							},
-						}}
+						})}
 					/>
 				</AccordionDetails>
 			)}
@@ -221,6 +221,7 @@ function TodoAccordion({
 }
 
 export default function TodoList() {
+	const theme = useTheme();
 	const t = useTranslations('todos');
 	const { views, activeIndex, activeView, setActiveIndex, addView, reorderViews } =
 		useAgentViews();
@@ -275,7 +276,7 @@ export default function TodoList() {
 					sx={{
 						fontWeight: 700,
 						mb: 4,
-						background: 'linear-gradient(135deg, #FF9800 0%, #7C5CFF 100%)',
+						background: `linear-gradient(135deg, ${theme.palette.warning.main} 0%, ${theme.palette.primary.main} 100%)`,
 						WebkitBackgroundClip: 'text',
 						WebkitTextFillColor: 'transparent',
 					}}
@@ -304,12 +305,12 @@ export default function TodoList() {
 						startIcon={<AddRoundedIcon />}
 						onClick={() => addView()}
 						sx={{
-							borderColor: '#FF9800',
-							color: '#FF9800',
+							borderColor: theme.palette.warning.main,
+							color: theme.palette.warning.main,
 							textTransform: 'none',
 							'&:hover': {
-								borderColor: '#FF9800',
-								bgcolor: alpha('#FF9800', 0.08),
+								borderColor: theme.palette.warning.main,
+								bgcolor: alpha(theme.palette.warning.main, 0.08),
 							},
 						}}
 					>
@@ -328,7 +329,7 @@ export default function TodoList() {
 				sx={{
 					fontWeight: 700,
 					mb: 3,
-					background: 'linear-gradient(135deg, #FF9800 0%, #7C5CFF 100%)',
+					background: `linear-gradient(135deg, ${theme.palette.warning.main} 0%, ${theme.palette.primary.main} 100%)`,
 					WebkitBackgroundClip: 'text',
 					WebkitTextFillColor: 'transparent',
 				}}
@@ -342,13 +343,13 @@ export default function TodoList() {
 				activeTab={activeIndex}
 				onTabChange={setActiveIndex}
 				onReorder={reorderViews}
-				color="#FF9800"
+				color={theme.palette.warning.main}
 				trailing={
 					<Tooltip title={t('addProject')}>
 						<IconButton
 							size="small"
 							onClick={() => addView()}
-							sx={{ color: 'text.disabled', '&:hover': { color: '#FF9800' } }}
+							sx={{ color: 'text.disabled', '&:hover': { color: theme.palette.warning.main } }}
 						>
 							<AddRoundedIcon fontSize="small" />
 						</IconButton>
@@ -388,9 +389,9 @@ export default function TodoList() {
 					onClick={handleAdd}
 					disabled={!newTitle.trim()}
 					sx={{
-						color: newTitle.trim() ? '#FF9800' : 'text.disabled',
-						bgcolor: newTitle.trim() ? alpha('#FF9800', 0.1) : 'transparent',
-						'&:hover': { bgcolor: alpha('#FF9800', 0.2) },
+						color: newTitle.trim() ? theme.palette.warning.main : 'text.disabled',
+						bgcolor: newTitle.trim() ? alpha(theme.palette.warning.main, 0.1) : 'transparent',
+						'&:hover': { bgcolor: alpha(theme.palette.warning.main, 0.2) },
 					}}
 				>
 					<AddRoundedIcon />
@@ -425,17 +426,17 @@ export default function TodoList() {
 								onClick={() => addTodo(`#${issue.number} ${issue.title}`)}
 								icon={<AddRoundedIcon sx={{ fontSize: '14px !important' }} />}
 								sx={{
-									bgcolor: alpha('#FF9800', 0.08),
+									bgcolor: alpha(theme.palette.warning.main, 0.08),
 									color: 'text.secondary',
 									border: 1,
-									borderColor: alpha('#FF9800', 0.2),
+									borderColor: alpha(theme.palette.warning.main, 0.2),
 									cursor: 'pointer',
 									maxWidth: 350,
 									transition: 'all 0.15s',
 									'&:hover': {
-										bgcolor: alpha('#FF9800', 0.15),
-										color: '#FF9800',
-										borderColor: alpha('#FF9800', 0.4),
+										bgcolor: alpha(theme.palette.warning.main, 0.15),
+										color: theme.palette.warning.main,
+										borderColor: alpha(theme.palette.warning.main, 0.4),
 									},
 									'& .MuiChip-label': {
 										overflow: 'hidden',
@@ -451,7 +452,7 @@ export default function TodoList() {
 			{/* Loading */}
 			{isLoading && (
 				<Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-					<CircularProgress size={28} sx={{ color: '#FF9800' }} />
+					<CircularProgress size={28} sx={{ color: theme.palette.warning.main }} />
 				</Box>
 			)}
 

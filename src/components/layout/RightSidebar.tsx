@@ -4,7 +4,7 @@ import { useState, useCallback, useRef, useMemo } from 'react';
 import Box from '@mui/material/Box';
 import Drawer from '@mui/material/Drawer';
 import Typography from '@mui/material/Typography';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import { useAgentViews } from '@/hooks/useAgentViews';
 import { useRightSidebar } from '@/hooks/useRightSidebar';
@@ -20,6 +20,7 @@ const MAX_WIDTH = 400;
 
 
 export default function RightSidebar() {
+	const theme = useTheme();
 	const { open, width, setWidth } = useRightSidebar();
 	const { views, reorderViews } = useAgentViews();
 	const { activeSessions, pastSessions, killSession, getActiveForPath, getPastForPath, fetchSessionForPath } = useSessionManager();
@@ -152,7 +153,7 @@ export default function RightSidebar() {
 							transition: 'background-color 0.15s',
 						},
 						'&:hover::after, &:active::after': {
-							bgcolor: '#7C5CFF',
+							bgcolor: 'primary.main',
 						},
 					}}
 				/>
@@ -160,7 +161,7 @@ export default function RightSidebar() {
 				{/* Header */}
 				<Box sx={{ px: 2, pt: 2, pb: 1, flexShrink: 0 }}>
 					<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-						<AccountTreeRoundedIcon sx={{ color: '#7C5CFF', fontSize: '1.1rem' }} />
+						<AccountTreeRoundedIcon sx={{ color: 'primary.main', fontSize: '1.1rem' }} />
 						<Typography
 							variant="subtitle2"
 							sx={{ fontWeight: 700, letterSpacing: 0.5 }}
@@ -171,8 +172,8 @@ export default function RightSidebar() {
 							<Box
 								sx={{
 									ml: 'auto',
-									bgcolor: alpha('#4CAF50', 0.15),
-									color: '#4CAF50',
+									bgcolor: alpha(theme.palette.success.main, 0.15),
+									color: 'success.main',
 									fontSize: '0.65rem',
 									fontWeight: 700,
 									px: 0.75,

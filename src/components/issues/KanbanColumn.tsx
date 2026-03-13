@@ -5,7 +5,7 @@ import { motion, AnimatePresence, type PanInfo } from 'framer-motion';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import IssueCard from './IssueCard';
 import { GitHubIssue } from '@/types';
 
@@ -38,6 +38,7 @@ const KanbanColumn = forwardRef<HTMLDivElement, KanbanColumnProps>(function Kanb
 	},
 	ref,
 ) {
+	const theme = useTheme();
 	const count = issues.length;
 
 	const elements: React.ReactNode[] = [];
@@ -54,8 +55,8 @@ const KanbanColumn = forwardRef<HTMLDivElement, KanbanColumnProps>(function Kanb
 					transition={springTransition}
 					style={{
 						borderRadius: 1,
-						border: '2px dashed rgba(124, 77, 255, 0.3)',
-						background: 'rgba(124, 77, 255, 0.06)',
+						border: `2px dashed ${alpha(theme.palette.primary.main, 0.3)}`,
+						background: alpha(theme.palette.primary.main, 0.06),
 						flexShrink: 0,
 					}}
 				/>,
@@ -86,8 +87,8 @@ const KanbanColumn = forwardRef<HTMLDivElement, KanbanColumnProps>(function Kanb
 				transition={springTransition}
 				style={{
 					borderRadius: 1,
-					border: '2px dashed rgba(124, 77, 255, 0.3)',
-					background: 'rgba(124, 77, 255, 0.06)',
+					border: `2px dashed ${alpha(theme.palette.primary.main, 0.3)}`,
+					background: alpha(theme.palette.primary.main, 0.06),
 					flexShrink: 0,
 				}}
 			/>,
@@ -104,14 +105,13 @@ const KanbanColumn = forwardRef<HTMLDivElement, KanbanColumnProps>(function Kanb
 				flexDirection: 'column',
 				bgcolor: 'background.paper',
 				borderRadius: 1,
-				boxShadow: (t: { palette: { mode: string } }) =>
-					t.palette.mode === 'dark'
-						? `0 1px 4px ${alpha('#000', 0.18)}, 0 0 1px ${alpha('#000', 0.25)}`
-						: `0 1px 4px ${alpha('#000', 0.06)}, 0 0 1px ${alpha('#000', 0.1)}`,
+				boxShadow: theme.palette.mode === 'dark'
+						? `0 1px 4px ${alpha(theme.palette.common.black, 0.18)}, 0 0 1px ${alpha(theme.palette.common.black, 0.25)}`
+						: `0 1px 4px ${alpha(theme.palette.common.black, 0.06)}, 0 0 1px ${alpha(theme.palette.common.black, 0.1)}`,
 				p: 1.5,
 				transition: 'box-shadow 0.2s',
 				...(isDropTarget && {
-					boxShadow: `0 2px 8px ${alpha('#7C5CFF', 0.2)}, 0 0 1px ${alpha('#7C5CFF', 0.4)}`,
+					boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.2)}, 0 0 1px ${alpha(theme.palette.primary.main, 0.4)}`,
 				}),
 			}}
 		>
@@ -135,8 +135,8 @@ const KanbanColumn = forwardRef<HTMLDivElement, KanbanColumnProps>(function Kanb
 						minWidth: 20,
 						fontSize: '0.7rem',
 						fontWeight: 700,
-						bgcolor: alpha('#7C5CFF', 0.12),
-						color: '#9A84FF',
+						bgcolor: alpha(theme.palette.primary.main, 0.12),
+						color: 'primary.light',
 					}}
 				/>
 			</Box>
@@ -155,7 +155,7 @@ const KanbanColumn = forwardRef<HTMLDivElement, KanbanColumnProps>(function Kanb
 					'&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 1 },
 					transition: 'background 0.2s',
 					...(isDropTarget && {
-						background: alpha('#7C5CFF', 0.04),
+						background: alpha(theme.palette.primary.main, 0.04),
 					}),
 				}}
 			>

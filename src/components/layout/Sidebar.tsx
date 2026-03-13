@@ -12,7 +12,7 @@ import Avatar from '@mui/material/Avatar';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
 import MergeTypeRoundedIcon from '@mui/icons-material/MergeTypeRounded';
 import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
@@ -31,6 +31,7 @@ import LocaleSwitcher from '@/components/LocaleSwitcher';
 export const SIDEBAR_WIDTH = 220;
 
 export default function Sidebar() {
+	const theme = useTheme();
 	const pathname = usePathname();
 	const { data: session } = useSession();
 	const t = useTranslations('sidebar');
@@ -92,12 +93,12 @@ export default function Sidebar() {
 										animation: `slideInLeft 0.35s ease-out ${index * 0.05}s both`,
 										transition: 'background-color 0.15s, transform 0.15s',
 										'&.Mui-selected': {
-											bgcolor: alpha('#7C5CFF', 0.18),
-											color: '#9A84FF',
-											'& .MuiListItemIcon-root': { color: '#9A84FF' },
+											bgcolor: alpha(theme.palette.primary.main, 0.18),
+											color: 'primary.light',
+											'& .MuiListItemIcon-root': { color: 'primary.light' },
 										},
 										'&:hover': {
-											bgcolor: alpha('#7C5CFF', 0.1),
+											bgcolor: alpha(theme.palette.primary.main, 0.1),
 											transform: 'translateX(4px)',
 										},
 									}}
@@ -116,8 +117,8 @@ export default function Sidebar() {
 										<Box
 											component="span"
 											sx={{
-												bgcolor: '#FF9800',
-												color: '#fff',
+												bgcolor: 'warning.main',
+												color: 'common.white',
 												fontSize: '0.65rem',
 												fontWeight: 700,
 												lineHeight: 1,
@@ -161,12 +162,12 @@ export default function Sidebar() {
 										animation: `slideInLeft 0.35s ease-out ${(mainItems.length + index) * 0.05}s both`,
 										transition: 'background-color 0.15s, transform 0.15s',
 										'&.Mui-selected': {
-											bgcolor: alpha('#7C5CFF', 0.18),
-											color: '#9A84FF',
-											'& .MuiListItemIcon-root': { color: '#9A84FF' },
+											bgcolor: alpha(theme.palette.primary.main, 0.18),
+											color: 'primary.light',
+											'& .MuiListItemIcon-root': { color: 'primary.light' },
 										},
 										'&:hover': {
-											bgcolor: alpha('#7C5CFF', 0.1),
+											bgcolor: alpha(theme.palette.primary.main, 0.1),
 											transform: 'translateX(4px)',
 										},
 									}}

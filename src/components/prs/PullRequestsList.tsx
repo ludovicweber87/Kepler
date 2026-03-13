@@ -14,7 +14,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Collapse from '@mui/material/Collapse';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
 import MergeTypeRoundedIcon from '@mui/icons-material/MergeTypeRounded';
@@ -71,21 +71,21 @@ function CheckIcon({ status, t }: { status: GitHubPullRequest['check_status']; t
 	if (status === 'success') {
 		return (
 			<Tooltip title={t('checksPassed')}>
-				<CheckCircleRoundedIcon sx={{ fontSize: 16, color: '#22C55E' }} />
+				<CheckCircleRoundedIcon sx={{ fontSize: 16, color: 'success.main' }} />
 			</Tooltip>
 		);
 	}
 	if (status === 'failure') {
 		return (
 			<Tooltip title={t('checksFailed')}>
-				<CancelRoundedIcon sx={{ fontSize: 16, color: '#EF4444' }} />
+				<CancelRoundedIcon sx={{ fontSize: 16, color: 'error.main' }} />
 			</Tooltip>
 		);
 	}
 	if (status === 'pending') {
 		return (
 			<Tooltip title={t('checksInProgress')}>
-				<AccessTimeRoundedIcon sx={{ fontSize: 16, color: '#F59E0B' }} />
+				<AccessTimeRoundedIcon sx={{ fontSize: 16, color: 'warning.main' }} />
 			</Tooltip>
 		);
 	}
@@ -93,17 +93,18 @@ function CheckIcon({ status, t }: { status: GitHubPullRequest['check_status']; t
 }
 
 function CheckRunItem({ run }: { run: CheckRun }) {
+	const theme = useTheme();
 	const isCompleted = run.status === 'completed';
 	const isSuccess = run.conclusion === 'success' || run.conclusion === 'neutral' || run.conclusion === 'skipped';
 
-	let color = '#F59E0B';
+	let color = theme.palette.warning.main;
 	let Icon = AccessTimeRoundedIcon;
 	if (isCompleted) {
 		if (isSuccess) {
-			color = '#22C55E';
+			color = theme.palette.success.main;
 			Icon = CheckCircleRoundedIcon;
 		} else {
-			color = '#EF4444';
+			color = theme.palette.error.main;
 			Icon = CancelRoundedIcon;
 		}
 	}
@@ -184,7 +185,7 @@ function PRCard({
 
 	return (
 		<Box
-			sx={{
+			sx={(theme) => ({
 				display: 'flex',
 				alignItems: 'flex-start',
 				gap: 2,
@@ -197,10 +198,10 @@ function PRCard({
 				transition: 'transform 0.1s, box-shadow 0.15s',
 				'&:hover': {
 					transform: 'translateX(4px)',
-					boxShadow: `0 4px 16px ${alpha('#4CAF50', 0.1)}`,
+					boxShadow: `0 4px 16px ${alpha(theme.palette.success.main, 0.1)}`,
 					'& .open-icon': { opacity: 1 },
 				},
-			}}
+			})}
 		>
 			{/* Avatar */}
 			<Avatar
@@ -236,12 +237,12 @@ function PRCard({
 						<Chip
 							label={t('draft')}
 							size="small"
-							sx={{
+							sx={(theme) => ({
 								height: 20,
 								fontSize: '0.65rem',
-								bgcolor: alpha('#9E9E9E', 0.15),
+								bgcolor: alpha(theme.palette.text.disabled, 0.15),
 								color: 'text.disabled',
-							}}
+							})}
 						/>
 					)}
 				</Box>
@@ -284,13 +285,13 @@ function PRCard({
 							</Typography>
 							<Typography
 								variant="caption"
-								sx={{ color: '#4CAF50', fontSize: '0.7rem', ml: 0.5 }}
+								sx={{ color: 'success.main', fontSize: '0.7rem', ml: 0.5 }}
 							>
 								+{pr.additions}
 							</Typography>
 							<Typography
 								variant="caption"
-								sx={{ color: '#F44336', fontSize: '0.7rem' }}
+								sx={{ color: 'error.main', fontSize: '0.7rem' }}
 							>
 								-{pr.deletions}
 							</Typography>
@@ -354,8 +355,8 @@ function PRCard({
 							py: 0.25,
 							px: 1.5,
 							minHeight: 0,
-							bgcolor: '#7C5CFF',
-							'&:hover': { bgcolor: '#6A4DE0' },
+							bgcolor: 'primary.main',
+							'&:hover': { bgcolor: 'primary.dark' },
 						}}
 					>
 						{t('merge')}
@@ -378,6 +379,7 @@ function PRCard({
 }
 
 export default function PullRequestsList() {
+	const theme = useTheme();
 	const t = useTranslations('prs');
 	const tc = useTranslations('common');
 	const { views, addView, reorderViews } = useAgentViews();
@@ -418,13 +420,13 @@ export default function PullRequestsList() {
 			<Box sx={{ p: 4, maxWidth: 900, mx: 'auto' }}>
 				<Typography
 					variant="h4"
-					sx={{
+					sx={(theme) => ({
 						fontWeight: 700,
 						mb: 4,
-						background: 'linear-gradient(135deg, #4CAF50 0%, #7C5CFF 100%)',
+						background: `linear-gradient(135deg, ${theme.palette.success.main} 0%, ${theme.palette.primary.main} 100%)`,
 						WebkitBackgroundClip: 'text',
 						WebkitTextFillColor: 'transparent',
-					}}
+					})}
 				>
 					{t('title')}
 				</Typography>
@@ -449,15 +451,15 @@ export default function PullRequestsList() {
 						variant="outlined"
 						startIcon={<AddRoundedIcon />}
 						onClick={() => addView()}
-						sx={{
-							borderColor: '#4CAF50',
-							color: '#4CAF50',
+						sx={(theme) => ({
+							borderColor: theme.palette.success.main,
+							color: theme.palette.success.main,
 							textTransform: 'none',
 							'&:hover': {
-								borderColor: '#4CAF50',
-								bgcolor: alpha('#4CAF50', 0.08),
+								borderColor: theme.palette.success.main,
+								bgcolor: alpha(theme.palette.success.main, 0.08),
 							},
-						}}
+						})}
 					>
 						{t('addProject')}
 					</Button>
@@ -471,13 +473,13 @@ export default function PullRequestsList() {
 			{/* Header */}
 			<Typography
 				variant="h4"
-				sx={{
+				sx={(theme) => ({
 					fontWeight: 700,
 					mb: 3,
-					background: 'linear-gradient(135deg, #4CAF50 0%, #7C5CFF 100%)',
+					background: `linear-gradient(135deg, ${theme.palette.success.main} 0%, ${theme.palette.primary.main} 100%)`,
 					WebkitBackgroundClip: 'text',
 					WebkitTextFillColor: 'transparent',
-				}}
+				})}
 			>
 				{t('title')}
 			</Typography>
@@ -490,13 +492,13 @@ export default function PullRequestsList() {
 				onReorder={(newOrder) => {
 					reorderViews(newOrder);
 				}}
-				color="#4CAF50"
+				color={theme.palette.success.main}
 				trailing={
 					<Tooltip title={t('addProject')}>
 						<IconButton
 							size="small"
 							onClick={() => addView()}
-							sx={{ color: 'text.disabled', '&:hover': { color: '#4CAF50' } }}
+							sx={{ color: 'text.disabled', '&:hover': { color: 'success.main' } }}
 						>
 							<AddRoundedIcon fontSize="small" />
 						</IconButton>
@@ -507,7 +509,7 @@ export default function PullRequestsList() {
 			{/* Loading */}
 			{isLoading && (
 				<Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-					<CircularProgress size={28} sx={{ color: '#4CAF50' }} />
+					<CircularProgress size={28} sx={{ color: 'success.main' }} />
 				</Box>
 			)}
 
@@ -546,7 +548,7 @@ export default function PullRequestsList() {
 				fullWidth
 				PaperProps={{
 					sx: {
-						bgcolor: '#222',
+						bgcolor: 'background.paper',
 						borderRadius: 2,
 						border: '1px solid',
 						borderColor: 'divider',
@@ -564,12 +566,12 @@ export default function PullRequestsList() {
 								<Chip
 									label={mergeTarget.base.ref}
 									size="small"
-									sx={{
+									sx={(theme) => ({
 										height: 20,
 										fontSize: '0.7rem',
-										bgcolor: alpha('#7C5CFF', 0.15),
-										color: '#7C5CFF',
-									}}
+										bgcolor: alpha(theme.palette.primary.main, 0.15),
+										color: theme.palette.primary.main,
+									})}
 								/>
 								 ?
 							</Typography>
@@ -609,8 +611,8 @@ export default function PullRequestsList() {
 						sx={{
 							textTransform: 'none',
 							fontWeight: 600,
-							bgcolor: '#7C5CFF',
-							'&:hover': { bgcolor: '#6A4DE0' },
+							bgcolor: 'primary.main',
+							'&:hover': { bgcolor: 'primary.dark' },
 						}}
 					>
 						{mergeMutation.isPending ? t('merging') : t('confirmMerge')}

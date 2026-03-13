@@ -16,7 +16,7 @@ import AccordionDetails from '@mui/material/AccordionDetails';
 import InputAdornment from '@mui/material/InputAdornment';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
 import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
@@ -290,6 +290,7 @@ function ProjectAccordion({
 }
 
 export default function SettingsPanel() {
+	const theme = useTheme();
 	const t = useTranslations('settings');
 	const { configs, saveConfig, clearConfig } = useProjectConfig();
 	const { repoPaths, savePath, deletePath } = useRepoPaths();
@@ -376,7 +377,7 @@ export default function SettingsPanel() {
 				sx={{
 					fontWeight: 700,
 					mb: 3,
-					background: 'linear-gradient(135deg, #7C5CFF 0%, #9A84FF 30%, #00D4FF 100%)',
+					background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.light} 30%, ${theme.palette.secondary.main} 100%)`,
 					backgroundClip: 'text',
 					WebkitBackgroundClip: 'text',
 					WebkitTextFillColor: 'transparent',
@@ -537,7 +538,7 @@ export default function SettingsPanel() {
 																}
 																sx={{
 																	color: 'text.disabled',
-																	'&:hover': { color: '#F44336' },
+																	'&:hover': { color: 'error.main' },
 																}}
 															>
 																<ExpandMoreIcon
@@ -583,12 +584,12 @@ export default function SettingsPanel() {
 							}}
 							disabled={pickingRepo !== null}
 							sx={{
-								borderColor: alpha('#7C5CFF', 0.4),
-								color: '#7C5CFF',
+								borderColor: alpha(theme.palette.primary.main, 0.4),
+								color: theme.palette.primary.main,
 								textTransform: 'none',
 								'&:hover': {
-									borderColor: '#7C5CFF',
-									bgcolor: alpha('#7C5CFF', 0.08),
+									borderColor: theme.palette.primary.main,
+									bgcolor: alpha(theme.palette.primary.main, 0.08),
 								},
 							}}
 						>

@@ -10,6 +10,7 @@ import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import TextField from '@mui/material/TextField';
 import Alert from '@mui/material/Alert';
+import { alpha } from '@mui/material/styles';
 import DraggableTabs from '@/components/shared/DraggableTabs';
 import type { TabItem } from '@/components/shared/DraggableTabs';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -777,11 +778,11 @@ export default function AgentTerminalModal({
 		: (projectPath?.split('/').filter(Boolean).pop() ?? '');
 
 	const titleIcon = agentFile ? (
-		<DescriptionRoundedIcon sx={{ color: '#7C5CFF' }} />
+		<DescriptionRoundedIcon sx={{ color: 'primary.main' }} />
 	) : issueContext ? (
-		<SmartToyRoundedIcon sx={{ color: '#7C5CFF' }} />
+		<SmartToyRoundedIcon sx={{ color: 'primary.main' }} />
 	) : (
-		<TerminalRoundedIcon sx={{ color: '#00E5FF' }} />
+		<TerminalRoundedIcon sx={{ color: 'secondary.main' }} />
 	);
 
 	const titleText = agentFile
@@ -854,7 +855,7 @@ export default function AgentTerminalModal({
 								<FiberManualRecordRoundedIcon
 									sx={{
 										fontSize: '10px !important',
-										color: '#4CAF50 !important',
+										color: 'success.main',
 									}}
 								/>
 							}
@@ -863,8 +864,8 @@ export default function AgentTerminalModal({
 							sx={{
 								height: 22,
 								fontSize: '0.65rem',
-								bgcolor: 'rgba(76, 175, 80, 0.12)',
-								color: '#4CAF50',
+								bgcolor: (theme) => alpha(theme.palette.success.main, 0.12),
+								color: 'success.main',
 								fontWeight: 600,
 							}}
 						/>
@@ -877,10 +878,10 @@ export default function AgentTerminalModal({
 							sx={{
 								height: 22,
 								fontSize: '0.65rem',
-								bgcolor: 'rgba(124, 92, 255, 0.12)',
-								color: '#7C5CFF',
+								bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
+								color: 'primary.main',
 								fontWeight: 600,
-								'& .MuiChip-icon': { color: '#7C5CFF' },
+								'& .MuiChip-icon': { color: 'primary.main' },
 							}}
 						/>
 					)}
@@ -898,8 +899,8 @@ export default function AgentTerminalModal({
 								fontSize: '0.7rem',
 								textTransform: 'none',
 								height: 28,
-								borderColor: 'rgba(239, 68, 68, 0.3)',
-								'&:hover': { borderColor: 'rgba(239, 68, 68, 0.6)' },
+								borderColor: (theme) => alpha(theme.palette.error.main, 0.3),
+								'&:hover': { borderColor: (theme) => alpha(theme.palette.error.main, 0.6) },
 							}}
 						>
 							{isDeleting ? 'Suppression...' : 'Supprimer worktree'}
@@ -912,7 +913,7 @@ export default function AgentTerminalModal({
 						sx={{
 							height: 24,
 							fontSize: '0.7rem',
-							bgcolor: 'rgba(255,255,255,0.05)',
+							bgcolor: (theme) => alpha(theme.palette.text.primary, 0.05),
 							'& .MuiChip-icon': { color: 'text.secondary' },
 						}}
 					/>
@@ -920,7 +921,7 @@ export default function AgentTerminalModal({
 						<IconButton
 							size="small"
 							onClick={handlePip}
-							sx={{ color: 'text.disabled', '&:hover': { color: '#7C5CFF' } }}
+							sx={{ color: 'text.disabled', '&:hover': { color: 'primary.main' } }}
 						>
 							<PictureInPictureAltRoundedIcon sx={{ fontSize: 18 }} />
 						</IconButton>
@@ -944,7 +945,7 @@ export default function AgentTerminalModal({
 						px: 4,
 					}}
 				>
-					<AccountTreeRoundedIcon sx={{ fontSize: 56, color: '#7C5CFF', opacity: 0.7 }} />
+					<AccountTreeRoundedIcon sx={{ fontSize: 56, color: 'primary.main', opacity: 0.7 }} />
 					<Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
 						Nom de la branche
 					</Typography>
@@ -980,10 +981,10 @@ export default function AgentTerminalModal({
 							disabled={isCreating}
 							sx={{
 								'& .MuiOutlinedInput-root': {
-									bgcolor: 'rgba(255,255,255,0.03)',
-									'& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
-									'&:hover fieldset': { borderColor: 'rgba(124, 92, 255, 0.4)' },
-									'&.Mui-focused fieldset': { borderColor: '#7C5CFF' },
+									bgcolor: (theme) => alpha(theme.palette.text.primary, 0.03),
+									'& fieldset': { borderColor: (theme) => alpha(theme.palette.text.primary, 0.1) },
+									'&:hover fieldset': { borderColor: (theme) => alpha(theme.palette.primary.main, 0.4) },
+									'&.Mui-focused fieldset': { borderColor: 'primary.main' },
 								},
 							}}
 						/>
@@ -999,12 +1000,12 @@ export default function AgentTerminalModal({
 								)
 							}
 							sx={{
-								bgcolor: '#7C5CFF',
+								bgcolor: 'primary.main',
 								textTransform: 'none',
 								fontWeight: 600,
 								whiteSpace: 'nowrap',
 								height: 40,
-								'&:hover': { bgcolor: '#6A4DE0' },
+								'&:hover': { bgcolor: 'primary.dark' },
 							}}
 						>
 							{isCreating ? 'Création...' : 'Lancer'}
@@ -1019,7 +1020,7 @@ export default function AgentTerminalModal({
 
 					{!projectPath && issueContext && (
 						<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-							<CircularProgress size={16} sx={{ color: '#7C5CFF' }} />
+							<CircularProgress size={16} sx={{ color: 'primary.main' }} />
 							<Typography variant="body2" color="text.secondary">
 								Résolution du chemin...
 							</Typography>
@@ -1055,13 +1056,13 @@ export default function AgentTerminalModal({
 							overflow: 'hidden',
 							display: activeTabKey === 'claude' ? 'flex' : 'none',
 							alignItems: 'stretch',
-							bgcolor: '#1A1A1A',
+							bgcolor: 'background.default',
 							'& .xterm': { height: '100%', p: 1 },
 							'& .xterm-viewport': {
 								overflowY: 'scroll !important',
 								'&::-webkit-scrollbar': { width: 6 },
 								'&::-webkit-scrollbar-thumb': {
-									bgcolor: '#3A3A3A',
+									bgcolor: 'divider',
 									borderRadius: 3,
 								},
 							},
@@ -1078,7 +1079,7 @@ export default function AgentTerminalModal({
 									gap: 2,
 								}}
 							>
-								<CircularProgress size={28} sx={{ color: '#7C5CFF' }} />
+								<CircularProgress size={28} sx={{ color: 'primary.main' }} />
 								<Typography variant="body2" color="text.secondary">
 									Sélection du répertoire...
 								</Typography>
@@ -1142,13 +1143,13 @@ export default function AgentTerminalModal({
 							overflow: 'hidden',
 							display: activeTabKey === 'terminal' ? 'flex' : 'none',
 							alignItems: 'stretch',
-							bgcolor: '#1A1A1A',
+							bgcolor: 'background.default',
 							'& .xterm': { height: '100%', p: 1 },
 							'& .xterm-viewport': {
 								overflowY: 'scroll !important',
 								'&::-webkit-scrollbar': { width: 6 },
 								'&::-webkit-scrollbar-thumb': {
-									bgcolor: '#3A3A3A',
+									bgcolor: 'divider',
 									borderRadius: 3,
 								},
 							},

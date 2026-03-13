@@ -6,7 +6,7 @@ import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import IconButton from '@mui/material/IconButton';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import Collapse from '@mui/material/Collapse';
 import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
 import FiberManualRecordRoundedIcon from '@mui/icons-material/FiberManualRecordRounded';
@@ -116,6 +116,7 @@ function SummaryTimeline({
 	onSessionClick: (summary: AgentSummary) => void;
 	t: (key: string) => string;
 }) {
+	const theme = useTheme();
 	const [expandedId, setExpandedId] = useState<string | null>(null);
 
 	const toggleExpand = (id: string) => {
@@ -132,7 +133,7 @@ function SummaryTimeline({
 		>
 			{summaries.map((summary, index) => {
 				const isError = summary.status === 'error';
-				const dotColor = isError ? '#FF5252' : '#22C55E';
+				const dotColor = isError ? theme.palette.error.main : theme.palette.success.main;
 				const isExpanded = expandedId === summary.session_id;
 				const isLast = index === summaries.length - 1;
 
@@ -222,11 +223,11 @@ function SummaryTimeline({
 							>
 								{isError ? (
 									<ErrorOutlineRoundedIcon
-										sx={{ fontSize: 14, color: '#FF5252' }}
+										sx={{ fontSize: 14, color: 'error.main' }}
 									/>
 								) : (
 									<CheckCircleOutlineRoundedIcon
-										sx={{ fontSize: 14, color: '#22C55E' }}
+										sx={{ fontSize: 14, color: 'success.main' }}
 									/>
 								)}
 								<Typography
@@ -324,13 +325,13 @@ function SummaryTimeline({
 												'& code': {
 													fontFamily: '"JetBrains Mono", monospace',
 													fontSize: '0.72em',
-													bgcolor: 'rgba(255,255,255,0.06)',
+													bgcolor: (t: { palette: { divider: string } }) => alpha(t.palette.divider, 0.3),
 													px: 0.5,
 													py: 0.15,
 													borderRadius: 0.5,
 												},
 												'& pre': {
-													bgcolor: 'rgba(0,0,0,0.3)',
+													bgcolor: 'background.default',
 													p: 1.5,
 													borderRadius: 1,
 													overflow: 'auto',
@@ -370,7 +371,7 @@ function SummaryTimeline({
 										sx={{
 											display: 'inline-block',
 											mt: 1.5,
-											color: '#7C5CFF',
+											color: 'primary.main',
 											fontSize: '0.7rem',
 											fontWeight: 600,
 											cursor: 'pointer',
@@ -398,6 +399,7 @@ type SelectedItem =
 
 /* ── Main Dashboard ── */
 export default function Dashboard() {
+	const theme = useTheme();
 	const t = useTranslations('dashboard');
 	const queryClient = useQueryClient();
 	const { data: sessions = [] } = useActiveSessions();
@@ -516,7 +518,7 @@ export default function Dashboard() {
 							variant="h4"
 							sx={{
 								fontWeight: 700,
-								background: 'linear-gradient(135deg, #7C5CFF 0%, #00E5FF 100%)',
+								background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
 								WebkitBackgroundClip: 'text',
 								WebkitTextFillColor: 'transparent',
 							}}
@@ -543,13 +545,13 @@ export default function Dashboard() {
 							px: 2,
 							py: 1,
 							borderRadius: 1,
-							bgcolor: alpha('#7C5CFF', 0.08),
+							bgcolor: alpha(theme.palette.primary.main, 0.08),
 							border: 1,
-							borderColor: alpha('#7C5CFF', 0.15),
+							borderColor: alpha(theme.palette.primary.main, 0.15),
 						}}
 					>
-						<SmartToyRoundedIcon sx={{ fontSize: 18, color: '#7C5CFF' }} />
-						<Typography variant="body2" sx={{ fontWeight: 600, color: '#7C5CFF' }}>
+						<SmartToyRoundedIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+						<Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
 							{sessions.length}
 						</Typography>
 						<Typography variant="caption" sx={{ color: 'text.secondary' }}>
@@ -565,15 +567,15 @@ export default function Dashboard() {
 								px: 2,
 								py: 1,
 								borderRadius: 1,
-								bgcolor: alpha('#4CAF50', 0.08),
+								bgcolor: alpha(theme.palette.success.main, 0.08),
 								border: 1,
-								borderColor: alpha('#4CAF50', 0.15),
+								borderColor: alpha(theme.palette.success.main, 0.15),
 							}}
 						>
 							<FiberManualRecordRoundedIcon
 								sx={{
 									fontSize: 10,
-									color: '#4CAF50',
+									color: 'success.main',
 									animation: 'pulse 2s ease-in-out infinite',
 									'@keyframes pulse': {
 										'0%, 100%': { opacity: 0.4 },
@@ -581,7 +583,7 @@ export default function Dashboard() {
 									},
 								}}
 							/>
-							<Typography variant="body2" sx={{ fontWeight: 600, color: '#4CAF50' }}>
+							<Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main' }}>
 								{sessions.filter((s) => s.isStreaming).length}
 							</Typography>
 							<Typography variant="caption" sx={{ color: 'text.secondary' }}>
@@ -598,13 +600,13 @@ export default function Dashboard() {
 								px: 2,
 								py: 1,
 								borderRadius: 1,
-								bgcolor: alpha('#FF9800', 0.08),
+								bgcolor: alpha(theme.palette.warning.main, 0.08),
 								border: 1,
-								borderColor: alpha('#FF9800', 0.15),
+								borderColor: alpha(theme.palette.warning.main, 0.15),
 							}}
 						>
-							<AssignmentRoundedIcon sx={{ fontSize: 18, color: '#FF9800' }} />
-							<Typography variant="body2" sx={{ fontWeight: 600, color: '#FF9800' }}>
+							<AssignmentRoundedIcon sx={{ fontSize: 18, color: 'warning.main' }} />
+							<Typography variant="body2" sx={{ fontWeight: 600, color: 'warning.main' }}>
 								{pendingCount}
 							</Typography>
 							<Typography variant="caption" sx={{ color: 'text.secondary' }}>
@@ -647,7 +649,7 @@ export default function Dashboard() {
 										mb: 1.5,
 									}}
 								>
-									<SmartToyRoundedIcon sx={{ fontSize: 16, color: '#7C5CFF' }} />
+									<SmartToyRoundedIcon sx={{ fontSize: 16, color: 'primary.main' }} />
 									<Typography
 										variant="caption"
 										sx={{
@@ -663,8 +665,8 @@ export default function Dashboard() {
 									<Box
 										sx={{
 											ml: 'auto',
-											bgcolor: alpha('#4CAF50', 0.15),
-											color: '#4CAF50',
+											bgcolor: alpha(theme.palette.success.main, 0.15),
+											color: 'success.main',
 											fontSize: '0.65rem',
 											fontWeight: 700,
 											px: 0.75,
@@ -803,7 +805,7 @@ export default function Dashboard() {
 								py: 1,
 								mb: 2,
 								borderBottom: 2,
-								borderColor: '#7C5CFF',
+								borderColor: 'primary.main',
 							}}
 						>
 							<SummarizeRoundedIcon sx={{ fontSize: 18 }} />
@@ -820,8 +822,8 @@ export default function Dashboard() {
 									height: 18,
 									fontSize: '0.6rem',
 									fontWeight: 700,
-									bgcolor: alpha('#7C5CFF', 0.12),
-									color: '#7C5CFF',
+									bgcolor: alpha(theme.palette.primary.main, 0.12),
+									color: 'primary.main',
 								}}
 							/>
 						</Box>
@@ -849,7 +851,7 @@ export default function Dashboard() {
 								>
 									<CircularProgress
 										size={24}
-										sx={{ color: '#7C5CFF' }}
+										sx={{ color: 'primary.main' }}
 									/>
 								</Box>
 							) : filteredSummaries.length === 0 ? (
