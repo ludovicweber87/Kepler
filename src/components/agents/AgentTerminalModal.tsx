@@ -72,7 +72,14 @@ function buildBranchName(issueContext: IssueContext): string {
 		.replace(/^-|-$/g, '')
 		.slice(0, 50);
 
-	return `${prefix}/${issueContext.issueNumber}-${slug}`;
+	// Timestamp suffix (MMDD + 1 random char) pour garantir l'unicité
+	const now = new Date();
+	const mm = String(now.getMonth() + 1).padStart(2, '0');
+	const dd = String(now.getDate()).padStart(2, '0');
+	const rand = Math.random().toString(36).charAt(2);
+	const suffix = `${mm}${dd}${rand}`;
+
+	return `${prefix}/${issueContext.issueNumber}-${slug}-${suffix}`;
 }
 
 function buildSessionId(
@@ -166,6 +173,7 @@ export default function AgentTerminalModal({
 	const [activeTab, setActiveTab] = useState(0);
 	const [termTabOrder, setTermTabOrder] = useState<string[] | null>(null);
 	const [isStreaming, setIsStreaming] = useState(false);
+	// worktreePath is no longer managed by us — Claude handles it via --worktree
 	const isStreamingRef = useRef(false);
 	const terminalRef = useRef<Terminal | null>(null);
 	const wsRef = useRef<WebSocket | null>(null);
@@ -195,9 +203,7 @@ export default function AgentTerminalModal({
 	}
 	const sessionId = existingSessionId ?? generatedIdRef.current ?? '';
 
-	const { session, logs, ensureSession } = useAgentSession(
-		open ? sessionId : undefined,
-	);
+	const { session, logs, ensureSession } = useAgentSession(open ? sessionId : undefined);
 	const overlay = useOverlayTerminal();
 
 	const handlePip = useCallback(() => {
@@ -248,6 +254,30 @@ export default function AgentTerminalModal({
 		}
 	}, [open]);
 
+	// Compute branch name once (stable across renders)
+	const branchRef = useRef<string | null>(null);
+	if (open && !branchRef.current) {
+		if (issueContext) {
+			branchRef.current = buildBranchName(issueContext);
+		} else {
+			const now = new Date();
+			const ts = [
+				now.getFullYear(),
+				String(now.getMonth() + 1).padStart(2, '0'),
+				String(now.getDate()).padStart(2, '0'),
+				'-',
+				String(now.getHours()).padStart(2, '0'),
+				String(now.getMinutes()).padStart(2, '0'),
+				String(now.getSeconds()).padStart(2, '0'),
+			].join('');
+			branchRef.current = `tmp/${ts}`;
+		}
+	}
+	if (!open) {
+		branchRef.current = null;
+	}
+	const branch = branchRef.current;
+
 	// Ensure DB session exists — only for NEW sessions (not viewing existing ones from sidebar)
 	const isNewSession = !existingSessionId;
 	useEffect(() => {
@@ -258,13 +288,22 @@ export default function AgentTerminalModal({
 			projectPath,
 			projectName,
 			agentName: agentFile?.name ?? (issueContext ? `#${issueContext.issueNumber}` : null),
-			branch: issueContext ? buildBranchName(issueContext) : null,
+			branch,
 			issueOwner: issueContext?.owner ?? null,
 			issueRepo: issueContext?.repo ?? null,
 			issueNumber: issueContext?.issueNumber ?? null,
 			issueTitle: issueContext?.issueTitle ?? null,
 		});
-	}, [open, sessionId, projectPath, agentFile, issueContext, ensureSession, isNewSession]);
+	}, [
+		open,
+		sessionId,
+		projectPath,
+		agentFile,
+		issueContext,
+		ensureSession,
+		isNewSession,
+		branch,
+	]);
 
 	// Build draggable terminal tabs
 	const hasIssue = !!(issueContext || session?.issue_number);
@@ -428,28 +467,19 @@ export default function AgentTerminalModal({
 					if (msg.type === 'init-ack') {
 						setResumed(msg.resumed);
 						if (!msg.resumed && !isReopen) {
+							// Create branch then launch Claude with --worktree
 							const reporting = buildReportingPrompt(sessionId);
 							const basePrompt = agentFile ? agentFile.content : '';
 							const fullPrompt = basePrompt + reporting;
 							const escaped = fullPrompt.replace(/'/g, "'\\''");
-							const claudeCmd = `unset CLAUDECODE CLAUDE_CODE_ENTRYPOINT && /opt/homebrew/bin/claude --system-prompt '${escaped}'\n`;
+							const branchCmd = branch
+								? `git checkout -b ${branch} 2>/dev/null; `
+								: '';
+							const claudeCmd = `unset CLAUDECODE CLAUDE_CODE_ENTRYPOINT && ${branchCmd}/opt/homebrew/bin/claude --worktree --system-prompt '${escaped}'\n`;
 
-							if (issueContext) {
-								// Create branch + checkout, then start Claude
-								const branch = buildBranchName(issueContext);
-								const gitCmd = `git checkout -b ${branch} 2>/dev/null || git checkout ${branch}\n`;
-								setTimeout(() => {
-									ws.send(JSON.stringify({ type: 'input', data: gitCmd }));
-									// Wait for git to finish, then launch Claude
-									setTimeout(() => {
-										ws.send(JSON.stringify({ type: 'input', data: claudeCmd }));
-									}, 1500);
-								}, 800);
-							} else {
-								setTimeout(() => {
-									ws.send(JSON.stringify({ type: 'input', data: claudeCmd }));
-								}, 800);
-							}
+							setTimeout(() => {
+								ws.send(JSON.stringify({ type: 'input', data: claudeCmd }));
+							}, 800);
 						}
 						// Wait for initial buffer to flush before tracking streaming
 						setTimeout(() => {
@@ -536,15 +566,7 @@ export default function AgentTerminalModal({
 			setIsStreaming(false);
 			readyRef.current = false;
 		};
-	}, [
-		open,
-		projectPath,
-		agentFile,
-		termNode,
-		sessionId,
-		terminalEnabled,
-		isPastSession,
-	]);
+	}, [open, projectPath, agentFile, termNode, sessionId, terminalEnabled, isPastSession]);
 
 	// Plain shell terminal (tab 2) — lazy init when tab is first selected
 	useEffect(() => {
@@ -899,7 +921,7 @@ export default function AgentTerminalModal({
 				<Box sx={{ flex: 1, overflow: 'hidden' }}>
 					<AgentDiffTab
 						projectPath={projectPath ?? null}
-						branch={session?.branch ?? null}
+						branch={session?.branch ?? branch}
 					/>
 				</Box>
 			)}

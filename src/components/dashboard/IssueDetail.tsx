@@ -475,127 +475,119 @@ export default function IssueDetail({
 
 			<Card sx={{ mb: 3, animation: 'fadeInUp 0.4s ease-out both' }}>
 				<CardContent sx={{ p: 4, '&:last-child': { pb: 4 } }}>
-					<Box
-						sx={{
-							display: 'flex',
-							alignItems: 'flex-start',
-							justifyContent: 'space-between',
-							mb: 3,
-						}}
-					>
-						<Box sx={{ flex: 1 }}>
-							{editingTitle ? (
-								<Box
-									sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}
-								>
-									<TextField
-										value={editTitle}
-										onChange={(e) => setEditTitle(e.target.value)}
-										onKeyDown={(e) => {
-											if (e.key === 'Enter') handleSaveTitle();
-											if (e.key === 'Escape') setEditingTitle(false);
-										}}
-										autoFocus
-										fullWidth
-										size="small"
-										sx={{
-											'& .MuiInputBase-input': {
-												fontSize: '1.8rem',
-												fontWeight: 700,
-												py: 0.5,
-											},
-										}}
-									/>
-									<IconButton
-										size="small"
-										onClick={handleSaveTitle}
-										disabled={saving}
-										sx={{ color: '#22C55E' }}
-									>
-										{saving ? (
-											<CircularProgress size={18} />
-										) : (
-											<SaveRoundedIcon />
-										)}
-									</IconButton>
-									<IconButton
-										size="small"
-										onClick={() => setEditingTitle(false)}
-										sx={{ color: 'text.disabled' }}
-									>
-										<CloseRoundedIcon />
-									</IconButton>
-								</Box>
-							) : (
-								<Box
+					<Box sx={{ mb: 3 }}>
+						{editingTitle ? (
+							<Box
+								sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}
+							>
+								<TextField
+									value={editTitle}
+									onChange={(e) => setEditTitle(e.target.value)}
+									onKeyDown={(e) => {
+										if (e.key === 'Enter') handleSaveTitle();
+										if (e.key === 'Escape') setEditingTitle(false);
+									}}
+									autoFocus
+									fullWidth
+									size="small"
 									sx={{
-										display: 'flex',
-										alignItems: 'center',
-										gap: 1,
-										mb: 1.5,
-										cursor: 'pointer',
-										'&:hover .edit-icon': { opacity: 1 },
+										'& .MuiInputBase-input': {
+											fontSize: '1.8rem',
+											fontWeight: 700,
+											py: 0.5,
+										},
 									}}
-									onClick={() => {
-										setEditTitle(issue.title);
-										setEditingTitle(true);
-									}}
+								/>
+								<IconButton
+									size="small"
+									onClick={handleSaveTitle}
+									disabled={saving}
+									sx={{ color: '#22C55E' }}
 								>
-									<Typography variant="h4" sx={{ lineHeight: 1.3 }}>
-										{issue.title}
-									</Typography>
-									<EditRoundedIcon
-										className="edit-icon"
-										sx={{
-											fontSize: 18,
-											color: 'text.disabled',
-											opacity: 0,
-											transition: 'opacity 0.15s',
-										}}
-									/>
-								</Box>
-							)}
+									{saving ? (
+										<CircularProgress size={18} />
+									) : (
+										<SaveRoundedIcon />
+									)}
+								</IconButton>
+								<IconButton
+									size="small"
+									onClick={() => setEditingTitle(false)}
+									sx={{ color: 'text.disabled' }}
+								>
+									<CloseRoundedIcon />
+								</IconButton>
+							</Box>
+						) : (
 							<Box
 								sx={{
 									display: 'flex',
 									alignItems: 'center',
-									gap: 1.5,
-									flexWrap: 'wrap',
+									gap: 1,
+									mb: 1.5,
+									cursor: 'pointer',
+									'&:hover .edit-icon': { opacity: 1 },
+								}}
+								onClick={() => {
+									setEditTitle(issue.title);
+									setEditingTitle(true);
 								}}
 							>
-								<Chip
-									icon={
-										isOpen ? (
-											<CircleRoundedIcon
-												sx={{ fontSize: '14px !important' }}
-											/>
-										) : (
-											<CheckCircleRoundedIcon
-												sx={{ fontSize: '14px !important' }}
-											/>
-										)
-									}
-									label={stateLabel}
+								<Typography variant="h4" sx={{ lineHeight: 1.3 }}>
+									{issue.title}
+								</Typography>
+								<EditRoundedIcon
+									className="edit-icon"
 									sx={{
-										bgcolor: alpha(stateColor, 0.12),
-										color: stateColor,
-										fontWeight: 600,
-										'& .MuiChip-icon': { color: stateColor },
+										fontSize: 18,
+										color: 'text.disabled',
+										opacity: 0,
+										transition: 'opacity 0.15s',
 									}}
 								/>
-								{issue.labels.map((label) => (
-									<Chip
-										key={label.name}
-										label={label.name}
-										sx={{
-											bgcolor: alpha(`#${label.color}`, 0.15),
-											color: `#${label.color}`,
-										}}
-									/>
-								))}
 							</Box>
+						)}
+						<Box
+							sx={{
+								display: 'flex',
+								alignItems: 'center',
+								gap: 1.5,
+								mb: 2,
+								flexWrap: 'wrap',
+							}}
+						>
+							<Chip
+								icon={
+									isOpen ? (
+										<CircleRoundedIcon
+											sx={{ fontSize: '14px !important' }}
+										/>
+									) : (
+										<CheckCircleRoundedIcon
+											sx={{ fontSize: '14px !important' }}
+										/>
+									)
+								}
+								label={stateLabel}
+								sx={{
+									bgcolor: alpha(stateColor, 0.12),
+									color: stateColor,
+									fontWeight: 600,
+									'& .MuiChip-icon': { color: stateColor },
+								}}
+							/>
+							{issue.labels.map((label) => (
+								<Chip
+									key={label.name}
+									label={label.name}
+									sx={{
+										bgcolor: alpha(`#${label.color}`, 0.15),
+										color: `#${label.color}`,
+									}}
+								/>
+							))}
 						</Box>
-						<Box sx={{ display: 'flex', gap: 1, flexShrink: 0, ml: 2 }}>
+						<Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
 							<Button
 								variant="contained"
 								size="small"

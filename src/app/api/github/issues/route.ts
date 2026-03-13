@@ -9,7 +9,7 @@ export async function PATCH(request: NextRequest) {
 	if (isAuthError(auth)) return auth;
 
 	try {
-		const { issueNodeId, newStatus, org, projectNumber } = await request.json();
+		const { issueNodeId, newStatus, org, projectNumber, ownerType } = await request.json();
 
 		if (!issueNodeId || !newStatus || !org || !projectNumber) {
 			return NextResponse.json(
@@ -18,7 +18,7 @@ export async function PATCH(request: NextRequest) {
 			);
 		}
 
-		const fieldInfo = await fetchStatusFieldInfo(org, projectNumber, auth.accessToken);
+		const fieldInfo = await fetchStatusFieldInfo(org, projectNumber, auth.accessToken, ownerType ?? 'organization');
 
 		const option = fieldInfo.options.find((o) => o.name === newStatus);
 		if (!option) {

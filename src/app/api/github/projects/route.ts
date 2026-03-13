@@ -23,6 +23,8 @@ export async function GET(request: NextRequest) {
 			return NextResponse.json({ error: 'org parameter is required' }, { status: 400 });
 		}
 
+		const ownerType = (searchParams.get('ownerType') === 'user' ? 'user' : 'organization') as 'organization' | 'user';
+
 		if (!projectNumber) {
 			const projects = await fetchOrgProjects(org, auth.accessToken);
 			return NextResponse.json({ projects });
@@ -33,7 +35,14 @@ export async function GET(request: NextRequest) {
 			return NextResponse.json({ error: 'projectNumber must be a number' }, { status: 400 });
 		}
 
-		const projectData = await fetchProjectV2Data(org, num, auth.accessToken);
+		let projectData;
+		try {
+			projectData = await fetchProjectV2Data(org, num, auth.accessToken, ownerType);
+		} catch {
+			// Fallback: try the other owner type
+			const fallback = ownerType === 'organization' ? 'user' : 'organization';
+			projectData = await fetchProjectV2Data(org, num, auth.accessToken, fallback);
+		}
 		const viewRepoMappings = mapViewsToRepos(projectData.views, projectData.items);
 
 		return NextResponse.json({
