@@ -28,6 +28,7 @@ import ChatBubbleOutlineRoundedIcon from '@mui/icons-material/ChatBubbleOutlineR
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { useIssue } from '@/hooks/useGitHub';
 
 const markdownSx = {
@@ -194,6 +195,8 @@ interface AgentIssueTabProps {
 }
 
 export default function AgentIssueTab({ owner, repo, issueNumber }: AgentIssueTabProps) {
+	const t = useTranslations('agentIssue');
+	const tc = useTranslations('common');
 	const { data, isLoading } = useIssue(owner, repo, String(issueNumber));
 	const qc = useQueryClient();
 	const issueQueryKey = useMemo(() => ['github', 'issue', owner, repo, String(issueNumber)], [owner, repo, issueNumber]);
@@ -502,7 +505,7 @@ export default function AgentIssueTab({ owner, repo, issueNumber }: AgentIssueTa
 							maxRows={15}
 							fullWidth
 							autoFocus
-							placeholder="Description (Markdown)"
+							placeholder={t('descriptionPlaceholder')}
 							sx={{
 								mb: 1,
 								'& .MuiInputBase-root': {
@@ -521,7 +524,7 @@ export default function AgentIssueTab({ owner, repo, issueNumber }: AgentIssueTa
 									fontSize: '0.75rem',
 								}}
 							>
-								Annuler
+								{tc('cancel')}
 							</Button>
 							<Button
 								variant="contained"
@@ -542,7 +545,7 @@ export default function AgentIssueTab({ owner, repo, issueNumber }: AgentIssueTa
 									'&:hover': { bgcolor: alpha('#7C5CFF', 0.85) },
 								}}
 							>
-								Enregistrer
+								{tc('save')}
 							</Button>
 						</Box>
 					</Box>
@@ -592,7 +595,7 @@ export default function AgentIssueTab({ owner, repo, issueNumber }: AgentIssueTa
 									fontSize: '0.8rem',
 								}}
 							>
-								Pas de description.
+								{t('noDescription')}
 							</Typography>
 						)}
 					</Box>
@@ -610,7 +613,7 @@ export default function AgentIssueTab({ owner, repo, issueNumber }: AgentIssueTa
 								variant="caption"
 								sx={{ color: 'text.disabled', fontWeight: 600, fontSize: '0.7rem' }}
 							>
-								{comments.length} commentaire{comments.length > 1 ? 's' : ''}
+								{t('comments', { count: comments.length })}
 							</Typography>
 						</Box>
 						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
@@ -685,7 +688,7 @@ export default function AgentIssueTab({ owner, repo, issueNumber }: AgentIssueTa
 						minRows={1}
 						maxRows={4}
 						fullWidth
-						placeholder="Commenter... (Cmd+Enter pour envoyer)"
+						placeholder={t('commentPlaceholder')}
 						size="small"
 						sx={{ '& .MuiInputBase-root': { fontSize: '0.8rem' } }}
 					/>
