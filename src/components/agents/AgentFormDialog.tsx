@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -28,6 +29,8 @@ interface AgentFormDialogProps {
 }
 
 export default function AgentFormDialog({ open, onClose, onSave, preset }: AgentFormDialogProps) {
+	const t = useTranslations('agentForm');
+	const tc = useTranslations('common');
 	const [name, setName] = useState('');
 	const [description, setDescription] = useState('');
 	const [promptTemplate, setPromptTemplate] = useState('');
@@ -80,50 +83,50 @@ export default function AgentFormDialog({ open, onClose, onSave, preset }: Agent
 			}}
 		>
 			<DialogTitle sx={{ fontWeight: 600 }}>
-				{preset ? 'Modifier l\'agent' : 'Nouvel agent'}
+				{preset ? t('editAgent') : t('newAgent')}
 			</DialogTitle>
 			<DialogContent
 				sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: '8px !important' }}
 			>
 				<Box sx={{ display: 'flex', gap: 2 }}>
 					<TextField
-						label="Icône"
+						label={t('icon')}
 						value={icon}
 						onChange={(e) => setIcon(e.target.value)}
 						sx={{ width: 80 }}
 						inputProps={{ style: { fontSize: '1.5rem', textAlign: 'center' } }}
 					/>
 					<TextField
-						label="Nom"
+						label={t('name')}
 						value={name}
 						onChange={(e) => setName(e.target.value)}
 						required
 						fullWidth
-						placeholder="ex. Fix Bug"
+						placeholder={t('namePlaceholder')}
 					/>
 				</Box>
 
 				<TextField
-					label="Description"
+					label={t('description')}
 					value={description}
 					onChange={(e) => setDescription(e.target.value)}
 					fullWidth
-					placeholder="Courte description de ce que fait cet agent"
+					placeholder={t('descriptionPlaceholder')}
 				/>
 
 				<TextField
-					label="Template de prompt"
+					label={t('promptTemplate')}
 					value={promptTemplate}
 					onChange={(e) => setPromptTemplate(e.target.value)}
 					required
 					fullWidth
 					multiline
 					rows={6}
-					placeholder="Le template de prompt envoyé à Claude..."
+					placeholder={t('promptPlaceholder')}
 				/>
 
 				<Box>
-					<Box sx={{ mb: 1, fontSize: '0.75rem', color: 'text.secondary' }}>Couleur</Box>
+					<Box sx={{ mb: 1, fontSize: '0.75rem', color: 'text.secondary' }}>{t('color')}</Box>
 					<Box sx={{ display: 'flex', gap: 1 }}>
 						{COLOR_OPTIONS.map((c) => (
 							<Box
@@ -151,7 +154,7 @@ export default function AgentFormDialog({ open, onClose, onSave, preset }: Agent
 			</DialogContent>
 			<DialogActions sx={{ px: 3, pb: 2.5 }}>
 				<Button onClick={onClose} sx={{ color: 'text.secondary' }}>
-					Annuler
+					{tc('cancel')}
 				</Button>
 				<Button
 					onClick={handleSave}
@@ -162,7 +165,7 @@ export default function AgentFormDialog({ open, onClose, onSave, preset }: Agent
 						'&:hover': { bgcolor: alpha(color, 0.85) },
 					}}
 				>
-					Enregistrer
+					{tc('save')}
 				</Button>
 			</DialogActions>
 		</Dialog>

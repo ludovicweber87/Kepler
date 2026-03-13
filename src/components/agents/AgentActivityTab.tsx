@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
@@ -37,11 +38,11 @@ interface AgentActivityTabProps {
 	isStreaming?: boolean;
 }
 
-function buildReport(session: AgentSession, logs: AgentActivityLog[]): string {
+function buildReport(session: AgentSession, logs: AgentActivityLog[], labels: { reportTitle: string; branch: string }): string {
 	const lines: string[] = [];
-	lines.push(`## 🤖 Rapport agent`);
+	lines.push(`## 🤖 ${labels.reportTitle}`);
 	lines.push('');
-	if (session.branch) lines.push(`**Branch:** \`${session.branch}\``);
+	if (session.branch) lines.push(`**${labels.branch}:** \`${session.branch}\``);
 	lines.push('');
 
 	for (const log of logs) {
@@ -70,6 +71,7 @@ export default function AgentActivityTab({
 	logs,
 	isStreaming = false,
 }: AgentActivityTabProps) {
+	const t = useTranslations('agentActivity');
 	const [publishing, setPublishing] = useState(false);
 	const [published, setPublished] = useState(false);
 	const qc = useQueryClient();
@@ -82,7 +84,10 @@ export default function AgentActivityTab({
 		if (!session || logs.length === 0) return;
 		setPublishing(true);
 		try {
-			const report = buildReport(session, logs);
+			const report = buildReport(session, logs, {
+				reportTitle: t('reportTitle'),
+				branch: t('branch'),
+			});
 
 			if (hasIssue) {
 				// Post comment on issue
@@ -176,9 +181,9 @@ export default function AgentActivityTab({
 			qc.invalidateQueries({ queryKey: ['sessions', 'active'] });
 			qc.invalidateQueries({ queryKey: ['github', 'dashboard'] });
 
-			showSnackbar(`Rapport publié pour ${session.issue_title ?? session.project_name}`);
+			showSnackbar(t('reportPublishedFor', { name: session.issue_title ?? session.project_name }));
 		} catch {
-			showSnackbar('Erreur lors de la publication du rapport', 'error');
+			showSnackbar(t('publishError'), 'error');
 		} finally {
 			setPublishing(false);
 		}
@@ -195,7 +200,7 @@ export default function AgentActivityTab({
 				}}
 			>
 				<Typography variant="caption" sx={{ color: 'text.disabled' }}>
-					Session loading...
+					{t('sessionLoading')}
 				</Typography>
 			</Box>
 		);
@@ -279,7 +284,7 @@ export default function AgentActivityTab({
 						}}
 					>
 						<Typography variant="caption" sx={{ color: 'text.disabled' }}>
-							Aucune activité
+							{t('noActivity')}
 						</Typography>
 					</Box>
 				) : (
@@ -400,7 +405,7 @@ export default function AgentActivityTab({
 										variant="caption"
 										sx={{ color: alpha('#7C5CFF', 0.6), fontSize: '0.72rem' }}
 									>
-										en cours...
+										{t('inProgress')}
 									</Typography>
 								</Box>
 							</Box>
@@ -453,7 +458,7 @@ export default function AgentActivityTab({
 									: undefined,
 						}}
 					>
-						{published || alreadyPublished ? 'Rapport publié' : 'Publier le rapport'}
+						{published || alreadyPublished ? t('reportPublished') : t('publishReport')}
 					</Button>
 				</Box>
 			)}
