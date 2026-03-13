@@ -6,6 +6,7 @@ import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
+import Tooltip from '@mui/material/Tooltip';
 import { alpha } from '@mui/material/styles';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
@@ -422,39 +423,43 @@ export default function AgentActivityTab({
 						justifyContent: 'flex-end',
 					}}
 				>
-					<Button
-						variant="contained"
-						size="small"
-						disabled={publishing || published || alreadyPublished}
-						onClick={handlePublish}
-						startIcon={
-							publishing ? (
-								<CircularProgress size={14} sx={{ color: 'inherit' }} />
-							) : published || alreadyPublished ? (
-								<CheckCircleRoundedIcon sx={{ fontSize: 16 }} />
-							) : (
-								<PublishRoundedIcon sx={{ fontSize: 16 }} />
-							)
-						}
-						sx={{
-							textTransform: 'none',
-							fontWeight: 600,
-							fontSize: '0.78rem',
-							bgcolor: published || alreadyPublished ? '#4CAF50' : '#7C5CFF',
-							'&:hover': {
-								bgcolor:
-									published || alreadyPublished
-										? '#4CAF50'
-										: alpha('#7C5CFF', 0.85),
-							},
-							'&.Mui-disabled':
-								published || alreadyPublished
-									? { bgcolor: alpha('#4CAF50', 0.7), color: '#fff' }
-									: undefined,
-						}}
-					>
-						{published || alreadyPublished ? 'Rapport publié' : 'Publier le rapport'}
-					</Button>
+					<Tooltip title="Commit et publie le rapport sur l'issue GitHub" arrow>
+						<span>
+							<Button
+								variant="contained"
+								size="small"
+								disabled={publishing || published || alreadyPublished}
+								onClick={handlePublish}
+								startIcon={
+									publishing ? (
+										<CircularProgress size={14} sx={{ color: 'inherit' }} />
+									) : published || alreadyPublished ? (
+										<CheckCircleRoundedIcon sx={{ fontSize: 16 }} />
+									) : (
+										<PublishRoundedIcon sx={{ fontSize: 16 }} />
+									)
+								}
+								sx={{
+									textTransform: 'none',
+									fontWeight: 600,
+									fontSize: '0.78rem',
+									bgcolor: published || alreadyPublished ? '#4CAF50' : '#7C5CFF',
+									'&:hover': {
+										bgcolor:
+											published || alreadyPublished
+												? '#4CAF50'
+												: alpha('#7C5CFF', 0.85),
+									},
+									'&.Mui-disabled':
+										published || alreadyPublished
+											? { bgcolor: alpha('#4CAF50', 0.7), color: '#fff' }
+											: undefined,
+								}}
+							>
+								{published || alreadyPublished ? 'Rapport publié' : 'Publier le rapport'}
+							</Button>
+						</span>
+					</Tooltip>
 				</Box>
 			)}
 		</Box>
