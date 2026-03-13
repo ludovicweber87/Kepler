@@ -22,7 +22,7 @@ const MAX_WIDTH = 400;
 export default function RightSidebar() {
 	const { open, width, setWidth } = useRightSidebar();
 	const { views, reorderViews } = useAgentViews();
-	const { activeSessions, killSession, getActiveForPath, getPastForPath } = useSessionManager();
+	const { activeSessions, pastSessions, killSession, getActiveForPath, getPastForPath, fetchSessionForPath } = useSessionManager();
 	const [tabIndex, setTabIndex] = useState(0);
 	const [isResizing, setIsResizing] = useState(false);
 	const startXRef = useRef(0);
@@ -45,28 +45,34 @@ export default function RightSidebar() {
 		[views, activeSessions],
 	);
 
+	console.log('[RightSidebar] activeSessions:', activeSessions);
+	console.log('[RightSidebar] pastSessions:', pastSessions);
+
 	const handleWorktreeClick = useCallback(
-		(wt: WorktreeInfo) => {
+		async (wt: WorktreeInfo) => {
+			// 1. Active tmux session? → re-attach
 			const active = getActiveForPath(wt.path);
 			if (active) {
 				setSelected({ worktree: wt, existingSessionId: active.sessionId });
 				return;
 			}
 
-			const past = getPastForPath(wt.path, wt.branch);
-			if (past) {
+			// 2. Direct DB check — always fresh, bypasses cache timing issues
+			const dbSession = await fetchSessionForPath(wt.path);
+			if (dbSession) {
+				const isDone = dbSession.status === 'completed' || dbSession.status === 'error';
 				setSelected({
 					worktree: wt,
-					existingSessionId: past.session_id,
-					isPastSession: true,
+					existingSessionId: dbSession.session_id,
+					isPastSession: isDone,
 				});
 				return;
 			}
 
-			// No session — open for new agent
+			// 3. No session at all — open for new agent
 			setSelected({ worktree: wt });
 		},
-		[getActiveForPath, getPastForPath],
+		[getActiveForPath, fetchSessionForPath],
 	);
 
 	const handleMouseDown = useCallback(

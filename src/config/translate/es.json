@@ -301,7 +301,29 @@
 		"descriptionPlaceholder": "Descripción (Markdown)",
 		"noDescription": "Sin descripción.",
 		"comments": "{count, plural, one {# comentario} other {# comentarios}}",
-		"commentPlaceholder": "Comentar... (Cmd+Enter para enviar)"
+		"commentPlaceholder": "Comentar... (Cmd+Enter para enviar)",
+		"editComment": "Editar comentario",
+		"deleteComment": "Eliminar comentario",
+		"deleteCommentConfirm": "Este comentario sera eliminado permanentemente de la issue de GitHub."
+	},
+	"workspace": {
+		"title": "Worktrees",
+		"noProjectConfigured": "Ningun proyecto configurado",
+		"addProjectDesc": "Anade un proyecto para ver sus worktrees.",
+		"addProject": "Anadir proyecto",
+		"launchAgent": "Lanzar agente",
+		"noActiveWorktrees": "Sin worktrees activos",
+		"createBranchDesc": "Crea una rama desde una issue para empezar.",
+		"deleteBranch": "Eliminar {branch}",
+		"worktreeOnly": "Solo worktree",
+		"worktreeAndBranch": "Worktree + rama"
+	},
+	"sessionCard": {
+		"active": "Activo",
+		"completed": "Terminado",
+		"error": "Error",
+		"closeSession": "Cerrar sesion",
+		"delete": "Eliminar"
 	},
 	"issueDetail": {
 		"backToIssues": "Volver a issues",
@@ -315,6 +337,9 @@
 		"noDescription": "Sin descripción. Haz clic para añadir una.",
 		"addComment": "Añadir un comentario",
 		"commentPlaceholder": "Escribe un comentario (Markdown)...",
-		"send": "Enviar"
+		"send": "Enviar",
+		"editComment": "Editar comentario",
+		"deleteComment": "Eliminar comentario",
+		"deleteCommentConfirm": "Este comentario sera eliminado permanentemente de la issue de GitHub."
 	}
 }

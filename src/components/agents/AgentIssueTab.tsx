@@ -15,6 +15,14 @@ import Avatar from '@mui/material/Avatar';
 import TextField from '@mui/material/TextField';
 import CircularProgress from '@mui/material/CircularProgress';
 import IconButton from '@mui/material/IconButton';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import { alpha } from '@mui/material/styles';
 import CircleRoundedIcon from '@mui/icons-material/CircleRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
@@ -27,9 +35,12 @@ import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import ChatBubbleOutlineRoundedIcon from '@mui/icons-material/ChatBubbleOutlineRounded';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
+import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded';
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { useIssue } from '@/hooks/useGitHub';
+import { useIssue, useDashboard } from '@/hooks/useGitHub';
+import type { GitHubComment } from '@/types';
 
 const markdownSx = {
 	'& h1': { fontSize: '1.2rem', fontWeight: 700, mt: 2, mb: 1, color: 'text.primary' },
@@ -214,6 +225,17 @@ export default function AgentIssueTab({ owner, repo, issueNumber }: AgentIssueTa
 	const [newComment, setNewComment] = useState('');
 	const [sendingComment, setSendingComment] = useState(false);
 
+	// Edit/delete comment
+	const [editingComment, setEditingComment] = useState<GitHubComment | null>(null);
+	const [editCommentBody, setEditCommentBody] = useState('');
+	const [savingComment, setSavingComment] = useState(false);
+	const [deleteCommentTarget, setDeleteCommentTarget] = useState<GitHubComment | null>(null);
+	const [deletingComment, setDeletingComment] = useState(false);
+	const [commentMenuAnchor, setCommentMenuAnchor] = useState<{ el: HTMLElement; comment: GitHubComment } | null>(null);
+
+	const { data: dashboardData } = useDashboard();
+	const currentUser = dashboardData?.user;
+
 	// Checkbox toggle
 	const bodyRef = useRef('');
 	const checkboxCounterRef = useRef(0);
@@ -300,6 +322,38 @@ export default function AgentIssueTab({ owner, repo, issueNumber }: AgentIssueTa
 			setSendingComment(false);
 		}
 	}, [newComment, sendingComment, owner, repo, issueNumber, qc, issueQueryKey]);
+
+	const handleEditComment = useCallback(async () => {
+		if (!editingComment || !editCommentBody.trim() || savingComment) return;
+		setSavingComment(true);
+		try {
+			await fetch('/api/github/issue/comment', {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ owner, repo, commentId: editingComment.id, body: editCommentBody.trim() }),
+			});
+			setEditingComment(null);
+			qc.invalidateQueries({ queryKey: issueQueryKey });
+		} finally {
+			setSavingComment(false);
+		}
+	}, [editingComment, editCommentBody, savingComment, owner, repo, qc, issueQueryKey]);
+
+	const handleDeleteComment = useCallback(async () => {
+		if (!deleteCommentTarget || deletingComment) return;
+		setDeletingComment(true);
+		try {
+			await fetch('/api/github/issue/comment', {
+				method: 'DELETE',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ owner, repo, commentId: deleteCommentTarget.id }),
+			});
+			setDeleteCommentTarget(null);
+			qc.invalidateQueries({ queryKey: issueQueryKey });
+		} finally {
+			setDeletingComment(false);
+		}
+	}, [deleteCommentTarget, deletingComment, owner, repo, qc, issueQueryKey]);
 
 	if (isLoading) {
 		return (
@@ -644,10 +698,20 @@ export default function AgentIssueTab({ owner, repo, issueNumber }: AgentIssueTa
 													sx={{
 														color: 'text.disabled',
 														fontSize: '0.65rem',
+														flex: 1,
 													}}
 												>
 													{formatDate(comment.created_at)}
 												</Typography>
+												{comment.user.login === currentUser && (
+													<IconButton
+														size="small"
+														onClick={(e) => setCommentMenuAnchor({ el: e.currentTarget, comment })}
+														sx={{ p: 0.25, color: 'text.disabled', '&:hover': { color: 'text.secondary' } }}
+													>
+														<MoreVertRoundedIcon sx={{ fontSize: 14 }} />
+													</IconButton>
+												)}
 											</Box>
 											<Box sx={markdownSx}>
 												<ReactMarkdown
@@ -666,6 +730,118 @@ export default function AgentIssueTab({ owner, repo, issueNumber }: AgentIssueTa
 					</>
 				)}
 			</Box>
+
+			{/* Comment context menu */}
+			<Menu
+				anchorEl={commentMenuAnchor?.el}
+				open={!!commentMenuAnchor}
+				onClose={() => setCommentMenuAnchor(null)}
+				slotProps={{ paper: { sx: { minWidth: 140 } } }}
+			>
+				<MenuItem
+					onClick={() => {
+						if (commentMenuAnchor) {
+							setEditingComment(commentMenuAnchor.comment);
+							setEditCommentBody(commentMenuAnchor.comment.body);
+						}
+						setCommentMenuAnchor(null);
+					}}
+					sx={{ fontSize: '0.8rem', gap: 1 }}
+				>
+					<ListItemIcon sx={{ minWidth: '28px !important' }}>
+						<EditRoundedIcon sx={{ fontSize: 16 }} />
+					</ListItemIcon>
+					<ListItemText primaryTypographyProps={{ fontSize: '0.8rem' }}>
+						{tc('edit')}
+					</ListItemText>
+				</MenuItem>
+				<MenuItem
+					onClick={() => {
+						if (commentMenuAnchor) setDeleteCommentTarget(commentMenuAnchor.comment);
+						setCommentMenuAnchor(null);
+					}}
+					sx={{ fontSize: '0.8rem', gap: 1 }}
+				>
+					<ListItemIcon sx={{ minWidth: '28px !important' }}>
+						<DeleteOutlineRoundedIcon sx={{ fontSize: 16, color: '#EF4444' }} />
+					</ListItemIcon>
+					<ListItemText primaryTypographyProps={{ fontSize: '0.8rem', color: '#EF4444' }}>
+						{tc('delete')}
+					</ListItemText>
+				</MenuItem>
+			</Menu>
+
+			{/* Edit comment dialog */}
+			<Dialog
+				open={!!editingComment}
+				onClose={() => setEditingComment(null)}
+				maxWidth="sm"
+				fullWidth
+				slotProps={{ paper: { sx: { borderRadius: 2 } } }}
+			>
+				<DialogTitle sx={{ fontWeight: 600 }}>{t('editComment')}</DialogTitle>
+				<DialogContent>
+					<TextField
+						value={editCommentBody}
+						onChange={(e) => setEditCommentBody(e.target.value)}
+						multiline
+						minRows={4}
+						maxRows={12}
+						fullWidth
+						sx={{ mt: 1, '& .MuiInputBase-root': { fontSize: '0.85rem' } }}
+					/>
+				</DialogContent>
+				<DialogActions sx={{ px: 3, pb: 2.5 }}>
+					<Button onClick={() => setEditingComment(null)}>{tc('cancel')}</Button>
+					<Button
+						variant="contained"
+						onClick={handleEditComment}
+						disabled={!editCommentBody.trim() || savingComment}
+						startIcon={savingComment ? <CircularProgress size={14} /> : <SaveRoundedIcon />}
+						sx={{
+							textTransform: 'none',
+							fontWeight: 600,
+							bgcolor: '#7C5CFF',
+							'&:hover': { bgcolor: alpha('#7C5CFF', 0.85) },
+						}}
+					>
+						{tc('save')}
+					</Button>
+				</DialogActions>
+			</Dialog>
+
+			{/* Delete comment confirmation dialog */}
+			<Dialog
+				open={!!deleteCommentTarget}
+				onClose={() => setDeleteCommentTarget(null)}
+				maxWidth="xs"
+				fullWidth
+				slotProps={{ paper: { sx: { borderRadius: 2 } } }}
+			>
+				<DialogTitle sx={{ fontWeight: 600 }}>{t('deleteComment')}</DialogTitle>
+				<DialogContent>
+					<Typography variant="body2" color="text.secondary">
+						{t('deleteCommentConfirm')}
+					</Typography>
+				</DialogContent>
+				<DialogActions sx={{ px: 3, pb: 2.5 }}>
+					<Button onClick={() => setDeleteCommentTarget(null)}>{tc('cancel')}</Button>
+					<Button
+						variant="contained"
+						onClick={handleDeleteComment}
+						disabled={deletingComment}
+						startIcon={deletingComment ? <CircularProgress size={14} /> : undefined}
+						sx={{
+							textTransform: 'none',
+							fontWeight: 600,
+							bgcolor: '#EF4444',
+							'&:hover': { bgcolor: alpha('#EF4444', 0.85) },
+						}}
+					>
+						{tc('delete')}
+					</Button>
+				</DialogActions>
+			</Dialog>
 
 			{/* Add comment */}
 			<Box

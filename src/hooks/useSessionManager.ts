@@ -58,13 +58,29 @@ export function useSessionManager() {
 		[activeSessions],
 	);
 
-	// Find past session for a worktree (by path, then branch fallback)
+	// Find past session for a worktree (by path, then branch fallback) — cached, for display
 	const getPastForPath = useCallback(
 		(path: string, branch?: string) =>
 			pastSessions.find((s) => s.worktree_path === path) ??
 			(branch ? pastSessions.find((s) => s.branch === branch) : null) ??
 			null,
 		[pastSessions],
+	);
+
+	// Direct DB check — always fresh, no cache race condition
+	// Use this in click handlers to determine if a worktree has a completed session
+	const fetchSessionForPath = useCallback(
+		async (worktreePath: string): Promise<AgentSession | null> => {
+			const { data } = await supabase
+				.from('agent_sessions')
+				.select('*')
+				.eq('worktree_path', worktreePath)
+				.order('started_at', { ascending: false })
+				.limit(1)
+				.maybeSingle();
+			return (data as AgentSession | null) ?? null;
+		},
+		[],
 	);
 
 	return {
@@ -74,5 +90,6 @@ export function useSessionManager() {
 		deleteSession,
 		getActiveForPath,
 		getPastForPath,
+		fetchSessionForPath,
 	};
 }

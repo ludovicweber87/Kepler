@@ -1,6 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { spawn, IPty } from 'node-pty';
 import { execSync } from 'child_process';
+import { supabase } from '@/lib/supabase';
 
 function findTmux(): string {
 	const paths = ['/opt/homebrew/bin/tmux', '/usr/local/bin/tmux', '/usr/bin/tmux'];
@@ -183,6 +184,24 @@ function findSessionByCwd(cwd: string): string | null {
 	return null;
 }
 
+/**
+ * Check if a completed/error session exists for this cwd (worktree_path).
+ * Prevents re-creating tmux for killed sessions even with a new sessionId.
+ */
+async function hasCompletedSessionForPath(cwd: string): Promise<boolean> {
+	try {
+		const { data } = await supabase
+			.from('agent_sessions')
+			.select('status')
+			.eq('worktree_path', cwd)
+			.in('status', ['completed', 'error'])
+			.limit(1);
+		return (data?.length ?? 0) > 0;
+	} catch {
+		return false;
+	}
+}
+
 function createTmuxSession(sessionId: string, cwd: string): void {
 	execSync(`${TMUX} new-session -d -s ${sessionId} -x 120 -y 40 -c ${JSON.stringify(cwd)}`, {
 		stdio: 'ignore',
@@ -216,8 +235,9 @@ export function startTerminalServer(port: number) {
 
 	wss.on('connection', (ws: WebSocket) => {
 		let pty: IPty | null = null;
+		let initReady: Promise<void> | null = null;
 
-		ws.on('message', (raw: Buffer | string) => {
+		ws.on('message', async (raw: Buffer | string) => {
 			let msg: ClientMessage;
 			try {
 				msg = JSON.parse(typeof raw === 'string' ? raw : raw.toString());
@@ -232,46 +252,59 @@ export function startTerminalServer(port: number) {
 			}
 
 			if (msg.type === 'init') {
-				let attachId = msg.sessionId;
-				let existed = tmuxSessionExists(msg.sessionId);
+				// Store the init promise so subsequent messages wait for it
+				initReady = (async () => {
+					let attachId = msg.sessionId;
+					let existed = tmuxSessionExists(msg.sessionId);
 
-				// Safety net: if no tmux session with this ID, check if one already
-				// exists for the same cwd (avoids launching a duplicate Claude)
-				if (!existed) {
-					const existing = findSessionByCwd(msg.cwd);
-					if (existing) {
-						attachId = existing;
-						existed = true;
-					} else {
-						createTmuxSession(msg.sessionId, msg.cwd);
+					// Safety net: if no tmux session with this ID, check if one already
+					// exists for the same cwd (avoids launching a duplicate Claude)
+					if (!existed) {
+						const existing = findSessionByCwd(msg.cwd);
+						if (existing) {
+							attachId = existing;
+							existed = true;
+						} else {
+							// Guard: refuse to create tmux for completed/error sessions (check by cwd)
+							const completed = await hasCompletedSessionForPath(msg.cwd);
+							if (completed) {
+								ws.send(JSON.stringify({ type: 'init-error', reason: 'session_completed' }));
+								return;
+							}
+							createTmuxSession(msg.sessionId, msg.cwd);
+						}
 					}
-				}
 
-				// Spawn PTY attached to the tmux session
-				pty = spawnTmuxAttach(attachId, msg.cols, msg.rows);
+					// Spawn PTY attached to the tmux session
+					pty = spawnTmuxAttach(attachId, msg.cols, msg.rows);
 
-				// Tell the client whether this is a resumed session (+ actual session ID if different)
-				ws.send(JSON.stringify({
-					type: 'init-ack',
-					resumed: existed,
-					...(attachId !== msg.sessionId ? { actualSessionId: attachId } : {}),
-				}));
+					// Tell the client whether this is a resumed session (+ actual session ID if different)
+					ws.send(JSON.stringify({
+						type: 'init-ack',
+						resumed: existed,
+						...(attachId !== msg.sessionId ? { actualSessionId: attachId } : {}),
+					}));
 
-				// Forward PTY output to WebSocket + track activity
-				pty.onData((data: string) => {
-					sessionOutputTimestamps.set(attachId, Date.now());
-					if (ws.readyState === WebSocket.OPEN) {
-						ws.send(data);
-					}
-				});
+					// Forward PTY output to WebSocket + track activity
+					pty.onData((data: string) => {
+						sessionOutputTimestamps.set(attachId, Date.now());
+						if (ws.readyState === WebSocket.OPEN) {
+							ws.send(data);
+						}
+					});
 
-				pty.onExit(() => {
-					if (ws.readyState === WebSocket.OPEN) {
-						ws.close();
-					}
-					pty = null;
-				});
+					pty.onExit(() => {
+						if (ws.readyState === WebSocket.OPEN) {
+							ws.close();
+						}
+						pty = null;
+					});
+				})();
+				return;
 			}
+
+			// Wait for init to complete before processing input/resize
+			if (initReady) await initReady;
 
 			if (msg.type === 'input' && pty) {
 				pty.write(msg.data);

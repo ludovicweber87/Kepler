@@ -143,7 +143,7 @@ export async function DELETE(request: Request) {
 	if (isAuthError(auth)) return auth;
 
 	try {
-		const { cwd, worktreePath } = await request.json();
+		const { cwd, worktreePath, deleteBranch = false } = await request.json();
 
 		if (!cwd || !worktreePath) {
 			return NextResponse.json(
@@ -168,16 +168,16 @@ export async function DELETE(request: Request) {
 			timeout: 30000,
 		});
 
-		// Delete the local branch if it exists and has no remote tracking
-		if (target?.branch) {
+		// Delete the local branch only if explicitly requested
+		if (deleteBranch && target?.branch) {
 			try {
-				execSync(`git branch -d ${JSON.stringify(target.branch)}`, {
+				execSync(`git branch -D ${JSON.stringify(target.branch)}`, {
 					cwd,
 					encoding: 'utf-8',
 					timeout: 10000,
 				});
 			} catch {
-				// Branch may have unmerged changes — skip deletion
+				// Branch may not exist locally — skip
 			}
 		}
 

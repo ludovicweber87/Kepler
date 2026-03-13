@@ -244,6 +244,7 @@ Todo { id, repo_full_name, title, description, done, sort_order }
 - `"use client"` sur tous les composants interactifs
 - Types centralisés dans `src/types/index.ts`
 - Path alias : `@/*` → `./src/*`
+- **Jamais de texte en dur** dans les composants — toujours utiliser `next-intl` (`useTranslations`) pour tous les labels, messages, boutons, etc. Les traductions sont dans `src/messages/`
 
 ### Naming
 

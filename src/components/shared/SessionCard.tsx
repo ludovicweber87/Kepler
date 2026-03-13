@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
@@ -35,8 +36,8 @@ export interface SessionCardProps {
 	onClick: () => void;
 	/** Stop/kill action (active sessions) */
 	onStop?: () => void;
-	/** Delete action (past sessions) */
-	onDelete?: () => void;
+	/** Delete action (past sessions) — receives the click event for popover anchoring */
+	onDelete?: (e: React.MouseEvent) => void;
 	/** Compact layout for tight spaces (e.g. sidebar) */
 	compact?: boolean;
 }
@@ -53,6 +54,7 @@ export default function SessionCard({
 	onDelete,
 	compact = false,
 }: SessionCardProps) {
+	const t = useTranslations('sessionCard');
 	const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
 	const isActive = status === 'active';
@@ -194,7 +196,7 @@ export default function SessionCard({
 				{/* Status chips */}
 				{isActive && (
 					<Chip
-						label="Active"
+						label={t('active')}
 						size="small"
 						sx={{
 							height: chipHeight,
@@ -208,7 +210,7 @@ export default function SessionCard({
 				)}
 				{isFinished && !isError && (
 					<Chip
-						label="Termin\u00e9"
+						label={t('completed')}
 						size="small"
 						sx={{
 							height: chipHeight,
@@ -222,7 +224,7 @@ export default function SessionCard({
 				)}
 				{isError && (
 					<Chip
-						label="Erreur"
+						label={t('error')}
 						size="small"
 						sx={{
 							height: chipHeight,
@@ -318,7 +320,7 @@ export default function SessionCard({
 										<StopCircleRoundedIcon sx={{ fontSize: 18, color: '#FF5252' }} />
 									</ListItemIcon>
 									<ListItemText primaryTypographyProps={{ fontSize: '0.8rem' }}>
-										Fermer la session
+										{t('closeSession')}
 									</ListItemText>
 								</MenuItem>
 							)}
@@ -327,7 +329,7 @@ export default function SessionCard({
 									onClick={(e) => {
 										e.stopPropagation();
 										setAnchorEl(null);
-										onDelete();
+										onDelete(e);
 									}}
 									sx={{ fontSize: '0.8rem', gap: 1 }}
 								>
@@ -335,7 +337,7 @@ export default function SessionCard({
 										<DeleteOutlineRoundedIcon sx={{ fontSize: 18, color: '#FF5252' }} />
 									</ListItemIcon>
 									<ListItemText primaryTypographyProps={{ fontSize: '0.8rem' }}>
-										Supprimer
+										{t('delete')}
 									</ListItemText>
 								</MenuItem>
 							)}

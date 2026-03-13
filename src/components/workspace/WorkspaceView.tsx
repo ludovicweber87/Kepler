@@ -1,16 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import CircularProgress from '@mui/material/CircularProgress';
 import Button from '@mui/material/Button';
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
-import DialogActions from '@mui/material/DialogActions';
+import Popover from '@mui/material/Popover';
 import { alpha } from '@mui/material/styles';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
@@ -25,8 +23,10 @@ import AgentTerminalModal from '@/components/agents/AgentTerminalModal';
 
 
 export default function WorkspaceView() {
+	const t = useTranslations('workspace');
 	const { views, activeIndex, setActiveIndex, addView, reorderViews } = useAgentViews();
 	const [deleteTarget, setDeleteTarget] = useState<WorktreeInfo | null>(null);
+	const [deleteAnchorEl, setDeleteAnchorEl] = useState<HTMLElement | null>(null);
 	const [newAgentOpen, setNewAgentOpen] = useState(false);
 	const [selectedWorktree, setSelectedWorktree] = useState<{
 		worktree: WorktreeInfo;
@@ -36,34 +36,37 @@ export default function WorkspaceView() {
 
 	const activeView = views[activeIndex] ?? null;
 	const { worktrees, isLoading, deleteWorktree } = useWorktrees(activeView?.path);
-	const { killSession, getActiveForPath, getPastForPath } = useSessionManager();
+	const { killSession, getActiveForPath, getPastForPath, fetchSessionForPath } = useSessionManager();
 
-	const handleWorktreeClick = (wt: WorktreeInfo) => {
-		// Same logic as sidebar: check active first, then past
+	const handleWorktreeClick = async (wt: WorktreeInfo) => {
+		// 1. Active tmux session? → re-attach
 		const active = getActiveForPath(wt.path);
 		if (active) {
 			setSelectedWorktree({ worktree: wt, existingSessionId: active.sessionId });
 			return;
 		}
 
-		const past = getPastForPath(wt.path, wt.branch);
-		if (past) {
+		// 2. Direct DB check — always fresh, bypasses cache timing issues
+		const dbSession = await fetchSessionForPath(wt.path);
+		if (dbSession) {
+			const isDone = dbSession.status === 'completed' || dbSession.status === 'error';
 			setSelectedWorktree({
 				worktree: wt,
-				existingSessionId: past.session_id,
-				isPastSession: true,
+				existingSessionId: dbSession.session_id,
+				isPastSession: isDone,
 			});
 			return;
 		}
 
-		// No session — open in existing worktree, skip branch step
+		// 3. No session at all — open in existing worktree, skip branch step
 		setSelectedWorktree({ worktree: wt });
 	};
 
-	const handleConfirmDelete = () => {
+	const handleDelete = (deleteBranch: boolean) => {
 		if (deleteTarget) {
-			deleteWorktree(deleteTarget.path);
+			deleteWorktree({ worktreePath: deleteTarget.path, deleteBranch });
 			setDeleteTarget(null);
+			setDeleteAnchorEl(null);
 		}
 	};
 
@@ -80,7 +83,7 @@ export default function WorkspaceView() {
 						WebkitTextFillColor: 'transparent',
 					}}
 				>
-					Worktrees
+					{t('title')}
 				</Typography>
 				<Box
 					sx={{
@@ -94,10 +97,10 @@ export default function WorkspaceView() {
 				>
 					<FolderOpenRoundedIcon sx={{ fontSize: 64, color: 'text.disabled' }} />
 					<Typography variant="h6" color="text.secondary">
-						No project configured
+						{t('noProjectConfigured')}
 					</Typography>
 					<Typography variant="body2" color="text.disabled" sx={{ mb: 2 }}>
-						Add a project to see its worktrees.
+						{t('addProjectDesc')}
 					</Typography>
 					<Button
 						variant="outlined"
@@ -113,7 +116,7 @@ export default function WorkspaceView() {
 							},
 						}}
 					>
-						Add Project
+						{t('addProject')}
 					</Button>
 				</Box>
 			</Box>
@@ -132,7 +135,7 @@ export default function WorkspaceView() {
 					WebkitTextFillColor: 'transparent',
 				}}
 			>
-				Worktrees
+				{t('title')}
 			</Typography>
 
 			<DraggableTabs
@@ -141,7 +144,7 @@ export default function WorkspaceView() {
 				onTabChange={setActiveIndex}
 				onReorder={reorderViews}
 				trailing={
-					<Tooltip title="Add project">
+					<Tooltip title={t('addProject')}>
 						<IconButton
 							size="small"
 							onClick={() => addView()}
@@ -174,7 +177,7 @@ export default function WorkspaceView() {
 						},
 					}}
 				>
-					Lancer un agent
+					{t('launchAgent')}
 				</Button>
 			</Box>
 
@@ -196,10 +199,10 @@ export default function WorkspaceView() {
 				>
 					<AccountTreeRoundedIcon sx={{ fontSize: 48, color: 'text.disabled' }} />
 					<Typography variant="body1" color="text.secondary">
-						No active worktrees
+						{t('noActiveWorktrees')}
 					</Typography>
 					<Typography variant="body2" color="text.disabled">
-						Create a branch from an issue to get started.
+						{t('createBranchDesc')}
 					</Typography>
 				</Box>
 			)}
@@ -223,43 +226,70 @@ export default function WorkspaceView() {
 								isStreaming={active?.isStreaming}
 								onClick={() => handleWorktreeClick(wt)}
 								onStop={active ? () => killSession(active.sessionId) : undefined}
-								onDelete={() => setDeleteTarget(wt)}
+								onDelete={(e) => {
+									setDeleteTarget(wt);
+									setDeleteAnchorEl(e.currentTarget as HTMLElement);
+								}}
 							/>
 						);
 					})}
 				</Box>
 			)}
 
-			<Dialog
-				open={!!deleteTarget}
-				onClose={() => setDeleteTarget(null)}
-				maxWidth="xs"
-				fullWidth
-				PaperProps={{ sx: { borderRadius: 1 } }}
+			<Popover
+				open={!!deleteTarget && !!deleteAnchorEl}
+				anchorEl={deleteAnchorEl}
+				onClose={() => {
+					setDeleteTarget(null);
+					setDeleteAnchorEl(null);
+				}}
+				anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+				transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+				slotProps={{
+					paper: {
+						sx: {
+							borderRadius: 2,
+							p: 1.5,
+							minWidth: 260,
+							display: 'flex',
+							flexDirection: 'column',
+							gap: 0.5,
+						},
+					},
+				}}
 			>
-				<DialogTitle sx={{ fontWeight: 600 }}>Delete worktree</DialogTitle>
-				<DialogContent>
-					<Typography variant="body2" color="text.secondary">
-						This will remove the worktree and attempt to delete the local branch{' '}
-						<strong>{deleteTarget?.branch}</strong>.
-					</Typography>
-				</DialogContent>
-				<DialogActions sx={{ px: 3, pb: 2.5 }}>
-					<Button onClick={() => setDeleteTarget(null)}>Cancel</Button>
-					<Button
-						variant="contained"
-						onClick={handleConfirmDelete}
-						sx={{
-							bgcolor: '#EF4444',
-							'&:hover': { bgcolor: alpha('#EF4444', 0.85) },
-							textTransform: 'none',
-							fontWeight: 600,
-						}}
-					>
-						Delete
-					</Button>
-				</DialogActions>
-			</Dialog>
+				<Typography variant="caption" color="text.secondary" sx={{ px: 1, pb: 0.5 }}>
+					{t('deleteBranch', { branch: deleteTarget?.branch ?? '' })}
+				</Typography>
+				<Button
+					fullWidth
+					size="small"
+					onClick={() => handleDelete(false)}
+					sx={{
+						justifyContent: 'flex-start',
+						textTransform: 'none',
+						fontWeight: 600,
+						color: '#EF4444',
+						'&:hover': { bgcolor: alpha('#EF4444', 0.08) },
+					}}
+				>
+					{t('worktreeOnly')}
+				</Button>
+				<Button
+					fullWidth
+					size="small"
+					onClick={() => handleDelete(true)}
+					sx={{
+						justifyContent: 'flex-start',
+						textTransform: 'none',
+						fontWeight: 600,
+						color: '#EF4444',
+						'&:hover': { bgcolor: alpha('#EF4444', 0.08) },
+					}}
+				>
+					{t('worktreeAndBranch')}
+				</Button>
+			</Popover>
 
 			<AgentTerminalModal
 				open={newAgentOpen}

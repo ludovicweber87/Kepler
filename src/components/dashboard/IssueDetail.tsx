@@ -17,6 +17,10 @@ import Skeleton from '@mui/material/Skeleton';
 import Alert from '@mui/material/Alert';
 import TextField from '@mui/material/TextField';
 import CircularProgress from '@mui/material/CircularProgress';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import { alpha } from '@mui/material/styles';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
@@ -42,9 +46,11 @@ import AssignmentTurnedInRoundedIcon from '@mui/icons-material/AssignmentTurnedI
 import CheckBoxRoundedIcon from '@mui/icons-material/CheckBoxRounded';
 import CheckBoxOutlineBlankRoundedIcon from '@mui/icons-material/CheckBoxOutlineBlankRounded';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
+import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded';
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { useIssue } from '@/hooks/useGitHub';
+import { useIssue, useDashboard } from '@/hooks/useGitHub';
 import { useTodos, useIssueTodos } from '@/hooks/useTodos';
 import { supabase } from '@/lib/supabase';
 import { GitHubComment } from '@/types';
@@ -230,7 +236,22 @@ function formatDate(dateStr: string): string {
 	});
 }
 
-function Comment({ comment, index }: { comment: GitHubComment; index: number }) {
+function Comment({
+	comment,
+	index,
+	isOwner,
+	onEdit,
+	onDelete,
+}: {
+	comment: GitHubComment;
+	index: number;
+	isOwner: boolean;
+	onEdit: (comment: GitHubComment) => void;
+	onDelete: (comment: GitHubComment) => void;
+}) {
+	const tc = useTranslations('common');
+	const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+
 	return (
 		<Box
 			sx={{
@@ -250,9 +271,55 @@ function Comment({ comment, index }: { comment: GitHubComment; index: number }) 
 						<Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
 							{comment.user.login}
 						</Typography>
-						<Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+						<Typography variant="body2" sx={{ fontSize: '0.75rem', flex: 1 }}>
 							{formatDate(comment.created_at)}
 						</Typography>
+						{isOwner && (
+							<>
+								<IconButton
+									size="small"
+									onClick={(e) => setMenuAnchor(e.currentTarget)}
+									sx={{ p: 0.25, color: 'text.disabled', '&:hover': { color: 'text.secondary' } }}
+								>
+									<MoreVertRoundedIcon sx={{ fontSize: 16 }} />
+								</IconButton>
+								<Menu
+									anchorEl={menuAnchor}
+									open={!!menuAnchor}
+									onClose={() => setMenuAnchor(null)}
+									slotProps={{ paper: { sx: { minWidth: 140 } } }}
+								>
+									<MenuItem
+										onClick={() => {
+											setMenuAnchor(null);
+											onEdit(comment);
+										}}
+										sx={{ fontSize: '0.8rem', gap: 1 }}
+									>
+										<ListItemIcon sx={{ minWidth: '28px !important' }}>
+											<EditRoundedIcon sx={{ fontSize: 16 }} />
+										</ListItemIcon>
+										<ListItemText primaryTypographyProps={{ fontSize: '0.8rem' }}>
+											{tc('edit')}
+										</ListItemText>
+									</MenuItem>
+									<MenuItem
+										onClick={() => {
+											setMenuAnchor(null);
+											onDelete(comment);
+										}}
+										sx={{ fontSize: '0.8rem', gap: 1 }}
+									>
+										<ListItemIcon sx={{ minWidth: '28px !important' }}>
+											<DeleteOutlineRoundedIcon sx={{ fontSize: 16, color: '#EF4444' }} />
+										</ListItemIcon>
+										<ListItemText primaryTypographyProps={{ fontSize: '0.8rem', color: '#EF4444' }}>
+											{tc('delete')}
+										</ListItemText>
+									</MenuItem>
+								</Menu>
+							</>
+						)}
 					</Box>
 					<Box sx={markdownSx}>
 						<ReactMarkdown
@@ -301,6 +368,16 @@ export default function IssueDetail({
 	// Comment state
 	const [newComment, setNewComment] = useState('');
 	const [sendingComment, setSendingComment] = useState(false);
+
+	// Edit/delete comment state
+	const [editingComment, setEditingComment] = useState<GitHubComment | null>(null);
+	const [editCommentBody, setEditCommentBody] = useState('');
+	const [savingComment, setSavingComment] = useState(false);
+	const [deleteComment, setDeleteComment] = useState<GitHubComment | null>(null);
+	const [deletingComment, setDeletingComment] = useState(false);
+
+	const { data: dashboardData } = useDashboard();
+	const currentUser = dashboardData?.user;
 
 	const issueQueryKey = useMemo(() => ['github', 'issue', owner, repo, number], [owner, repo, number]);
 	const bodyRef = useRef('');
@@ -396,6 +473,38 @@ export default function IssueDetail({
 			setSendingComment(false);
 		}
 	}, [newComment, sendingComment, owner, repo, issueNum, qc, issueQueryKey]);
+
+	const handleEditComment = useCallback(async () => {
+		if (!editingComment || !editCommentBody.trim() || savingComment) return;
+		setSavingComment(true);
+		try {
+			await fetch('/api/github/issue/comment', {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ owner, repo, commentId: editingComment.id, body: editCommentBody.trim() }),
+			});
+			setEditingComment(null);
+			qc.invalidateQueries({ queryKey: issueQueryKey });
+		} finally {
+			setSavingComment(false);
+		}
+	}, [editingComment, editCommentBody, savingComment, owner, repo, qc, issueQueryKey]);
+
+	const handleDeleteComment = useCallback(async () => {
+		if (!deleteComment || deletingComment) return;
+		setDeletingComment(true);
+		try {
+			await fetch('/api/github/issue/comment', {
+				method: 'DELETE',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ owner, repo, commentId: deleteComment.id }),
+			});
+			setDeleteComment(null);
+			qc.invalidateQueries({ queryKey: issueQueryKey });
+		} finally {
+			setDeletingComment(false);
+		}
+	}, [deleteComment, deletingComment, owner, repo, qc, issueQueryKey]);
 
 	const invalidateTodos = () => {
 		qc.invalidateQueries({ queryKey: ['todos'] });
@@ -860,7 +969,17 @@ export default function IssueDetail({
 					</Typography>
 					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
 						{comments.map((comment, index) => (
-							<Comment key={comment.id} comment={comment} index={index} />
+							<Comment
+								key={comment.id}
+								comment={comment}
+								index={index}
+								isOwner={comment.user.login === currentUser}
+								onEdit={(c) => {
+									setEditingComment(c);
+									setEditCommentBody(c.body);
+								}}
+								onDelete={setDeleteComment}
+							/>
 						))}
 					</Box>
 				</Box>
@@ -910,6 +1029,78 @@ export default function IssueDetail({
 					</Box>
 				</CardContent>
 			</Card>
+
+			{/* Edit comment dialog */}
+			<Dialog
+				open={!!editingComment}
+				onClose={() => setEditingComment(null)}
+				maxWidth="sm"
+				fullWidth
+				slotProps={{ paper: { sx: { borderRadius: 2 } } }}
+			>
+				<DialogTitle sx={{ fontWeight: 600 }}>{t('editComment')}</DialogTitle>
+				<DialogContent>
+					<TextField
+						value={editCommentBody}
+						onChange={(e) => setEditCommentBody(e.target.value)}
+						multiline
+						minRows={4}
+						maxRows={12}
+						fullWidth
+						sx={{ mt: 1, '& .MuiInputBase-root': { fontSize: '0.85rem' } }}
+					/>
+				</DialogContent>
+				<DialogActions sx={{ px: 3, pb: 2.5 }}>
+					<Button onClick={() => setEditingComment(null)}>{tc('cancel')}</Button>
+					<Button
+						variant="contained"
+						onClick={handleEditComment}
+						disabled={!editCommentBody.trim() || savingComment}
+						startIcon={savingComment ? <CircularProgress size={14} /> : <SaveRoundedIcon />}
+						sx={{
+							textTransform: 'none',
+							fontWeight: 600,
+							bgcolor: '#7C5CFF',
+							'&:hover': { bgcolor: alpha('#7C5CFF', 0.85) },
+						}}
+					>
+						{tc('save')}
+					</Button>
+				</DialogActions>
+			</Dialog>
+
+			{/* Delete comment confirmation dialog */}
+			<Dialog
+				open={!!deleteComment}
+				onClose={() => setDeleteComment(null)}
+				maxWidth="xs"
+				fullWidth
+				slotProps={{ paper: { sx: { borderRadius: 2 } } }}
+			>
+				<DialogTitle sx={{ fontWeight: 600 }}>{t('deleteComment')}</DialogTitle>
+				<DialogContent>
+					<Typography variant="body2" color="text.secondary">
+						{t('deleteCommentConfirm')}
+					</Typography>
+				</DialogContent>
+				<DialogActions sx={{ px: 3, pb: 2.5 }}>
+					<Button onClick={() => setDeleteComment(null)}>{tc('cancel')}</Button>
+					<Button
+						variant="contained"
+						onClick={handleDeleteComment}
+						disabled={deletingComment}
+						startIcon={deletingComment ? <CircularProgress size={14} /> : undefined}
+						sx={{
+							textTransform: 'none',
+							fontWeight: 600,
+							bgcolor: '#EF4444',
+							'&:hover': { bgcolor: alpha('#EF4444', 0.85) },
+						}}
+					>
+						{tc('delete')}
+					</Button>
+				</DialogActions>
+			</Dialog>
 
 			<AgentTerminalModal
 				open={terminalOpen}

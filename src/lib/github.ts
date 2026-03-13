@@ -297,6 +297,34 @@ export async function createIssueComment(
 	if (!res.ok) throw new Error(`GitHub create comment failed: ${res.status}`);
 }
 
+export async function updateIssueComment(
+	owner: string,
+	repo: string,
+	commentId: number,
+	body: string,
+	token: string,
+): Promise<void> {
+	const res = await fetch(`${GITHUB_API}/repos/${owner}/${repo}/issues/comments/${commentId}`, {
+		method: 'PATCH',
+		headers: { ...getHeaders(token), 'Content-Type': 'application/json' },
+		body: JSON.stringify({ body }),
+	});
+	if (!res.ok) throw new Error(`GitHub update comment failed: ${res.status}`);
+}
+
+export async function deleteIssueComment(
+	owner: string,
+	repo: string,
+	commentId: number,
+	token: string,
+): Promise<void> {
+	const res = await fetch(`${GITHUB_API}/repos/${owner}/${repo}/issues/comments/${commentId}`, {
+		method: 'DELETE',
+		headers: getHeaders(token),
+	});
+	if (!res.ok) throw new Error(`GitHub delete comment failed: ${res.status}`);
+}
+
 export async function createPullRequest(
 	owner: string,
 	repo: string,

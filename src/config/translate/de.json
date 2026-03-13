@@ -301,7 +301,29 @@
 		"descriptionPlaceholder": "Beschreibung (Markdown)",
 		"noDescription": "Keine Beschreibung.",
 		"comments": "{count, plural, one {# Kommentar} other {# Kommentare}}",
-		"commentPlaceholder": "Kommentieren... (Cmd+Enter zum Senden)"
+		"commentPlaceholder": "Kommentieren... (Cmd+Enter zum Senden)",
+		"editComment": "Kommentar bearbeiten",
+		"deleteComment": "Kommentar loschen",
+		"deleteCommentConfirm": "Dieser Kommentar wird dauerhaft aus dem GitHub-Issue geloscht."
+	},
+	"workspace": {
+		"title": "Worktrees",
+		"noProjectConfigured": "Kein Projekt konfiguriert",
+		"addProjectDesc": "Fuge ein Projekt hinzu, um seine Worktrees zu sehen.",
+		"addProject": "Projekt hinzufugen",
+		"launchAgent": "Agent starten",
+		"noActiveWorktrees": "Keine aktiven Worktrees",
+		"createBranchDesc": "Erstelle einen Branch aus einem Issue, um zu starten.",
+		"deleteBranch": "{branch} loschen",
+		"worktreeOnly": "Nur Worktree",
+		"worktreeAndBranch": "Worktree + Branch"
+	},
+	"sessionCard": {
+		"active": "Aktiv",
+		"completed": "Abgeschlossen",
+		"error": "Fehler",
+		"closeSession": "Sitzung schliessen",
+		"delete": "Loschen"
 	},
 	"issueDetail": {
 		"backToIssues": "Zurück zu Issues",
@@ -315,6 +337,9 @@
 		"noDescription": "Keine Beschreibung. Klicke, um eine hinzuzufügen.",
 		"addComment": "Kommentar hinzufügen",
 		"commentPlaceholder": "Kommentar schreiben (Markdown)...",
-		"send": "Senden"
+		"send": "Senden",
+		"editComment": "Kommentar bearbeiten",
+		"deleteComment": "Kommentar loschen",
+		"deleteCommentConfirm": "Dieser Kommentar wird dauerhaft aus dem GitHub-Issue geloscht."
 	}
 }

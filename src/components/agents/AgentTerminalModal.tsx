@@ -1,7 +1,6 @@
 'use client';
 
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import Box from '@mui/material/Box';
@@ -169,8 +168,6 @@ export default function AgentTerminalModal({
 	const streamTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const readyRef = useRef(false);
 	const claudeLaunchedRef = useRef(false);
-	const idleKillTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
 	// Plain shell terminal refs (tab 2)
 	const [shellTermNode, setShellTermNode] = useState<HTMLDivElement | null>(null);
 	const shellTerminalRef = useRef<Terminal | null>(null);
@@ -200,34 +197,40 @@ export default function AgentTerminalModal({
 	const sessionId = existingSessionId ?? generatedIdRef.current ?? '';
 
 	const { session, logs, ensureSession } = useAgentSession(open ? sessionId : undefined);
-	const queryClient = useQueryClient();
 	const overlay = useOverlayTerminal();
-
-	// Auto-kill session when Claude exits naturally
-	const killAndMarkDone = useCallback(async (sid: string) => {
-		try {
-			await fetch(`/api/agent-sessions/${encodeURIComponent(sid)}/kill`, { method: 'POST' });
-			queryClient.invalidateQueries({ queryKey: ['sessions', 'active'] });
-			queryClient.invalidateQueries({ queryKey: ['agent-sessions', 'history'] });
-		} catch { /* ignore */ }
-	}, [queryClient]);
 
 	// Effective working path: worktree path when available, else projectPath
 	// For past sessions without worktree_path in DB, derive from projectPath + branch
 	const effectivePath = useMemo(() => {
 		if (worktreePath) return worktreePath;
 		if (session?.worktree_path) return session.worktree_path;
-		if (projectPath && session?.branch && session.branch !== 'main' && session.branch !== 'master') {
+		if (
+			projectPath &&
+			session?.branch &&
+			session.branch !== 'main' &&
+			session.branch !== 'master'
+		) {
 			return `${projectPath}/.worktrees/${session.branch}`;
 		}
 		if (projectPath && existingWorktree?.worktreePath) return existingWorktree.worktreePath;
 		return projectPath;
-	}, [worktreePath, session?.worktree_path, session?.branch, projectPath, existingWorktree?.worktreePath]);
+	}, [
+		worktreePath,
+		session?.worktree_path,
+		session?.branch,
+		projectPath,
+		existingWorktree?.worktreePath,
+	]);
 
 	const handlePip = useCallback(() => {
 		if (!sessionId || !effectivePath) return;
 		const projectName = effectivePath.split('/').filter(Boolean).pop() ?? 'unknown';
-		overlay.open({ sessionId, projectPath: effectivePath, projectName, isPastSession });
+		overlay.open({
+			sessionId,
+			projectPath: effectivePath,
+			projectName,
+			isPastSession,
+		});
 		onClose();
 	}, [sessionId, effectivePath, isPastSession, overlay, onClose]);
 
@@ -353,7 +356,7 @@ export default function AgentTerminalModal({
 	const handleDeleteWorktree = useCallback(() => {
 		const wtPath = session?.worktree_path ?? worktreePath;
 		if (!wtPath) return;
-		deleteWorktree(wtPath);
+		deleteWorktree({ worktreePath: wtPath, deleteBranch: false });
 	}, [session?.worktree_path, worktreePath, deleteWorktree]);
 
 	// Build draggable terminal tabs
@@ -519,10 +522,13 @@ export default function AgentTerminalModal({
 						setResumed(msg.resumed);
 						// If server attached to a different existing session, log it
 						if (msg.actualSessionId) {
-							console.log(`[AgentTerminalModal] Attached to existing session: ${msg.actualSessionId}`);
+							console.log(
+								`[AgentTerminalModal] Attached to existing session: ${msg.actualSessionId}`,
+							);
 						}
 						if (!msg.resumed) {
-							// Worktree is already on the right branch — just launch Claude
+							// Worktree is already on the right branch — launch Claude
+							// Send after a short delay to let tmux initialize
 							claudeLaunchedRef.current = true;
 							const reporting = buildReportingPrompt(sessionId);
 							const basePrompt = agentFile ? agentFile.content : '';
@@ -532,7 +538,7 @@ export default function AgentTerminalModal({
 
 							setTimeout(() => {
 								ws.send(JSON.stringify({ type: 'input', data: claudeCmd }));
-							}, 800);
+							}, 500);
 						} else {
 							// Resumed existing session — Claude was already running
 							claudeLaunchedRef.current = true;
@@ -552,22 +558,10 @@ export default function AgentTerminalModal({
 						isStreamingRef.current = true;
 						setIsStreaming(true);
 					}
-					// Cancel any pending idle-kill timer while output is flowing
-					if (idleKillTimerRef.current) {
-						clearTimeout(idleKillTimerRef.current);
-						idleKillTimerRef.current = null;
-					}
 					if (streamTimeoutRef.current) clearTimeout(streamTimeoutRef.current);
 					streamTimeoutRef.current = setTimeout(() => {
 						isStreamingRef.current = false;
 						setIsStreaming(false);
-						// After streaming stops and Claude was launched, schedule auto-kill
-						// if no new output arrives within 15s (Claude has exited to shell)
-						if (claudeLaunchedRef.current && sessionId) {
-							idleKillTimerRef.current = setTimeout(() => {
-								killAndMarkDone(sessionId);
-							}, 15_000);
-						}
 					}, 3000);
 				}
 			}
@@ -624,13 +618,20 @@ export default function AgentTerminalModal({
 			wsRef.current = null;
 			fitAddonRef.current = null;
 			if (streamTimeoutRef.current) clearTimeout(streamTimeoutRef.current);
-			if (idleKillTimerRef.current) clearTimeout(idleKillTimerRef.current);
 			isStreamingRef.current = false;
 			claudeLaunchedRef.current = false;
 			setIsStreaming(false);
 			readyRef.current = false;
 		};
-	}, [open, worktreePath, projectPath, agentFile, termNode, sessionId, terminalEnabled, killAndMarkDone]);
+	}, [
+		open,
+		worktreePath,
+		projectPath,
+		agentFile,
+		termNode,
+		sessionId,
+		terminalEnabled,
+	]);
 
 	// Plain shell terminal — lazy init, uses worktree path
 	useEffect(() => {

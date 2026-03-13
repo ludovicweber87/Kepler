@@ -40,18 +40,18 @@ export function useWorktrees(localPath: string | undefined) {
 	});
 
 	const deleteMutation = useMutation({
-		mutationFn: async (worktreePath: string) => {
+		mutationFn: async ({ worktreePath, deleteBranch }: { worktreePath: string; deleteBranch: boolean }) => {
 			const res = await apiFetch('/api/git/worktrees', {
 				method: 'DELETE',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ cwd: localPath, worktreePath }),
+				body: JSON.stringify({ cwd: localPath, worktreePath, deleteBranch }),
 			});
 			if (!res.ok) {
 				const data = await res.json();
 				throw new Error(data.error || 'Failed to delete worktree');
 			}
 		},
-		onMutate: async (worktreePath) => {
+		onMutate: async ({ worktreePath }) => {
 			await queryClient.cancelQueries({ queryKey: ['git-worktrees', localPath] });
 			const previous = queryClient.getQueryData<WorktreeInfo[]>(['git-worktrees', localPath]);
 

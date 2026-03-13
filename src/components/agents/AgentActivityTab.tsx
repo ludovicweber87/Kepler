@@ -161,18 +161,11 @@ export default function AgentActivityTab({
 
 			setPublished(true);
 
-			// Kill the tmux session
-			fetch(`/api/agent-sessions/${encodeURIComponent(session.session_id)}/kill`, {
-				method: 'POST',
-			}).catch(() => { });
-
-			// Mark session as report published + completed
+			// Mark session as report published (do NOT kill — user decides when to close)
 			await supabase
 				.from('agent_sessions')
 				.update({
 					report_published_at: new Date().toISOString(),
-					status: 'completed',
-					ended_at: new Date().toISOString(),
 				})
 				.eq('id', session.id);
 
@@ -181,6 +174,12 @@ export default function AgentActivityTab({
 			qc.invalidateQueries({ queryKey: ['agent-sessions', 'history'] });
 			qc.invalidateQueries({ queryKey: ['sessions', 'active'] });
 			qc.invalidateQueries({ queryKey: ['github', 'dashboard'] });
+
+			// Refetch the issue to show the new comment immediately
+			if (hasIssue) {
+				qc.invalidateQueries({ queryKey: ['github', 'issue', session.issue_owner, session.issue_repo, session.issue_number] });
+				qc.invalidateQueries({ queryKey: ['github', 'issue-timeline', session.issue_owner, session.issue_repo, session.issue_number] });
+			}
 
 			showSnackbar(t('reportPublishedFor', { name: session.issue_title ?? session.project_name }));
 		} catch {
