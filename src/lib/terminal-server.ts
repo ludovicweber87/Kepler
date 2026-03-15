@@ -257,19 +257,24 @@ export function startTerminalServer(port: number) {
 					let attachId = msg.sessionId;
 					let existed = tmuxSessionExists(msg.sessionId);
 
-					// Safety net: if no tmux session with this ID, check if one already
-					// exists for the same cwd (avoids launching a duplicate Claude)
+					// Shell sessions (-shell suffix) intentionally share the same cwd as the
+					// Claude session — skip the cwd-dedup check so they get their own tmux session.
+					const isShellSession = msg.sessionId.endsWith('-shell');
+
 					if (!existed) {
-						const existing = findSessionByCwd(msg.cwd);
+						const existing = isShellSession ? null : findSessionByCwd(msg.cwd);
 						if (existing) {
 							attachId = existing;
 							existed = true;
 						} else {
 							// Guard: refuse to create tmux for completed/error sessions (check by cwd)
-							const completed = await hasCompletedSessionForPath(msg.cwd);
-							if (completed) {
-								ws.send(JSON.stringify({ type: 'init-error', reason: 'session_completed' }));
-								return;
+							// Skip for shell sessions — they should always be allowed
+							if (!isShellSession) {
+								const completed = await hasCompletedSessionForPath(msg.cwd);
+								if (completed) {
+									ws.send(JSON.stringify({ type: 'init-error', reason: 'session_completed' }));
+									return;
+								}
 							}
 							createTmuxSession(msg.sessionId, msg.cwd);
 						}
