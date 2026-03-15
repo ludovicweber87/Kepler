@@ -8,22 +8,26 @@ import Chip from '@mui/material/Chip';
 import Skeleton from '@mui/material/Skeleton';
 import CircularProgress from '@mui/material/CircularProgress';
 import Snackbar from '@mui/material/Snackbar';
-import Accordion from '@mui/material/Accordion';
-import AccordionSummary from '@mui/material/AccordionSummary';
-import AccordionDetails from '@mui/material/AccordionDetails';
-import InputAdornment from '@mui/material/InputAdornment';
-import TextField from '@mui/material/TextField';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
+import Popover from '@mui/material/Popover';
+import List from '@mui/material/List';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
 import Button from '@mui/material/Button';
 import { alpha, useTheme } from '@mui/material/styles';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
 import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import ViewColumnRoundedIcon from '@mui/icons-material/ViewColumnRounded';
-import IconButton from '@mui/material/IconButton';
-import Tooltip from '@mui/material/Tooltip';
+import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded';
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
+import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import type { ProjectV2Config, ProjectV2View, ViewRepoMapping } from '@/types';
 import { useProjectConfig } from '@/hooks/useProjectConfig';
 import { useTranslations } from 'next-intl';
@@ -48,26 +52,8 @@ interface ProjectViewsData {
 	statusColumns: string[];
 }
 
-const accordionSx = {
-	bgcolor: 'background.paper',
-	border: 1,
-	borderColor: 'divider',
-	borderRadius: '4px !important',
-	'&::before': { display: 'none' },
-	'&.Mui-expanded': { margin: '0 !important' },
-};
-
-const projectAccordionSx = {
-	bgcolor: 'transparent',
-	border: 1,
-	borderColor: 'divider',
-	borderRadius: '4px !important',
-	'&::before': { display: 'none' },
-	'&.Mui-expanded': { margin: '0 !important' },
-};
-
-/** Individual project accordion with lazy-loaded views */
-function ProjectAccordion({
+/** Flat project section with lazy-loaded views */
+function ProjectSection({
 	project,
 	org,
 	ownerType,
@@ -82,6 +68,7 @@ function ProjectAccordion({
 	onSave: (config: ProjectV2Config) => void;
 	onToast: (msg: string) => void;
 }) {
+	const t = useTranslations('settings');
 	const [viewsData, setViewsData] = useState<ProjectViewsData | null>(() => {
 		if (savedConfig?.views?.length) {
 			return {
@@ -98,7 +85,6 @@ function ProjectAccordion({
 	const [hasFetched, setHasFetched] = useState(!!savedConfig?.views?.length);
 
 	const selectedViews = new Set(savedConfig?.selectedViews ?? []);
-	const selectedCount = selectedViews.size;
 
 	const fetchViews = useCallback(async () => {
 		setLoading(true);
@@ -114,7 +100,6 @@ function ProjectAccordion({
 			setViewsData(fetched);
 			setHasFetched(true);
 
-			// Cache all views in DB (preserve selected_views if any)
 			onSave({
 				org,
 				projectNumber: project.number,
@@ -134,11 +119,13 @@ function ProjectAccordion({
 		}
 	}, [org, project.number, project.title, ownerType, savedConfig, onSave]);
 
-	const handleAccordionChange = (_: unknown, expanded: boolean) => {
-		if (expanded && !hasFetched) {
+	// Auto-fetch on mount if not yet fetched
+	useEffect(() => {
+		if (!hasFetched) {
 			fetchViews();
 		}
-	};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	const toggleView = (viewName: string) => {
 		const next = new Set(selectedViews);
@@ -149,7 +136,6 @@ function ProjectAccordion({
 		}
 		const views = Array.from(next);
 
-		// Auto-save
 		onSave({
 			org,
 			projectNumber: project.number,
@@ -162,193 +148,386 @@ function ProjectAccordion({
 			views: viewsData?.views ?? savedConfig?.views ?? [],
 			ownerType,
 		});
-		onToast(next.has(viewName) ? `Vue "${viewName}" activée` : `Vue "${viewName}" désactivée`);
+		onToast(
+			next.has(viewName)
+				? t('viewEnabled', { name: viewName })
+				: t('viewDisabled', { name: viewName }),
+		);
 	};
 
 	const displayViews = viewsData?.views ?? savedConfig?.views ?? [];
 	const displayMappings = viewsData?.viewRepoMappings ?? savedConfig?.viewRepoMappings ?? [];
 
 	return (
-		<Accordion
-			sx={projectAccordionSx}
-			onChange={handleAccordionChange}
-		>
-			<AccordionSummary expandIcon={<ExpandMoreIcon />}>
-				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
-					<Typography variant="subtitle1" sx={{ fontWeight: 600, flex: 1 }}>
-						{project.title}
-					</Typography>
-					{selectedCount > 0 && (
-						<Chip
-							label={`${selectedCount} vue${selectedCount > 1 ? 's' : ''}`}
-							size="small"
-							color="primary"
-							variant="outlined"
-							sx={{ fontSize: '0.75rem' }}
-						/>
-					)}
-				</Box>
-			</AccordionSummary>
-			<AccordionDetails sx={{ pt: 0 }}>
-				{error && (
-					<Alert severity="error" sx={{ mb: 2, borderRadius: 1 }}>
-						{error}
-					</Alert>
-				)}
-
-				{loading && (
-					<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-						<CircularProgress size={18} />
-						<Typography variant="body2" color="text.secondary">
-							Chargement des vues...
+		<Box>
+			<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+				<Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+					{project.title}
+				</Typography>
+				<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+					{!loading && displayViews.length > 0 && (
+						<Typography variant="caption" color="text.secondary">
+							{t('viewsAvailable', { count: displayViews.length })}
 						</Typography>
-					</Box>
-				)}
-
-				{!loading && displayViews.length > 0 && (
-					<Box>
-						<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-							<Typography variant="body2" color="text.secondary">
-								{displayViews.length} vue{displayViews.length > 1 ? 's' : ''} disponible{displayViews.length > 1 ? 's' : ''}
-							</Typography>
-							<Tooltip title="Rafraîchir depuis GitHub">
-								<IconButton
-									size="small"
-									onClick={(e) => {
-										e.stopPropagation();
-										fetchViews();
-									}}
-									disabled={loading}
-									sx={{
-										color: 'text.secondary',
-										animation: loading ? 'spin 1s linear infinite' : 'none',
-										'@keyframes spin': {
-											from: { transform: 'rotate(0deg)' },
-											to: { transform: 'rotate(360deg)' },
-										},
-									}}
-								>
-									<RefreshRoundedIcon fontSize="small" />
-								</IconButton>
-							</Tooltip>
-						</Box>
-						<Box
+					)}
+					<Tooltip title={t('refreshFromGithub')}>
+						<IconButton
+							size="small"
+							onClick={fetchViews}
+							disabled={loading}
 							sx={{
-								display: 'grid',
-								gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-								gap: 1.5,
+								color: 'text.secondary',
+								animation: loading ? 'spin 1s linear infinite' : 'none',
+								'@keyframes spin': {
+									from: { transform: 'rotate(0deg)' },
+									to: { transform: 'rotate(360deg)' },
+								},
 							}}
 						>
-							{displayViews.map((view) => {
-								const isSelected = selectedViews.has(view.name);
-								const mapping = displayMappings.find((m) => m.viewName === view.name);
-								const repoCount = mapping?.repos.length ?? 0;
-								const repos = mapping?.repos ?? [];
-								return (
-									<Box
-										key={view.id}
-										onClick={() => toggleView(view.name)}
+							<RefreshRoundedIcon fontSize="small" />
+						</IconButton>
+					</Tooltip>
+				</Box>
+			</Box>
+
+			{error && (
+				<Alert severity="error" sx={{ mb: 2, borderRadius: 1 }}>
+					{error}
+				</Alert>
+			)}
+
+			{loading && !hasFetched && (
+				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+					<CircularProgress size={18} />
+					<Typography variant="body2" color="text.secondary">
+						{t('loadingViews')}
+					</Typography>
+				</Box>
+			)}
+
+			{displayViews.length > 0 && (
+				<Box
+					sx={{
+						display: 'grid',
+						gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+						gap: 1.5,
+					}}
+				>
+					{displayViews.map((view) => {
+						const isSelected = selectedViews.has(view.name);
+						const mapping = displayMappings.find((m) => m.viewName === view.name);
+						const repos = mapping?.repos ?? [];
+						const repoCount = repos.length;
+						return (
+							<Box
+								key={view.id}
+								onClick={() => toggleView(view.name)}
+								sx={{
+									position: 'relative',
+									p: 1.5,
+									borderRadius: 2,
+									cursor: 'pointer',
+									border: 2,
+									borderColor: (th) =>
+										isSelected ? th.palette.primary.main : th.palette.divider,
+									bgcolor: (th) =>
+										isSelected ? alpha(th.palette.primary.main, 0.1) : 'transparent',
+									transition: 'all 0.2s ease',
+									'&:hover': {
+										borderColor: (th) =>
+											isSelected
+												? th.palette.primary.light
+												: alpha(th.palette.primary.main, 0.4),
+										bgcolor: (th) =>
+											isSelected
+												? alpha(th.palette.primary.main, 0.15)
+												: alpha(th.palette.primary.main, 0.04),
+									},
+								}}
+							>
+								{isSelected && (
+									<CheckCircleRoundedIcon
 										sx={{
-											position: 'relative',
-											p: 1.5,
-											borderRadius: 2,
-											cursor: 'pointer',
-											border: 2,
-											borderColor: (t) =>
-												isSelected
-													? t.palette.primary.main
-													: t.palette.divider,
-											bgcolor: (t) =>
-												isSelected
-													? alpha(t.palette.primary.main, 0.1)
-													: 'transparent',
-											transition: 'all 0.2s ease',
-											'&:hover': {
-												borderColor: (t) =>
-													isSelected
-														? t.palette.primary.light
-														: alpha(t.palette.primary.main, 0.4),
-												bgcolor: (t) =>
-													isSelected
-														? alpha(t.palette.primary.main, 0.15)
-														: alpha(t.palette.primary.main, 0.04),
-											},
+											position: 'absolute',
+											top: 8,
+											right: 8,
+											fontSize: 18,
+											color: 'primary.main',
+										}}
+									/>
+								)}
+								<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.75 }}>
+									<ViewColumnRoundedIcon
+										sx={{
+											fontSize: 18,
+											color: isSelected ? 'primary.main' : 'text.secondary',
+										}}
+									/>
+									<Typography
+										variant="body2"
+										sx={{
+											fontWeight: 600,
+											color: isSelected ? 'primary.main' : 'text.primary',
 										}}
 									>
-										{isSelected && (
-											<CheckCircleRoundedIcon
+										{view.name}
+									</Typography>
+								</Box>
+								{repoCount > 0 && (
+									<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+										{repos.map((repoName) => (
+											<Chip
+												key={repoName}
+												label={repoName.split('/').pop()}
+												size="small"
 												sx={{
-													position: 'absolute',
-													top: 8,
-													right: 8,
-													fontSize: 18,
-													color: 'primary.main',
+													fontSize: '0.65rem',
+													height: 20,
+													bgcolor: (th) =>
+														isSelected
+															? alpha(th.palette.secondary.main, 0.15)
+															: alpha(th.palette.text.secondary, 0.08),
+													color: isSelected ? 'secondary.main' : 'text.secondary',
+													'& .MuiChip-label': { px: 0.75 },
 												}}
 											/>
-										)}
-										<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.75 }}>
-											<ViewColumnRoundedIcon
-												sx={{
-													fontSize: 18,
-													color: isSelected ? 'primary.main' : 'text.secondary',
-												}}
-											/>
-											<Typography
-												variant="body2"
-												sx={{
-													fontWeight: 600,
-													color: isSelected ? 'primary.main' : 'text.primary',
-												}}
-											>
-												{view.name}
-											</Typography>
-										</Box>
-										{repoCount > 0 && (
-											<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-												{repos.map((repoName) => (
-													<Chip
-														key={repoName}
-														label={repoName.split('/').pop()}
-														size="small"
-														sx={{
-															fontSize: '0.65rem',
-															height: 20,
-															bgcolor: (t) =>
-																isSelected
-																	? alpha(t.palette.secondary.main, 0.15)
-																	: alpha(t.palette.text.secondary, 0.08),
-															color: isSelected ? 'secondary.main' : 'text.secondary',
-															'& .MuiChip-label': { px: 0.75 },
-														}}
-													/>
-												))}
-											</Box>
-										)}
-										{repoCount === 0 && (
-											<Typography variant="caption" color="text.secondary" sx={{ opacity: 0.6 }}>
-												{repoCount} dépôt
-											</Typography>
-										)}
+										))}
 									</Box>
-								);
-							})}
+								)}
+								{repoCount === 0 && (
+									<Typography variant="caption" color="text.secondary" sx={{ opacity: 0.6 }}>
+										0 {t('views', { count: 0 }).split(' ').pop()}
+									</Typography>
+								)}
+							</Box>
+						);
+					})}
+				</Box>
+			)}
+
+			{!loading && hasFetched && displayViews.length === 0 && !error && (
+				<Typography variant="body2" color="text.secondary">
+					{t('noViewsFound')}
+				</Typography>
+			)}
+		</Box>
+	);
+}
+
+/** Repo path card with popover actions */
+function RepoPathCard({
+	repoName,
+	localPath,
+	onEdit,
+	onDelete,
+	isEditing,
+}: {
+	repoName: string;
+	localPath: string;
+	onEdit: () => void;
+	onDelete: () => void;
+	isEditing: boolean;
+}) {
+	const t = useTranslations('settings');
+	const tc = useTranslations('common');
+	const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+
+	const hasPath = !!localPath;
+
+	return (
+		<Box
+			sx={{
+				p: 2,
+				borderRadius: 2,
+				border: 1,
+				borderColor: 'divider',
+				bgcolor: 'background.paper',
+				position: 'relative',
+				transition: 'all 0.2s ease',
+				'&:hover': {
+					borderColor: (th) => alpha(th.palette.primary.main, 0.3),
+				},
+			}}
+		>
+			{/* 3-dot menu */}
+			<IconButton
+				size="small"
+				onClick={(e) => setAnchorEl(e.currentTarget)}
+				sx={{
+					position: 'absolute',
+					top: 8,
+					right: 8,
+					color: 'text.secondary',
+					opacity: 0.6,
+					'&:hover': { opacity: 1 },
+				}}
+			>
+				<MoreVertRoundedIcon fontSize="small" />
+			</IconButton>
+
+			<Popover
+				open={!!anchorEl}
+				anchorEl={anchorEl}
+				onClose={() => setAnchorEl(null)}
+				anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+				transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+				slotProps={{
+					paper: {
+						sx: {
+							bgcolor: 'background.paper',
+							border: 1,
+							borderColor: 'divider',
+							borderRadius: 2,
+							minWidth: 160,
+							boxShadow: 8,
+						},
+					},
+				}}
+			>
+				<List dense disablePadding>
+					<ListItemButton
+						onClick={() => {
+							setAnchorEl(null);
+							onEdit();
+						}}
+						disabled={isEditing}
+					>
+						<ListItemIcon sx={{ minWidth: 32 }}>
+							{isEditing ? (
+								<CircularProgress size={16} />
+							) : (
+								<EditRoundedIcon fontSize="small" />
+							)}
+						</ListItemIcon>
+						<ListItemText
+							primary={tc('edit')}
+							primaryTypographyProps={{ variant: 'body2' }}
+						/>
+					</ListItemButton>
+					<ListItemButton
+						onClick={() => {
+							setAnchorEl(null);
+							onDelete();
+						}}
+						sx={{
+							'&:hover': {
+								bgcolor: (th) => alpha(th.palette.error.main, 0.08),
+							},
+						}}
+					>
+						<ListItemIcon sx={{ minWidth: 32 }}>
+							<DeleteRoundedIcon fontSize="small" sx={{ color: 'error.main' }} />
+						</ListItemIcon>
+						<ListItemText
+							primary={tc('delete')}
+							primaryTypographyProps={{ variant: 'body2', color: 'error.main' }}
+						/>
+					</ListItemButton>
+				</List>
+			</Popover>
+
+			{/* Card content */}
+			<Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, pr: 3 }}>
+				<Box
+					sx={{
+						width: 36,
+						height: 36,
+						borderRadius: 1.5,
+						display: 'flex',
+						alignItems: 'center',
+						justifyContent: 'center',
+						bgcolor: (th) =>
+							hasPath
+								? alpha(th.palette.success.main, 0.1)
+								: alpha(th.palette.text.secondary, 0.08),
+						flexShrink: 0,
+						mt: 0.25,
+					}}
+				>
+					<FolderRoundedIcon
+						sx={{
+							fontSize: 20,
+							color: hasPath ? 'success.main' : 'text.disabled',
+						}}
+					/>
+				</Box>
+				<Box sx={{ minWidth: 0, flex: 1 }}>
+					<Typography variant="body2" sx={{ fontWeight: 600, mb: 0.25 }}>
+						{repoName}
+					</Typography>
+					<Typography
+						variant="caption"
+						color="text.secondary"
+						sx={{
+							display: 'block',
+							overflow: 'hidden',
+							textOverflow: 'ellipsis',
+							whiteSpace: 'nowrap',
+						}}
+					>
+						{localPath || t('noPath')}
+					</Typography>
+					{hasPath && (
+						<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+							<CheckRoundedIcon sx={{ fontSize: 12, color: 'success.main' }} />
+							<Typography variant="caption" sx={{ color: 'success.main', fontSize: '0.65rem' }}>
+								{t('pathValid')}
+							</Typography>
 						</Box>
-					</Box>
-				)}
+					)}
+				</Box>
+			</Box>
+		</Box>
+	);
+}
 
-				{!loading && !hasFetched && displayViews.length === 0 && (
-					<Typography variant="body2" color="text.secondary">
-						Ouvrez cet accordion pour charger les vues depuis GitHub.
-					</Typography>
+/** Ghost card to add a new repo */
+function AddRepoCard({
+	onClick,
+	disabled,
+	label,
+}: {
+	onClick: () => void;
+	disabled: boolean;
+	label: string;
+}) {
+	return (
+		<Box
+			onClick={disabled ? undefined : onClick}
+			sx={{
+				p: 2,
+				borderRadius: 2,
+				border: 2,
+				borderStyle: 'dashed',
+				borderColor: 'divider',
+				cursor: disabled ? 'default' : 'pointer',
+				display: 'flex',
+				alignItems: 'center',
+				justifyContent: 'center',
+				minHeight: 88,
+				opacity: disabled ? 0.5 : 1,
+				transition: 'all 0.2s ease',
+				'&:hover': disabled
+					? {}
+					: {
+							borderColor: (th: { palette: { primary: { main: string } } }) =>
+								alpha(th.palette.primary.main, 0.5),
+							bgcolor: (th: { palette: { primary: { main: string } } }) =>
+								alpha(th.palette.primary.main, 0.04),
+						},
+			}}
+		>
+			<Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+				{disabled ? (
+					<CircularProgress size={20} />
+				) : (
+					<AddRoundedIcon sx={{ fontSize: 24, color: 'text.secondary' }} />
 				)}
-
-				{!loading && hasFetched && displayViews.length === 0 && !error && (
-					<Typography variant="body2" color="text.secondary">
-						Aucune vue trouvée pour ce projet.
-					</Typography>
-				)}
-			</AccordionDetails>
-		</Accordion>
+				<Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+					{label}
+				</Typography>
+			</Box>
+		</Box>
 	);
 }
 
@@ -430,8 +609,28 @@ export default function SettingsPanel() {
 		}
 	};
 
-	const totalProjects = orgProjects.reduce((sum, o) => sum + o.projects.length, 0);
+	const handleAddRepo = async () => {
+		setPickingRepo('__new__');
+		try {
+			const res = await fetch('/api/filesystem/pick-directory');
+			const { path } = await res.json();
+			if (path) {
+				const name = path.split('/').filter(Boolean).pop() || path;
+				const repoName = window.prompt(t('repoName'), name);
+				if (repoName?.trim()) {
+					savePath(repoName.trim(), path);
+					showToast(t('pathSaved'));
+				}
+			}
+		} finally {
+			setPickingRepo(null);
+		}
+	};
+
 	const totalConfigured = configs.filter((c) => c.selectedViews.length > 0).length;
+
+	// Filter: only user projects
+	const userProjects = orgProjects.filter((o) => o.ownerType === 'user');
 
 	return (
 		<Box>
@@ -439,7 +638,7 @@ export default function SettingsPanel() {
 				variant="h4"
 				sx={{
 					fontWeight: 700,
-					mb: 3,
+					mb: 4,
 					background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.light} 30%, ${theme.palette.secondary.main} 100%)`,
 					backgroundClip: 'text',
 					WebkitBackgroundClip: 'text',
@@ -449,217 +648,115 @@ export default function SettingsPanel() {
 				{t('title')}
 			</Typography>
 
-			<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-				{/* GitHub Project Views */}
-				<Accordion defaultExpanded sx={accordionSx}>
-					<AccordionSummary expandIcon={<ExpandMoreIcon />}>
-						<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-							<GitHubIcon sx={{ color: 'text.secondary' }} />
-							<Typography variant="h6" sx={{ fontWeight: 600 }}>
-								Projets GitHub
-							</Typography>
-							{totalConfigured > 0 && (
-								<Chip
-									label={`${totalConfigured} configuré${totalConfigured > 1 ? 's' : ''}`}
-									size="small"
-									color="primary"
-									variant="outlined"
-									sx={{ fontSize: '0.75rem' }}
-								/>
-							)}
-						</Box>
-					</AccordionSummary>
-					<AccordionDetails sx={{ pt: 0 }}>
-						<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-							Sélectionnez les vues à afficher dans le kanban pour chaque projet.
-						</Typography>
-
-						{error && (
-							<Alert severity="error" sx={{ mb: 2, borderRadius: 1 }}>
-								{error}
-							</Alert>
-						)}
-
-						{loadingProjects && (
-							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-								<Skeleton variant="rounded" height={48} sx={{ borderRadius: 1 }} />
-								<Skeleton variant="rounded" height={48} sx={{ borderRadius: 1 }} />
-							</Box>
-						)}
-
-						{!loadingProjects && totalProjects === 0 && !error && (
-							<Alert severity="info" sx={{ mb: 2, borderRadius: 1 }}>
-								Aucun projet trouvé.
-							</Alert>
-						)}
-
-						{!loadingProjects && totalProjects > 0 && (
-							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-								{orgProjects.map((o) => (
-									<Box key={o.org}>
-										{orgProjects.length > 1 && (
-											<Typography
-												variant="overline"
-												color="text.secondary"
-												sx={{ display: 'block', mb: 0.5, ml: 0.5 }}
-											>
-												{o.org}{o.ownerType === 'user' ? ' (personnel)' : ''}
-											</Typography>
-										)}
-										<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-											{o.projects.map((p) => (
-												<ProjectAccordion
-													key={p.id}
-													project={p}
-													org={o.org}
-													ownerType={o.ownerType}
-													savedConfig={findSavedConfig(o.org, p.number)}
-													onSave={saveConfig}
-													onToast={showToast}
-												/>
-											))}
-										</Box>
-									</Box>
-								))}
-
-								{totalConfigured > 0 && (
-									<Box sx={{ mt: 1 }}>
-										<Button
-											variant="outlined"
-											color="error"
-											size="small"
-											onClick={clearConfig}
-											sx={{ textTransform: 'none' }}
-										>
-											Tout effacer
-										</Button>
-									</Box>
-								)}
-							</Box>
-						)}
-					</AccordionDetails>
-				</Accordion>
-
-				{/* Repo Local Paths */}
-				<Accordion defaultExpanded sx={accordionSx}>
-					<AccordionSummary expandIcon={<ExpandMoreIcon />}>
-						<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-							<FolderRoundedIcon sx={{ color: 'text.secondary' }} />
-							<Typography variant="h6" sx={{ fontWeight: 600 }}>
-								Chemins locaux des dépôts
-							</Typography>
-						</Box>
-					</AccordionSummary>
-					<AccordionDetails sx={{ pt: 0 }}>
-						<Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-							Chemins locaux de vos dépôts. Utilisés pour les opérations git et les
-							sessions d&apos;agents.
-						</Typography>
-
-						{repoPaths.length > 0 && (
-							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 2.5 }}>
-								{repoPaths.map((rp) => (
-									<TextField
-										key={rp.repo_full_name}
-										label={rp.repo_full_name}
-										size="small"
-										fullWidth
-										value={localPaths[rp.repo_full_name] ?? rp.local_path}
-										onChange={(e) =>
-											setLocalPaths((prev) => ({
-												...prev,
-												[rp.repo_full_name]: e.target.value,
-											}))
-										}
-										slotProps={{
-											input: {
-												endAdornment: (
-													<InputAdornment position="end">
-														<Tooltip title="Parcourir...">
-															<IconButton
-																size="small"
-																edge="end"
-																onClick={() =>
-																	pickDirectory(rp.repo_full_name)
-																}
-																disabled={pickingRepo !== null}
-															>
-																{pickingRepo ===
-																rp.repo_full_name ? (
-																	<CircularProgress size={18} />
-																) : (
-																	<FolderOpenRoundedIcon fontSize="small" />
-																)}
-															</IconButton>
-														</Tooltip>
-														<Tooltip title="Supprimer">
-															<IconButton
-																size="small"
-																edge="end"
-																onClick={() =>
-																	deletePath(rp.repo_full_name)
-																}
-																sx={{
-																	color: 'text.disabled',
-																	'&:hover': { color: 'error.main' },
-																}}
-															>
-																<ExpandMoreIcon
-																	fontSize="small"
-																	sx={{
-																		transform: 'rotate(45deg)',
-																	}}
-																/>
-															</IconButton>
-														</Tooltip>
-													</InputAdornment>
-												),
-											},
-										}}
-									/>
-								))}
-							</Box>
-						)}
-
-						<Button
-							variant="outlined"
+			{/* Section: GitHub Project Views */}
+			<Box sx={{ mb: 5 }}>
+				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+					<GitHubIcon sx={{ color: 'text.secondary', fontSize: 22 }} />
+					<Typography variant="h6" sx={{ fontWeight: 600 }}>
+						{t('githubProjects')}
+					</Typography>
+					{totalConfigured > 0 && (
+						<Chip
+							label={t('configured', { count: totalConfigured })}
 							size="small"
-							startIcon={<FolderOpenRoundedIcon />}
-							onClick={async () => {
-								setPickingRepo('__new__');
-								try {
-									const res = await fetch('/api/filesystem/pick-directory');
-									const { path } = await res.json();
-									if (path) {
-										const name = path.split('/').filter(Boolean).pop() || path;
-										const repoName = window.prompt(
-											'Repository name (e.g. owner/repo):',
-											name,
-										);
-										if (repoName?.trim()) {
-											savePath(repoName.trim(), path);
-											showToast(t('pathSaved'));
-										}
-									}
-								} finally {
-									setPickingRepo(null);
-								}
-							}}
-							disabled={pickingRepo !== null}
-							sx={{
-								borderColor: alpha(theme.palette.primary.main, 0.4),
-								color: theme.palette.primary.main,
-								textTransform: 'none',
-								'&:hover': {
-									borderColor: theme.palette.primary.main,
-									bgcolor: alpha(theme.palette.primary.main, 0.08),
-								},
-							}}
-						>
-							{pickingRepo === '__new__' ? 'Sélection...' : 'Ajouter un dépôt'}
-						</Button>
-					</AccordionDetails>
-				</Accordion>
+							color="primary"
+							variant="outlined"
+							sx={{ fontSize: '0.75rem' }}
+						/>
+					)}
+				</Box>
+				<Typography variant="body2" color="text.secondary" sx={{ mb: 3, ml: 4.5 }}>
+					{t('selectViewsDesc')}
+				</Typography>
+
+				{error && (
+					<Alert severity="error" sx={{ mb: 2, borderRadius: 1 }}>
+						{error}
+					</Alert>
+				)}
+
+				{loadingProjects && (
+					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, ml: 4.5 }}>
+						<Skeleton variant="rounded" height={120} sx={{ borderRadius: 2 }} />
+						<Skeleton variant="rounded" height={120} sx={{ borderRadius: 2 }} />
+					</Box>
+				)}
+
+				{!loadingProjects && userProjects.length === 0 && !error && (
+					<Alert severity="info" sx={{ mb: 2, borderRadius: 1, ml: 4.5 }}>
+						{t('noProjectsFound')}
+					</Alert>
+				)}
+
+				{!loadingProjects && userProjects.length > 0 && (
+					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, ml: 4.5 }}>
+						{userProjects.map((o) =>
+							o.projects.map((p) => (
+								<ProjectSection
+									key={p.id}
+									project={p}
+									org={o.org}
+									ownerType={o.ownerType}
+									savedConfig={findSavedConfig(o.org, p.number)}
+									onSave={saveConfig}
+									onToast={showToast}
+								/>
+							)),
+						)}
+
+						{totalConfigured > 0 && (
+							<Box>
+								<Button
+									variant="outlined"
+									color="error"
+									size="small"
+									onClick={clearConfig}
+									sx={{ textTransform: 'none' }}
+								>
+									{t('clearAll')}
+								</Button>
+							</Box>
+						)}
+					</Box>
+				)}
+			</Box>
+
+			{/* Section: Repo Local Paths */}
+			<Box>
+				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+					<FolderRoundedIcon sx={{ color: 'text.secondary', fontSize: 22 }} />
+					<Typography variant="h6" sx={{ fontWeight: 600 }}>
+						{t('repoPaths')}
+					</Typography>
+				</Box>
+				<Typography variant="body2" color="text.secondary" sx={{ mb: 3, ml: 4.5 }}>
+					{t('repoPathsDesc')}
+				</Typography>
+
+				<Box
+					sx={{
+						display: 'grid',
+						gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+						gap: 1.5,
+						ml: 4.5,
+					}}
+				>
+					{repoPaths.map((rp) => (
+						<RepoPathCard
+							key={rp.repo_full_name}
+							repoName={rp.repo_full_name}
+							localPath={localPaths[rp.repo_full_name] ?? rp.local_path}
+							onEdit={() => pickDirectory(rp.repo_full_name)}
+							onDelete={() => deletePath(rp.repo_full_name)}
+							isEditing={pickingRepo === rp.repo_full_name}
+						/>
+					))}
+					<AddRepoCard
+						onClick={handleAddRepo}
+						disabled={pickingRepo !== null}
+						label={pickingRepo === '__new__' ? t('selecting') : t('addRepo')}
+					/>
+				</Box>
 			</Box>
 
 			<Snackbar
