@@ -132,7 +132,7 @@ export default function IssueCard({
 						onClick={(e) => e.stopPropagation()}
 						sx={{
 							mt: 1,
-							width: '100%',
+							width: 140,
 							height: 28,
 							fontSize: '0.75rem',
 							borderRadius: 1,
