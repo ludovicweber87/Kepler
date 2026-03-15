@@ -1,7 +1,5 @@
 'use client';
 
-import { forwardRef } from 'react';
-import { motion, AnimatePresence, type PanInfo } from 'framer-motion';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
@@ -10,90 +8,22 @@ import IssueCard from './IssueCard';
 import { GitHubIssue } from '@/types';
 
 const COLUMN_WIDTH = 300;
-const springTransition = { type: 'spring' as const, stiffness: 500, damping: 35 };
 
 interface KanbanColumnProps {
 	columnName: string;
 	issues: GitHubIssue[];
-	isDragActive: boolean;
-	draggedIssueId: number | null;
-	isDropTarget: boolean;
-	dropIndex: number;
-	onCardDragStart: (issue: GitHubIssue) => void;
-	onCardDrag: (event: PointerEvent, info: PanInfo) => void;
-	onCardDragEnd: (event: PointerEvent, info: PanInfo) => void;
+	allColumns: string[];
+	onStatusChange: (issue: GitHubIssue, newStatus: string) => void;
 }
 
-const KanbanColumn = forwardRef<HTMLDivElement, KanbanColumnProps>(function KanbanColumn(
-	{
-		columnName,
-		issues,
-		isDragActive,
-		draggedIssueId,
-		isDropTarget,
-		dropIndex,
-		onCardDragStart,
-		onCardDrag,
-		onCardDragEnd,
-	},
-	ref,
-) {
+export default function KanbanColumn({
+	columnName,
+	issues,
+	allColumns,
+	onStatusChange,
+}: KanbanColumnProps) {
 	const theme = useTheme();
 	const count = issues.length;
-
-	const elements: React.ReactNode[] = [];
-
-	issues.forEach((issue, i) => {
-		if (isDropTarget && dropIndex === i) {
-			elements.push(
-				<motion.div
-					key="placeholder"
-					data-placeholder="true"
-					initial={{ height: 0, opacity: 0 }}
-					animate={{ height: 80, opacity: 1 }}
-					exit={{ height: 0, opacity: 0 }}
-					transition={springTransition}
-					style={{
-						borderRadius: 1,
-						border: `2px dashed ${alpha(theme.palette.primary.main, 0.3)}`,
-						background: alpha(theme.palette.primary.main, 0.06),
-						flexShrink: 0,
-					}}
-				/>,
-			);
-		}
-
-		elements.push(
-			<IssueCard
-				key={issue.id}
-				issue={issue}
-				isDraggable
-				isDragging={draggedIssueId === issue.id}
-				onDragStart={() => onCardDragStart(issue)}
-				onDrag={onCardDrag}
-				onDragEnd={onCardDragEnd}
-			/>,
-		);
-	});
-
-	if (isDropTarget && dropIndex >= issues.length) {
-		elements.push(
-			<motion.div
-				key="placeholder"
-				data-placeholder="true"
-				initial={{ height: 0, opacity: 0 }}
-				animate={{ height: 80, opacity: 1 }}
-				exit={{ height: 0, opacity: 0 }}
-				transition={springTransition}
-				style={{
-					borderRadius: 1,
-					border: `2px dashed ${alpha(theme.palette.primary.main, 0.3)}`,
-					background: alpha(theme.palette.primary.main, 0.06),
-					flexShrink: 0,
-				}}
-			/>,
-		);
-	}
 
 	return (
 		<Box
@@ -109,10 +39,6 @@ const KanbanColumn = forwardRef<HTMLDivElement, KanbanColumnProps>(function Kanb
 						? `0 1px 4px ${alpha(theme.palette.common.black, 0.18)}, 0 0 1px ${alpha(theme.palette.common.black, 0.25)}`
 						: `0 1px 4px ${alpha(theme.palette.common.black, 0.06)}, 0 0 1px ${alpha(theme.palette.common.black, 0.1)}`,
 				p: 1.5,
-				transition: 'box-shadow 0.2s',
-				...(isDropTarget && {
-					boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.2)}, 0 0 1px ${alpha(theme.palette.primary.main, 0.4)}`,
-				}),
 			}}
 		>
 			{/* Column header */}
@@ -143,26 +69,27 @@ const KanbanColumn = forwardRef<HTMLDivElement, KanbanColumnProps>(function Kanb
 
 			{/* Column body */}
 			<Box
-				ref={ref}
 				sx={{
 					display: 'flex',
 					flexDirection: 'column',
 					gap: 1,
-					overflowY: isDragActive ? 'visible' : 'auto',
+					overflowY: 'auto',
 					height: 'calc(100vh - 250px)',
 					scrollbarWidth: 'thin',
 					'&::-webkit-scrollbar': { width: 4 },
 					'&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 1 },
-					transition: 'background 0.2s',
-					...(isDropTarget && {
-						background: alpha(theme.palette.primary.main, 0.04),
-					}),
 				}}
 			>
-				<AnimatePresence mode="popLayout">{elements}</AnimatePresence>
+				{issues.map((issue) => (
+					<IssueCard
+						key={issue.id}
+						issue={issue}
+						currentColumn={columnName}
+						columns={allColumns}
+						onStatusChange={onStatusChange}
+					/>
+				))}
 			</Box>
 		</Box>
 	);
-});
-
-export default KanbanColumn;
+}

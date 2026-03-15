@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
-import { LayoutGroup, type PanInfo } from 'framer-motion';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Skeleton from '@mui/material/Skeleton';
@@ -38,16 +37,6 @@ function buildColumns(issues: GitHubIssue[], statusColumns: string[]): [string, 
 		map.get(col)!.push(issue);
 	}
 	return [...map.entries()];
-}
-
-interface DragState {
-	issue: GitHubIssue;
-	sourceColumn: string;
-}
-
-interface DropTarget {
-	column: string;
-	index: number;
 }
 
 export default function IssuesList() {
@@ -90,12 +79,6 @@ export default function IssuesList() {
 
 	// Branch modal state
 	const [branchModalIssue, setBranchModalIssue] = useState<GitHubIssue | null>(null);
-
-	// Drag & drop state
-	const [dragState, setDragState] = useState<DragState | null>(null);
-	const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
-	const columnRefs = useRef(new Map<string, HTMLElement>());
-	const dropTargetRef = useRef<DropTarget | null>(null);
 
 	const hasViews = selectedViewMappings.length > 0;
 
@@ -143,107 +126,43 @@ export default function IssuesList() {
 		if (!hasViews) return [];
 		const activeView = selectedViewMappings[safeTab]?.viewName;
 		if (!activeView) return [];
-		// Find which config owns this view
 		const owningConfig = configs.find((c) => c.selectedViews.includes(activeView));
 		return owningConfig?.statusColumns ?? [];
 	}, [configs, selectedViewMappings, safeTab, hasViews]);
-
-	const isDragEnabled = activeStatusColumns.length > 0;
 
 	const columns = useMemo(
 		() => buildColumns(searchedIssues, activeStatusColumns),
 		[searchedIssues, activeStatusColumns],
 	);
 
-	// Ref registration for columns
-	const registerColumnRef = useCallback((name: string, el: HTMLElement | null) => {
-		if (el) {
-			columnRefs.current.set(name, el);
-		} else {
-			columnRefs.current.delete(name);
+	const handleStatusChange = useCallback((issue: GitHubIssue, newStatus: string) => {
+		const issueRepo = issue.repo_full_name;
+		const issueConfig = issueRepo ? getConfigForRepo(issueRepo) : configs[0];
+		if (!issueConfig) return;
+
+		mutation.mutate({
+			issueNodeId: issue.node_id,
+			newStatus,
+			org: issueConfig.org,
+			projectNumber: issueConfig.projectNumber,
+			ownerType: issueConfig.ownerType,
+		});
+
+		// Open branch modal when moving to "In Progress"
+		if (newStatus.includes('In Progress')) {
+			setBranchModalIssue(issue);
 		}
-	}, []);
 
-	// Drag handlers
-	const handleCardDragStart = useCallback((issue: GitHubIssue, sourceColumn: string) => {
-		setDragState({ issue, sourceColumn });
-		setDropTarget(null);
-		dropTargetRef.current = null;
-	}, []);
-
-	const handleCardDrag = useCallback((_event: PointerEvent, info: PanInfo) => {
-		// Use info.point for coordinates (page-relative)
-		const x = info.point.x;
-		const y = info.point.y;
-
-		let newTarget: DropTarget | null = null;
-
-		for (const [colName, el] of columnRefs.current.entries()) {
-			const rect = el.getBoundingClientRect();
-			// Check if pointer is within column X bounds (with some tolerance)
-			if (x >= rect.left - 20 && x <= rect.right + 20) {
-				// Find insertion index based on Y position
-				const children = Array.from(el.children).filter(
-					(child) => !(child as HTMLElement).dataset.placeholder,
-				);
-				let index = children.length;
-				for (let i = 0; i < children.length; i++) {
-					const childRect = children[i].getBoundingClientRect();
-					if (y < childRect.top + childRect.height / 2) {
-						index = i;
-						break;
-					}
-				}
-				newTarget = { column: colName, index };
-				break;
+		// Auto-check linked todos when moving to QA
+		if (newStatus.toLowerCase().includes('qa')) {
+			const repo = issue.repo_full_name;
+			if (repo && issue.number) {
+				completeIssueTodos(repo, issue.number).then(() => {
+					todoQc.invalidateQueries({ queryKey: ['todos'] });
+				});
 			}
 		}
-
-		// Only update state if target changed
-		const current = dropTargetRef.current;
-		if (newTarget?.column !== current?.column || newTarget?.index !== current?.index) {
-			dropTargetRef.current = newTarget;
-			setDropTarget(newTarget);
-		}
-	}, []);
-
-	const handleCardDragEnd = useCallback(() => {
-		if (dragState && dropTarget && dropTarget.column !== dragState.sourceColumn) {
-			// Resolve which project config owns this issue
-			const issueRepo = dragState.issue.repo_full_name;
-			const issueConfig = issueRepo ? getConfigForRepo(issueRepo) : configs[0];
-			if (!issueConfig) return;
-
-			// Always update status
-			mutation.mutate({
-				issueNodeId: dragState.issue.node_id,
-				newStatus: dropTarget.column,
-				org: issueConfig.org,
-				projectNumber: issueConfig.projectNumber,
-				ownerType: issueConfig.ownerType,
-			});
-
-			// Open branch modal when dropping on a column containing "In Progress"
-			if (dropTarget.column.includes('In Progress')) {
-				setBranchModalIssue(dragState.issue);
-			}
-
-			// Auto-check linked todos when moving to QA
-			if (dropTarget.column.toLowerCase().includes('qa')) {
-				const issue = dragState.issue;
-				const repo = issue.repo_full_name;
-				if (repo && issue.number) {
-					completeIssueTodos(repo, issue.number).then(() => {
-						todoQc.invalidateQueries({ queryKey: ['todos'] });
-					});
-				}
-			}
-		}
-
-		setDragState(null);
-		setDropTarget(null);
-		dropTargetRef.current = null;
-	}, [dragState, dropTarget, configs, getConfigForRepo, mutation]);
+	}, [configs, getConfigForRepo, mutation, todoQc]);
 
 	if (isLoading) {
 		return (
@@ -406,37 +325,29 @@ export default function IssuesList() {
 					</Typography>
 				</Box>
 			) : (
-				<LayoutGroup>
-					<Box
-						sx={{
-							display: 'flex',
-							gap: 2,
-							flex: 1,
-							overflowX: 'auto',
-							overflowY: 'hidden',
-							pb: 1,
-							scrollbarWidth: 'thin',
-							'&::-webkit-scrollbar': { height: 6 },
-							'&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 3 },
-						}}
-					>
-						{columns.map(([colName, issues]) => (
-							<KanbanColumn
-								key={colName}
-								ref={(el) => registerColumnRef(colName, el)}
-								columnName={colName}
-								issues={issues}
-								isDragActive={!!dragState}
-								draggedIssueId={dragState?.issue.id ?? null}
-								isDropTarget={dropTarget?.column === colName}
-								dropIndex={dropTarget?.column === colName ? dropTarget.index : -1}
-								onCardDragStart={(issue) => handleCardDragStart(issue, colName)}
-								onCardDrag={handleCardDrag}
-								onCardDragEnd={handleCardDragEnd}
-							/>
-						))}
-					</Box>
-				</LayoutGroup>
+				<Box
+					sx={{
+						display: 'flex',
+						gap: 2,
+						flex: 1,
+						overflowX: 'auto',
+						overflowY: 'hidden',
+						pb: 1,
+						scrollbarWidth: 'thin',
+						'&::-webkit-scrollbar': { height: 6 },
+						'&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 3 },
+					}}
+				>
+					{columns.map(([colName, issues]) => (
+						<KanbanColumn
+							key={colName}
+							columnName={colName}
+							issues={issues}
+							allColumns={activeStatusColumns}
+							onStatusChange={handleStatusChange}
+						/>
+					))}
+				</Box>
 			)}
 
 			{branchModalIssue && (
