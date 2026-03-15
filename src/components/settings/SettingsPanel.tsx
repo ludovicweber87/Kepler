@@ -3,8 +3,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import Checkbox from '@mui/material/Checkbox';
-import FormControlLabel from '@mui/material/FormControlLabel';
 import Alert from '@mui/material/Alert';
 import Chip from '@mui/material/Chip';
 import Skeleton from '@mui/material/Skeleton';
@@ -22,6 +20,8 @@ import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
 import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
+import ViewColumnRoundedIcon from '@mui/icons-material/ViewColumnRounded';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import type { ProjectV2Config, ProjectV2View, ViewRepoMapping } from '@/types';
@@ -207,7 +207,7 @@ function ProjectAccordion({
 
 				{!loading && displayViews.length > 0 && (
 					<Box>
-						<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+						<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
 							<Typography variant="body2" color="text.secondary">
 								{displayViews.length} vue{displayViews.length > 1 ? 's' : ''} disponible{displayViews.length > 1 ? 's' : ''}
 							</Typography>
@@ -232,44 +232,107 @@ function ProjectAccordion({
 								</IconButton>
 							</Tooltip>
 						</Box>
-						{displayViews.map((view) => {
-							const mapping = displayMappings.find((m) => m.viewName === view.name);
-							const repoCount = mapping?.repos.length ?? 0;
-							return (
-								<Box
-									key={view.id}
-									sx={{
-										display: 'flex',
-										alignItems: 'center',
-										gap: 1,
-										py: 0.5,
-										px: 1,
-										borderRadius: 1,
-										'&:hover': {
-											bgcolor: (t) => alpha(t.palette.primary.main, 0.04),
-										},
-									}}
-								>
-									<FormControlLabel
-										control={
-											<Checkbox
-												checked={selectedViews.has(view.name)}
-												onChange={() => toggleView(view.name)}
-												size="small"
+						<Box
+							sx={{
+								display: 'grid',
+								gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+								gap: 1.5,
+							}}
+						>
+							{displayViews.map((view) => {
+								const isSelected = selectedViews.has(view.name);
+								const mapping = displayMappings.find((m) => m.viewName === view.name);
+								const repoCount = mapping?.repos.length ?? 0;
+								const repos = mapping?.repos ?? [];
+								return (
+									<Box
+										key={view.id}
+										onClick={() => toggleView(view.name)}
+										sx={{
+											position: 'relative',
+											p: 1.5,
+											borderRadius: 2,
+											cursor: 'pointer',
+											border: 2,
+											borderColor: (t) =>
+												isSelected
+													? t.palette.primary.main
+													: t.palette.divider,
+											bgcolor: (t) =>
+												isSelected
+													? alpha(t.palette.primary.main, 0.1)
+													: 'transparent',
+											transition: 'all 0.2s ease',
+											'&:hover': {
+												borderColor: (t) =>
+													isSelected
+														? t.palette.primary.light
+														: alpha(t.palette.primary.main, 0.4),
+												bgcolor: (t) =>
+													isSelected
+														? alpha(t.palette.primary.main, 0.15)
+														: alpha(t.palette.primary.main, 0.04),
+											},
+										}}
+									>
+										{isSelected && (
+											<CheckCircleRoundedIcon
+												sx={{
+													position: 'absolute',
+													top: 8,
+													right: 8,
+													fontSize: 18,
+													color: 'primary.main',
+												}}
 											/>
-										}
-										label={view.name}
-										sx={{ flex: 1, mr: 0 }}
-									/>
-									<Chip
-										label={`${repoCount} dépôt${repoCount !== 1 ? 's' : ''}`}
-										size="small"
-										variant="outlined"
-										sx={{ fontSize: '0.75rem' }}
-									/>
-								</Box>
-							);
-						})}
+										)}
+										<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.75 }}>
+											<ViewColumnRoundedIcon
+												sx={{
+													fontSize: 18,
+													color: isSelected ? 'primary.main' : 'text.secondary',
+												}}
+											/>
+											<Typography
+												variant="body2"
+												sx={{
+													fontWeight: 600,
+													color: isSelected ? 'primary.main' : 'text.primary',
+												}}
+											>
+												{view.name}
+											</Typography>
+										</Box>
+										{repoCount > 0 && (
+											<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+												{repos.map((repoName) => (
+													<Chip
+														key={repoName}
+														label={repoName.split('/').pop()}
+														size="small"
+														sx={{
+															fontSize: '0.65rem',
+															height: 20,
+															bgcolor: (t) =>
+																isSelected
+																	? alpha(t.palette.secondary.main, 0.15)
+																	: alpha(t.palette.text.secondary, 0.08),
+															color: isSelected ? 'secondary.main' : 'text.secondary',
+															'& .MuiChip-label': { px: 0.75 },
+														}}
+													/>
+												))}
+											</Box>
+										)}
+										{repoCount === 0 && (
+											<Typography variant="caption" color="text.secondary" sx={{ opacity: 0.6 }}>
+												{repoCount} dépôt
+											</Typography>
+										)}
+									</Box>
+								);
+							})}
+						</Box>
 					</Box>
 				)}
 
