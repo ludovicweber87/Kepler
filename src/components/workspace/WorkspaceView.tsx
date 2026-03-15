@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -38,6 +38,16 @@ export default function WorkspaceView() {
 	const activeView = views[activeIndex] ?? null;
 	const { worktrees, isLoading, deleteWorktree } = useWorktrees(activeView?.path);
 	const { killSession, getActiveForPath, getPastForPath, fetchSessionForPath } = useSessionManager();
+
+	const sortedWorktrees = useMemo(
+		() => [...worktrees].sort((a, b) => {
+			const aActive = !!getActiveForPath(a.path);
+			const bActive = !!getActiveForPath(b.path);
+			if (aActive === bActive) return 0;
+			return aActive ? -1 : 1;
+		}),
+		[worktrees, getActiveForPath],
+	);
 
 	const handleWorktreeClick = async (wt: WorktreeInfo) => {
 		// 1. Active tmux session? → re-attach
@@ -210,7 +220,7 @@ export default function WorkspaceView() {
 
 			{!isLoading && worktrees.length > 0 && (
 				<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-					{worktrees.map((wt) => {
+					{sortedWorktrees.map((wt) => {
 						const active = getActiveForPath(wt.path);
 						const past = !active ? getPastForPath(wt.path, wt.branch) : null;
 						const isError = past?.status === 'error';
