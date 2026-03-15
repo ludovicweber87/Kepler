@@ -83,7 +83,8 @@
 		"willExecute": "Executera : git checkout main → git pull --rebase → git checkout -b",
 		"creating": "Creation...",
 		"created": "Creee",
-		"branchCreated": "Branche {branchName} creee"
+		"branchCreated": "Branche {branchName} creee",
+		"moveTo": "Deplacer vers"
 	},
 	"todos": {
 		"title": "Taches",

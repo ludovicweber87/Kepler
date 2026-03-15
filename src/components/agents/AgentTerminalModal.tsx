@@ -636,7 +636,7 @@ export default function AgentTerminalModal({
 
 	// Plain shell terminal — lazy init, uses worktree path
 	useEffect(() => {
-		if (!open || !shellTermNode || activeTab !== 2 || step !== 'terminal') return;
+		if (!open || !shellTermNode || activeTabKey !== 'terminal' || step !== 'terminal') return;
 		const cwd = worktreePath ?? projectPath;
 		if (!cwd) return;
 		if (shellInitialized.current) return;
@@ -770,7 +770,7 @@ export default function AgentTerminalModal({
 			shellFitAddonRef.current = null;
 			shellInitialized.current = false;
 		};
-	}, [open, worktreePath, projectPath, shellTermNode, sessionId, activeTab, step]);
+	}, [open, worktreePath, projectPath, shellTermNode, sessionId, activeTabKey, step]);
 
 	// Display info
 	const folderLabel = issueContext
