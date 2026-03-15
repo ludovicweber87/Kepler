@@ -42,15 +42,21 @@ export function useAgentViews() {
 			}
 
 			// Resolve real owner/repo from git remote
-			let repoFullName = path.split('/').filter(Boolean).pop() || path;
+			let repoFullName = '';
 			try {
 				const repoRes = await apiFetch(`/api/git/repo-name?path=${encodeURIComponent(path)}`);
 				if (repoRes.ok) {
 					const { repoFullName: resolved } = await repoRes.json();
-					if (resolved) repoFullName = resolved;
+					if (resolved?.includes('/')) repoFullName = resolved;
 				}
 			} catch {
-				// Fallback to directory name
+				// Will fallback below
+			}
+
+			// Fallback: use directory name, but this won't work for GitHub API calls
+			if (!repoFullName) {
+				console.warn('[useAgentViews] Could not resolve owner/repo for path:', path);
+				repoFullName = path.split('/').filter(Boolean).pop() || path;
 			}
 
 			const label = repoFullName.includes('/')

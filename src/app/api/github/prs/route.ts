@@ -12,10 +12,12 @@ export async function GET(req: NextRequest) {
 			return NextResponse.json({ error: 'repos parameter required' }, { status: 400 });
 		}
 
-		const repoList = repos
-			.split(',')
-			.map((r) => r.trim())
-			.filter((r) => r.includes('/'));
+		const allRepos = repos.split(',').map((r) => r.trim());
+		const repoList = allRepos.filter((r) => r.includes('/'));
+		const skipped = allRepos.filter((r) => r && !r.includes('/'));
+		if (skipped.length > 0) {
+			console.warn('[PRs] Skipping repos without owner prefix:', skipped);
+		}
 		console.log('[PRs] userId:', auth.userId, 'repos param:', repos, '→ repoList:', repoList);
 		const results = await Promise.allSettled(
 			repoList.map((repo) => {

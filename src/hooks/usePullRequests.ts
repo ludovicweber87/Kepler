@@ -11,7 +11,7 @@ async function fetchPRs(repos: string[]): Promise<GitHubPullRequest[]> {
 }
 
 export function usePullRequests(repos: string[]) {
-	const key = repos.sort().join(',');
+	const key = [...repos].sort().join(',');
 
 	return useQuery({
 		queryKey: ['github', 'prs', key],
