@@ -40,6 +40,17 @@ export default function RightSidebar() {
 	const activeView = views[tabIndex] ?? null;
 	const { worktrees } = useWorktrees(activeView?.path);
 
+	// Sort: active worktrees first
+	const sortedWorktrees = useMemo(
+		() => [...worktrees].sort((a, b) => {
+			const aActive = !!getActiveForPath(a.path);
+			const bActive = !!getActiveForPath(b.path);
+			if (aActive === bActive) return 0;
+			return aActive ? -1 : 1;
+		}),
+		[worktrees, getActiveForPath],
+	);
+
 	// Count active tmux sessions per view for tab badges
 	const viewCounts = useMemo(
 		() => views.map((v) => activeSessions.filter((s) => s.cwd.startsWith(v.path)).length),
@@ -206,7 +217,7 @@ export default function RightSidebar() {
 				<Box sx={{ p: 2, overflow: 'auto', flex: 1 }}>
 					{worktrees.length > 0 ? (
 						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-							{worktrees.map((wt) => {
+							{sortedWorktrees.map((wt) => {
 								const active = getActiveForPath(wt.path);
 								const past = !active ? getPastForPath(wt.path, wt.branch) : null;
 								const isError = past?.status === 'error';
