@@ -26,6 +26,7 @@ import DifferenceRoundedIcon from '@mui/icons-material/DifferenceRounded';
 import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import StopCircleRoundedIcon from '@mui/icons-material/StopCircleRounded';
 import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
@@ -36,6 +37,7 @@ import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useAgentSession } from '@/hooks/useAgentSession';
 import { useOverlayTerminal } from '@/hooks/useOverlayTerminal';
 import { useWorktrees } from '@/hooks/useWorktrees';
+import { useSessionManager } from '@/hooks/useSessionManager';
 import AgentActivityTab from './AgentActivityTab';
 import AgentDiffTab from './AgentDiffTab';
 import AgentIssueTab from './AgentIssueTab';
@@ -198,6 +200,8 @@ export default function AgentTerminalModal({
 	const sessionId = existingSessionId ?? generatedIdRef.current ?? '';
 
 	const { session, logs, ensureSession } = useAgentSession(open ? sessionId : undefined);
+	const { killSession } = useSessionManager();
+	const [isStopping, setIsStopping] = useState(false);
 	const overlay = useOverlayTerminal();
 
 	// Effective working path: worktree path when available, else projectPath
@@ -359,6 +363,17 @@ export default function AgentTerminalModal({
 		if (!wtPath) return;
 		deleteWorktree({ worktreePath: wtPath, deleteBranch: false });
 	}, [session?.worktree_path, worktreePath, deleteWorktree]);
+
+	// Handle session stop (kill tmux)
+	const handleStopSession = useCallback(async () => {
+		if (!sessionId) return;
+		setIsStopping(true);
+		try {
+			await killSession(sessionId);
+		} finally {
+			setIsStopping(false);
+		}
+	}, [sessionId, killSession]);
 
 	// Build draggable terminal tabs
 	const hasIssue = !!(issueContext || session?.issue_number);
@@ -795,6 +810,13 @@ export default function AgentTerminalModal({
 
 	const subtitleText = issueContext?.issueTitle;
 
+	// Show stop button when session is active (not completed/error) and in terminal step
+	const showStopSession =
+		step === 'terminal' &&
+		session?.status !== 'completed' &&
+		session?.status !== 'error' &&
+		!isPastSession;
+
 	// Show delete worktree button when session is done and has a worktree
 	const showDeleteWorktree =
 		(session?.status === 'completed' || session?.status === 'error') &&
@@ -887,6 +909,34 @@ export default function AgentTerminalModal({
 					)}
 				</Box>
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+					{showStopSession && (
+						<Button
+							size="small"
+							variant="outlined"
+							color="error"
+							startIcon={
+								isStopping ? (
+									<CircularProgress size={14} color="inherit" />
+								) : (
+									<StopCircleRoundedIcon sx={{ fontSize: 16 }} />
+								)
+							}
+							onClick={handleStopSession}
+							disabled={isStopping}
+							sx={{
+								fontSize: '0.7rem',
+								textTransform: 'none',
+								height: 28,
+								borderColor: (theme) => alpha(theme.palette.error.main, 0.3),
+								'&:hover': {
+									borderColor: (theme) => alpha(theme.palette.error.main, 0.6),
+									bgcolor: (theme) => alpha(theme.palette.error.main, 0.08),
+								},
+							}}
+						>
+							{isStopping ? 'Arrêt...' : 'Stop session'}
+						</Button>
+					)}
 					{showDeleteWorktree && (
 						<Button
 							size="small"
