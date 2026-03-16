@@ -345,7 +345,8 @@
 		"completed": "Termine",
 		"error": "Erreur",
 		"closeSession": "Fermer la session",
-		"delete": "Supprimer"
+		"delete": "Supprimer",
+		"question": "Question"
 	},
 	"issueDetail": {
 		"backToIssues": "Retour aux issues",

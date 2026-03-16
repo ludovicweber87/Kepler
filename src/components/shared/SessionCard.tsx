@@ -19,6 +19,7 @@ import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded';
 import StopCircleRoundedIcon from '@mui/icons-material/StopCircleRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded';
+import QuestionAnswerRoundedIcon from '@mui/icons-material/QuestionAnswerRounded';
 
 export interface SessionCardProps {
 	/** Display name (agent name or branch) */
@@ -38,6 +39,8 @@ export interface SessionCardProps {
 	onStop?: () => void;
 	/** Delete action (past sessions) — receives the click event for popover anchoring */
 	onDelete?: (e: React.MouseEvent) => void;
+	/** Agent is waiting for an answer */
+	hasPendingQuestion?: boolean;
 	/** Compact layout for tight spaces (e.g. sidebar) */
 	compact?: boolean;
 }
@@ -48,6 +51,7 @@ export default function SessionCard({
 	branch,
 	status,
 	isStreaming = false,
+	hasPendingQuestion = false,
 	date,
 	onClick,
 	onStop,
@@ -68,6 +72,7 @@ export default function SessionCard({
 	const errorColor = theme.palette.error.main;
 	const finishedColor = theme.palette.text.secondary;
 	const idleColor = theme.palette.primary.main;
+	const questionColor = theme.palette.warning.main;
 
 	const statusColor = isActive
 		? activeColor
@@ -234,6 +239,29 @@ export default function SessionCard({
 							bgcolor: alpha(errorColor, 0.12),
 							color: errorColor,
 							border: `1px solid ${alpha(errorColor, 0.2)}`,
+						}}
+					/>
+				)}
+
+				{/* Pending question chip */}
+				{hasPendingQuestion && (
+					<Chip
+						icon={<QuestionAnswerRoundedIcon sx={{ fontSize: `${compact ? 11 : 12}px !important` }} />}
+						label={t('question')}
+						size="small"
+						sx={{
+							height: chipHeight,
+							fontSize: chipFontSize,
+							fontWeight: 600,
+							bgcolor: alpha(questionColor, 0.12),
+							color: questionColor,
+							border: `1px solid ${alpha(questionColor, 0.2)}`,
+							'& .MuiChip-icon': { color: questionColor },
+							animation: 'sessionCardQuestionPulse 2s ease-in-out infinite',
+							'@keyframes sessionCardQuestionPulse': {
+								'0%, 100%': { opacity: 0.7 },
+								'50%': { opacity: 1 },
+							},
 						}}
 					/>
 				)}

@@ -48,6 +48,7 @@ async function fetchAgentSummaries(userId: string): Promise<AgentSummary[]> {
 		file_change: '📝',
 		error: '❌',
 		info: 'ℹ️',
+		ask_question: '❓',
 	};
 
 	const summaryMap = new Map<string, { summary: string | null; title: string | null; summary_at: string | null }>();

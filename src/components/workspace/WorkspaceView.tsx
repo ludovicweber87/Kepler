@@ -19,6 +19,7 @@ import SessionCard from '@/components/shared/SessionCard';
 import { useAgentViews } from '@/hooks/useAgentViews';
 import { useWorktrees, type WorktreeInfo } from '@/hooks/useWorktrees';
 import { useSessionManager } from '@/hooks/useSessionManager';
+import { usePendingQuestions } from '@/hooks/usePendingQuestions';
 import AgentTerminalModal from '@/components/agents/AgentTerminalModal';
 
 
@@ -38,6 +39,7 @@ export default function WorkspaceView() {
 	const activeView = views[activeIndex] ?? null;
 	const { worktrees, isLoading, deleteWorktree } = useWorktrees(activeView?.path);
 	const { killSession, getActiveForPath, getPastForPath, fetchSessionForPath } = useSessionManager();
+	const pendingQuestions = usePendingQuestions();
 
 	const sortedWorktrees = useMemo(
 		() => [...worktrees].sort((a, b) => {
@@ -235,6 +237,7 @@ export default function WorkspaceView() {
 											: 'idle'
 								}
 								isStreaming={active?.isStreaming}
+								hasPendingQuestion={pendingQuestions.has(wt.path)}
 								onClick={() => handleWorktreeClick(wt)}
 								onStop={active ? () => killSession(active.sessionId) : undefined}
 								onDelete={(e) => {

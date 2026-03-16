@@ -26,6 +26,7 @@ const LOG_TYPE_COLORS: Record<AgentActivityLog['log_type'], string> = {
 	file_change: 'warning.main',
 	error: 'error.main',
 	summary: 'primary.main',
+	ask_question: 'warning.main',
 };
 
 function formatTime(dateStr: string): string {
@@ -57,7 +58,9 @@ function buildReport(session: AgentSession, logs: AgentActivityLog[], labels: { 
 						? '❌'
 						: log.log_type === 'summary'
 							? '📋'
-							: 'ℹ️';
+							: log.log_type === 'ask_question'
+								? '❓'
+								: 'ℹ️';
 		lines.push(`- \`${time}\` ${icon} ${log.content}`);
 	}
 

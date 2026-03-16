@@ -345,7 +345,8 @@
 		"completed": "Completed",
 		"error": "Error",
 		"closeSession": "Close session",
-		"delete": "Delete"
+		"delete": "Delete",
+		"question": "Question"
 	},
 	"issueDetail": {
 		"backToIssues": "Back to issues",

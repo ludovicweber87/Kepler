@@ -25,7 +25,7 @@ export interface AgentActivityLog {
 	id: string;
 	agent_session_id: string;
 	content: string;
-	log_type: 'info' | 'commit' | 'file_change' | 'error' | 'summary';
+	log_type: 'info' | 'commit' | 'file_change' | 'error' | 'summary' | 'ask_question';
 	created_at: string;
 }
 

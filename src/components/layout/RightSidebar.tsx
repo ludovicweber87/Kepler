@@ -10,6 +10,7 @@ import { useAgentViews } from '@/hooks/useAgentViews';
 import { useRightSidebar } from '@/hooks/useRightSidebar';
 import { useWorktrees, type WorktreeInfo } from '@/hooks/useWorktrees';
 import { useSessionManager } from '@/hooks/useSessionManager';
+import { usePendingQuestions } from '@/hooks/usePendingQuestions';
 import DraggableTabs from '@/components/shared/DraggableTabs';
 import SessionCard from '@/components/shared/SessionCard';
 import AgentTerminalModal from '@/components/agents/AgentTerminalModal';
@@ -24,6 +25,7 @@ export default function RightSidebar() {
 	const { open, width, setWidth } = useRightSidebar();
 	const { views, reorderViews } = useAgentViews();
 	const { activeSessions, pastSessions, killSession, getActiveForPath, getPastForPath, fetchSessionForPath } = useSessionManager();
+	const pendingQuestions = usePendingQuestions();
 	const [tabIndex, setTabIndex] = useState(0);
 	const [isResizing, setIsResizing] = useState(false);
 	const startXRef = useRef(0);
@@ -232,6 +234,7 @@ export default function RightSidebar() {
 													: 'idle'
 										}
 										isStreaming={active?.isStreaming}
+										hasPendingQuestion={pendingQuestions.has(wt.path)}
 										onClick={() => handleWorktreeClick(wt)}
 										onStop={active ? () => killSession(active.sessionId) : undefined}
 										compact

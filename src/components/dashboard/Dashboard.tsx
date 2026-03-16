@@ -39,6 +39,7 @@ import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import DraggableTabs from '@/components/shared/DraggableTabs';
 import SessionCard from '@/components/shared/SessionCard';
+import { usePendingQuestions } from '@/hooks/usePendingQuestions';
 
 const AgentTerminalModal = dynamic(() => import('@/components/agents/AgentTerminalModal'), {
 	ssr: false,
@@ -407,6 +408,7 @@ export default function Dashboard() {
 	const { views, reorderViews } = useAgentViews();
 	const { data: summaries = [], isLoading: summariesLoading } = useAgentSummaries();
 	const pendingCount = usePendingTodoCount();
+	const pendingQuestions = usePendingQuestions();
 	const [tabIndex, setTabIndex] = useState(0);
 	const [selected, setSelected] = useState<SelectedItem | null>(null);
 
@@ -686,6 +688,7 @@ export default function Dashboard() {
 											branch={session.branch ?? undefined}
 											status="active"
 											isStreaming={session.isStreaming}
+											hasPendingQuestion={pendingQuestions.has(session.cwd)}
 											date={timeAgo(session.createdAt, t)}
 											onClick={() => setSelected({ type: 'active', session })}
 											onStop={() => handleKillSession(session.sessionId)}
