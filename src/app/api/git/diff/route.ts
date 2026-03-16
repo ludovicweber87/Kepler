@@ -36,15 +36,21 @@ export async function GET(req: NextRequest) {
 		const isWorktreeDir = existsSync(cwd);
 
 		if (isWorktreeDir) {
-			// Worktree exists — diff working tree against base branch
-			// This captures both committed and uncommitted changes
-			diff = execFileSync('git', ['diff', baseBranch], {
+			// Find the merge-base so we only show changes made IN the worktree,
+			// not changes that happened on the base branch after divergence
+			const mergeBase = execFileSync('git', ['merge-base', baseBranch, 'HEAD'], {
+				cwd,
+				encoding: 'utf-8',
+				timeout: 5000,
+			}).trim();
+
+			diff = execFileSync('git', ['diff', mergeBase], {
 				cwd,
 				encoding: 'utf-8',
 				timeout: 15000,
 				maxBuffer: 5 * 1024 * 1024,
 			});
-			stats = execFileSync('git', ['diff', '--stat', baseBranch], {
+			stats = execFileSync('git', ['diff', '--stat', mergeBase], {
 				cwd,
 				encoding: 'utf-8',
 				timeout: 5000,
