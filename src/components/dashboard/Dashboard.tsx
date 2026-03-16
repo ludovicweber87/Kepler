@@ -3,11 +3,9 @@
 import { useState, useMemo, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import ToggleButton from '@mui/material/ToggleButton';
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
-import { alpha, useTheme } from '@mui/material/styles';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
 import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
 import { useActiveSessions, type ActiveSession } from '@/hooks/useActiveSessions';
 import { useAgentSessionHistory, type AgentSession } from '@/hooks/useAgentSession';
 import { useAgentSummaries, type AgentSummary } from '@/hooks/useRecentLogs';
@@ -24,39 +22,33 @@ import ActiveAgentsWidget from './ActiveAgentsWidget';
 import TodosWidget from './TodosWidget';
 import RecentSessionsWidget from './RecentSessionsWidget';
 import SummariesWidget from './SummariesWidget';
+import AllReportsDialog from './AllReportsDialog';
 
 const AgentTerminalModal = dynamic(() => import('@/components/agents/AgentTerminalModal'), {
 	ssr: false,
 });
 
-type TimeFilter = 'today' | '7d' | '30d';
-
 type SelectedItem =
 	| { type: 'active'; session: ActiveSession }
 	| { type: 'past'; session: AgentSession };
 
-function getFilterDate(filter: TimeFilter): Date {
-	const now = new Date();
-	switch (filter) {
-		case 'today': {
-			const d = new Date(now);
-			d.setHours(0, 0, 0, 0);
-			return d;
-		}
-		case '7d':
-			return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-		case '30d':
-			return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-	}
+function repoShortName(fullName: string): string {
+	const parts = fullName.split('/');
+	return parts[parts.length - 1];
+}
+
+function matchesRepo(projectName: string, projectPath: string, repo: string): boolean {
+	const short = repoShortName(repo);
+	return projectName === short || projectName === repo || projectPath.includes(short);
 }
 
 export default function Dashboard() {
-	const theme = useTheme();
 	const t = useTranslations('dashboard');
 	const queryClient = useQueryClient();
 
-	const [timeFilter, setTimeFilter] = useState<TimeFilter>('7d');
+	const [repoTab, setRepoTab] = useState(0);
 	const [selected, setSelected] = useState<SelectedItem | null>(null);
+	const [showAllReports, setShowAllReports] = useState(false);
 
 	// Data hooks
 	const { data: sessions = [] } = useActiveSessions();
@@ -69,24 +61,37 @@ export default function Dashboard() {
 	const repos = useMemo(() => repoPaths.map((r) => r.repo_full_name), [repoPaths]);
 	const { data: prs = [] } = usePullRequests(repos);
 
-	// Filter date
-	const filterDate = useMemo(() => getFilterDate(timeFilter), [timeFilter]);
+	// Selected repo for filtering (null = all)
+	const selectedRepo = repoTab === 0 ? null : (repos[repoTab - 1] ?? null);
 
-	// Filtered sessions (exclude active from past)
+	// Filtered sessions (exclude active from past, filter by repo)
 	const activeSessionIds = useMemo(() => new Set(sessions.map((s) => s.sessionId)), [sessions]);
+
+	const filteredActiveSessions = useMemo(() => {
+		if (!selectedRepo) return sessions;
+		return sessions.filter((s) => matchesRepo(s.projectName, s.cwd, selectedRepo));
+	}, [sessions, selectedRepo]);
+
 	const filteredPastSessions = useMemo(() => {
-		return pastSessions
-			.filter((s) => !activeSessionIds.has(s.session_id))
-			.filter((s) => new Date(s.started_at) >= filterDate)
-			.slice(0, 8);
-	}, [pastSessions, activeSessionIds, filterDate]);
+		let result = pastSessions.filter((s) => !activeSessionIds.has(s.session_id));
+		if (selectedRepo) {
+			result = result.filter((s) =>
+				matchesRepo(s.project_name, s.project_path, selectedRepo),
+			);
+		}
+		return result.slice(0, 8);
+	}, [pastSessions, activeSessionIds, selectedRepo]);
 
 	// Filtered summaries
 	const filteredSummaries = useMemo(() => {
-		return summaries
-			.filter((s) => new Date(s.started_at) >= filterDate)
-			.slice(0, 10);
-	}, [summaries, filterDate]);
+		let result = summaries;
+		if (selectedRepo) {
+			result = result.filter((s) =>
+				matchesRepo(s.project_name, s.project_path, selectedRepo),
+			);
+		}
+		return result.slice(0, 10);
+	}, [summaries, selectedRepo]);
 
 	// KPI data
 	const openIssuesCount = useMemo(() => {
@@ -117,12 +122,9 @@ export default function Dashboard() {
 		[pastSessions],
 	);
 
-	const handlePastSessionClick = useCallback(
-		(session: AgentSession) => {
-			setSelected({ type: 'past', session });
-		},
-		[],
-	);
+	const handlePastSessionClick = useCallback((session: AgentSession) => {
+		setSelected({ type: 'past', session });
+	}, []);
 
 	// Modal props
 	const modalOpen = !!selected;
@@ -155,45 +157,49 @@ export default function Dashboard() {
 					<Typography variant="h4" sx={{ fontWeight: 700 }}>
 						{t('title')}
 					</Typography>
-					<ToggleButtonGroup
-						value={timeFilter}
-						exclusive
-						onChange={(_, val) => val && setTimeFilter(val)}
-						size="small"
+					<Tabs
+						value={repoTab}
+						onChange={(_, val) => setRepoTab(val)}
+						variant="scrollable"
+						scrollButtons="auto"
 						sx={{
+							minHeight: 32,
 							bgcolor: 'background.paper',
 							border: 1,
 							borderColor: 'divider',
 							borderRadius: '8px',
-							'& .MuiToggleButton-root': {
+							'& .MuiTabs-indicator': {
+								display: 'none',
+							},
+							'& .MuiTab-root': {
+								minHeight: 32,
 								border: 'none',
-								borderRadius: '6px !important',
+								borderRadius: '6px',
 								px: 2,
 								py: 0.5,
 								fontSize: '0.75rem',
 								fontWeight: 500,
 								textTransform: 'none',
 								color: 'text.secondary',
+								minWidth: 'auto',
 								'&.Mui-selected': {
 									bgcolor: 'primary.main',
 									color: '#fff',
-									'&:hover': {
-										bgcolor: 'primary.dark',
-									},
 								},
 							},
 						}}
 					>
-						<ToggleButton value="today">{t('filterToday')}</ToggleButton>
-						<ToggleButton value="7d">{t('filter7d')}</ToggleButton>
-						<ToggleButton value="30d">{t('filter30d')}</ToggleButton>
-					</ToggleButtonGroup>
+						<Tab label={t('allRepos')} />
+						{repos.map((repo) => (
+							<Tab key={repo} label={repoShortName(repo)} />
+						))}
+					</Tabs>
 				</Box>
 
 				{/* KPI Cards */}
 				<Box sx={{ mb: 2 }}>
 					<KpiCards
-						activeAgents={sessions.length}
+						activeAgents={filteredActiveSessions.length}
 						openIssues={openIssuesCount}
 						pendingPrs={prs.length}
 						pendingTodos={pendingCount}
@@ -209,7 +215,7 @@ export default function Dashboard() {
 					}}
 				>
 					<ActiveAgentsWidget
-						sessions={sessions}
+						sessions={filteredActiveSessions}
 						pendingQuestions={pendingQuestions}
 						onSessionClick={(s) => setSelected({ type: 'active', session: s })}
 						onStopSession={handleKillSession}
@@ -223,6 +229,7 @@ export default function Dashboard() {
 						summaries={filteredSummaries}
 						isLoading={summariesLoading}
 						onSessionClick={handleSummaryClick}
+						onShowAll={() => setShowAllReports(true)}
 					/>
 				</Box>
 			</Box>
@@ -232,6 +239,18 @@ export default function Dashboard() {
 				open={modalOpen}
 				onClose={() => setSelected(null)}
 				{...modalProps}
+			/>
+
+			{/* All reports dialog */}
+			<AllReportsDialog
+				open={showAllReports}
+				onClose={() => setShowAllReports(false)}
+				summaries={summaries}
+				repos={repos}
+				onSessionClick={(summary) => {
+					setShowAllReports(false);
+					handleSummaryClick(summary);
+				}}
 			/>
 		</>
 	);

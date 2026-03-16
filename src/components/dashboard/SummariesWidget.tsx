@@ -19,6 +19,7 @@ interface SummariesWidgetProps {
 	summaries: AgentSummary[];
 	isLoading: boolean;
 	onSessionClick: (summary: AgentSummary) => void;
+	onShowAll?: () => void;
 }
 
 function timeAgo(dateStr: string): string {
@@ -36,13 +37,18 @@ export default function SummariesWidget({
 	summaries,
 	isLoading,
 	onSessionClick,
+	onShowAll,
 }: SummariesWidgetProps) {
 	const theme = useTheme();
 	const t = useTranslations('dashboard');
 	const [expandedId, setExpandedId] = useState<string | null>(null);
 
 	return (
-		<DashboardWidget title={t('summariesTitle')}>
+		<DashboardWidget
+			title={t('summariesTitle')}
+			linkText={summaries.length > 0 ? t('showAll') : undefined}
+			onLinkClick={onShowAll}
+		>
 			{isLoading ? (
 				<Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
 					<CircularProgress size={20} sx={{ color: 'primary.main' }} />
@@ -242,10 +248,7 @@ export default function SummariesWidget({
 													'& code': {
 														fontFamily: '"JetBrains Mono", monospace',
 														fontSize: '0.7em',
-														bgcolor: alpha(
-															theme.palette.divider,
-															0.3,
-														),
+														bgcolor: alpha(theme.palette.divider, 0.3),
 														px: 0.5,
 														py: 0.15,
 														borderRadius: 0.5,
