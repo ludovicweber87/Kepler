@@ -171,6 +171,9 @@ export default function AgentTerminalModal({
 	const streamTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const readyRef = useRef(false);
 	const claudeLaunchedRef = useRef(false);
+	// Ref tracking effectivePath so the shell effect reads the latest value
+	// without re-triggering when session loads async
+	const effectivePathRef = useRef<string | null | undefined>(undefined);
 	// Plain shell terminal refs (tab 2)
 	const [shellTermNode, setShellTermNode] = useState<HTMLDivElement | null>(null);
 	const shellTerminalRef = useRef<Terminal | null>(null);
@@ -226,6 +229,7 @@ export default function AgentTerminalModal({
 		projectPath,
 		existingWorktree?.worktreePath,
 	]);
+	effectivePathRef.current = effectivePath;
 
 	const handlePip = useCallback(() => {
 		if (!sessionId || !effectivePath) return;
@@ -649,10 +653,10 @@ export default function AgentTerminalModal({
 		terminalEnabled,
 	]);
 
-	// Plain shell terminal — lazy init, uses worktree path
+	// Plain shell terminal — lazy init, uses worktree path via ref (avoids re-init on session load)
 	useEffect(() => {
 		if (!open || !shellTermNode || activeTabKey !== 'terminal' || step !== 'terminal') return;
-		const cwd = worktreePath ?? projectPath;
+		const cwd = effectivePathRef.current ?? worktreePath ?? projectPath;
 		if (!cwd) return;
 		if (shellInitialized.current) return;
 		shellInitialized.current = true;
