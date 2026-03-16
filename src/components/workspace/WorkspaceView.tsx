@@ -240,10 +240,10 @@ export default function WorkspaceView() {
 								hasPendingQuestion={pendingQuestions.has(wt.path)}
 								onClick={() => handleWorktreeClick(wt)}
 								onStop={active ? () => killSession(active.sessionId) : undefined}
-								onDelete={(e) => {
+								onDelete={!active ? (e) => {
 									setDeleteTarget(wt);
 									setDeleteAnchorEl(e.currentTarget as HTMLElement);
-								}}
+								} : undefined}
 							/>
 						);
 					})}

@@ -4,6 +4,8 @@ import { useState, useCallback, useRef, useMemo } from 'react';
 import Box from '@mui/material/Box';
 import Drawer from '@mui/material/Drawer';
 import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import Popover from '@mui/material/Popover';
 import { alpha, useTheme } from '@mui/material/styles';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import { useAgentViews } from '@/hooks/useAgentViews';
@@ -40,7 +42,9 @@ export default function RightSidebar() {
 
 	// Current view
 	const activeView = views[tabIndex] ?? null;
-	const { worktrees } = useWorktrees(activeView?.path);
+	const { worktrees, deleteWorktree } = useWorktrees(activeView?.path);
+	const [deleteTarget, setDeleteTarget] = useState<WorktreeInfo | null>(null);
+	const [deleteAnchorEl, setDeleteAnchorEl] = useState<HTMLElement | null>(null);
 
 	// Sort: active worktrees first
 	const sortedWorktrees = useMemo(
@@ -88,6 +92,14 @@ export default function RightSidebar() {
 		},
 		[getActiveForPath, fetchSessionForPath],
 	);
+
+	const handleDelete = (deleteBranch: boolean) => {
+		if (deleteTarget) {
+			deleteWorktree({ worktreePath: deleteTarget.path, deleteBranch });
+			setDeleteTarget(null);
+			setDeleteAnchorEl(null);
+		}
+	};
 
 	const handleMouseDown = useCallback(
 		(e: React.MouseEvent) => {
@@ -237,6 +249,10 @@ export default function RightSidebar() {
 										hasPendingQuestion={pendingQuestions.has(wt.path)}
 										onClick={() => handleWorktreeClick(wt)}
 										onStop={active ? () => killSession(active.sessionId) : undefined}
+										onDelete={!active ? (e) => {
+											setDeleteTarget(wt);
+											setDeleteAnchorEl(e.currentTarget as HTMLElement);
+										} : undefined}
 										compact
 									/>
 								);
@@ -263,6 +279,61 @@ export default function RightSidebar() {
 					)}
 				</Box>
 			</Drawer>
+
+			<Popover
+				open={!!deleteTarget && !!deleteAnchorEl}
+				anchorEl={deleteAnchorEl}
+				onClose={() => {
+					setDeleteTarget(null);
+					setDeleteAnchorEl(null);
+				}}
+				anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+				transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+				slotProps={{
+					paper: {
+						sx: {
+							borderRadius: 2,
+							p: 1.5,
+							minWidth: 260,
+							display: 'flex',
+							flexDirection: 'column',
+							gap: 0.5,
+						},
+					},
+				}}
+			>
+				<Typography variant="caption" color="text.secondary" sx={{ px: 1, pb: 0.5 }}>
+					Supprimer {deleteTarget?.branch ?? ''}
+				</Typography>
+				<Button
+					fullWidth
+					size="small"
+					onClick={() => handleDelete(false)}
+					sx={{
+						justifyContent: 'flex-start',
+						textTransform: 'none',
+						fontWeight: 600,
+						color: theme.palette.error.main,
+						'&:hover': { bgcolor: alpha(theme.palette.error.main, 0.08) },
+					}}
+				>
+					Worktree uniquement
+				</Button>
+				<Button
+					fullWidth
+					size="small"
+					onClick={() => handleDelete(true)}
+					sx={{
+						justifyContent: 'flex-start',
+						textTransform: 'none',
+						fontWeight: 600,
+						color: theme.palette.error.main,
+						'&:hover': { bgcolor: alpha(theme.palette.error.main, 0.08) },
+					}}
+				>
+					Worktree + Branche
+				</Button>
+			</Popover>
 
 			<AgentTerminalModal
 				open={!!selected}

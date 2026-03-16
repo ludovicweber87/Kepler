@@ -10,7 +10,8 @@ import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import TextField from '@mui/material/TextField';
 import Alert from '@mui/material/Alert';
-import { alpha } from '@mui/material/styles';
+import Popover from '@mui/material/Popover';
+import { alpha, useTheme } from '@mui/material/styles';
 import DraggableTabs from '@/components/shared/DraggableTabs';
 import type { TabItem } from '@/components/shared/DraggableTabs';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -152,6 +153,7 @@ export default function AgentTerminalModal({
 	isPastSession = false,
 	existingWorktree,
 }: AgentTerminalModalProps) {
+	const theme = useTheme();
 	// Step management: 'branch' (input branch name) → 'terminal' (running)
 	const [step, setStep] = useState<'branch' | 'terminal'>('branch');
 	const [branchInput, setBranchInput] = useState('');
@@ -205,6 +207,7 @@ export default function AgentTerminalModal({
 	const { session, logs, ensureSession } = useAgentSession(open ? sessionId : undefined);
 	const { killSession } = useSessionManager();
 	const [isStopping, setIsStopping] = useState(false);
+	const [deleteAnchorEl, setDeleteAnchorEl] = useState<HTMLElement | null>(null);
 	const overlay = useOverlayTerminal();
 
 	// Effective working path: worktree path when available, else projectPath
@@ -363,11 +366,12 @@ export default function AgentTerminalModal({
 		ensureSession,
 	]);
 
-	// Handle worktree deletion
-	const handleDeleteWorktree = useCallback(() => {
+	// Handle worktree deletion with branch choice
+	const handleDeleteWorktree = useCallback((deleteBranch: boolean) => {
 		const wtPath = session?.worktree_path ?? worktreePath;
 		if (!wtPath) return;
-		deleteWorktree({ worktreePath: wtPath, deleteBranch: false });
+		deleteWorktree({ worktreePath: wtPath, deleteBranch });
+		setDeleteAnchorEl(null);
 	}, [session?.worktree_path, worktreePath, deleteWorktree]);
 
 	// Handle session stop (kill tmux)
@@ -464,14 +468,15 @@ export default function AgentTerminalModal({
 	// Don't connect terminal for past sessions
 	const terminalEnabled = !isPastSession && step === 'terminal';
 
-	// Track whether session data has loaded (for existing sessions that need path resolution)
-	const sessionLoaded = !!session;
+	// Only block terminal init when re-attaching and waiting for DB session data.
+	// For new sessions (no existingSessionId), this stays false and never causes a re-run.
+	const waitingForSession = !!existingSessionId && !session;
 
 	// Claude terminal — only connect after worktree is created (step === 'terminal')
 	useEffect(() => {
 		if (!open || !termNode || !terminalEnabled) return;
 		// For re-attached sessions, wait for DB data to resolve the correct worktree path
-		if (existingSessionId && !sessionLoaded) return;
+		if (waitingForSession) return;
 		// Use effectivePathRef which accounts for worktree path from session data
 		const cwd = effectivePathRef.current ?? worktreePath ?? projectPath;
 		if (!cwd) return;
@@ -659,14 +664,14 @@ export default function AgentTerminalModal({
 		sessionId,
 		terminalEnabled,
 		existingSessionId,
-		sessionLoaded,
+		waitingForSession,
 	]);
 
 	// Plain shell terminal — lazy init, uses worktree path via ref (avoids re-init on session load)
 	useEffect(() => {
 		if (!open || !shellTermNode || activeTabKey !== 'terminal' || step !== 'terminal') return;
 		// For re-attached sessions, wait for DB data to resolve the correct worktree path
-		if (existingSessionId && !sessionLoaded) return;
+		if (waitingForSession) return;
 		const cwd = effectivePathRef.current ?? worktreePath ?? projectPath;
 		if (!cwd) return;
 		if (shellInitialized.current) return;
@@ -800,7 +805,7 @@ export default function AgentTerminalModal({
 			shellFitAddonRef.current = null;
 			shellInitialized.current = false;
 		};
-	}, [open, worktreePath, projectPath, shellTermNode, sessionId, activeTabKey, step, existingSessionId, sessionLoaded]);
+		}, [open, worktreePath, projectPath, shellTermNode, sessionId, activeTabKey, step, existingSessionId, waitingForSession]);
 
 	// Display info
 	const folderLabel = issueContext
@@ -838,6 +843,7 @@ export default function AgentTerminalModal({
 		(session?.worktree_path || worktreePath);
 
 	return (
+		<>
 		<Dialog
 			open={open}
 			onClose={onClose}
@@ -958,7 +964,7 @@ export default function AgentTerminalModal({
 							variant="outlined"
 							color="error"
 							startIcon={<DeleteOutlineRoundedIcon sx={{ fontSize: 16 }} />}
-							onClick={handleDeleteWorktree}
+							onClick={(e) => setDeleteAnchorEl(e.currentTarget)}
 							disabled={isDeleting}
 							sx={{
 								fontSize: '0.7rem',
@@ -1236,5 +1242,58 @@ export default function AgentTerminalModal({
 				</>
 			)}
 		</Dialog>
+
+			<Popover
+				open={!!deleteAnchorEl}
+				anchorEl={deleteAnchorEl}
+				onClose={() => setDeleteAnchorEl(null)}
+				anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+				transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+				slotProps={{
+					paper: {
+						sx: {
+							borderRadius: 2,
+							p: 1.5,
+							minWidth: 260,
+							display: 'flex',
+							flexDirection: 'column',
+							gap: 0.5,
+						},
+					},
+				}}
+			>
+				<Typography variant="caption" color="text.secondary" sx={{ px: 1, pb: 0.5 }}>
+					Supprimer {branchInput || session?.branch || ''}
+				</Typography>
+				<Button
+					fullWidth
+					size="small"
+					onClick={() => handleDeleteWorktree(false)}
+					sx={{
+						justifyContent: 'flex-start',
+						textTransform: 'none',
+						fontWeight: 600,
+						color: theme.palette.error.main,
+						'&:hover': { bgcolor: alpha(theme.palette.error.main, 0.08) },
+					}}
+				>
+					Worktree uniquement
+				</Button>
+				<Button
+					fullWidth
+					size="small"
+					onClick={() => handleDeleteWorktree(true)}
+					sx={{
+						justifyContent: 'flex-start',
+						textTransform: 'none',
+						fontWeight: 600,
+						color: theme.palette.error.main,
+						'&:hover': { bgcolor: alpha(theme.palette.error.main, 0.08) },
+					}}
+				>
+					Worktree + Branche
+				</Button>
+			</Popover>
+		</>
 	);
 }

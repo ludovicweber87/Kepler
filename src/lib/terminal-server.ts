@@ -163,37 +163,15 @@ function listTmuxSessions(): string[] {
 }
 
 /**
- * Find an existing devora tmux session running in the given cwd.
- * Returns the session name if found, null otherwise.
+ * Check if this specific session is completed/error in DB.
+ * Prevents re-creating tmux for a killed session, but allows new sessions on the same path.
  */
-function findSessionByCwd(cwd: string): string | null {
-	try {
-		const out = execSync(
-			`${TMUX} list-sessions -F "#{session_name}|#{pane_current_path}"`,
-			{ encoding: 'utf-8', stdio: ['pipe', 'pipe', 'ignore'] },
-		);
-		for (const line of out.trim().split('\n')) {
-			const [name, path] = line.split('|');
-			if (name.startsWith('devora-') && !name.endsWith('-shell') && path === cwd) {
-				return name;
-			}
-		}
-	} catch {
-		// ignore
-	}
-	return null;
-}
-
-/**
- * Check if a completed/error session exists for this cwd (worktree_path).
- * Prevents re-creating tmux for killed sessions even with a new sessionId.
- */
-async function hasCompletedSessionForPath(cwd: string): Promise<boolean> {
+async function isSessionCompleted(sessionId: string): Promise<boolean> {
 	try {
 		const { data } = await supabase
 			.from('agent_sessions')
 			.select('status')
-			.eq('worktree_path', cwd)
+			.eq('session_id', sessionId)
 			.in('status', ['completed', 'error'])
 			.limit(1);
 		return (data?.length ?? 0) > 0;
@@ -254,30 +232,25 @@ export function startTerminalServer(port: number) {
 			if (msg.type === 'init') {
 				// Store the init promise so subsequent messages wait for it
 				initReady = (async () => {
-					let attachId = msg.sessionId;
-					let existed = tmuxSessionExists(msg.sessionId);
-
-					// Shell sessions (-shell suffix) intentionally share the same cwd as the
-					// Claude session — skip the cwd-dedup check so they get their own tmux session.
+					const attachId = msg.sessionId;
+					const existed = tmuxSessionExists(msg.sessionId);
 					const isShellSession = msg.sessionId.endsWith('-shell');
 
 					if (!existed) {
-						const existing = isShellSession ? null : findSessionByCwd(msg.cwd);
-						if (existing) {
-							attachId = existing;
-							existed = true;
-						} else {
-							// Guard: refuse to create tmux for completed/error sessions (check by cwd)
-							// Skip for shell sessions — they should always be allowed
-							if (!isShellSession) {
-								const completed = await hasCompletedSessionForPath(msg.cwd);
-								if (completed) {
-									ws.send(JSON.stringify({ type: 'init-error', reason: 'session_completed' }));
-									return;
-								}
+						// Guard: refuse to re-create tmux for a session already completed/killed
+						if (!isShellSession) {
+							const completed = await isSessionCompleted(msg.sessionId);
+							if (completed) {
+								ws.send(
+									JSON.stringify({
+										type: 'init-error',
+										reason: 'session_completed',
+									}),
+								);
+								return;
 							}
-							createTmuxSession(msg.sessionId, msg.cwd);
 						}
+						createTmuxSession(msg.sessionId, msg.cwd);
 					}
 
 					// Spawn PTY attached to the tmux session
