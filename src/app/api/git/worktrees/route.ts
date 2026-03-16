@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { execSync } from 'child_process';
+import { readdirSync, copyFileSync, existsSync, symlinkSync } from 'fs';
+import { join } from 'path';
 import { requireAuth, isAuthError } from '@/lib/auth-utils';
 
 export const dynamic = 'force-dynamic';
@@ -126,6 +128,27 @@ export async function POST(request: Request) {
 				timeout: 30000,
 			},
 		);
+
+		// Copy .env* files from source repo to worktree
+		try {
+			const envFiles = readdirSync(cwd).filter((f) => f.startsWith('.env'));
+			for (const file of envFiles) {
+				copyFileSync(join(cwd, file), join(worktreePath, file));
+			}
+		} catch {
+			// Non-blocking — worktree is still usable without env files
+		}
+
+		// Symlink node_modules from source repo to worktree
+		try {
+			const srcModules = join(cwd, 'node_modules');
+			const destModules = join(worktreePath, 'node_modules');
+			if (existsSync(srcModules) && !existsSync(destModules)) {
+				symlinkSync(srcModules, destModules, 'dir');
+			}
+		} catch {
+			// Non-blocking — user can always run npm install manually
+		}
 
 		return NextResponse.json({ worktreePath, branch });
 	} catch (err) {
