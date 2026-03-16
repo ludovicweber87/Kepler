@@ -218,7 +218,9 @@ export default function AgentTerminalModal({
 			session.branch !== 'main' &&
 			session.branch !== 'master'
 		) {
-			return `${projectPath}/.worktrees/${session.branch}`;
+			// Sanitize branch name the same way worktree creation does (/ → -)
+			const dirName = session.branch.replace(/\//g, '-');
+			return `${projectPath}/.worktrees/${dirName}`;
 		}
 		if (projectPath && existingWorktree?.worktreePath) return existingWorktree.worktreePath;
 		return projectPath;
@@ -462,11 +464,16 @@ export default function AgentTerminalModal({
 	// Don't connect terminal for past sessions
 	const terminalEnabled = !isPastSession && step === 'terminal';
 
+	// Track whether session data has loaded (for existing sessions that need path resolution)
+	const sessionLoaded = !!session;
+
 	// Claude terminal — only connect after worktree is created (step === 'terminal')
 	useEffect(() => {
 		if (!open || !termNode || !terminalEnabled) return;
-		// Need either worktreePath (new session) or projectPath (existing session)
-		const cwd = worktreePath ?? projectPath;
+		// For re-attached sessions, wait for DB data to resolve the correct worktree path
+		if (existingSessionId && !sessionLoaded) return;
+		// Use effectivePathRef which accounts for worktree path from session data
+		const cwd = effectivePathRef.current ?? worktreePath ?? projectPath;
 		if (!cwd) return;
 
 		setResumed(false);
@@ -651,11 +658,15 @@ export default function AgentTerminalModal({
 		termNode,
 		sessionId,
 		terminalEnabled,
+		existingSessionId,
+		sessionLoaded,
 	]);
 
 	// Plain shell terminal — lazy init, uses worktree path via ref (avoids re-init on session load)
 	useEffect(() => {
 		if (!open || !shellTermNode || activeTabKey !== 'terminal' || step !== 'terminal') return;
+		// For re-attached sessions, wait for DB data to resolve the correct worktree path
+		if (existingSessionId && !sessionLoaded) return;
 		const cwd = effectivePathRef.current ?? worktreePath ?? projectPath;
 		if (!cwd) return;
 		if (shellInitialized.current) return;
@@ -789,7 +800,7 @@ export default function AgentTerminalModal({
 			shellFitAddonRef.current = null;
 			shellInitialized.current = false;
 		};
-	}, [open, worktreePath, projectPath, shellTermNode, sessionId, activeTabKey, step]);
+	}, [open, worktreePath, projectPath, shellTermNode, sessionId, activeTabKey, step, existingSessionId, sessionLoaded]);
 
 	// Display info
 	const folderLabel = issueContext
