@@ -39,8 +39,10 @@ function repoShortName(fullName: string): string {
 }
 
 function matchesRepo(projectName: string, projectPath: string, repo: string): boolean {
-	const short = repoShortName(repo);
-	return projectName === short || projectName === repo || projectPath.includes(short);
+	const short = repoShortName(repo).toLowerCase();
+	const name = projectName.toLowerCase();
+	const path = projectPath.toLowerCase();
+	return name === short || name === repo.toLowerCase() || path.includes(short);
 }
 
 export default function Dashboard() {
@@ -214,7 +216,7 @@ export default function Dashboard() {
 					sx={{
 						display: 'grid',
 						gridTemplateColumns: '1fr 1fr',
-						gridTemplateRows: 'auto 1fr',
+						gridTemplateRows: '1fr 1fr',
 						gap: 2,
 						flex: 1,
 						minHeight: 0,
