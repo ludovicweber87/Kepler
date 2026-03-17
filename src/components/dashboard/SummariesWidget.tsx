@@ -74,7 +74,7 @@ export default function SummariesWidget({
 						display: 'flex',
 						flexDirection: 'column',
 						gap: 1,
-						maxHeight: 400,
+						flex: 1,
 						overflowY: 'auto',
 						'&::-webkit-scrollbar': { width: 3 },
 						'&::-webkit-scrollbar-thumb': {

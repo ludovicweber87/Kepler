@@ -14,6 +14,7 @@ import { usePendingQuestions } from '@/hooks/usePendingQuestions';
 import { useDashboard } from '@/hooks/useGitHub';
 import { usePullRequests } from '@/hooks/usePullRequests';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
+import { useSessionManager } from '@/hooks/useSessionManager';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 
@@ -58,6 +59,7 @@ export default function Dashboard() {
 	const pendingQuestions = usePendingQuestions();
 	const { data: dashboardData } = useDashboard();
 	const { repoPaths } = useRepoPaths();
+	const { deleteSession } = useSessionManager();
 	const repos = useMemo(() => repoPaths.map((r) => r.repo_full_name), [repoPaths]);
 	const { data: prs = [] } = usePullRequests(repos);
 
@@ -144,7 +146,7 @@ export default function Dashboard() {
 
 	return (
 		<>
-			<Box sx={{ p: 4, maxWidth: 1200, mx: 'auto' }}>
+			<Box sx={{ p: 4, maxWidth: 1200, mx: 'auto', height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 				{/* Header */}
 				<Box
 					sx={{
@@ -152,6 +154,7 @@ export default function Dashboard() {
 						justifyContent: 'space-between',
 						alignItems: 'center',
 						mb: 3,
+						flexShrink: 0,
 					}}
 				>
 					<Typography variant="h4" sx={{ fontWeight: 700 }}>
@@ -197,7 +200,7 @@ export default function Dashboard() {
 				</Box>
 
 				{/* KPI Cards */}
-				<Box sx={{ mb: 2 }}>
+				<Box sx={{ mb: 2, flexShrink: 0 }}>
 					<KpiCards
 						activeAgents={filteredActiveSessions.length}
 						openIssues={openIssuesCount}
@@ -211,7 +214,10 @@ export default function Dashboard() {
 					sx={{
 						display: 'grid',
 						gridTemplateColumns: '1fr 1fr',
+						gridTemplateRows: 'auto 1fr',
 						gap: 2,
+						flex: 1,
+						minHeight: 0,
 					}}
 				>
 					<ActiveAgentsWidget
@@ -224,6 +230,7 @@ export default function Dashboard() {
 					<RecentSessionsWidget
 						sessions={filteredPastSessions}
 						onSessionClick={handlePastSessionClick}
+						onDeleteSession={deleteSession}
 					/>
 					<SummariesWidget
 						summaries={filteredSummaries}

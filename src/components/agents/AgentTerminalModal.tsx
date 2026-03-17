@@ -10,7 +10,6 @@ import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import TextField from '@mui/material/TextField';
 import Alert from '@mui/material/Alert';
-import Popover from '@mui/material/Popover';
 import { alpha, useTheme } from '@mui/material/styles';
 import DraggableTabs from '@/components/shared/DraggableTabs';
 import type { TabItem } from '@/components/shared/DraggableTabs';
@@ -26,8 +25,6 @@ import TimelineRoundedIcon from '@mui/icons-material/TimelineRounded';
 import DifferenceRoundedIcon from '@mui/icons-material/DifferenceRounded';
 import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
-import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
-import StopCircleRoundedIcon from '@mui/icons-material/StopCircleRounded';
 import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
@@ -38,7 +35,6 @@ import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useAgentSession } from '@/hooks/useAgentSession';
 import { useOverlayTerminal } from '@/hooks/useOverlayTerminal';
 import { useWorktrees } from '@/hooks/useWorktrees';
-import { useSessionManager } from '@/hooks/useSessionManager';
 import AgentActivityTab from './AgentActivityTab';
 import AgentDiffTab from './AgentDiffTab';
 import AgentIssueTab from './AgentIssueTab';
@@ -191,7 +187,7 @@ export default function AgentTerminalModal({
 	const projectPath = projectPathProp ?? resolvedPath;
 
 	// Worktree management
-	const { createWorktree, isCreating, deleteWorktree, isDeleting } = useWorktrees(
+	const { createWorktree, isCreating } = useWorktrees(
 		projectPath ?? undefined,
 	);
 
@@ -205,9 +201,6 @@ export default function AgentTerminalModal({
 	const sessionId = existingSessionId ?? generatedIdRef.current ?? '';
 
 	const { session, logs, ensureSession } = useAgentSession(open ? sessionId : undefined);
-	const { killSession } = useSessionManager();
-	const [isStopping, setIsStopping] = useState(false);
-	const [deleteAnchorEl, setDeleteAnchorEl] = useState<HTMLElement | null>(null);
 	const overlay = useOverlayTerminal();
 
 	// Effective working path: worktree path when available, else projectPath
@@ -365,25 +358,6 @@ export default function AgentTerminalModal({
 		issueContext,
 		ensureSession,
 	]);
-
-	// Handle worktree deletion with branch choice
-	const handleDeleteWorktree = useCallback((deleteBranch: boolean) => {
-		const wtPath = session?.worktree_path ?? worktreePath;
-		if (!wtPath) return;
-		deleteWorktree({ worktreePath: wtPath, deleteBranch });
-		setDeleteAnchorEl(null);
-	}, [session?.worktree_path, worktreePath, deleteWorktree]);
-
-	// Handle session stop (kill tmux)
-	const handleStopSession = useCallback(async () => {
-		if (!sessionId) return;
-		setIsStopping(true);
-		try {
-			await killSession(sessionId);
-		} finally {
-			setIsStopping(false);
-		}
-	}, [sessionId, killSession]);
 
 	// Build draggable terminal tabs
 	const hasIssue = !!(issueContext || session?.issue_number);
@@ -830,18 +804,6 @@ export default function AgentTerminalModal({
 
 	const subtitleText = issueContext?.issueTitle;
 
-	// Show stop button when session is active (not completed/error) and in terminal step
-	const showStopSession =
-		step === 'terminal' &&
-		session?.status !== 'completed' &&
-		session?.status !== 'error' &&
-		!isPastSession;
-
-	// Show delete worktree button when session is done and has a worktree
-	const showDeleteWorktree =
-		(session?.status === 'completed' || session?.status === 'error') &&
-		(session?.worktree_path || worktreePath);
-
 	return (
 		<>
 		<Dialog
@@ -930,53 +892,6 @@ export default function AgentTerminalModal({
 					)}
 				</Box>
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
-					{showStopSession && (
-						<Button
-							size="small"
-							variant="outlined"
-							color="error"
-							startIcon={
-								isStopping ? (
-									<CircularProgress size={14} color="inherit" />
-								) : (
-									<StopCircleRoundedIcon sx={{ fontSize: 16 }} />
-								)
-							}
-							onClick={handleStopSession}
-							disabled={isStopping}
-							sx={{
-								fontSize: '0.7rem',
-								textTransform: 'none',
-								height: 28,
-								borderColor: (theme) => alpha(theme.palette.error.main, 0.3),
-								'&:hover': {
-									borderColor: (theme) => alpha(theme.palette.error.main, 0.6),
-									bgcolor: (theme) => alpha(theme.palette.error.main, 0.08),
-								},
-							}}
-						>
-							{isStopping ? 'Arrêt...' : 'Stop session'}
-						</Button>
-					)}
-					{showDeleteWorktree && (
-						<Button
-							size="small"
-							variant="outlined"
-							color="error"
-							startIcon={<DeleteOutlineRoundedIcon sx={{ fontSize: 16 }} />}
-							onClick={(e) => setDeleteAnchorEl(e.currentTarget)}
-							disabled={isDeleting}
-							sx={{
-								fontSize: '0.7rem',
-								textTransform: 'none',
-								height: 28,
-								borderColor: (theme) => alpha(theme.palette.error.main, 0.3),
-								'&:hover': { borderColor: (theme) => alpha(theme.palette.error.main, 0.6) },
-							}}
-						>
-							{isDeleting ? 'Suppression...' : 'Supprimer worktree'}
-						</Button>
-					)}
 					<Chip
 						icon={<FolderOpenRoundedIcon sx={{ fontSize: '14px !important' }} />}
 						label={folderLabel}
@@ -1242,58 +1157,6 @@ export default function AgentTerminalModal({
 				</>
 			)}
 		</Dialog>
-
-			<Popover
-				open={!!deleteAnchorEl}
-				anchorEl={deleteAnchorEl}
-				onClose={() => setDeleteAnchorEl(null)}
-				anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-				transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-				slotProps={{
-					paper: {
-						sx: {
-							borderRadius: 2,
-							p: 1.5,
-							minWidth: 260,
-							display: 'flex',
-							flexDirection: 'column',
-							gap: 0.5,
-						},
-					},
-				}}
-			>
-				<Typography variant="caption" color="text.secondary" sx={{ px: 1, pb: 0.5 }}>
-					Supprimer {branchInput || session?.branch || ''}
-				</Typography>
-				<Button
-					fullWidth
-					size="small"
-					onClick={() => handleDeleteWorktree(false)}
-					sx={{
-						justifyContent: 'flex-start',
-						textTransform: 'none',
-						fontWeight: 600,
-						color: theme.palette.error.main,
-						'&:hover': { bgcolor: alpha(theme.palette.error.main, 0.08) },
-					}}
-				>
-					Worktree uniquement
-				</Button>
-				<Button
-					fullWidth
-					size="small"
-					onClick={() => handleDeleteWorktree(true)}
-					sx={{
-						justifyContent: 'flex-start',
-						textTransform: 'none',
-						fontWeight: 600,
-						color: theme.palette.error.main,
-						'&:hover': { bgcolor: alpha(theme.palette.error.main, 0.08) },
-					}}
-				>
-					Worktree + Branche
-				</Button>
-			</Popover>
 		</>
 	);
 }
