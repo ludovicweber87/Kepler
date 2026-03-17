@@ -1,4 +1,8 @@
 {
+	"onboarding": {
+		"welcome": "Bienvenue sur Devora",
+		"description": "Devora est votre dashboard de développement personnel. Gérez vos issues GitHub, pull requests, todos, worktrees Git et lancez des agents Claude — le tout depuis une seule interface. Commencez par ajouter un dépôt ci-dessous."
+	},
 	"sidebar": {
 		"dashboard": "Tableau de bord",
 		"issues": "Issues",
@@ -9,7 +13,8 @@
 		"skills": "Skills",
 		"todos": "Taches",
 		"settings": "Parametres",
-		"signOut": "Se deconnecter"
+		"signOut": "Se deconnecter",
+		"launchAgent": "Lancer un agent"
 	},
 	"landing": {
 		"nav": {
@@ -197,7 +202,27 @@
 		"search": "Rechercher",
 		"noResults": "Aucun resultat",
 		"language": "Langue",
-		"back": "Retour"
+		"back": "Retour",
+		"next": "Suivant",
+		"sessionKilled": "Session arrêtée",
+		"sessionDeleted": "Session supprimée"
+	},
+	"launchModal": {
+		"selectProject": "Choisir un projet",
+		"selectProjectDesc": "Selectionnez le projet dans lequel lancer l'agent.",
+		"noProjects": "Aucun projet configure",
+		"noProjectsDesc": "Ajoutez d'abord un depot dans les parametres.",
+		"launchMode": "Mode de lancement",
+		"worktree": "Worktree",
+		"worktreeDesc": "Creer un worktree isole avec une nouvelle branche",
+		"currentBranch": "Branche courante",
+		"currentBranchDesc": "Lancer sur la branche locale actuelle",
+		"currentBranchTooltip": "C'est la branche sur laquelle vous etes actuellement en local dans ce projet",
+		"fetchingBranch": "Detection de la branche courante...",
+		"branchName": "Nom de la branche",
+		"branchDesc": "Un worktree isole sera cree dans .worktrees/ pour cette session.",
+		"launch": "Lancer",
+		"creating": "Creation..."
 	},
 	"agentBuilder": {
 		"title": "Agent Builder",

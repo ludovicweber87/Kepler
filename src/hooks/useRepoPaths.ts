@@ -16,7 +16,7 @@ export function useRepoPaths() {
 	const { data: session } = useSession();
 	const userId = session?.user?.id ?? null;
 
-	const { data: repoPaths = [] } = useQuery({
+	const { data: repoPaths = [], isLoading: repoPathsLoading } = useQuery({
 		queryKey: QUERY_KEY,
 		queryFn: async () => {
 			const { data, error } = await supabase
@@ -122,5 +122,5 @@ export function useRepoPaths() {
 		[repoPaths],
 	);
 
-	return { repoPaths, savePath, deletePath, getLocalPath };
+	return { repoPaths, repoPathsLoading, savePath, deletePath, getLocalPath };
 }

@@ -67,7 +67,13 @@ function getAgeBorderColor(updatedAt: string): string {
 	return 'rgba(244, 67, 54, 0.30)';
 }
 
-function CheckIcon({ status, t }: { status: GitHubPullRequest['check_status']; t: (key: string) => string }) {
+function CheckIcon({
+	status,
+	t,
+}: {
+	status: GitHubPullRequest['check_status'];
+	t: (key: string) => string;
+}) {
 	if (status === 'success') {
 		return (
 			<Tooltip title={t('checksPassed')}>
@@ -95,7 +101,10 @@ function CheckIcon({ status, t }: { status: GitHubPullRequest['check_status']; t
 function CheckRunItem({ run }: { run: CheckRun }) {
 	const theme = useTheme();
 	const isCompleted = run.status === 'completed';
-	const isSuccess = run.conclusion === 'success' || run.conclusion === 'neutral' || run.conclusion === 'skipped';
+	const isSuccess =
+		run.conclusion === 'success' ||
+		run.conclusion === 'neutral' ||
+		run.conclusion === 'skipped';
 
 	let color = theme.palette.warning.main;
 	let Icon = AccessTimeRoundedIcon;
@@ -116,7 +125,10 @@ function CheckRunItem({ run }: { run: CheckRun }) {
 				{run.name}
 			</Typography>
 			{run.conclusion && (
-				<Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.65rem', ml: 'auto' }}>
+				<Typography
+					variant="caption"
+					sx={{ color: 'text.disabled', fontSize: '0.65rem', ml: 'auto' }}
+				>
 					{run.conclusion}
 				</Typography>
 			)}
@@ -124,13 +136,23 @@ function CheckRunItem({ run }: { run: CheckRun }) {
 	);
 }
 
-function ChecksDetail({ runs, t }: { runs: CheckRun[]; t: (key: string, values?: Record<string, number>) => string }) {
+function ChecksDetail({
+	runs,
+	t,
+}: {
+	runs: CheckRun[];
+	t: (key: string, values?: Record<string, number>) => string;
+}) {
 	const [expanded, setExpanded] = useState(false);
 
 	if (runs.length === 0) return null;
 
 	const passed = runs.filter(
-		(r) => r.status === 'completed' && (r.conclusion === 'success' || r.conclusion === 'neutral' || r.conclusion === 'skipped'),
+		(r) =>
+			r.status === 'completed' &&
+			(r.conclusion === 'success' ||
+				r.conclusion === 'neutral' ||
+				r.conclusion === 'skipped'),
 	).length;
 
 	return (
@@ -149,7 +171,10 @@ function ChecksDetail({ runs, t }: { runs: CheckRun[]; t: (key: string, values?:
 					'&:hover': { '& .MuiTypography-root': { color: 'text.primary' } },
 				}}
 			>
-				<Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.7rem', transition: 'color 0.15s' }}>
+				<Typography
+					variant="caption"
+					sx={{ color: 'text.disabled', fontSize: '0.7rem', transition: 'color 0.15s' }}
+				>
 					{t('checksPassedCount', { passed, total: runs.length })}
 				</Typography>
 				{expanded ? (
@@ -394,7 +419,9 @@ export default function PullRequestsList() {
 	const filteredPrs = useMemo(() => {
 		if (!allPrs) return [];
 		const repo = views[tabIndex]?.repoFullName;
-		return repo ? allPrs.filter((pr) => pr.repo_full_name === repo) : allPrs;
+		return repo
+			? allPrs.filter((pr) => pr.repo_full_name?.toLowerCase() === repo.toLowerCase())
+			: allPrs;
 	}, [allPrs, tabIndex, views]);
 
 	const handleMerge = useCallback(() => {
@@ -573,7 +600,7 @@ export default function PullRequestsList() {
 										color: theme.palette.primary.main,
 									})}
 								/>
-								 ?
+								?
 							</Typography>
 							<Typography
 								variant="body2"

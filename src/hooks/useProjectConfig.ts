@@ -60,9 +60,13 @@ async function fetchConfigs(userId: string): Promise<ProjectV2Config[]> {
 }
 
 /** Find the config that owns a given repo based on viewRepoMappings */
-function findConfigForRepo(configs: ProjectV2Config[], repoFullName: string): ProjectV2Config | undefined {
+function findConfigForRepo(
+	configs: ProjectV2Config[],
+	repoFullName: string,
+): ProjectV2Config | undefined {
+	const lower = repoFullName.toLowerCase();
 	return configs.find((c) =>
-		c.viewRepoMappings.some((m) => m.repos.includes(repoFullName)),
+		c.viewRepoMappings.some((m) => m.repos.some((r) => r.toLowerCase() === lower)),
 	);
 }
 
@@ -156,9 +160,8 @@ export function useProjectConfig() {
 	const setActiveView = useCallback(
 		(viewName: string | null) => {
 			// Find which config contains this view
-			const target = configs.find((c) =>
-				c.selectedViews.includes(viewName ?? ''),
-			) ?? configs[0];
+			const target =
+				configs.find((c) => c.selectedViews.includes(viewName ?? '')) ?? configs[0];
 			if (!target) return;
 			saveMutation.mutate({ ...target, activeView: viewName });
 		},

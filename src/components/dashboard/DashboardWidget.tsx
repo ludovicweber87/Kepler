@@ -33,6 +33,7 @@ export default function DashboardWidget({
 				p: 2,
 				display: 'flex',
 				flexDirection: 'column',
+				height: '100%',
 				minHeight: minHeight ?? 0,
 				overflow: 'hidden',
 				transition: 'border-color 0.2s',
@@ -50,10 +51,7 @@ export default function DashboardWidget({
 				}}
 			>
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-					<Typography
-						variant="body2"
-						sx={{ fontWeight: 600, fontSize: '0.82rem' }}
-					>
+					<Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.82rem' }}>
 						{title}
 					</Typography>
 					{badge != null && (
@@ -88,7 +86,17 @@ export default function DashboardWidget({
 					</Typography>
 				)}
 			</Box>
-			<Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>{children}</Box>
+			<Box
+				sx={{
+					flex: 1,
+					minHeight: 0,
+					overflow: 'hidden',
+					display: 'flex',
+					flexDirection: 'column',
+				}}
+			>
+				{children}
+			</Box>
 		</Box>
 	);
 }

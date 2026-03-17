@@ -13,7 +13,6 @@ import { alpha, useTheme } from '@mui/material/styles';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
-import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
 import DraggableTabs from '@/components/shared/DraggableTabs';
 import SessionCard from '@/components/shared/SessionCard';
 import { useAgentViews } from '@/hooks/useAgentViews';
@@ -22,14 +21,12 @@ import { useSessionManager } from '@/hooks/useSessionManager';
 import { usePendingQuestions } from '@/hooks/usePendingQuestions';
 import AgentTerminalModal from '@/components/agents/AgentTerminalModal';
 
-
 export default function WorkspaceView() {
 	const theme = useTheme();
 	const t = useTranslations('workspace');
 	const { views, activeIndex, setActiveIndex, addView, reorderViews } = useAgentViews();
 	const [deleteTarget, setDeleteTarget] = useState<WorktreeInfo | null>(null);
 	const [deleteAnchorEl, setDeleteAnchorEl] = useState<HTMLElement | null>(null);
-	const [newAgentOpen, setNewAgentOpen] = useState(false);
 	const [selectedWorktree, setSelectedWorktree] = useState<{
 		worktree: WorktreeInfo;
 		existingSessionId?: string;
@@ -38,16 +35,18 @@ export default function WorkspaceView() {
 
 	const activeView = views[activeIndex] ?? null;
 	const { worktrees, isLoading, deleteWorktree } = useWorktrees(activeView?.path);
-	const { killSession, getActiveForPath, getPastForPath, fetchSessionForPath } = useSessionManager();
+	const { killSession, getActiveForPath, getPastForPath, fetchSessionForPath } =
+		useSessionManager();
 	const pendingQuestions = usePendingQuestions();
 
 	const sortedWorktrees = useMemo(
-		() => [...worktrees].sort((a, b) => {
-			const aActive = !!getActiveForPath(a.path);
-			const bActive = !!getActiveForPath(b.path);
-			if (aActive === bActive) return 0;
-			return aActive ? -1 : 1;
-		}),
+		() =>
+			[...worktrees].sort((a, b) => {
+				const aActive = !!getActiveForPath(a.path);
+				const bActive = !!getActiveForPath(b.path);
+				if (aActive === bActive) return 0;
+				return aActive ? -1 : 1;
+			}),
 		[worktrees, getActiveForPath],
 	);
 
@@ -172,28 +171,6 @@ export default function WorkspaceView() {
 				}
 			/>
 
-			<Box sx={{ pt: 2, pb: 1 }}>
-				<Button
-					size="small"
-					variant="outlined"
-					startIcon={<SmartToyRoundedIcon />}
-					onClick={() => setNewAgentOpen(true)}
-					sx={{
-						textTransform: 'none',
-						fontWeight: 600,
-						fontSize: '0.8rem',
-						color: theme.palette.primary.main,
-						borderColor: alpha(theme.palette.primary.main, 0.3),
-						'&:hover': {
-							borderColor: theme.palette.primary.main,
-							bgcolor: alpha(theme.palette.primary.main, 0.08),
-						},
-					}}
-				>
-					{t('launchAgent')}
-				</Button>
-			</Box>
-
 			{isLoading && (
 				<Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
 					<CircularProgress size={28} sx={{ color: theme.palette.primary.main }} />
@@ -232,18 +209,26 @@ export default function WorkspaceView() {
 								name={wt.branch}
 								subtitle={wt.path}
 								status={
-									active ? 'active'
-										: past ? (isError ? 'error' : 'completed')
+									active
+										? 'active'
+										: past
+											? isError
+												? 'error'
+												: 'completed'
 											: 'idle'
 								}
 								isStreaming={active?.isStreaming}
 								hasPendingQuestion={pendingQuestions.has(wt.path)}
 								onClick={() => handleWorktreeClick(wt)}
 								onStop={active ? () => killSession(active.sessionId) : undefined}
-								onDelete={!active ? (e) => {
-									setDeleteTarget(wt);
-									setDeleteAnchorEl(e.currentTarget as HTMLElement);
-								} : undefined}
+								onDelete={
+									!active
+										? (e) => {
+												setDeleteTarget(wt);
+												setDeleteAnchorEl(e.currentTarget as HTMLElement);
+											}
+										: undefined
+								}
 							/>
 						);
 					})}
@@ -304,12 +289,6 @@ export default function WorkspaceView() {
 					{t('worktreeAndBranch')}
 				</Button>
 			</Popover>
-
-			<AgentTerminalModal
-				open={newAgentOpen}
-				onClose={() => setNewAgentOpen(false)}
-				projectPath={activeView?.path}
-			/>
 
 			<AgentTerminalModal
 				open={!!selectedWorktree}

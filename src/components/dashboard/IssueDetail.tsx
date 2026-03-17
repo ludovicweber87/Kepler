@@ -30,7 +30,6 @@ import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import CircleRoundedIcon from '@mui/icons-material/CircleRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import ChatBubbleOutlineRoundedIcon from '@mui/icons-material/ChatBubbleOutlineRounded';
-import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
 import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import SaveRoundedIcon from '@mui/icons-material/SaveRounded';
@@ -54,7 +53,6 @@ import { useIssue, useDashboard } from '@/hooks/useGitHub';
 import { useTodos, useIssueTodos } from '@/hooks/useTodos';
 import { supabase } from '@/lib/supabase';
 import { GitHubComment } from '@/types';
-import AgentTerminalModal from '@/components/agents/AgentTerminalModal';
 import IssueTimelineModal from '@/components/dashboard/IssueTimelineModal';
 
 const markdownSx = {
@@ -137,7 +135,8 @@ const markdownSx = {
 		},
 		'&.checked': {
 			borderColor: 'success.main',
-			bgcolor: (t: { palette: { success: { main: string } } }) => alpha(t.palette.success.main, 0.15),
+			bgcolor: (t: { palette: { success: { main: string } } }) =>
+				alpha(t.palette.success.main, 0.15),
 			'& svg': { color: 'success.main' },
 		},
 		'&.unchecked': {
@@ -162,27 +161,57 @@ function proxyGitHubImage(src: string | undefined): string | undefined {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function createMarkdownComponents(onCheckboxToggle?: (index: number) => void, counterRef?: React.RefObject<number>): Record<string, any> {
+function createMarkdownComponents(
+	onCheckboxToggle?: (index: number) => void,
+	counterRef?: React.RefObject<number>,
+): Record<string, any> {
 	return {
 		img: ({ src, alt, ...props }: { src?: string; alt?: string }) => (
 			// eslint-disable-next-line @next/next/no-img-element
 			<img {...props} src={proxyGitHubImage(src)} alt={alt ?? ''} />
 		),
-		li: ({ children, node, ...props }: { children?: React.ReactNode; node?: { children?: Array<{ type: string; tagName?: string; properties?: { type?: string; checked?: boolean } }>; }; className?: string; ordered?: boolean }) => {
+		li: ({
+			children,
+			node,
+			...props
+		}: {
+			children?: React.ReactNode;
+			node?: {
+				children?: Array<{
+					type: string;
+					tagName?: string;
+					properties?: { type?: string; checked?: boolean };
+				}>;
+			};
+			className?: string;
+			ordered?: boolean;
+		}) => {
 			const isTaskItem = node?.children?.some(
-				(child) => child.type === 'element' && child.tagName === 'input' && child.properties?.type === 'checkbox',
+				(child) =>
+					child.type === 'element' &&
+					child.tagName === 'input' &&
+					child.properties?.type === 'checkbox',
 			);
 			if (!isTaskItem) return <li {...props}>{children}</li>;
 
 			const inputChild = node?.children?.find(
-				(child) => child.type === 'element' && child.tagName === 'input' && child.properties?.type === 'checkbox',
+				(child) =>
+					child.type === 'element' &&
+					child.tagName === 'input' &&
+					child.properties?.type === 'checkbox',
 			);
 			const isChecked = inputChild?.properties?.checked ?? false;
 			const currentIdx = counterRef ? counterRef.current++ : 0;
 
 			const filteredChildren = Array.isArray(children)
 				? children.filter(
-						(child) => !(child && typeof child === 'object' && 'props' in child && child.props?.type === 'checkbox'),
+						(child) =>
+							!(
+								child &&
+								typeof child === 'object' &&
+								'props' in child &&
+								child.props?.type === 'checkbox'
+							),
 					)
 				: children;
 
@@ -279,7 +308,11 @@ function Comment({
 								<IconButton
 									size="small"
 									onClick={(e) => setMenuAnchor(e.currentTarget)}
-									sx={{ p: 0.25, color: 'text.disabled', '&:hover': { color: 'text.secondary' } }}
+									sx={{
+										p: 0.25,
+										color: 'text.disabled',
+										'&:hover': { color: 'text.secondary' },
+									}}
 								>
 									<MoreVertRoundedIcon sx={{ fontSize: 16 }} />
 								</IconButton>
@@ -299,7 +332,9 @@ function Comment({
 										<ListItemIcon sx={{ minWidth: '28px !important' }}>
 											<EditRoundedIcon sx={{ fontSize: 16 }} />
 										</ListItemIcon>
-										<ListItemText primaryTypographyProps={{ fontSize: '0.8rem' }}>
+										<ListItemText
+											primaryTypographyProps={{ fontSize: '0.8rem' }}
+										>
 											{tc('edit')}
 										</ListItemText>
 									</MenuItem>
@@ -311,9 +346,16 @@ function Comment({
 										sx={{ fontSize: '0.8rem', gap: 1 }}
 									>
 										<ListItemIcon sx={{ minWidth: '28px !important' }}>
-											<DeleteOutlineRoundedIcon sx={{ fontSize: 16, color: 'error.main' }} />
+											<DeleteOutlineRoundedIcon
+												sx={{ fontSize: 16, color: 'error.main' }}
+											/>
 										</ListItemIcon>
-										<ListItemText primaryTypographyProps={{ fontSize: '0.8rem', color: 'error.main' }}>
+										<ListItemText
+											primaryTypographyProps={{
+												fontSize: '0.8rem',
+												color: 'error.main',
+											}}
+										>
 											{tc('delete')}
 										</ListItemText>
 									</MenuItem>
@@ -355,7 +397,6 @@ export default function IssueDetail({
 	const qc = useQueryClient();
 	const { todos, addTodo } = useTodos(repoFullName);
 	const { data: issueTodos = [] } = useIssueTodos(repoFullName, issueNum);
-	const [terminalOpen, setTerminalOpen] = useState(false);
 	const [timelineOpen, setTimelineOpen] = useState(false);
 	const [taskAnchor, setTaskAnchor] = useState<HTMLElement | null>(null);
 
@@ -380,7 +421,10 @@ export default function IssueDetail({
 	const { data: dashboardData } = useDashboard();
 	const currentUser = dashboardData?.user;
 
-	const issueQueryKey = useMemo(() => ['github', 'issue', owner, repo, number], [owner, repo, number]);
+	const issueQueryKey = useMemo(
+		() => ['github', 'issue', owner, repo, number],
+		[owner, repo, number],
+	);
 	const bodyRef = useRef('');
 	const checkboxCounterRef = useRef(0);
 
@@ -389,10 +433,13 @@ export default function IssueDetail({
 			const newBody = toggleCheckboxInMarkdown(currentBody, checkboxIndex);
 			if (newBody === currentBody) return;
 			// Optimistic update
-			qc.setQueryData(issueQueryKey, (old: { issue: { body: string }; comments: GitHubComment[] } | undefined) => {
-				if (!old) return old;
-				return { ...old, issue: { ...old.issue, body: newBody } };
-			});
+			qc.setQueryData(
+				issueQueryKey,
+				(old: { issue: { body: string }; comments: GitHubComment[] } | undefined) => {
+					if (!old) return old;
+					return { ...old, issue: { ...old.issue, body: newBody } };
+				},
+			);
 			try {
 				await fetch('/api/github/issue/update', {
 					method: 'PATCH',
@@ -402,10 +449,13 @@ export default function IssueDetail({
 				qc.invalidateQueries({ queryKey: issueQueryKey });
 			} catch {
 				// Rollback
-				qc.setQueryData(issueQueryKey, (old: { issue: { body: string }; comments: GitHubComment[] } | undefined) => {
-					if (!old) return old;
-					return { ...old, issue: { ...old.issue, body: currentBody } };
-				});
+				qc.setQueryData(
+					issueQueryKey,
+					(old: { issue: { body: string }; comments: GitHubComment[] } | undefined) => {
+						if (!old) return old;
+						return { ...old, issue: { ...old.issue, body: currentBody } };
+					},
+				);
 			}
 		},
 		[owner, repo, issueNum, qc, issueQueryKey],
@@ -482,7 +532,12 @@ export default function IssueDetail({
 			await fetch('/api/github/issue/comment', {
 				method: 'PATCH',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ owner, repo, commentId: editingComment.id, body: editCommentBody.trim() }),
+				body: JSON.stringify({
+					owner,
+					repo,
+					commentId: editingComment.id,
+					body: editCommentBody.trim(),
+				}),
 			});
 			setEditingComment(null);
 			qc.invalidateQueries({ queryKey: issueQueryKey });
@@ -591,9 +646,7 @@ export default function IssueDetail({
 				<CardContent sx={{ p: 4, '&:last-child': { pb: 4 } }}>
 					<Box sx={{ mb: 3 }}>
 						{editingTitle ? (
-							<Box
-								sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}
-							>
+							<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
 								<TextField
 									value={editTitle}
 									onChange={(e) => setEditTitle(e.target.value)}
@@ -618,11 +671,7 @@ export default function IssueDetail({
 									disabled={saving}
 									sx={{ color: 'success.main' }}
 								>
-									{saving ? (
-										<CircularProgress size={18} />
-									) : (
-										<SaveRoundedIcon />
-									)}
+									{saving ? <CircularProgress size={18} /> : <SaveRoundedIcon />}
 								</IconButton>
 								<IconButton
 									size="small"
@@ -673,9 +722,7 @@ export default function IssueDetail({
 							<Chip
 								icon={
 									isOpen ? (
-										<CircleRoundedIcon
-											sx={{ fontSize: '14px !important' }}
-										/>
+										<CircleRoundedIcon sx={{ fontSize: '14px !important' }} />
 									) : (
 										<CheckCircleRoundedIcon
 											sx={{ fontSize: '14px !important' }}
@@ -702,14 +749,6 @@ export default function IssueDetail({
 							))}
 						</Box>
 						<Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-							<Button
-								variant="contained"
-								size="small"
-								startIcon={<SmartToyRoundedIcon />}
-								onClick={() => setTerminalOpen(true)}
-							>
-								{t('launchAgent')}
-							</Button>
 							<Button
 								variant="outlined"
 								size="small"
@@ -907,7 +946,9 @@ export default function IssueDetail({
 									sx={{
 										textTransform: 'none',
 										bgcolor: 'primary.main',
-										'&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.85) },
+										'&:hover': {
+											bgcolor: alpha(theme.palette.primary.main, 0.85),
+										},
 									}}
 								>
 									{tc('save')}
@@ -939,7 +980,11 @@ export default function IssueDetail({
 									transition: 'opacity 0.15s',
 								}}
 							/>
-							{(() => { bodyRef.current = issue.body ?? ''; checkboxCounterRef.current = 0; return null; })()}
+							{(() => {
+								bodyRef.current = issue.body ?? '';
+								checkboxCounterRef.current = 0;
+								return null;
+							})()}
 							{issue.body ? (
 								<Box sx={markdownSx}>
 									<ReactMarkdown
@@ -1057,7 +1102,9 @@ export default function IssueDetail({
 						variant="contained"
 						onClick={handleEditComment}
 						disabled={!editCommentBody.trim() || savingComment}
-						startIcon={savingComment ? <CircularProgress size={14} /> : <SaveRoundedIcon />}
+						startIcon={
+							savingComment ? <CircularProgress size={14} /> : <SaveRoundedIcon />
+						}
 						sx={{
 							textTransform: 'none',
 							fontWeight: 600,
@@ -1102,18 +1149,6 @@ export default function IssueDetail({
 					</Button>
 				</DialogActions>
 			</Dialog>
-
-			<AgentTerminalModal
-				open={terminalOpen}
-				onClose={() => setTerminalOpen(false)}
-				issueContext={{
-					owner,
-					repo,
-					issueNumber: parseInt(number, 10),
-					issueTitle: issue.title,
-					labels: issue.labels.map((l) => l.name),
-				}}
-			/>
 
 			<IssueTimelineModal
 				open={timelineOpen}

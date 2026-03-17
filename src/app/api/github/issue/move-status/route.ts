@@ -33,17 +33,23 @@ export async function POST(req: NextRequest) {
 			.from('project_configs')
 			.select('org, project_number, view_repo_mappings');
 
-		const config = allConfigs?.find((c) => {
-			const mappings = c.view_repo_mappings as { repos?: string[] }[] | null;
-			return mappings?.some((m) => m.repos?.includes(repoFullName));
-		}) ?? allConfigs?.[0];
+		const config =
+			allConfigs?.find((c) => {
+				const mappings = c.view_repo_mappings as { repos?: string[] }[] | null;
+				const lower = repoFullName.toLowerCase();
+				return mappings?.some((m) => m.repos?.some((r) => r.toLowerCase() === lower));
+			}) ?? allConfigs?.[0];
 
 		if (!config) {
 			return NextResponse.json({ error: 'No project config found' }, { status: 404 });
 		}
 
 		const issue = await fetchIssue(owner, repo, issueNumber, auth.accessToken);
-		const fieldInfo = await fetchStatusFieldInfo(config.org, config.project_number, auth.accessToken);
+		const fieldInfo = await fetchStatusFieldInfo(
+			config.org,
+			config.project_number,
+			auth.accessToken,
+		);
 		const option = fieldInfo.options.find((o) => o.name === newStatus);
 		if (!option) {
 			return NextResponse.json(
@@ -52,8 +58,18 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		const itemId = await findProjectItemId(issue.node_id, fieldInfo.projectId, auth.accessToken);
-		await updateProjectItemStatus(fieldInfo.projectId, itemId, fieldInfo.fieldId, option.id, auth.accessToken);
+		const itemId = await findProjectItemId(
+			issue.node_id,
+			fieldInfo.projectId,
+			auth.accessToken,
+		);
+		await updateProjectItemStatus(
+			fieldInfo.projectId,
+			itemId,
+			fieldInfo.fieldId,
+			option.id,
+			auth.accessToken,
+		);
 
 		return NextResponse.json({ ok: true });
 	} catch (err) {

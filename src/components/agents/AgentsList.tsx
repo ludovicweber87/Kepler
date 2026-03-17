@@ -16,7 +16,6 @@ import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
 import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import AgentTerminalModal from './AgentTerminalModal';
 import AgentEditorDialog from './AgentEditorDialog';
 import AgentBuilderDialog from './AgentBuilderDialog';
 import DraggableTabs from '@/components/shared/DraggableTabs';
@@ -32,16 +31,9 @@ export default function AgentsList() {
 
 	const { agents, isLoading, saveAgent, deleteAgent } = useAgentFiles(activeView?.path ?? null);
 
-	const [terminalOpen, setTerminalOpen] = useState(false);
-	const [terminalAgent, setTerminalAgent] = useState<AgentFile | undefined>(undefined);
 	const [editorOpen, setEditorOpen] = useState(false);
 	const [editingAgent, setEditingAgent] = useState<AgentFile | undefined>(undefined);
 	const [builderOpen, setBuilderOpen] = useState(false);
-
-	const handleLaunch = (agent?: AgentFile) => {
-		setTerminalAgent(agent);
-		setTerminalOpen(true);
-	};
 
 	const handleEdit = (agent?: AgentFile) => {
 		setEditingAgent(agent);
@@ -63,7 +55,8 @@ export default function AgentsList() {
 					sx={{
 						fontWeight: 700,
 						mb: 4,
-						background: (theme) => `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+						background: (theme) =>
+							`linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
 						WebkitBackgroundClip: 'text',
 						WebkitTextFillColor: 'transparent',
 					}}
@@ -123,7 +116,8 @@ export default function AgentsList() {
 					variant="h4"
 					sx={{
 						fontWeight: 700,
-						background: (theme) => `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+						background: (theme) =>
+							`linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
 						WebkitBackgroundClip: 'text',
 						WebkitTextFillColor: 'transparent',
 					}}
@@ -227,7 +221,7 @@ export default function AgentsList() {
 					{agents.map((agent) => (
 						<Box
 							key={agent.filename}
-							onClick={() => handleLaunch(agent)}
+							onClick={() => handleEdit(agent)}
 							sx={{
 								width: {
 									xs: '100%',
@@ -243,7 +237,8 @@ export default function AgentsList() {
 								transition: 'transform 0.15s, box-shadow 0.15s',
 								'&:hover': {
 									transform: 'translateY(-2px)',
-									boxShadow: (theme) => `0 8px 24px ${alpha(theme.palette.primary.main, 0.15)}`,
+									boxShadow: (theme) =>
+										`0 8px 24px ${alpha(theme.palette.primary.main, 0.15)}`,
 								},
 							}}
 						>
@@ -283,7 +278,8 @@ export default function AgentsList() {
 										'& code': {
 											fontFamily: '"JetBrains Mono", monospace',
 											fontSize: '0.75em',
-											bgcolor: (theme) => alpha(theme.palette.text.primary, 0.06),
+											bgcolor: (theme) =>
+												alpha(theme.palette.text.primary, 0.06),
 											px: 0.5,
 											borderRadius: 1,
 										},
@@ -344,14 +340,6 @@ export default function AgentsList() {
 					))}
 				</Box>
 			)}
-
-			{/* Terminal modal */}
-			<AgentTerminalModal
-				open={terminalOpen}
-				onClose={() => setTerminalOpen(false)}
-				projectPath={activeView?.path}
-				agentFile={terminalAgent}
-			/>
 
 			{/* Editor dialog */}
 			<AgentEditorDialog

@@ -4,6 +4,11 @@ import { useState, useEffect, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Alert from '@mui/material/Alert';
+import Accordion from '@mui/material/Accordion';
+import AccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
+import Checkbox from '@mui/material/Checkbox';
 import Chip from '@mui/material/Chip';
 import Skeleton from '@mui/material/Skeleton';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -21,7 +26,6 @@ import GitHubIcon from '@mui/icons-material/GitHub';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
 import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
-import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import ViewColumnRoundedIcon from '@mui/icons-material/ViewColumnRounded';
 import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
@@ -72,7 +76,11 @@ function ProjectSection({
 	const [viewsData, setViewsData] = useState<ProjectViewsData | null>(() => {
 		if (savedConfig?.views?.length) {
 			return {
-				project: { id: '', title: savedConfig.projectTitle, number: savedConfig.projectNumber },
+				project: {
+					id: '',
+					title: savedConfig.projectTitle,
+					number: savedConfig.projectNumber,
+				},
 				views: savedConfig.views,
 				viewRepoMappings: savedConfig.viewRepoMappings,
 				statusColumns: savedConfig.statusColumns,
@@ -159,158 +167,135 @@ function ProjectSection({
 	const displayMappings = viewsData?.viewRepoMappings ?? savedConfig?.viewRepoMappings ?? [];
 
 	return (
-		<Box>
-			<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-				<Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+		<Accordion
+			defaultExpanded
+			disableGutters
+			sx={{
+				bgcolor: 'transparent',
+				boxShadow: 'none',
+				'&:before': { display: 'none' },
+				border: 1,
+				borderColor: 'divider',
+				borderRadius: '8px !important',
+				overflow: 'hidden',
+			}}
+		>
+			<AccordionSummary
+				expandIcon={<ExpandMoreRoundedIcon />}
+				sx={{
+					minHeight: 48,
+					px: 2,
+					'& .MuiAccordionSummary-content': {
+						alignItems: 'center',
+						gap: 1,
+						my: 0,
+					},
+				}}
+			>
+				<Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1 }}>
 					{project.title}
 				</Typography>
-				<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-					{!loading && displayViews.length > 0 && (
-						<Typography variant="caption" color="text.secondary">
-							{t('viewsAvailable', { count: displayViews.length })}
-						</Typography>
-					)}
-					<Tooltip title={t('refreshFromGithub')}>
-						<IconButton
-							size="small"
-							onClick={fetchViews}
-							disabled={loading}
-							sx={{
-								color: 'text.secondary',
-								animation: loading ? 'spin 1s linear infinite' : 'none',
-								'@keyframes spin': {
-									from: { transform: 'rotate(0deg)' },
-									to: { transform: 'rotate(360deg)' },
-								},
-							}}
-						>
-							<RefreshRoundedIcon fontSize="small" />
-						</IconButton>
-					</Tooltip>
-				</Box>
-			</Box>
-
-			{error && (
-				<Alert severity="error" sx={{ mb: 2, borderRadius: 1 }}>
-					{error}
-				</Alert>
-			)}
-
-			{loading && !hasFetched && (
-				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-					<CircularProgress size={18} />
-					<Typography variant="body2" color="text.secondary">
-						{t('loadingViews')}
+				{!loading && displayViews.length > 0 && (
+					<Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>
+						{t('viewsAvailable', { count: displayViews.length })}
 					</Typography>
-				</Box>
-			)}
+				)}
+				<Tooltip title={t('refreshFromGithub')}>
+					<IconButton
+						size="small"
+						onClick={(e) => {
+							e.stopPropagation();
+							fetchViews();
+						}}
+						disabled={loading}
+						sx={{
+							color: 'text.secondary',
+							animation: loading ? 'spin 1s linear infinite' : 'none',
+							'@keyframes spin': {
+								from: { transform: 'rotate(0deg)' },
+								to: { transform: 'rotate(360deg)' },
+							},
+						}}
+					>
+						<RefreshRoundedIcon fontSize="small" />
+					</IconButton>
+				</Tooltip>
+			</AccordionSummary>
+			<AccordionDetails sx={{ p: 0 }}>
+				{error && (
+					<Alert severity="error" sx={{ mx: 2, mb: 1, borderRadius: 1 }}>
+						{error}
+					</Alert>
+				)}
 
-			{displayViews.length > 0 && (
-				<Box
-					sx={{
-						display: 'grid',
-						gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-						gap: 1.5,
-					}}
-				>
-					{displayViews.map((view) => {
+				{loading && !hasFetched && (
+					<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1 }}>
+						<CircularProgress size={18} />
+						<Typography variant="body2" color="text.secondary">
+							{t('loadingViews')}
+						</Typography>
+					</Box>
+				)}
+
+				{displayViews.length > 0 &&
+					displayViews.map((view, index) => {
 						const isSelected = selectedViews.has(view.name);
-						const mapping = displayMappings.find((m) => m.viewName === view.name);
-						const repos = mapping?.repos ?? [];
-						const repoCount = repos.length;
 						return (
 							<Box
 								key={view.id}
 								onClick={() => toggleView(view.name)}
 								sx={{
-									position: 'relative',
-									p: 1.5,
-									borderRadius: 2,
+									display: 'flex',
+									alignItems: 'center',
+									gap: 1.5,
+									py: 1,
+									px: 2,
 									cursor: 'pointer',
-									border: 2,
-									borderColor: (th) =>
-										isSelected ? th.palette.primary.main : th.palette.divider,
-									bgcolor: (th) =>
-										isSelected ? alpha(th.palette.primary.main, 0.1) : 'transparent',
-									transition: 'all 0.2s ease',
+									borderTop: index > 0 ? 1 : 0,
+									borderColor: 'divider',
+									transition: 'background-color 0.15s',
 									'&:hover': {
-										borderColor: (th) =>
-											isSelected
-												? th.palette.primary.light
-												: alpha(th.palette.primary.main, 0.4),
-										bgcolor: (th) =>
-											isSelected
-												? alpha(th.palette.primary.main, 0.15)
-												: alpha(th.palette.primary.main, 0.04),
+										bgcolor: (th) => alpha(th.palette.primary.main, 0.04),
 									},
 								}}
 							>
-								{isSelected && (
-									<CheckCircleRoundedIcon
-										sx={{
-											position: 'absolute',
-											top: 8,
-											right: 8,
-											fontSize: 18,
-											color: 'primary.main',
-										}}
-									/>
-								)}
-								<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.75 }}>
-									<ViewColumnRoundedIcon
-										sx={{
-											fontSize: 18,
-											color: isSelected ? 'primary.main' : 'text.secondary',
-										}}
-									/>
-									<Typography
-										variant="body2"
-										sx={{
-											fontWeight: 600,
-											color: isSelected ? 'primary.main' : 'text.primary',
-										}}
-									>
-										{view.name}
-									</Typography>
-								</Box>
-								{repoCount > 0 && (
-									<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-										{repos.map((repoName) => (
-											<Chip
-												key={repoName}
-												label={repoName.split('/').pop()}
-												size="small"
-												sx={{
-													fontSize: '0.65rem',
-													height: 20,
-													bgcolor: (th) =>
-														isSelected
-															? alpha(th.palette.secondary.main, 0.15)
-															: alpha(th.palette.text.secondary, 0.08),
-													color: isSelected ? 'secondary.main' : 'text.secondary',
-													'& .MuiChip-label': { px: 0.75 },
-												}}
-											/>
-										))}
-									</Box>
-								)}
-								{repoCount === 0 && (
-									<Typography variant="caption" color="text.secondary" sx={{ opacity: 0.6 }}>
-										0 {t('views', { count: 0 }).split(' ').pop()}
-									</Typography>
-								)}
+								<Checkbox
+									size="small"
+									checked={isSelected}
+									sx={{
+										p: 0.25,
+										color: (th) => alpha(th.palette.text.disabled, 0.3),
+										'&.Mui-checked': { color: 'primary.main' },
+									}}
+								/>
+								<ViewColumnRoundedIcon
+									sx={{
+										fontSize: 18,
+										color: isSelected ? 'primary.main' : 'text.secondary',
+									}}
+								/>
+								<Typography
+									variant="body2"
+									sx={{
+										fontWeight: 500,
+										color: isSelected ? 'primary.main' : 'text.primary',
+										flex: 1,
+										minWidth: 0,
+									}}
+								>
+									{view.name}
+								</Typography>
 							</Box>
 						);
 					})}
-				</Box>
-			)}
 
-			{!loading && hasFetched && displayViews.length === 0 && !error && (
-				<Typography variant="body2" color="text.secondary">
-					{t('noViewsFound')}
-				</Typography>
-			)}
-		</Box>
+				{!loading && hasFetched && displayViews.length === 0 && !error && (
+					<Typography variant="body2" color="text.secondary" sx={{ px: 2, py: 1 }}>
+						{t('noViewsFound')}
+					</Typography>
+				)}
+			</AccordionDetails>
+		</Accordion>
 	);
 }
 
@@ -453,7 +438,7 @@ function RepoPathCard({
 				</Box>
 				<Box sx={{ minWidth: 0, flex: 1 }}>
 					<Typography variant="body2" sx={{ fontWeight: 600, mb: 0.25 }}>
-						{repoName}
+						{repoName.split('/').pop()}
 					</Typography>
 					<Typography
 						variant="caption"
@@ -470,7 +455,10 @@ function RepoPathCard({
 					{hasPath && (
 						<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
 							<CheckRoundedIcon sx={{ fontSize: 12, color: 'success.main' }} />
-							<Typography variant="caption" sx={{ color: 'success.main', fontSize: '0.65rem' }}>
+							<Typography
+								variant="caption"
+								sx={{ color: 'success.main', fontSize: '0.65rem' }}
+							>
 								{t('pathValid')}
 							</Typography>
 						</Box>
@@ -629,8 +617,7 @@ export default function SettingsPanel() {
 
 	const totalConfigured = configs.filter((c) => c.selectedViews.length > 0).length;
 
-	// Filter: only user projects
-	const userProjects = orgProjects.filter((o) => o.ownerType === 'user');
+	const allProjects = orgProjects;
 
 	return (
 		<Box>
@@ -682,26 +669,32 @@ export default function SettingsPanel() {
 					</Box>
 				)}
 
-				{!loadingProjects && userProjects.length === 0 && !error && (
+				{!loadingProjects && allProjects.length === 0 && !error && (
 					<Alert severity="info" sx={{ mb: 2, borderRadius: 1, ml: 4.5 }}>
 						{t('noProjectsFound')}
 					</Alert>
 				)}
 
-				{!loadingProjects && userProjects.length > 0 && (
+				{!loadingProjects && allProjects.length > 0 && (
 					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, ml: 4.5 }}>
-						{userProjects.map((o) =>
-							o.projects.map((p) => (
-								<ProjectSection
-									key={p.id}
-									project={p}
-									org={o.org}
-									ownerType={o.ownerType}
-									savedConfig={findSavedConfig(o.org, p.number)}
-									onSave={saveConfig}
-									onToast={showToast}
-								/>
-							)),
+						{allProjects.map((o) =>
+							o.projects
+								.filter((p) => {
+									if (totalConfigured === 0) return true;
+									const cfg = findSavedConfig(o.org, p.number);
+									return cfg && cfg.selectedViews.length > 0;
+								})
+								.map((p) => (
+									<ProjectSection
+										key={p.id}
+										project={p}
+										org={o.org}
+										ownerType={o.ownerType}
+										savedConfig={findSavedConfig(o.org, p.number)}
+										onSave={saveConfig}
+										onToast={showToast}
+									/>
+								)),
 						)}
 
 						{totalConfigured > 0 && (

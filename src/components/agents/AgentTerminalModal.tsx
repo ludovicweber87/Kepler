@@ -10,7 +10,7 @@ import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import TextField from '@mui/material/TextField';
 import Alert from '@mui/material/Alert';
-import { alpha, useTheme } from '@mui/material/styles';
+import { alpha } from '@mui/material/styles';
 import DraggableTabs from '@/components/shared/DraggableTabs';
 import type { TabItem } from '@/components/shared/DraggableTabs';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -26,15 +26,19 @@ import DifferenceRoundedIcon from '@mui/icons-material/DifferenceRounded';
 import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
+import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
+import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebglAddon } from '@xterm/addon-webgl';
 import '@xterm/xterm/css/xterm.css';
+import Tooltip from '@mui/material/Tooltip';
 import type { AgentFile } from '@/hooks/useAgentFiles';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useAgentSession } from '@/hooks/useAgentSession';
 import { useOverlayTerminal } from '@/hooks/useOverlayTerminal';
 import { useWorktrees } from '@/hooks/useWorktrees';
+import { useTranslations } from 'next-intl';
 import AgentActivityTab from './AgentActivityTab';
 import AgentDiffTab from './AgentDiffTab';
 import AgentIssueTab from './AgentIssueTab';
@@ -149,12 +153,18 @@ export default function AgentTerminalModal({
 	isPastSession = false,
 	existingWorktree,
 }: AgentTerminalModalProps) {
-	const theme = useTheme();
-	// Step management: 'branch' (input branch name) → 'terminal' (running)
-	const [step, setStep] = useState<'branch' | 'terminal'>('branch');
+	const tl = useTranslations('launchModal');
+	const tc = useTranslations('common');
+	// Step management: 'project' → 'launch-mode' → 'branch' → 'terminal'
+	const [step, setStep] = useState<'project' | 'launch-mode' | 'branch' | 'terminal'>('project');
 	const [branchInput, setBranchInput] = useState('');
 	const [worktreePath, setWorktreePath] = useState<string | null>(null);
 	const [worktreeError, setWorktreeError] = useState<string | null>(null);
+	// Current branch mode state
+	const [selectedProject, setSelectedProject] = useState<string | null>(null);
+	const [, setCurrentBranch] = useState<string | null>(null);
+	const [fetchingBranch, setFetchingBranch] = useState(false);
+	const [launchMode, setLaunchMode] = useState<'worktree' | 'current-branch' | null>(null);
 
 	// Claude terminal refs
 	const [termNode, setTermNode] = useState<HTMLDivElement | null>(null);
@@ -180,16 +190,14 @@ export default function AgentTerminalModal({
 	const shellInitialized = useRef(false);
 
 	// Path resolution for issue context
-	const { getLocalPath, savePath } = useRepoPaths();
+	const { repoPaths, getLocalPath, savePath } = useRepoPaths();
 	const [resolvedPath, setResolvedPath] = useState<string | null>(null);
 	const [picking, setPicking] = useState(false);
 
 	const projectPath = projectPathProp ?? resolvedPath;
 
 	// Worktree management
-	const { createWorktree, isCreating } = useWorktrees(
-		projectPath ?? undefined,
-	);
+	const { createWorktree, isCreating } = useWorktrees(projectPath ?? undefined);
 
 	const generatedIdRef = useRef<string | null>(null);
 	if (open && !existingSessionId && !generatedIdRef.current) {
@@ -204,8 +212,11 @@ export default function AgentTerminalModal({
 	const overlay = useOverlayTerminal();
 
 	// Effective working path: worktree path when available, else projectPath
+	// For current-branch mode, always use projectPath directly
 	// For past sessions without worktree_path in DB, derive from projectPath + branch
 	const effectivePath = useMemo(() => {
+		// Current-branch mode: use project root directly
+		if (launchMode === 'current-branch' && projectPath) return projectPath;
 		if (worktreePath) return worktreePath;
 		if (session?.worktree_path) return session.worktree_path;
 		if (
@@ -221,6 +232,7 @@ export default function AgentTerminalModal({
 		if (projectPath && existingWorktree?.worktreePath) return existingWorktree.worktreePath;
 		return projectPath;
 	}, [
+		launchMode,
 		worktreePath,
 		session?.worktree_path,
 		session?.branch,
@@ -279,20 +291,31 @@ export default function AgentTerminalModal({
 			setResolvedPath(null);
 			setActiveTab(0);
 			setTermTabOrder(null);
-			setStep('branch');
+			setStep('project');
 			setBranchInput('');
 			setWorktreePath(null);
 			setWorktreeError(null);
+			setSelectedProject(null);
+			setCurrentBranch(null);
+			setFetchingBranch(false);
+			setLaunchMode(null);
 			shellInitialized.current = false;
 		}
 	}, [open]);
 
-	// Skip branch step for existing sessions (re-attach / past sessions)
+	// Skip to terminal for existing sessions (re-attach / past sessions)
 	useEffect(() => {
 		if (open && existingSessionId) {
 			setStep('terminal');
 		}
 	}, [open, existingSessionId]);
+
+	// Skip project step when projectPath is already provided (from issue context, agents page, etc.)
+	useEffect(() => {
+		if (open && !existingSessionId && !existingWorktree && projectPath && step === 'project') {
+			setStep('launch-mode');
+		}
+	}, [open, existingSessionId, existingWorktree, projectPath, step]);
 
 	// Skip branch step when launching in an existing worktree
 	useEffect(() => {
@@ -358,6 +381,64 @@ export default function AgentTerminalModal({
 		issueContext,
 		ensureSession,
 	]);
+
+	// Handle selecting a project from repo_paths (selection only, navigation via Next)
+	const handleSelectProject = useCallback((localPath: string) => {
+		setSelectedProject(localPath);
+	}, []);
+
+	// Navigate from project step to launch-mode step
+	const handleProjectNext = useCallback(() => {
+		if (!selectedProject) return;
+		setResolvedPath(selectedProject);
+		setStep('launch-mode');
+	}, [selectedProject]);
+
+	// Handle launching on current branch (no worktree)
+	const handleLaunchCurrentBranch = useCallback(async () => {
+		if (!projectPath) return;
+		setFetchingBranch(true);
+		try {
+			const res = await fetch(
+				`/api/git/current-branch?path=${encodeURIComponent(projectPath)}`,
+			);
+			const data = await res.json();
+			if (data.branch) {
+				setCurrentBranch(data.branch);
+				setBranchInput(data.branch);
+
+				const projectName = projectPath.split('/').filter(Boolean).pop() ?? 'unknown';
+				ensureSession({
+					sessionId,
+					projectPath,
+					projectName,
+					agentName: agentFile?.name ?? null,
+					branch: data.branch,
+					worktreePath: null,
+					issueOwner: issueContext?.owner ?? null,
+					issueRepo: issueContext?.repo ?? null,
+					issueNumber: issueContext?.issueNumber ?? null,
+					issueTitle: issueContext?.issueTitle ?? null,
+				});
+
+				setStep('terminal');
+			}
+		} catch {
+			setWorktreeError('Failed to detect current branch');
+		} finally {
+			setFetchingBranch(false);
+		}
+	}, [projectPath, sessionId, agentFile, issueContext, ensureSession]);
+
+	// Navigate from launch-mode step
+	const handleLaunchModeNext = useCallback(() => {
+		if (!launchMode) return;
+		if (launchMode === 'worktree') {
+			setStep('branch');
+		} else {
+			handleLaunchCurrentBranch();
+		}
+	}, [launchMode, handleLaunchCurrentBranch]);
 
 	// Build draggable terminal tabs
 	const hasIssue = !!(issueContext || session?.issue_number);
@@ -779,7 +860,17 @@ export default function AgentTerminalModal({
 			shellFitAddonRef.current = null;
 			shellInitialized.current = false;
 		};
-		}, [open, worktreePath, projectPath, shellTermNode, sessionId, activeTabKey, step, existingSessionId, waitingForSession]);
+	}, [
+		open,
+		worktreePath,
+		projectPath,
+		shellTermNode,
+		sessionId,
+		activeTabKey,
+		step,
+		existingSessionId,
+		waitingForSession,
+	]);
 
 	// Display info
 	const folderLabel = issueContext
@@ -806,357 +897,656 @@ export default function AgentTerminalModal({
 
 	return (
 		<>
-		<Dialog
-			open={open}
-			onClose={onClose}
-			maxWidth={false}
-			fullWidth
-			disableAutoFocus
-			disableEnforceFocus
-			disableRestoreFocus
-			PaperProps={{
-				sx: {
-					bgcolor: 'background.paper',
-					maxWidth: 1400,
-					height: '90vh',
-					borderRadius: 1,
-					display: 'flex',
-					flexDirection: 'column',
-					overflow: 'hidden',
-				},
-			}}
-		>
-			<DialogTitle
-				sx={{
-					display: 'flex',
-					alignItems: 'center',
-					justifyContent: 'space-between',
-					pb: 1,
-					flexShrink: 0,
-				}}
-			>
-				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
-					{titleIcon}
-					<Typography variant="subtitle1" sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
-						{titleText}
-					</Typography>
-					{subtitleText && (
-						<Typography
-							variant="body2"
-							sx={{
-								overflow: 'hidden',
-								textOverflow: 'ellipsis',
-								whiteSpace: 'nowrap',
-								maxWidth: 350,
-								color: 'text.secondary',
-							}}
-						>
-							{subtitleText}
-						</Typography>
-					)}
-					{resumed && (
-						<Chip
-							icon={
-								<FiberManualRecordRoundedIcon
-									sx={{
-										fontSize: '10px !important',
-										color: 'success.main',
-									}}
-								/>
-							}
-							label="Reprise"
-							size="small"
-							sx={{
-								height: 22,
-								fontSize: '0.65rem',
-								bgcolor: (theme) => alpha(theme.palette.success.main, 0.12),
-								color: 'success.main',
-								fontWeight: 600,
-							}}
-						/>
-					)}
-					{step === 'terminal' && (branchInput || session?.branch) && (
-						<Chip
-							icon={<AccountTreeRoundedIcon sx={{ fontSize: '14px !important' }} />}
-							label={branchInput || session?.branch}
-							size="small"
-							sx={{
-								height: 22,
-								fontSize: '0.65rem',
-								bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
-								color: 'primary.main',
-								fontWeight: 600,
-								'& .MuiChip-icon': { color: 'primary.main' },
-							}}
-						/>
-					)}
-				</Box>
-				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
-					<Chip
-						icon={<FolderOpenRoundedIcon sx={{ fontSize: '14px !important' }} />}
-						label={folderLabel}
-						size="small"
-						sx={{
-							height: 24,
-							fontSize: '0.7rem',
-							bgcolor: (theme) => alpha(theme.palette.text.primary, 0.05),
-							'& .MuiChip-icon': { color: 'text.secondary' },
-						}}
-					/>
-					{step === 'terminal' && (
-						<IconButton
-							size="small"
-							onClick={handlePip}
-							sx={{ color: 'text.disabled', '&:hover': { color: 'primary.main' } }}
-						>
-							<PictureInPictureAltRoundedIcon sx={{ fontSize: 18 }} />
-						</IconButton>
-					)}
-					<IconButton size="small" onClick={onClose} sx={{ color: 'text.secondary' }}>
-						<CloseRoundedIcon fontSize="small" />
-					</IconButton>
-				</Box>
-			</DialogTitle>
-
-			{/* Step 1: Branch name input */}
-			{step === 'branch' && (
-				<Box
-					sx={{
-						flex: 1,
+			<Dialog
+				open={open}
+				onClose={onClose}
+				maxWidth={false}
+				fullWidth
+				disableAutoFocus
+				disableEnforceFocus
+				disableRestoreFocus
+				PaperProps={{
+					sx: {
+						bgcolor: 'background.paper',
+						maxWidth: 1400,
+						height: '90vh',
+						borderRadius: 1,
 						display: 'flex',
 						flexDirection: 'column',
+						overflow: 'hidden',
+					},
+				}}
+			>
+				<DialogTitle
+					sx={{
+						display: 'flex',
 						alignItems: 'center',
-						justifyContent: 'center',
-						gap: 3,
-						px: 4,
+						justifyContent: 'space-between',
+						pb: 1,
+						flexShrink: 0,
 					}}
 				>
-					<AccountTreeRoundedIcon sx={{ fontSize: 56, color: 'primary.main', opacity: 0.7 }} />
-					<Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
-						Nom de la branche
-					</Typography>
-					<Typography
-						variant="body2"
-						sx={{ color: 'text.secondary', textAlign: 'center', maxWidth: 450 }}
-					>
-						Un worktree isolé sera créé dans <code>.worktrees/</code> pour cette
-						session. Tous les changements resteront dans ce worktree.
-					</Typography>
-
-					<Box
-						component="form"
-						onSubmit={(e) => {
-							e.preventDefault();
-							handleLaunch();
-						}}
-						sx={{
-							display: 'flex',
-							gap: 1.5,
-							width: '100%',
-							maxWidth: 500,
-							alignItems: 'flex-start',
-						}}
-					>
-						<TextField
-							autoFocus
-							fullWidth
+					<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
+						{titleIcon}
+						<Typography
+							variant="subtitle1"
+							sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}
+						>
+							{titleText}
+						</Typography>
+						{subtitleText && (
+							<Typography
+								variant="body2"
+								sx={{
+									overflow: 'hidden',
+									textOverflow: 'ellipsis',
+									whiteSpace: 'nowrap',
+									maxWidth: 350,
+									color: 'text.secondary',
+								}}
+							>
+								{subtitleText}
+							</Typography>
+						)}
+						{resumed && (
+							<Chip
+								icon={
+									<FiberManualRecordRoundedIcon
+										sx={{
+											fontSize: '10px !important',
+											color: 'success.main',
+										}}
+									/>
+								}
+								label="Reprise"
+								size="small"
+								sx={{
+									height: 22,
+									fontSize: '0.65rem',
+									bgcolor: (theme) => alpha(theme.palette.success.main, 0.12),
+									color: 'success.main',
+									fontWeight: 600,
+								}}
+							/>
+						)}
+						{step === 'terminal' && (branchInput || session?.branch) && (
+							<Chip
+								icon={
+									<AccountTreeRoundedIcon sx={{ fontSize: '14px !important' }} />
+								}
+								label={branchInput || session?.branch}
+								size="small"
+								sx={{
+									height: 22,
+									fontSize: '0.65rem',
+									bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
+									color: 'primary.main',
+									fontWeight: 600,
+									'& .MuiChip-icon': { color: 'primary.main' },
+								}}
+							/>
+						)}
+					</Box>
+					<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+						<Chip
+							icon={<FolderOpenRoundedIcon sx={{ fontSize: '14px !important' }} />}
+							label={folderLabel}
 							size="small"
-							placeholder="feat/my-feature"
-							value={branchInput}
-							onChange={(e) => setBranchInput(e.target.value)}
-							disabled={isCreating}
 							sx={{
-								'& .MuiOutlinedInput-root': {
-									bgcolor: (theme) => alpha(theme.palette.text.primary, 0.03),
-									'& fieldset': { borderColor: (theme) => alpha(theme.palette.text.primary, 0.1) },
-									'&:hover fieldset': { borderColor: (theme) => alpha(theme.palette.primary.main, 0.4) },
-									'&.Mui-focused fieldset': { borderColor: 'primary.main' },
-								},
+								height: 24,
+								fontSize: '0.7rem',
+								bgcolor: (theme) => alpha(theme.palette.text.primary, 0.05),
+								'& .MuiChip-icon': { color: 'text.secondary' },
 							}}
 						/>
-						<Button
-							type="submit"
-							variant="contained"
-							disabled={!branchInput.trim() || isCreating || !projectPath}
-							startIcon={
-								isCreating ? (
-									<CircularProgress size={16} color="inherit" />
-								) : (
-									<RocketLaunchRoundedIcon sx={{ fontSize: 18 }} />
-								)
-							}
-							sx={{
-								bgcolor: 'primary.main',
-								textTransform: 'none',
-								fontWeight: 600,
-								whiteSpace: 'nowrap',
-								height: 40,
-								'&:hover': { bgcolor: 'primary.dark' },
-							}}
-						>
-							{isCreating ? 'Création...' : 'Lancer'}
-						</Button>
+						{step === 'terminal' && (
+							<IconButton
+								size="small"
+								onClick={handlePip}
+								sx={{
+									color: 'text.disabled',
+									'&:hover': { color: 'primary.main' },
+								}}
+							>
+								<PictureInPictureAltRoundedIcon sx={{ fontSize: 18 }} />
+							</IconButton>
+						)}
+						<IconButton size="small" onClick={onClose} sx={{ color: 'text.secondary' }}>
+							<CloseRoundedIcon fontSize="small" />
+						</IconButton>
 					</Box>
+				</DialogTitle>
 
-					{worktreeError && (
-						<Alert severity="error" sx={{ maxWidth: 500, width: '100%' }}>
-							{worktreeError}
-						</Alert>
-					)}
-
-					{!projectPath && issueContext && (
-						<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-							<CircularProgress size={16} sx={{ color: 'primary.main' }} />
-							<Typography variant="body2" color="text.secondary">
-								Résolution du chemin...
-							</Typography>
-						</Box>
-					)}
-				</Box>
-			)}
-
-			{/* Step 2: Terminal */}
-			{step === 'terminal' && (
-				<>
-					{/* Tabs */}
-					<DraggableTabs
-						tabs={orderedTermTabs}
-						activeTab={activeTab}
-						onTabChange={setActiveTab}
-						onReorder={setTermTabOrder}
-						mb={0}
-						sx={{
-							px: 2,
-							py: 1,
-							borderBottom: 1,
-							borderColor: 'divider',
-							flexShrink: 0,
-						}}
-					/>
-
-					{/* Terminal panel */}
+				{/* Step 1: Project selection */}
+				{step === 'project' && (
 					<Box
-						onWheel={(e) => e.stopPropagation()}
 						sx={{
 							flex: 1,
-							overflow: 'hidden',
-							display: activeTabKey === 'claude' ? 'flex' : 'none',
-							alignItems: 'stretch',
-							bgcolor: 'background.default',
-							'& .xterm': { height: '100%', p: 1 },
-							'& .xterm-viewport': {
-								overflowY: 'scroll !important',
-								'&::-webkit-scrollbar': { width: 6 },
-								'&::-webkit-scrollbar-thumb': {
-									bgcolor: 'divider',
-									borderRadius: 3,
-								},
-							},
+							display: 'flex',
+							flexDirection: 'column',
+							alignItems: 'center',
+							justifyContent: 'center',
+							gap: 3,
+							px: 4,
 						}}
 					>
-						{picking && (
+						<FolderOpenRoundedIcon
+							sx={{ fontSize: 56, color: 'primary.main', opacity: 0.7 }}
+						/>
+						<Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+							{tl('selectProject')}
+						</Typography>
+						<Typography
+							variant="body2"
+							sx={{ color: 'text.secondary', textAlign: 'center', maxWidth: 450 }}
+						>
+							{tl('selectProjectDesc')}
+						</Typography>
+
+						{repoPaths.length > 0 ? (
 							<Box
 								sx={{
-									flex: 1,
-									display: 'flex',
-									flexDirection: 'column',
-									alignItems: 'center',
-									justifyContent: 'center',
+									display: 'grid',
+									gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
 									gap: 2,
+									width: '100%',
+									maxWidth: 650,
 								}}
 							>
-								<CircularProgress size={28} sx={{ color: 'primary.main' }} />
-								<Typography variant="body2" color="text.secondary">
-									Sélection du répertoire...
+								{repoPaths.map((repo) => {
+									const isSelected = selectedProject === repo.local_path;
+									return (
+										<Box
+											key={repo.repo_full_name}
+											onClick={() => handleSelectProject(repo.local_path)}
+											sx={{
+												p: 2.5,
+												borderRadius: 1,
+												border: 2,
+												borderColor: isSelected
+													? 'primary.main'
+													: 'divider',
+												bgcolor: isSelected
+													? (theme) =>
+															alpha(theme.palette.primary.main, 0.08)
+													: 'transparent',
+												cursor: 'pointer',
+												textAlign: 'center',
+												transition: 'all 0.15s',
+												'&:hover': {
+													borderColor: 'primary.main',
+													bgcolor: (theme) =>
+														alpha(theme.palette.primary.main, 0.06),
+													transform: 'translateY(-2px)',
+													boxShadow: (theme) =>
+														`0 4px 12px ${alpha(theme.palette.primary.main, 0.12)}`,
+												},
+											}}
+										>
+											<FolderOpenRoundedIcon
+												sx={{
+													fontSize: 28,
+													color: isSelected
+														? 'primary.main'
+														: 'text.secondary',
+													mb: 1,
+												}}
+											/>
+											<Typography
+												variant="subtitle2"
+												sx={{
+													fontWeight: 700,
+													fontSize: '0.85rem',
+													overflow: 'hidden',
+													textOverflow: 'ellipsis',
+													whiteSpace: 'nowrap',
+												}}
+											>
+												{repo.local_path.split('/').pop()}
+											</Typography>
+										</Box>
+									);
+								})}
+							</Box>
+						) : (
+							<Box sx={{ textAlign: 'center' }}>
+								<Typography variant="body2" color="text.disabled" sx={{ mb: 1 }}>
+									{tl('noProjects')}
+								</Typography>
+								<Typography variant="body2" color="text.disabled">
+									{tl('noProjectsDesc')}
 								</Typography>
 							</Box>
 						)}
 
-						{isPastSession && projectPath && (
-							<Box
+						{repoPaths.length > 0 && (
+							<Button
+								variant="contained"
+								disabled={!selectedProject}
+								endIcon={<ArrowForwardRoundedIcon />}
+								onClick={handleProjectNext}
 								sx={{
-									flex: 1,
-									display: 'flex',
-									flexDirection: 'column',
-									alignItems: 'center',
-									justifyContent: 'center',
-									gap: 2,
+									textTransform: 'none',
+									fontWeight: 600,
+									px: 4,
+									'&:hover': { bgcolor: 'primary.dark' },
 								}}
 							>
-								<TerminalRoundedIcon
-									sx={{ fontSize: 48, color: 'text.disabled' }}
-								/>
-								<Typography variant="body2" sx={{ color: 'text.secondary' }}>
-									Session terminée
+								{tc('next')}
+							</Button>
+						)}
+					</Box>
+				)}
+
+				{/* Step 2: Launch mode (worktree vs current branch) */}
+				{step === 'launch-mode' && (
+					<Box
+						sx={{
+							flex: 1,
+							display: 'flex',
+							flexDirection: 'column',
+							alignItems: 'center',
+							justifyContent: 'center',
+							gap: 3,
+							px: 4,
+						}}
+					>
+						<RocketLaunchRoundedIcon
+							sx={{ fontSize: 56, color: 'primary.main', opacity: 0.7 }}
+						/>
+						<Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+							{tl('launchMode')}
+						</Typography>
+
+						{fetchingBranch && (
+							<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+								<CircularProgress size={16} sx={{ color: 'primary.main' }} />
+								<Typography variant="body2" color="text.secondary">
+									{tl('fetchingBranch')}
 								</Typography>
 							</Box>
 						)}
+
+						{worktreeError && (
+							<Alert severity="error" sx={{ maxWidth: 500, width: '100%' }}>
+								{worktreeError}
+							</Alert>
+						)}
+
+						<Box sx={{ display: 'flex', gap: 2, maxWidth: 500, width: '100%' }}>
+							{/* Worktree option */}
+							<Box
+								onClick={() => setLaunchMode('worktree')}
+								sx={{
+									flex: 1,
+									p: 3,
+									borderRadius: 1,
+									border: 2,
+									borderColor:
+										launchMode === 'worktree' ? 'primary.main' : 'divider',
+									bgcolor:
+										launchMode === 'worktree'
+											? (theme) => alpha(theme.palette.primary.main, 0.08)
+											: 'transparent',
+									cursor: 'pointer',
+									textAlign: 'center',
+									transition: 'all 0.15s',
+									'&:hover': {
+										borderColor: 'primary.main',
+										bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
+										transform: 'translateY(-2px)',
+									},
+								}}
+							>
+								<AccountTreeRoundedIcon
+									sx={{ fontSize: 36, color: 'primary.main', mb: 1 }}
+								/>
+								<Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
+									{tl('worktree')}
+								</Typography>
+								<Typography
+									variant="body2"
+									sx={{ color: 'text.secondary', fontSize: '0.75rem' }}
+								>
+									{tl('worktreeDesc')}
+								</Typography>
+							</Box>
+
+							{/* Current branch option */}
+							<Tooltip title={tl('currentBranchTooltip')} arrow placement="top">
+								<Box
+									onClick={() => setLaunchMode('current-branch')}
+									sx={{
+										flex: 1,
+										p: 3,
+										borderRadius: 1,
+										border: 2,
+										borderColor:
+											launchMode === 'current-branch'
+												? 'secondary.main'
+												: 'divider',
+										bgcolor:
+											launchMode === 'current-branch'
+												? (theme) =>
+														alpha(theme.palette.secondary.main, 0.08)
+												: 'transparent',
+										cursor: 'pointer',
+										textAlign: 'center',
+										transition: 'all 0.15s',
+										'&:hover': {
+											borderColor: 'secondary.main',
+											bgcolor: (theme) =>
+												alpha(theme.palette.secondary.main, 0.06),
+											transform: 'translateY(-2px)',
+										},
+									}}
+								>
+									<TerminalRoundedIcon
+										sx={{ fontSize: 36, color: 'secondary.main', mb: 1 }}
+									/>
+									<Typography
+										variant="subtitle2"
+										sx={{ fontWeight: 700, mb: 0.5 }}
+									>
+										{tl('currentBranch')}
+									</Typography>
+									<Typography
+										variant="body2"
+										sx={{ color: 'text.secondary', fontSize: '0.75rem' }}
+									>
+										{tl('currentBranchDesc')}
+									</Typography>
+								</Box>
+							</Tooltip>
+						</Box>
+
+						<Box sx={{ display: 'flex', gap: 2 }}>
+							{!projectPathProp && (
+								<Button
+									variant="outlined"
+									startIcon={<ArrowBackRoundedIcon />}
+									onClick={() => {
+										setLaunchMode(null);
+										setResolvedPath(null);
+										setStep('project');
+									}}
+									sx={{ textTransform: 'none', fontWeight: 600 }}
+								>
+									{tc('back')}
+								</Button>
+							)}
+							<Button
+								variant="contained"
+								disabled={!launchMode || fetchingBranch}
+								endIcon={<ArrowForwardRoundedIcon />}
+								onClick={handleLaunchModeNext}
+								sx={{
+									textTransform: 'none',
+									fontWeight: 600,
+									px: 4,
+									'&:hover': { bgcolor: 'primary.dark' },
+								}}
+							>
+								{tc('next')}
+							</Button>
+						</Box>
+					</Box>
+				)}
+
+				{/* Step 3: Branch name input (worktree mode) */}
+				{step === 'branch' && (
+					<Box
+						sx={{
+							flex: 1,
+							display: 'flex',
+							flexDirection: 'column',
+							alignItems: 'center',
+							justifyContent: 'center',
+							gap: 3,
+							px: 4,
+						}}
+					>
+						<AccountTreeRoundedIcon
+							sx={{ fontSize: 56, color: 'primary.main', opacity: 0.7 }}
+						/>
+						<Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+							{tl('branchName')}
+						</Typography>
+						<Typography
+							variant="body2"
+							sx={{ color: 'text.secondary', textAlign: 'center', maxWidth: 450 }}
+						>
+							{tl('branchDesc')}
+						</Typography>
 
 						<Box
-							ref={setTermNode}
-							sx={{ flex: 1, display: terminalEnabled ? 'flex' : 'none' }}
-						/>
-					</Box>
-
-					{/* Activity panel */}
-					{activeTabKey === 'activity' && (
-						<Box sx={{ flex: 1, overflow: 'hidden' }}>
-							<AgentActivityTab
-								session={session}
-								logs={logs}
-								isStreaming={isStreaming}
+							component="form"
+							onSubmit={(e) => {
+								e.preventDefault();
+								handleLaunch();
+							}}
+							sx={{
+								display: 'flex',
+								gap: 1.5,
+								width: '100%',
+								maxWidth: 500,
+								alignItems: 'flex-start',
+							}}
+						>
+							<TextField
+								autoFocus
+								fullWidth
+								size="small"
+								placeholder="feat/my-feature"
+								value={branchInput}
+								onChange={(e) => setBranchInput(e.target.value)}
+								disabled={isCreating}
+								sx={{
+									'& .MuiOutlinedInput-root': {
+										bgcolor: (theme) => alpha(theme.palette.text.primary, 0.03),
+										'& fieldset': {
+											borderColor: (theme) =>
+												alpha(theme.palette.text.primary, 0.1),
+										},
+										'&:hover fieldset': {
+											borderColor: (theme) =>
+												alpha(theme.palette.primary.main, 0.4),
+										},
+										'&.Mui-focused fieldset': { borderColor: 'primary.main' },
+									},
+								}}
 							/>
-						</Box>
-					)}
-
-					{/* Diff panel */}
-					{activeTabKey === 'diff' && (
-						<Box sx={{ flex: 1, overflow: 'hidden' }}>
-							<AgentDiffTab
-								projectPath={
-									session?.worktree_path ?? worktreePath ?? projectPath ?? null
+							<Button
+								type="submit"
+								variant="contained"
+								disabled={!branchInput.trim() || isCreating || !projectPath}
+								startIcon={
+									isCreating ? (
+										<CircularProgress size={16} color="inherit" />
+									) : (
+										<RocketLaunchRoundedIcon sx={{ fontSize: 18 }} />
+									)
 								}
-								branch={session?.branch ?? branchInput ?? null}
-							/>
+								sx={{
+									bgcolor: 'primary.main',
+									textTransform: 'none',
+									fontWeight: 600,
+									whiteSpace: 'nowrap',
+									height: 40,
+									'&:hover': { bgcolor: 'primary.dark' },
+								}}
+							>
+								{isCreating ? tl('creating') : tl('launch')}
+							</Button>
 						</Box>
-					)}
 
-					{/* Plain shell terminal panel */}
-					<Box
-						onWheel={(e) => e.stopPropagation()}
-						sx={{
-							flex: 1,
-							overflow: 'hidden',
-							display: activeTabKey === 'terminal' ? 'flex' : 'none',
-							alignItems: 'stretch',
-							bgcolor: 'background.default',
-							'& .xterm': { height: '100%', p: 1 },
-							'& .xterm-viewport': {
-								overflowY: 'scroll !important',
-								'&::-webkit-scrollbar': { width: 6 },
-								'&::-webkit-scrollbar-thumb': {
-									bgcolor: 'divider',
-									borderRadius: 3,
-								},
-							},
-						}}
-					>
-						<Box ref={setShellTermNode} sx={{ flex: 1, display: 'flex' }} />
+						{worktreeError && (
+							<Alert severity="error" sx={{ maxWidth: 500, width: '100%' }}>
+								{worktreeError}
+							</Alert>
+						)}
+
+						<Box sx={{ display: 'flex', gap: 1.5, mt: 1 }}>
+							<Button
+								variant="outlined"
+								startIcon={<ArrowBackRoundedIcon />}
+								onClick={() => setStep('launch-mode')}
+								disabled={isCreating}
+								sx={{ textTransform: 'none', fontWeight: 600 }}
+							>
+								{tc('back')}
+							</Button>
+						</Box>
 					</Box>
+				)}
 
-					{/* Issue panel */}
-					{activeTabKey === 'issue' && (issueContext || session?.issue_number) && (
-						<Box sx={{ flex: 1, overflow: 'hidden' }}>
-							<AgentIssueTab
-								owner={issueContext?.owner ?? session!.issue_owner!}
-								repo={issueContext?.repo ?? session!.issue_repo!}
-								issueNumber={issueContext?.issueNumber ?? session!.issue_number!}
+				{/* Step 4: Terminal */}
+				{step === 'terminal' && (
+					<>
+						{/* Tabs */}
+						<DraggableTabs
+							tabs={orderedTermTabs}
+							activeTab={activeTab}
+							onTabChange={setActiveTab}
+							onReorder={setTermTabOrder}
+							mb={0}
+							sx={{
+								px: 2,
+								py: 1,
+								borderBottom: 1,
+								borderColor: 'divider',
+								flexShrink: 0,
+							}}
+						/>
+
+						{/* Terminal panel */}
+						<Box
+							onWheel={(e) => e.stopPropagation()}
+							sx={{
+								flex: 1,
+								overflow: 'hidden',
+								display: activeTabKey === 'claude' ? 'flex' : 'none',
+								alignItems: 'stretch',
+								bgcolor: 'background.default',
+								'& .xterm': { height: '100%', p: 1 },
+								'& .xterm-viewport': {
+									overflowY: 'scroll !important',
+									'&::-webkit-scrollbar': { width: 6 },
+									'&::-webkit-scrollbar-thumb': {
+										bgcolor: 'divider',
+										borderRadius: 3,
+									},
+								},
+							}}
+						>
+							{picking && (
+								<Box
+									sx={{
+										flex: 1,
+										display: 'flex',
+										flexDirection: 'column',
+										alignItems: 'center',
+										justifyContent: 'center',
+										gap: 2,
+									}}
+								>
+									<CircularProgress size={28} sx={{ color: 'primary.main' }} />
+									<Typography variant="body2" color="text.secondary">
+										Sélection du répertoire...
+									</Typography>
+								</Box>
+							)}
+
+							{isPastSession && projectPath && (
+								<Box
+									sx={{
+										flex: 1,
+										display: 'flex',
+										flexDirection: 'column',
+										alignItems: 'center',
+										justifyContent: 'center',
+										gap: 2,
+									}}
+								>
+									<TerminalRoundedIcon
+										sx={{ fontSize: 48, color: 'text.disabled' }}
+									/>
+									<Typography variant="body2" sx={{ color: 'text.secondary' }}>
+										Session terminée
+									</Typography>
+								</Box>
+							)}
+
+							<Box
+								ref={setTermNode}
+								sx={{ flex: 1, display: terminalEnabled ? 'flex' : 'none' }}
 							/>
 						</Box>
-					)}
-				</>
-			)}
-		</Dialog>
+
+						{/* Activity panel */}
+						{activeTabKey === 'activity' && (
+							<Box sx={{ flex: 1, overflow: 'hidden' }}>
+								<AgentActivityTab
+									session={session}
+									logs={logs}
+									isStreaming={isStreaming}
+								/>
+							</Box>
+						)}
+
+						{/* Diff panel */}
+						{activeTabKey === 'diff' && (
+							<Box sx={{ flex: 1, overflow: 'hidden' }}>
+								<AgentDiffTab
+									projectPath={
+										session?.worktree_path ??
+										worktreePath ??
+										projectPath ??
+										null
+									}
+									branch={session?.branch ?? branchInput ?? null}
+								/>
+							</Box>
+						)}
+
+						{/* Plain shell terminal panel */}
+						<Box
+							onWheel={(e) => e.stopPropagation()}
+							sx={{
+								flex: 1,
+								overflow: 'hidden',
+								display: activeTabKey === 'terminal' ? 'flex' : 'none',
+								alignItems: 'stretch',
+								bgcolor: 'background.default',
+								'& .xterm': { height: '100%', p: 1 },
+								'& .xterm-viewport': {
+									overflowY: 'scroll !important',
+									'&::-webkit-scrollbar': { width: 6 },
+									'&::-webkit-scrollbar-thumb': {
+										bgcolor: 'divider',
+										borderRadius: 3,
+									},
+								},
+							}}
+						>
+							<Box ref={setShellTermNode} sx={{ flex: 1, display: 'flex' }} />
+						</Box>
+
+						{/* Issue panel */}
+						{activeTabKey === 'issue' && (issueContext || session?.issue_number) && (
+							<Box sx={{ flex: 1, overflow: 'hidden' }}>
+								<AgentIssueTab
+									owner={issueContext?.owner ?? session!.issue_owner!}
+									repo={issueContext?.repo ?? session!.issue_repo!}
+									issueNumber={
+										issueContext?.issueNumber ?? session!.issue_number!
+									}
+								/>
+							</Box>
+						)}
+					</>
+				)}
+			</Dialog>
 		</>
 	);
 }

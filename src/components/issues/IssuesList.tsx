@@ -42,7 +42,8 @@ function buildColumns(issues: GitHubIssue[], statusColumns: string[]): [string, 
 export default function IssuesList() {
 	const theme = useTheme();
 	const t = useTranslations('issues');
-	const { configs, selectedViewMappings, reorderViews, syncViews, getConfigForRepo } = useProjectConfig();
+	const { configs, selectedViewMappings, reorderViews, syncViews, getConfigForRepo } =
+		useProjectConfig();
 
 	// Auto-sync Project V2 data on mount to pick up new issues
 	const hasSynced = useRef(false);
@@ -87,9 +88,7 @@ export default function IssuesList() {
 	const allIssues = useMemo(() => {
 		if (!data) return [];
 		return data.issues.filter(
-			(i) =>
-				i.repo_full_name &&
-				i.assignees?.some((a) => a.login === data.user),
+			(i) => i.repo_full_name && i.assignees?.some((a) => a.login === data.user),
 		);
 	}, [data]);
 
@@ -101,13 +100,19 @@ export default function IssuesList() {
 		const mapping = selectedViewMappings[safeTab];
 		if (!mapping) return allIssues;
 		if (mapping.issues?.length) {
-			const issueKeys = new Set(mapping.issues.map((i) => `${i.repo}#${i.number}`));
+			const issueKeys = new Set(
+				mapping.issues.map((i) => `${i.repo.toLowerCase()}#${i.number}`),
+			);
 			return allIssues.filter(
-				(i) => i.repo_full_name && issueKeys.has(`${i.repo_full_name}#${i.number}`),
+				(i) =>
+					i.repo_full_name &&
+					issueKeys.has(`${i.repo_full_name.toLowerCase()}#${i.number}`),
 			);
 		}
-		const viewRepos = new Set(mapping.repos ?? []);
-		return allIssues.filter((i) => i.repo_full_name && viewRepos.has(i.repo_full_name));
+		const viewRepos = new Set((mapping.repos ?? []).map((r) => r.toLowerCase()));
+		return allIssues.filter(
+			(i) => i.repo_full_name && viewRepos.has(i.repo_full_name.toLowerCase()),
+		);
 	}, [allIssues, selectedViewMappings, safeTab, hasViews]);
 
 	const searchedIssues = useMemo(() => {
@@ -135,34 +140,37 @@ export default function IssuesList() {
 		[searchedIssues, activeStatusColumns],
 	);
 
-	const handleStatusChange = useCallback((issue: GitHubIssue, newStatus: string) => {
-		const issueRepo = issue.repo_full_name;
-		const issueConfig = issueRepo ? getConfigForRepo(issueRepo) : configs[0];
-		if (!issueConfig) return;
+	const handleStatusChange = useCallback(
+		(issue: GitHubIssue, newStatus: string) => {
+			const issueRepo = issue.repo_full_name;
+			const issueConfig = issueRepo ? getConfigForRepo(issueRepo) : configs[0];
+			if (!issueConfig) return;
 
-		mutation.mutate({
-			issueNodeId: issue.node_id,
-			newStatus,
-			org: issueConfig.org,
-			projectNumber: issueConfig.projectNumber,
-			ownerType: issueConfig.ownerType,
-		});
+			mutation.mutate({
+				issueNodeId: issue.node_id,
+				newStatus,
+				org: issueConfig.org,
+				projectNumber: issueConfig.projectNumber,
+				ownerType: issueConfig.ownerType,
+			});
 
-		// Open branch modal when moving to "In Progress"
-		if (newStatus.includes('In Progress')) {
-			setBranchModalIssue(issue);
-		}
-
-		// Auto-check linked todos when moving to QA
-		if (newStatus.toLowerCase().includes('qa')) {
-			const repo = issue.repo_full_name;
-			if (repo && issue.number) {
-				completeIssueTodos(repo, issue.number).then(() => {
-					todoQc.invalidateQueries({ queryKey: ['todos'] });
-				});
+			// Open branch modal when moving to "In Progress"
+			if (newStatus.includes('In Progress')) {
+				setBranchModalIssue(issue);
 			}
-		}
-	}, [configs, getConfigForRepo, mutation, todoQc]);
+
+			// Auto-check linked todos when moving to QA
+			if (newStatus.toLowerCase().includes('qa')) {
+				const repo = issue.repo_full_name;
+				if (repo && issue.number) {
+					completeIssueTodos(repo, issue.number).then(() => {
+						todoQc.invalidateQueries({ queryKey: ['todos'] });
+					});
+				}
+			}
+		},
+		[configs, getConfigForRepo, mutation, todoQc],
+	);
 
 	if (isLoading) {
 		return (
@@ -222,8 +230,7 @@ export default function IssuesList() {
 					variant="h4"
 					sx={{
 						fontWeight: 700,
-						background:
-							`linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.light} 30%, ${theme.palette.secondary.main} 100%)`,
+						background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.light} 30%, ${theme.palette.secondary.main} 100%)`,
 						backgroundClip: 'text',
 						WebkitBackgroundClip: 'text',
 						WebkitTextFillColor: 'transparent',
@@ -320,9 +327,7 @@ export default function IssuesList() {
 					<Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
 						{t('noOpenIssues')}
 					</Typography>
-					<Typography variant="body2">
-						{t('noOpenIssuesDesc')}
-					</Typography>
+					<Typography variant="body2">{t('noOpenIssuesDesc')}</Typography>
 				</Box>
 			) : (
 				<Box

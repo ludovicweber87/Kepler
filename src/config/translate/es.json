@@ -1,4 +1,8 @@
 {
+	"onboarding": {
+		"welcome": "Bienvenido a Devora",
+		"description": "Devora es tu panel de desarrollo personal. Gestiona tus issues de GitHub, pull requests, todos, worktrees de Git y lanza agentes Claude — todo desde una sola interfaz. Empieza añadiendo un repositorio a continuación."
+	},
 	"sidebar": {
 		"dashboard": "Panel",
 		"issues": "Issues",
@@ -9,7 +13,8 @@
 		"skills": "Skills",
 		"todos": "Tareas",
 		"settings": "Ajustes",
-		"signOut": "Cerrar sesión"
+		"signOut": "Cerrar sesión",
+		"launchAgent": "Lanzar agente"
 	},
 	"landing": {
 		"nav": {
@@ -176,7 +181,27 @@
 		"search": "Buscar",
 		"noResults": "Sin resultados",
 		"language": "Idioma",
-		"back": "Atrás"
+		"back": "Atrás",
+		"next": "Siguiente",
+		"sessionKilled": "Sesión detenida",
+		"sessionDeleted": "Sesión eliminada"
+	},
+	"launchModal": {
+		"selectProject": "Seleccionar proyecto",
+		"selectProjectDesc": "Elige el proyecto en el que lanzar el agente.",
+		"noProjects": "Ningun proyecto configurado",
+		"noProjectsDesc": "Anade primero un repositorio en ajustes.",
+		"launchMode": "Modo de lanzamiento",
+		"worktree": "Worktree",
+		"worktreeDesc": "Crear un worktree aislado con una nueva rama",
+		"currentBranch": "Rama actual",
+		"currentBranchDesc": "Lanzar en la rama local actual",
+		"currentBranchTooltip": "Esta es la rama en la que estas actualmente en local en este proyecto",
+		"fetchingBranch": "Detectando rama actual...",
+		"branchName": "Nombre de la rama",
+		"branchDesc": "Se creara un worktree aislado en .worktrees/ para esta sesion.",
+		"launch": "Lanzar",
+		"creating": "Creando..."
 	},
 	"agentBuilder": {
 		"title": "Agent Builder",

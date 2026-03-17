@@ -1,13 +1,17 @@
 import { useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase';
 import { useActiveSessions, type ActiveSession } from '@/hooks/useActiveSessions';
 import { useAgentSessionHistory, type AgentSession } from '@/hooks/useAgentSession';
+import { useSnackbar } from '@/hooks/useSnackbar';
 
 export type { ActiveSession, AgentSession };
 
 export function useSessionManager() {
 	const queryClient = useQueryClient();
+	const { showSnackbar } = useSnackbar();
+	const t = useTranslations('common');
 	const { data: activeSessions = [] } = useActiveSessions();
 	const { data: allPastSessions = [] } = useAgentSessionHistory();
 
@@ -31,11 +35,12 @@ export function useSessionManager() {
 				});
 				queryClient.invalidateQueries({ queryKey: ['sessions', 'active'] });
 				queryClient.invalidateQueries({ queryKey: ['agent-sessions', 'history'] });
+				showSnackbar(t('sessionKilled'), 'success');
 			} catch {
 				// ignore
 			}
 		},
-		[queryClient],
+		[queryClient, showSnackbar, t],
 	);
 
 	// Delete a past session from DB
@@ -45,11 +50,12 @@ export function useSessionManager() {
 				await supabase.from('agent_activity_logs').delete().eq('agent_session_id', id);
 				await supabase.from('agent_sessions').delete().eq('id', id);
 				queryClient.invalidateQueries({ queryKey: ['agent-sessions', 'history'] });
+				showSnackbar(t('sessionDeleted'), 'success');
 			} catch {
 				// ignore
 			}
 		},
-		[queryClient],
+		[queryClient, showSnackbar, t],
 	);
 
 	// Find active tmux session for a given worktree path
