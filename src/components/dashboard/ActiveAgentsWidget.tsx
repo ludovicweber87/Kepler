@@ -57,7 +57,7 @@ export default function ActiveAgentsWidget({
 					</Typography>
 				</Box>
 			) : (
-				<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+				<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1, overflowY: 'auto', '&::-webkit-scrollbar': { width: 3 }, '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 1 } }}>
 					{sessions.map((session) => {
 						const hasQuestion = pendingQuestions.has(session.cwd);
 						const dotColor = hasQuestion

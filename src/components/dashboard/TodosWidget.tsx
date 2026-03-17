@@ -49,7 +49,7 @@ export default function TodosWidget({ pendingCount }: TodosWidgetProps) {
 					</Typography>
 				</Box>
 			) : (
-				<Box sx={{ display: 'flex', flexDirection: 'column' }}>
+				<Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', '&::-webkit-scrollbar': { width: 3 }, '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 1 } }}>
 					{todos.map((todo, index) => (
 						<Box
 							key={todo.id}

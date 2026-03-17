@@ -33,7 +33,8 @@ export default function DashboardWidget({
 				p: 2,
 				display: 'flex',
 				flexDirection: 'column',
-				minHeight: minHeight ?? 'auto',
+				minHeight: minHeight ?? 0,
+				overflow: 'hidden',
 				transition: 'border-color 0.2s',
 				'&:hover': {
 					borderColor: alpha(theme.palette.divider, 0.5),
@@ -87,7 +88,7 @@ export default function DashboardWidget({
 					</Typography>
 				)}
 			</Box>
-			<Box sx={{ flex: 1 }}>{children}</Box>
+			<Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>{children}</Box>
 		</Box>
 	);
 }
