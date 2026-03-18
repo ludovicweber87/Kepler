@@ -9,7 +9,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useActiveSessions, type ActiveSession } from '@/hooks/useActiveSessions';
 import { useAgentSessionHistory, type AgentSession } from '@/hooks/useAgentSession';
 import { useAgentSummaries, type AgentSummary } from '@/hooks/useRecentLogs';
-import { usePendingTodoCount } from '@/hooks/usePendingTodoCount';
+import { useDashboardTodos } from '@/hooks/useDashboardTodos';
 import { usePendingQuestions } from '@/hooks/usePendingQuestions';
 import { useDashboard } from '@/hooks/useGitHub';
 import { usePullRequests } from '@/hooks/usePullRequests';
@@ -20,7 +20,6 @@ import { useTranslations } from 'next-intl';
 
 import KpiCards from './KpiCards';
 import ActiveAgentsWidget from './ActiveAgentsWidget';
-import TodosWidget from './TodosWidget';
 import RecentSessionsWidget from './RecentSessionsWidget';
 import SummariesWidget from './SummariesWidget';
 import AllReportsDialog from './AllReportsDialog';
@@ -57,7 +56,7 @@ export default function Dashboard() {
 	const { data: sessions = [] } = useActiveSessions();
 	const { data: pastSessions = [] } = useAgentSessionHistory();
 	const { data: summaries = [], isLoading: summariesLoading } = useAgentSummaries();
-	const pendingCount = usePendingTodoCount();
+	const { todos: allTodos } = useDashboardTodos(100);
 	const pendingQuestions = usePendingQuestions();
 	const { data: dashboardData } = useDashboard();
 	const { repoPaths } = useRepoPaths();
@@ -97,10 +96,27 @@ export default function Dashboard() {
 		return result.slice(0, 10);
 	}, [summaries, selectedRepo]);
 
-	// KPI data
+	// KPI data — filtered by selected repo
 	const openIssuesCount = useMemo(() => {
-		return dashboardData?.issues?.filter((i) => i.state === 'open').length ?? 0;
-	}, [dashboardData]);
+		const openIssues = dashboardData?.issues?.filter((i) => i.state === 'open') ?? [];
+		if (!selectedRepo) return openIssues.length;
+		return openIssues.filter(
+			(i) => i.repo_full_name?.toLowerCase() === selectedRepo.toLowerCase(),
+		).length;
+	}, [dashboardData, selectedRepo]);
+
+	const filteredPrsCount = useMemo(() => {
+		if (!selectedRepo) return prs.length;
+		return prs.filter((pr) => pr.repo_full_name?.toLowerCase() === selectedRepo.toLowerCase())
+			.length;
+	}, [prs, selectedRepo]);
+
+	const filteredTodoCount = useMemo(() => {
+		if (!selectedRepo) return allTodos.length;
+		return allTodos.filter(
+			(todo) => todo.repo_full_name.toLowerCase() === selectedRepo.toLowerCase(),
+		).length;
+	}, [allTodos, selectedRepo]);
 
 	// Handlers
 	const handleKillSession = useCallback(
@@ -148,14 +164,24 @@ export default function Dashboard() {
 
 	return (
 		<>
-			<Box sx={{ p: 4, maxWidth: 1200, mx: 'auto', height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+			<Box
+				sx={{
+					p: 4,
+					maxWidth: 1200,
+					mx: 'auto',
+					height: '100vh',
+					display: 'flex',
+					flexDirection: 'column',
+					gap: 2,
+					overflow: 'hidden',
+				}}
+			>
 				{/* Header */}
 				<Box
 					sx={{
 						display: 'flex',
 						justifyContent: 'space-between',
 						alignItems: 'center',
-						mb: 3,
 						flexShrink: 0,
 					}}
 				>
@@ -202,38 +228,36 @@ export default function Dashboard() {
 				</Box>
 
 				{/* KPI Cards */}
-				<Box sx={{ mb: 2, flexShrink: 0 }}>
+				<Box sx={{ flexShrink: 0 }}>
 					<KpiCards
 						activeAgents={filteredActiveSessions.length}
 						openIssues={openIssuesCount}
-						pendingPrs={prs.length}
-						pendingTodos={pendingCount}
+						pendingPrs={filteredPrsCount}
+						pendingTodos={filteredTodoCount}
 					/>
 				</Box>
 
-				{/* Main Grid 2x2 */}
-				<Box
-					sx={{
-						display: 'grid',
-						gridTemplateColumns: '1fr 1fr',
-						gridTemplateRows: '1fr 1fr',
-						gap: 2,
-						flex: 1,
-						minHeight: 0,
-					}}
-				>
-					<ActiveAgentsWidget
-						sessions={filteredActiveSessions}
-						pendingQuestions={pendingQuestions}
-						onSessionClick={(s) => setSelected({ type: 'active', session: s })}
-						onStopSession={handleKillSession}
-					/>
-					<TodosWidget pendingCount={pendingCount} />
-					<RecentSessionsWidget
-						sessions={filteredPastSessions}
-						onSessionClick={handlePastSessionClick}
-						onDeleteSession={deleteSession}
-					/>
+				{/* Top row: Active Agents + Recent Sessions */}
+				<Box sx={{ display: 'flex', gap: 2, flex: 1, minHeight: 0 }}>
+					<Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+						<ActiveAgentsWidget
+							sessions={filteredActiveSessions}
+							pendingQuestions={pendingQuestions}
+							onSessionClick={(s) => setSelected({ type: 'active', session: s })}
+							onStopSession={handleKillSession}
+						/>
+					</Box>
+					<Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+						<RecentSessionsWidget
+							sessions={filteredPastSessions}
+							onSessionClick={handlePastSessionClick}
+							onDeleteSession={deleteSession}
+						/>
+					</Box>
+				</Box>
+
+				{/* Bottom: Summaries full width */}
+				<Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
 					<SummariesWidget
 						summaries={filteredSummaries}
 						isLoading={summariesLoading}

@@ -8,12 +8,14 @@ import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
 import MergeRoundedIcon from '@mui/icons-material/MergeRounded';
 import ChecklistRoundedIcon from '@mui/icons-material/ChecklistRounded';
 import { useTranslations } from 'next-intl';
+import Link from 'next/link';
 
 interface KpiCardData {
 	icon: React.ReactNode;
 	value: number;
 	label: string;
 	color: string;
+	href?: string;
 }
 
 interface KpiCardsProps {
@@ -44,18 +46,21 @@ export default function KpiCards({
 			value: openIssues,
 			label: t('kpiIssues'),
 			color: theme.palette.secondary.main,
+			href: '/issues',
 		},
 		{
 			icon: <MergeRoundedIcon sx={{ fontSize: 18 }} />,
 			value: pendingPrs,
 			label: t('kpiPrs'),
 			color: theme.palette.success.main,
+			href: '/prs',
 		},
 		{
 			icon: <ChecklistRoundedIcon sx={{ fontSize: 18 }} />,
 			value: pendingTodos,
 			label: t('kpiTodos'),
 			color: theme.palette.warning.main,
+			href: '/todos',
 		},
 	];
 
@@ -79,24 +84,49 @@ export default function KpiCards({
 						transition: 'all 0.2s',
 						'&:hover': {
 							borderColor: alpha(card.color, 0.3),
-							transform: 'translateY(-1px)',
 						},
 					}}
 				>
 					<Box
 						sx={{
-							width: 36,
-							height: 36,
-							borderRadius: '8px',
-							bgcolor: alpha(card.color, 0.12),
-							color: card.color,
 							display: 'flex',
-							alignItems: 'center',
-							justifyContent: 'center',
+							alignItems: 'flex-start',
+							justifyContent: 'space-between',
 							mb: 1.25,
 						}}
 					>
-						{card.icon}
+						<Box
+							sx={{
+								width: 36,
+								height: 36,
+								borderRadius: '8px',
+								bgcolor: alpha(card.color, 0.12),
+								color: card.color,
+								display: 'flex',
+								alignItems: 'center',
+								justifyContent: 'center',
+							}}
+						>
+							{card.icon}
+						</Box>
+						{card.href && (
+							<Link
+								href={card.href}
+								style={{ textDecoration: 'none' }}
+							>
+								<Typography
+									sx={{
+										fontSize: '0.65rem',
+										color: 'text.disabled',
+										fontWeight: 500,
+										cursor: 'pointer',
+										'&:hover': { color: 'text.secondary' },
+									}}
+								>
+									{t('showAll')}
+								</Typography>
+							</Link>
+						)}
 					</Box>
 					<Typography
 						sx={{
