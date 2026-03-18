@@ -18,8 +18,6 @@ import { alpha, useTheme } from '@mui/material/styles';
 import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
 import MergeTypeRoundedIcon from '@mui/icons-material/MergeTypeRounded';
 import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
-import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
-import AutoFixHighRoundedIcon from '@mui/icons-material/AutoFixHighRounded';
 import ChecklistRoundedIcon from '@mui/icons-material/ChecklistRounded';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
@@ -46,8 +44,6 @@ export default function Sidebar() {
 		{ label: t('issues'), href: '/issues', icon: <BugReportRoundedIcon /> },
 		{ label: t('prs'), href: '/prs', icon: <MergeTypeRoundedIcon /> },
 		{ label: t('worktrees'), href: '/workspace', icon: <AccountTreeRoundedIcon /> },
-		{ label: t('agents'), href: '/agents', icon: <SmartToyRoundedIcon /> },
-		{ label: t('skills'), href: '/skills', icon: <AutoFixHighRoundedIcon /> },
 		{ label: t('todos'), href: '/todos', icon: <ChecklistRoundedIcon />, badge: pendingCount },
 	];
 

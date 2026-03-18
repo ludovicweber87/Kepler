@@ -17,6 +17,7 @@ import Collapse from '@mui/material/Collapse';
 import { alpha, useTheme } from '@mui/material/styles';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
+import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import MergeTypeRoundedIcon from '@mui/icons-material/MergeTypeRounded';
 import ChatBubbleOutlineRoundedIcon from '@mui/icons-material/ChatBubbleOutlineRounded';
 import InsertDriveFileOutlinedIcon from '@mui/icons-material/InsertDriveFileOutlined';
@@ -409,7 +410,7 @@ export default function PullRequestsList() {
 	const tc = useTranslations('common');
 	const { views, addView, reorderViews } = useAgentViews();
 	const allRepos = useMemo(() => views.map((v) => v.repoFullName), [views]);
-	const { data: allPrs, isLoading } = usePullRequests(allRepos);
+	const { data: allPrs, isLoading, refetch, isFetching } = usePullRequests(allRepos);
 	const mergeMutation = useMergePR();
 	const { showSnackbar } = useSnackbar();
 
@@ -498,18 +499,33 @@ export default function PullRequestsList() {
 	return (
 		<Box sx={{ p: 4, maxWidth: 900, mx: 'auto' }}>
 			{/* Header */}
-			<Typography
-				variant="h4"
-				sx={(theme) => ({
-					fontWeight: 700,
-					mb: 3,
-					background: `linear-gradient(135deg, ${theme.palette.success.main} 0%, ${theme.palette.primary.main} 100%)`,
-					WebkitBackgroundClip: 'text',
-					WebkitTextFillColor: 'transparent',
-				})}
-			>
-				{t('title')}
-			</Typography>
+			<Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 3 }}>
+				<Typography
+					variant="h4"
+					sx={(theme) => ({
+						fontWeight: 700,
+						background: `linear-gradient(135deg, ${theme.palette.success.main} 0%, ${theme.palette.primary.main} 100%)`,
+						WebkitBackgroundClip: 'text',
+						WebkitTextFillColor: 'transparent',
+					})}
+				>
+					{t('title')}
+				</Typography>
+				<Tooltip title={tc('refresh')}>
+					<IconButton
+						size="small"
+						onClick={() => refetch()}
+						disabled={isFetching}
+						sx={{ ml: 'auto', color: 'text.disabled', '&:hover': { color: 'success.main' } }}
+					>
+						{isFetching ? (
+							<CircularProgress size={16} sx={{ color: 'text.disabled' }} />
+						) : (
+							<RefreshRoundedIcon fontSize="small" />
+						)}
+					</IconButton>
+				</Tooltip>
+			</Box>
 
 			{/* Tabs per repo */}
 			<DraggableTabs

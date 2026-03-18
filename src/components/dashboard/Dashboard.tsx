@@ -15,6 +15,7 @@ import { useDashboard } from '@/hooks/useGitHub';
 import { usePullRequests } from '@/hooks/usePullRequests';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useSessionManager } from '@/hooks/useSessionManager';
+import { localFetch } from '@/lib/local-fetch';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 
@@ -122,7 +123,7 @@ export default function Dashboard() {
 	const handleKillSession = useCallback(
 		async (sessionId: string) => {
 			try {
-				await fetch(`/api/agent-sessions/${encodeURIComponent(sessionId)}/kill`, {
+				await localFetch(`/agent-sessions/${encodeURIComponent(sessionId)}/kill`, {
 					method: 'POST',
 				});
 				queryClient.invalidateQueries({ queryKey: ['sessions', 'active'] });

@@ -1,28 +1,35 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
+import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import RightSidebar, { RIGHT_SIDEBAR_WIDTH } from './RightSidebar';
 import OverlayTerminal from './OverlayTerminal';
 import AppLoadingSplash from './AppLoadingSplash';
 import SettingsPanel from '@/components/settings/SettingsPanel';
+import AgentStatusBanner from '@/components/shared/AgentStatusBanner';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
+import { useProjectConfig } from '@/hooks/useProjectConfig';
 import { RightSidebarContext } from '@/hooks/useRightSidebar';
 import { OverlayTerminalContext, type OverlaySession } from '@/hooks/useOverlayTerminal';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
 	const { status } = useSession();
 	const { repoPaths, repoPathsLoading } = useRepoPaths();
+	const { configs } = useProjectConfig();
 	const t = useTranslations('onboarding');
 	const [rightOpen, setRightOpen] = useState(true);
 	const [rightWidth, setRightWidth] = useState(RIGHT_SIDEBAR_WIDTH);
 	const [overlaySession, setOverlaySession] = useState<OverlaySession | null>(null);
+	const [onboardingDone, setOnboardingDone] = useState(false);
+	const skipOnboarding = useRef<boolean | null>(null);
 
 	const rightCtx = useMemo(
 		() => ({
@@ -44,7 +51,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
 	if (status === 'loading' || repoPathsLoading) return <AppLoadingSplash />;
 
-	if (repoPaths.length === 0) {
+	if (skipOnboarding.current === null) {
+		skipOnboarding.current = repoPaths.length > 0;
+	}
+
+	const hasRepos = repoPaths.length > 0;
+	const hasProjects = configs.some((c) => c.selectedViews.length > 0);
+	const showOnboarding = !skipOnboarding.current && !onboardingDone;
+
+	if (showOnboarding) {
 		return (
 			<Box
 				sx={{
@@ -79,6 +94,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 				<Box sx={{ width: '100%', maxWidth: 900 }}>
 					<SettingsPanel />
 				</Box>
+				<Button
+					variant="contained"
+					size="large"
+					startIcon={<RocketLaunchRoundedIcon />}
+					disabled={!hasRepos || !hasProjects}
+					onClick={() => setOnboardingDone(true)}
+					sx={{ mt: 4, px: 4, py: 1.5, fontWeight: 600, fontSize: '1rem' }}
+				>
+					{t('launch')}
+				</Button>
 			</Box>
 		);
 	}
@@ -101,6 +126,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 							transition: 'margin-right 0.2s',
 						}}
 					>
+						<AgentStatusBanner />
 						{children}
 					</Box>
 					<RightSidebar />

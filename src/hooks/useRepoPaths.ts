@@ -17,7 +17,9 @@ export function useRepoPaths() {
 	const userId = session?.user?.id ?? null;
 	const { supabase, isReady } = useSupabase();
 
-	const { data: repoPaths = [], isLoading: repoPathsLoading } = useQuery({
+	const notReady = !userId || !isReady;
+
+	const { data: repoPaths = [], isLoading } = useQuery({
 		queryKey: QUERY_KEY,
 		queryFn: async () => {
 			const { data, error } = await supabase
@@ -30,6 +32,9 @@ export function useRepoPaths() {
 		},
 		enabled: !!userId && isReady,
 	});
+
+	// Still loading if deps aren't ready OR query is fetching
+	const repoPathsLoading = notReady || isLoading;
 
 	const saveMutation = useMutation({
 		mutationFn: async ({

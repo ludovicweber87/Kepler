@@ -30,8 +30,8 @@ export function useAgentViews() {
 
 	const addView = useCallback(async (): Promise<AgentView | null> => {
 		try {
-			const { apiFetch } = await import('@/lib/api-fetch');
-			const res = await apiFetch('/api/filesystem/pick-directory');
+			const { localFetch } = await import('@/lib/local-fetch');
+			const res = await localFetch('/filesystem/pick-directory');
 			const { path } = await res.json();
 			if (!path) return null;
 
@@ -44,7 +44,7 @@ export function useAgentViews() {
 			// Resolve real owner/repo from git remote
 			let repoFullName = '';
 			try {
-				const repoRes = await apiFetch(`/api/git/repo-name?path=${encodeURIComponent(path)}`);
+				const repoRes = await localFetch(`/git/repo-name?path=${encodeURIComponent(path)}`);
 				if (repoRes.ok) {
 					const { repoFullName: resolved } = await repoRes.json();
 					if (resolved?.includes('/')) repoFullName = resolved;

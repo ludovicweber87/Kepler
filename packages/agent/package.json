@@ -1,0 +1,22 @@
+{
+	"name": "devora-agent",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "tsx watch src/index.ts",
+		"build": "tsc",
+		"start": "node dist/index.js"
+	},
+	"dependencies": {
+		"@supabase/supabase-js": "^2.98.0",
+		"node-pty": "^1.1.0",
+		"ws": "^8.19.0"
+	},
+	"devDependencies": {
+		"@types/node": "^20",
+		"@types/ws": "^8.18.1",
+		"tsx": "^4.21.0",
+		"typescript": "^5"
+	}
+}

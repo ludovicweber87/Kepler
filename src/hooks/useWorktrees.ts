@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiFetch } from '@/lib/api-fetch';
-import type { WorktreeInfo } from '@/app/api/git/worktrees/route';
+import { localFetch } from '@/lib/local-fetch';
+import type { WorktreeInfo } from '@/types';
 
 export type { WorktreeInfo };
 
@@ -10,8 +10,8 @@ export function useWorktrees(localPath: string | undefined) {
 	const query = useQuery({
 		queryKey: ['git-worktrees', localPath],
 		queryFn: async () => {
-			const res = await apiFetch(
-				`/api/git/worktrees?cwd=${encodeURIComponent(localPath!)}`,
+			const res = await localFetch(
+				`/git/worktrees?cwd=${encodeURIComponent(localPath!)}`,
 			);
 			if (!res.ok) throw new Error('Failed to fetch worktrees');
 			const { worktrees } = await res.json();
@@ -23,7 +23,7 @@ export function useWorktrees(localPath: string | undefined) {
 
 	const createMutation = useMutation({
 		mutationFn: async (branch: string) => {
-			const res = await apiFetch('/api/git/worktrees', {
+			const res = await localFetch('/git/worktrees', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ cwd: localPath, branch }),
@@ -41,7 +41,7 @@ export function useWorktrees(localPath: string | undefined) {
 
 	const deleteMutation = useMutation({
 		mutationFn: async ({ worktreePath, deleteBranch }: { worktreePath: string; deleteBranch: boolean }) => {
-			const res = await apiFetch('/api/git/worktrees', {
+			const res = await localFetch('/git/worktrees', {
 				method: 'DELETE',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ cwd: localPath, worktreePath, deleteBranch }),

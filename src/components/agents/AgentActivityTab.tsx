@@ -18,6 +18,7 @@ import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSupabase } from '@/hooks/useSupabase';
 import { useSnackbar } from '@/hooks/useSnackbar';
+import { localFetch } from '@/lib/local-fetch';
 import type { AgentSession, AgentActivityLog } from '@/hooks/useAgentSession';
 
 const LOG_TYPE_COLORS: Record<AgentActivityLog['log_type'], string> = {
@@ -111,7 +112,7 @@ export default function AgentActivityTab({
 				// Push branch + create PR with activity as description
 				if (session.branch) {
 					// Push branch to remote first
-					const pushRes = await fetch('/api/git/push', {
+					const pushRes = await localFetch('/git/push', {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify({

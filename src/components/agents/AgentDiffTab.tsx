@@ -13,6 +13,7 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import RemoveRoundedIcon from '@mui/icons-material/RemoveRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import { useQuery } from '@tanstack/react-query';
+import { localFetch } from '@/lib/local-fetch';
 
 /* ── Types ── */
 interface FileDiff {
@@ -457,7 +458,7 @@ export default function AgentDiffTab({ projectPath, branch }: AgentDiffTabProps)
 			const params = new URLSearchParams();
 			if (projectPath) params.set('cwd', projectPath);
 			if (branch) params.set('branch', branch);
-			const res = await fetch(`/api/git/diff?${params}`);
+			const res = await localFetch(`/git/diff?${params}`);
 			if (!res.ok) throw new Error('Failed to fetch diff');
 			return res.json() as Promise<{ diff: string; stats: string }>;
 		},

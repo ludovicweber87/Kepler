@@ -14,6 +14,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import { WebglAddon } from '@xterm/addon-webgl';
 import '@xterm/xterm/css/xterm.css';
 import { useOverlayTerminal } from '@/hooks/useOverlayTerminal';
+import { getAgentWsUrl } from '@/lib/local-fetch';
 import AgentTerminalModal from '@/components/agents/AgentTerminalModal';
 
 const OVERLAY_W = 560;
@@ -81,7 +82,7 @@ export default function OverlayTerminal() {
 		terminalRef.current = terminal;
 		fitAddonRef.current = fitAddon;
 
-		const ws = new WebSocket('ws://localhost:4001');
+		const ws = new WebSocket(getAgentWsUrl());
 		wsRef.current = ws;
 
 		ws.onopen = () => {

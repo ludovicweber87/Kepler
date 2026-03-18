@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
+import { localFetch } from '@/lib/local-fetch';
 import { useSupabase } from '@/hooks/useSupabase';
 import { useActiveSessions, type ActiveSession } from '@/hooks/useActiveSessions';
 import { useAgentSessionHistory, type AgentSession } from '@/hooks/useAgentSession';
@@ -31,7 +32,7 @@ export function useSessionManager() {
 	const killSession = useCallback(
 		async (sessionId: string) => {
 			try {
-				await fetch(`/api/agent-sessions/${encodeURIComponent(sessionId)}/kill`, {
+				await localFetch(`/agent-sessions/${encodeURIComponent(sessionId)}/kill`, {
 					method: 'POST',
 				});
 				queryClient.invalidateQueries({ queryKey: ['sessions', 'active'] });

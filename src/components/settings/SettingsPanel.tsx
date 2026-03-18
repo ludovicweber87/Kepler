@@ -35,6 +35,7 @@ import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import type { ProjectV2Config, ProjectV2View, ViewRepoMapping } from '@/types';
 import { useProjectConfig } from '@/hooks/useProjectConfig';
 import { useTranslations } from 'next-intl';
+import { localFetch } from '@/lib/local-fetch';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
 
 interface OrgProject {
@@ -585,7 +586,7 @@ export default function SettingsPanel() {
 	const pickDirectory = async (repo: string) => {
 		setPickingRepo(repo);
 		try {
-			const res = await fetch('/api/filesystem/pick-directory');
+			const res = await localFetch('/filesystem/pick-directory');
 			const { path } = await res.json();
 			if (path) {
 				setLocalPaths((prev) => ({ ...prev, [repo]: path }));
@@ -600,11 +601,19 @@ export default function SettingsPanel() {
 	const handleAddRepo = async () => {
 		setPickingRepo('__new__');
 		try {
-			const res = await fetch('/api/filesystem/pick-directory');
+			const res = await localFetch('/filesystem/pick-directory');
 			const { path } = await res.json();
-			if (path) {
-				const name = path.split('/').filter(Boolean).pop() || path;
-				const repoName = window.prompt(t('repoName'), name);
+			if (!path) return;
+
+			const nameRes = await localFetch(`/git/repo-name?path=${encodeURIComponent(path)}`);
+			const nameData = await nameRes.json();
+
+			if (nameData.repoFullName) {
+				savePath(nameData.repoFullName, path);
+				showToast(t('pathSaved'));
+			} else {
+				const fallback = path.split('/').filter(Boolean).pop() || path;
+				const repoName = window.prompt(t('repoName'), fallback);
 				if (repoName?.trim()) {
 					savePath(repoName.trim(), path);
 					showToast(t('pathSaved'));
@@ -634,6 +643,44 @@ export default function SettingsPanel() {
 			>
 				{t('title')}
 			</Typography>
+
+			{/* Section: Repo Local Paths */}
+			<Box sx={{ mb: 5 }}>
+				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+					<FolderRoundedIcon sx={{ color: 'text.secondary', fontSize: 22 }} />
+					<Typography variant="h6" sx={{ fontWeight: 600 }}>
+						{t('repoPaths')}
+					</Typography>
+				</Box>
+				<Typography variant="body2" color="text.secondary" sx={{ mb: 3, ml: 4.5 }}>
+					{t('repoPathsDesc')}
+				</Typography>
+
+				<Box
+					sx={{
+						display: 'grid',
+						gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+						gap: 1.5,
+						ml: 4.5,
+					}}
+				>
+					{repoPaths.map((rp) => (
+						<RepoPathCard
+							key={rp.repo_full_name}
+							repoName={rp.repo_full_name}
+							localPath={localPaths[rp.repo_full_name] ?? rp.local_path}
+							onEdit={() => pickDirectory(rp.repo_full_name)}
+							onDelete={() => deletePath(rp.repo_full_name)}
+							isEditing={pickingRepo === rp.repo_full_name}
+						/>
+					))}
+					<AddRepoCard
+						onClick={handleAddRepo}
+						disabled={pickingRepo !== null}
+						label={pickingRepo === '__new__' ? t('selecting') : t('addRepo')}
+					/>
+				</Box>
+			</Box>
 
 			{/* Section: GitHub Project Views */}
 			<Box sx={{ mb: 5 }}>
@@ -678,13 +725,7 @@ export default function SettingsPanel() {
 				{!loadingProjects && allProjects.length > 0 && (
 					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, ml: 4.5 }}>
 						{allProjects.map((o) =>
-							o.projects
-								.filter((p) => {
-									if (totalConfigured === 0) return true;
-									const cfg = findSavedConfig(o.org, p.number);
-									return cfg && cfg.selectedViews.length > 0;
-								})
-								.map((p) => (
+							o.projects.map((p) => (
 									<ProjectSection
 										key={p.id}
 										project={p}
@@ -712,44 +753,6 @@ export default function SettingsPanel() {
 						)}
 					</Box>
 				)}
-			</Box>
-
-			{/* Section: Repo Local Paths */}
-			<Box>
-				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-					<FolderRoundedIcon sx={{ color: 'text.secondary', fontSize: 22 }} />
-					<Typography variant="h6" sx={{ fontWeight: 600 }}>
-						{t('repoPaths')}
-					</Typography>
-				</Box>
-				<Typography variant="body2" color="text.secondary" sx={{ mb: 3, ml: 4.5 }}>
-					{t('repoPathsDesc')}
-				</Typography>
-
-				<Box
-					sx={{
-						display: 'grid',
-						gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-						gap: 1.5,
-						ml: 4.5,
-					}}
-				>
-					{repoPaths.map((rp) => (
-						<RepoPathCard
-							key={rp.repo_full_name}
-							repoName={rp.repo_full_name}
-							localPath={localPaths[rp.repo_full_name] ?? rp.local_path}
-							onEdit={() => pickDirectory(rp.repo_full_name)}
-							onDelete={() => deletePath(rp.repo_full_name)}
-							isEditing={pickingRepo === rp.repo_full_name}
-						/>
-					))}
-					<AddRepoCard
-						onClick={handleAddRepo}
-						disabled={pickingRepo !== null}
-						label={pickingRepo === '__new__' ? t('selecting') : t('addRepo')}
-					/>
-				</Box>
 			</Box>
 
 			<Snackbar

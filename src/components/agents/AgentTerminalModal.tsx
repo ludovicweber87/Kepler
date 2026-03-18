@@ -33,12 +33,17 @@ import { FitAddon } from '@xterm/addon-fit';
 import { WebglAddon } from '@xterm/addon-webgl';
 import '@xterm/xterm/css/xterm.css';
 import Tooltip from '@mui/material/Tooltip';
-import type { AgentFile } from '@/hooks/useAgentFiles';
+interface AgentFile {
+	filename: string;
+	name: string;
+	content: string;
+}
 import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useAgentSession } from '@/hooks/useAgentSession';
 import { useOverlayTerminal } from '@/hooks/useOverlayTerminal';
 import { useWorktrees } from '@/hooks/useWorktrees';
 import { useTranslations } from 'next-intl';
+import { localFetch, getAgentWsUrl } from '@/lib/local-fetch';
 import AgentActivityTab from './AgentActivityTab';
 import AgentDiffTab from './AgentDiffTab';
 import AgentIssueTab from './AgentIssueTab';
@@ -83,7 +88,8 @@ function buildSessionId(
 }
 
 function buildReportingPrompt(sessionId: string): string {
-	const logEndpoint = `http://localhost:4000/api/agent-sessions/log`;
+	const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:4000';
+	const logEndpoint = `${appUrl}/api/agent-sessions/log`;
 
 	return [
 		'',
@@ -264,7 +270,7 @@ export default function AgentTerminalModal({
 		}
 		setPicking(true);
 		try {
-			const res = await fetch('/api/filesystem/pick-directory');
+			const res = await localFetch('/filesystem/pick-directory');
 			const { path } = await res.json();
 			if (path) {
 				savePath(repoFullName, path);
@@ -405,8 +411,8 @@ export default function AgentTerminalModal({
 		if (!projectPath) return;
 		setFetchingBranch(true);
 		try {
-			const res = await fetch(
-				`/api/git/current-branch?path=${encodeURIComponent(projectPath)}`,
+			const res = await localFetch(
+				`/git/current-branch?path=${encodeURIComponent(projectPath)}`,
 			);
 			const data = await res.json();
 			if (data.branch) {
@@ -592,7 +598,7 @@ export default function AgentTerminalModal({
 		terminalRef.current = terminal;
 		fitAddonRef.current = fitAddon;
 
-		const ws = new WebSocket('ws://localhost:4001');
+		const ws = new WebSocket(getAgentWsUrl());
 		wsRef.current = ws;
 
 		ws.onopen = () => {
@@ -787,7 +793,7 @@ export default function AgentTerminalModal({
 		shellFitAddonRef.current = fitAddon;
 
 		const shellSessionId = `${sessionId}-shell`;
-		const ws = new WebSocket('ws://localhost:4001');
+		const ws = new WebSocket(getAgentWsUrl());
 		shellWsRef.current = ws;
 
 		ws.onopen = () => {

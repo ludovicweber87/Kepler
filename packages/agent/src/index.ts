@@ -1,0 +1,75 @@
+import { createServer, IncomingMessage, ServerResponse } from 'node:http';
+import { parsePath, sendJson, sendError } from './helpers.js';
+import { startTerminalServer } from './terminal.js';
+import { handleGitRoutes } from './routes/git.js';
+import { handleSessionRoutes } from './routes/sessions.js';
+import { handleChatRoutes } from './routes/chat.js';
+import { handleFilesystemRoutes } from './routes/filesystem.js';
+
+const PORT = parseInt(process.env.DEVORA_AGENT_PORT ?? '4001', 10);
+const ALLOWED_ORIGIN = process.env.DEVORA_ORIGIN ?? 'http://localhost:4000';
+
+function setCors(res: ServerResponse) {
+	res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
+	res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+	res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+}
+
+async function handleRequest(req: IncomingMessage, res: ServerResponse) {
+	setCors(res);
+
+	// Preflight
+	if (req.method === 'OPTIONS') {
+		res.writeHead(204);
+		res.end();
+		return;
+	}
+
+	const path = parsePath(req);
+
+	try {
+		// Health check
+		if (path === '/health' && req.method === 'GET') {
+			sendJson(res, { ok: true });
+			return;
+		}
+
+		// Route dispatch
+		if (path.startsWith('/git/')) {
+			await handleGitRoutes(req, res, path);
+			return;
+		}
+
+		if (path.startsWith('/sessions') || path.startsWith('/agent-sessions/')) {
+			await handleSessionRoutes(req, res, path);
+			return;
+		}
+
+		if (path === '/chat' && req.method === 'POST') {
+			await handleChatRoutes(req, res);
+			return;
+		}
+
+		if (path.startsWith('/filesystem/')) {
+			await handleFilesystemRoutes(req, res, path);
+			return;
+		}
+
+		sendJson(res, { error: 'Not found' }, 404);
+	} catch (err) {
+		console.error('[agent] Unhandled error:', err);
+		sendError(res, err instanceof Error ? err.message : 'Internal server error');
+	}
+}
+
+// ── Start ──
+
+const server = createServer(handleRequest);
+
+// WebSocket upgrade for terminal
+startTerminalServer(server);
+
+server.listen(PORT, () => {
+	console.log(`[devora-agent] Running on http://localhost:${PORT}`);
+	console.log(`[devora-agent] CORS origin: ${ALLOWED_ORIGIN}`);
+});

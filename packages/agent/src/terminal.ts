@@ -1,20 +1,9 @@
+import { Server as HttpServer } from 'node:http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { spawn, IPty } from 'node-pty';
-import { execSync } from 'child_process';
-import { createServiceRoleClient } from '@/lib/supabase';
-
-function findTmux(): string {
-	const paths = ['/opt/homebrew/bin/tmux', '/usr/local/bin/tmux', '/usr/bin/tmux'];
-	for (const p of paths) {
-		try {
-			execSync(`test -x ${p}`, { stdio: 'ignore' });
-			return p;
-		} catch {
-			/* continue */
-		}
-	}
-	return 'tmux'; // fallback to PATH
-}
+import { execSync } from 'node:child_process';
+import { createClient } from '@supabase/supabase-js';
+import { findTmux } from './helpers.js';
 
 const TMUX = findTmux();
 
@@ -45,9 +34,6 @@ interface ListSessionsMessage {
 
 type ClientMessage = InitMessage | InputMessage | ResizeMessage | ListSessionsMessage;
 
-// Module-level guard against double-start in dev (hot reload)
-let wss: WebSocketServer | null = null;
-
 // Track last PTY output per session (sessionId → timestamp)
 const sessionOutputTimestamps = new Map<string, number>();
 // Track pane content hash for sessions not attached via WS
@@ -61,10 +47,6 @@ function simpleHash(str: string): string {
 	return h.toString(36);
 }
 
-/**
- * Capture tmux pane content and check if it changed since last check.
- * Returns true if there was new output.
- */
 function checkPaneActivity(sessionId: string): boolean {
 	try {
 		const content = execSync(`${TMUX} capture-pane -t ${sessionId} -p -J`, {
@@ -75,7 +57,6 @@ function checkPaneActivity(sessionId: string): boolean {
 		const hash = simpleHash(content);
 		const prev = sessionPaneHashes.get(sessionId);
 		sessionPaneHashes.set(sessionId, hash);
-		// First check: no baseline yet, don't assume active
 		if (prev === undefined) return false;
 		if (prev !== hash) {
 			sessionOutputTimestamps.set(sessionId, Date.now());
@@ -97,7 +78,7 @@ export interface SessionMeta {
 	hasRecentOutput: boolean;
 }
 
-const ACTIVE_THRESHOLD = 30_000; // 30 seconds
+const ACTIVE_THRESHOLD = 30_000;
 
 export function getActiveSessions(): SessionMeta[] {
 	try {
@@ -117,9 +98,7 @@ export function getActiveSessions(): SessionMeta[] {
 				const [sessionId, created, cwd, activity, command] = line.split('|');
 				const tmuxActivity = parseInt(activity, 10) * 1000;
 				const trackedTs = sessionOutputTimestamps.get(sessionId);
-				// Only use PTY-tracked timestamps for output detection (not tmuxActivity which updates on any interaction)
 				const lastOutput = trackedTs ?? 0;
-				// Also check pane content diff as a fallback for unattached sessions
 				const paneChanged = checkPaneActivity(sessionId);
 				const hasRecentOutput =
 					(lastOutput > 0 && now - lastOutput < ACTIVE_THRESHOLD) || paneChanged;
@@ -147,7 +126,7 @@ function tmuxSessionExists(sessionId: string): boolean {
 	}
 }
 
-function listTmuxSessions(): string[] {
+export function listTmuxSessions(): string[] {
 	try {
 		const out = execSync(`${TMUX} list-sessions -F "#{session_name}"`, {
 			encoding: 'utf-8',
@@ -162,13 +141,17 @@ function listTmuxSessions(): string[] {
 	}
 }
 
-/**
- * Check if this specific session is completed/error in DB.
- * Prevents re-creating tmux for a killed session, but allows new sessions on the same path.
- */
+function createSupabase() {
+	const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
+	const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+	if (!url || !key) return null;
+	return createClient(url, key);
+}
+
 async function isSessionCompleted(sessionId: string): Promise<boolean> {
 	try {
-		const supabase = createServiceRoleClient();
+		const supabase = createSupabase();
+		if (!supabase) return false;
 		const { data } = await supabase
 			.from('agent_sessions')
 			.select('status')
@@ -185,7 +168,6 @@ function createTmuxSession(sessionId: string, cwd: string): void {
 	execSync(`${TMUX} new-session -d -s ${sessionId} -x 120 -y 40 -c ${JSON.stringify(cwd)}`, {
 		stdio: 'ignore',
 	});
-	// Enable mouse support so scroll wheel works for buffer scrollback
 	execSync(`${TMUX} set-option -t ${sessionId} mouse on`, {
 		stdio: 'ignore',
 	});
@@ -205,12 +187,9 @@ function spawnTmuxAttach(sessionId: string, cols: number, rows: number): IPty {
 	});
 }
 
-
-export function startTerminalServer(port: number) {
-	if (wss) return;
-
-	wss = new WebSocketServer({ port });
-	console.log(`[terminal-server] WebSocket server started on port ${port}`);
+export function startTerminalServer(httpServer: HttpServer) {
+	const wss = new WebSocketServer({ server: httpServer });
+	console.log('[devora-agent] WebSocket terminal server attached');
 
 	wss.on('connection', (ws: WebSocket) => {
 		let pty: IPty | null = null;
@@ -231,14 +210,12 @@ export function startTerminalServer(port: number) {
 			}
 
 			if (msg.type === 'init') {
-				// Store the init promise so subsequent messages wait for it
 				initReady = (async () => {
 					const attachId = msg.sessionId;
 					const existed = tmuxSessionExists(msg.sessionId);
 					const isShellSession = msg.sessionId.endsWith('-shell');
 
 					if (!existed) {
-						// Guard: refuse to re-create tmux for a session already completed/killed
 						if (!isShellSession) {
 							const completed = await isSessionCompleted(msg.sessionId);
 							if (completed) {
@@ -254,17 +231,16 @@ export function startTerminalServer(port: number) {
 						createTmuxSession(msg.sessionId, msg.cwd);
 					}
 
-					// Spawn PTY attached to the tmux session
 					pty = spawnTmuxAttach(attachId, msg.cols, msg.rows);
 
-					// Tell the client whether this is a resumed session (+ actual session ID if different)
-					ws.send(JSON.stringify({
-						type: 'init-ack',
-						resumed: existed,
-						...(attachId !== msg.sessionId ? { actualSessionId: attachId } : {}),
-					}));
+					ws.send(
+						JSON.stringify({
+							type: 'init-ack',
+							resumed: existed,
+							...(attachId !== msg.sessionId ? { actualSessionId: attachId } : {}),
+						}),
+					);
 
-					// Forward PTY output to WebSocket + track activity
 					pty.onData((data: string) => {
 						sessionOutputTimestamps.set(attachId, Date.now());
 						if (ws.readyState === WebSocket.OPEN) {
@@ -282,7 +258,6 @@ export function startTerminalServer(port: number) {
 				return;
 			}
 
-			// Wait for init to complete before processing input/resize
 			if (initReady) await initReady;
 
 			if (msg.type === 'input' && pty) {

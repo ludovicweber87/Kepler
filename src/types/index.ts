@@ -248,6 +248,29 @@ export interface GitHubPullRequest {
 }
 
 
+// Agent sessions (from local agent /sessions endpoint)
+
+export interface ActiveSession {
+	sessionId: string;
+	cwd: string;
+	branch: string | null;
+	projectName: string;
+	agentName: string | null;
+	createdAt: number;
+	lastActivity: number;
+	lastOutput: number;
+	isActive: boolean;
+	isStreaming: boolean;
+}
+
+// Git worktrees (from local agent /git/worktrees endpoint)
+
+export interface WorktreeInfo {
+	path: string;
+	branch: string;
+	head: string;
+}
+
 export interface AgentPreset {
 	id: string;
 	name: string;

@@ -15,6 +15,7 @@ import Alert from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
 import Chip from '@mui/material/Chip';
 import { useTranslations } from 'next-intl';
+import { localFetch } from '@/lib/local-fetch';
 import type { GitHubIssue } from '@/types';
 
 interface CreateBranchModalProps {
@@ -51,7 +52,7 @@ export default function CreateBranchModal({ open, onClose, issue }: CreateBranch
 		setErrorMsg('');
 
 		try {
-			const res = await fetch('/api/git/branch', {
+			const res = await localFetch('/git/branch', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({

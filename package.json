@@ -2,14 +2,16 @@
 	"name": "devora",
 	"version": "0.1.0",
 	"private": true,
+	"workspaces": ["packages/agent"],
 	"scripts": {
-		"dev": "next dev -p 4000",
+		"dev": "npx concurrently \"next dev -p 4000\" \"npm run dev -w packages/agent\"",
+		"dev:web": "next dev -p 4000",
+		"dev:agent": "npm run dev -w packages/agent",
 		"build": "next build",
 		"start": "next start -p 4000",
 		"lint": "eslint",
 		"format": "prettier --write .",
-		"format:check": "prettier --check .",
-		"postinstall": "chmod +x node_modules/node-pty/prebuilds/darwin-arm64/spawn-helper 2>/dev/null || true"
+		"format:check": "prettier --check ."
 	},
 	"dependencies": {
 		"@emotion/cache": "^11.14.0",
@@ -29,14 +31,12 @@
 		"next": "16.1.6",
 		"next-auth": "^5.0.0-beta.30",
 		"next-intl": "^4.8.3",
-		"node-pty": "^1.1.0",
 		"react": "19.2.3",
 		"react-dom": "19.2.3",
 		"react-markdown": "^10.1.0",
 		"recharts": "^3.7.0",
 		"rehype-raw": "^7.0.0",
-		"remark-gfm": "^4.0.1",
-		"ws": "^8.19.0"
+		"remark-gfm": "^4.0.1"
 	},
 	"devDependencies": {
 		"@evaneos/front-config": "^5.0.0",
@@ -44,7 +44,6 @@
 		"@types/node": "^20",
 		"@types/react": "^19",
 		"@types/react-dom": "^19",
-		"@types/ws": "^8.18.1",
 		"dotenv": "^17.3.1",
 		"eslint": "^9",
 		"eslint-config-next": "16.1.6",

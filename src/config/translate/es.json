@@ -1,7 +1,8 @@
 {
 	"onboarding": {
 		"welcome": "Bienvenido a Devora",
-		"description": "Devora es tu panel de desarrollo personal. Gestiona tus issues de GitHub, pull requests, todos, worktrees de Git y lanza agentes Claude — todo desde una sola interfaz. Empieza añadiendo un repositorio a continuación."
+		"description": "Devora es tu panel de desarrollo personal. Gestiona tus issues de GitHub, pull requests, todos, worktrees de Git y lanza agentes Claude — todo desde una sola interfaz. Empieza añadiendo un repositorio a continuación.",
+		"launch": "Lanzar Devora"
 	},
 	"sidebar": {
 		"dashboard": "Panel",
@@ -113,24 +114,6 @@
 		"noTasks": "Sin tareas",
 		"done": "Hecho"
 	},
-	"agents": {
-		"title": "Agentes",
-		"noProjectSelected": "Ningún proyecto seleccionado",
-		"selectProjectFolder": "Selecciona una carpeta de proyecto para gestionar sus agentes.",
-		"addProject": "Añadir proyecto",
-		"newAgent": "Nuevo agente",
-		"instruction": "Un agente = un archivo .md en .claude/agents/. Escribe el prompt del sistema en markdown.",
-		"noAgents": "Sin agentes",
-		"createAgentIn": "Crea un archivo .md en {path}/.claude/agents/",
-		"createAgent": "Crear agente",
-		"editAgent": "Editar — {name}.md",
-		"fileName": "Nombre del archivo",
-		"fileNameExample": "ej. code-reviewer",
-		"fileNameHelper": "Se guardará en .claude/agents/{name}.md",
-		"agentPrompt": "Prompt del agente",
-		"promptPlaceholder": "Escribe el prompt del sistema del agente en markdown...",
-		"files": "Archivos"
-	},
 	"prs": {
 		"title": "Pull Requests",
 		"noProjectSelected": "Ningún proyecto seleccionado",
@@ -146,17 +129,6 @@
 		"squashAndMerge": "Squash and Merge",
 		"merging": "Fusionando...",
 		"confirmMerge": "Confirmar fusión"
-	},
-	"skills": {
-		"title": "Skills",
-		"noProjectSelected": "Ningún proyecto seleccionado",
-		"selectProjectFolder": "Añade un repositorio en ajustes para gestionar sus skills.",
-		"addProject": "Añadir proyecto",
-		"findSkills": "Buscar skills",
-		"newSkill": "Nuevo skill",
-		"instruction": "Un skill = un archivo .md en .claude/skills/. Los skills son plantillas de prompts reutilizables.",
-		"noSkills": "Sin skills",
-		"createSkillIn": "Crea un archivo .md en {path}/.claude/skills/"
 	},
 	"settings": {
 		"title": "Ajustes",
@@ -184,7 +156,10 @@
 		"back": "Atrás",
 		"next": "Siguiente",
 		"sessionKilled": "Sesión detenida",
-		"sessionDeleted": "Sesión eliminada"
+		"sessionDeleted": "Sesión eliminada",
+		"agentOffline": "Agente local no conectado — ejecute `npm run dev:agent` para habilitar funciones locales (terminal, git, agentes).",
+		"soon": "Próximamente",
+		"incomingFeature": "¡Esta funcionalidad llegará pronto!"
 	},
 	"launchModal": {
 		"selectProject": "Seleccionar proyecto",
@@ -202,120 +177,6 @@
 		"branchDesc": "Se creara un worktree aislado en .worktrees/ para esta sesion.",
 		"launch": "Lanzar",
 		"creating": "Creando..."
-	},
-	"agentBuilder": {
-		"title": "Agent Builder",
-		"stepTaskType": "Tipo de tarea",
-		"stepTaskTypeDesc": "¿Qué tipo de tarea debe realizar el agente?",
-		"stepContext": "Contexto",
-		"stepContextDesc": "¿En qué entorno técnico trabaja?",
-		"stepBehavior": "Comportamiento",
-		"stepBehaviorDesc": "¿Cómo debe trabajar?",
-		"stepGeneration": "Generación",
-		"stepGenerationDesc": "Vista previa y ajustes",
-		"taskTypeIntro": "¿Qué tipos de tareas debe realizar el agente? Selecciona uno o más dominios.",
-		"describeTask": "Describe la tarea",
-		"describeTaskPlaceholder": "Ej.: Generar componentes React a partir de specs Figma...",
-		"contextIntro": "Dale contexto al agente para que sea relevante en tu proyecto.",
-		"techStack": "Stack técnico",
-		"otherTechPlaceholder": "Otra tecnología no listada...",
-		"otherTechHelper": "Añade tecnologías específicas no listadas arriba",
-		"projectContext": "Contexto del proyecto",
-		"projectContextPlaceholder": "Ej.: Dashboard de gestión de equipo con API REST, arquitectura modular...",
-		"projectContextHelper": "Tipo de proyecto, arquitectura, restricciones particulares",
-		"behaviorIntro": "Define las reglas y el comportamiento esperado del agente.",
-		"conventionsRules": "Convenciones y reglas",
-		"otherRulesPlaceholder": "Otras reglas específicas...",
-		"outputFormat": "Formato de salida esperado",
-		"agentTone": "Tono del agente",
-		"agentName": "Nombre del agente",
-		"agentNamePlaceholder": "ej. code-reviewer",
-		"agentNameHelper": "Se guardará en .claude/agents/{name}.md",
-		"generating": "Generando prompt...",
-		"feedbackPlaceholder": "Pide un ajuste... ej. \"Añade una regla sobre tests\"",
-		"refine": "Refinar",
-		"generate": "Generar",
-		"next": "Siguiente",
-		"taskTypes": {
-			"code-review": "Revisión de código",
-			"testing": "Tests unitarios / E2E",
-			"refactoring": "Refactorización",
-			"documentation": "Documentación",
-			"security": "Auditoría de seguridad",
-			"performance": "Optimización de rendimiento",
-			"migration": "Migración / upgrade",
-			"debugging": "Debugging",
-			"ci-cd": "CI/CD",
-			"code-generation": "Generación de código",
-			"api-design": "Diseño de API",
-			"database": "Base de datos",
-			"accessibility": "Accesibilidad",
-			"i18n": "Internacionalización",
-			"devops": "DevOps / infra",
-			"git": "Git workflow",
-			"architecture": "Arquitectura",
-			"typing": "Tipado / tipos",
-			"custom": "Otro..."
-		},
-		"conventions": {
-			"no-any": "Sin any",
-			"no-classes": "Sin clases",
-			"functional": "Estilo funcional",
-			"custom-hooks": "Hooks personalizados",
-			"solid": "Principios SOLID",
-			"dry": "DRY",
-			"kiss": "KISS",
-			"english-naming": "Nombres en inglés",
-			"french-naming": "Nombres en francés",
-			"jsdoc": "JSDoc / comentarios",
-			"no-comments": "Sin comentarios innecesarios",
-			"error-handling": "Gestión de errores estricta",
-			"immutable": "Datos inmutables",
-			"small-functions": "Funciones pequeñas",
-			"barrel-exports": "Barrel exports (index.ts)",
-			"colocation": "Colocación de archivos",
-			"strict-types": "Tipado estricto",
-			"testing-required": "Tests obligatorios",
-			"accessibility": "Accesibilidad (ARIA)",
-			"responsive": "Diseño responsive"
-		},
-		"outputFormats": {
-			"code": "Código modificado directamente",
-			"report": "Informe / análisis",
-			"suggestions": "Sugerencias con explicaciones",
-			"both": "Código + comentarios",
-			"diff": "Diff / patch",
-			"checklist": "Checklist",
-			"markdown": "Documento Markdown"
-		},
-		"tones": {
-			"strict": "Estricto y exigente",
-			"pedagogical": "Pedagógico",
-			"concise": "Conciso y directo",
-			"detailed": "Detallado y exhaustivo",
-			"collaborative": "Colaborativo",
-			"senior": "Senior / mentor"
-		},
-		"buildDesc": {
-			"taskTypes": "Tipos de tarea: {values}",
-			"techStack": "Stack técnico: {values}",
-			"projectContext": "Contexto del proyecto: {value}",
-			"conventions": "Convenciones y reglas: {values}",
-			"outputFormat": "Formato de salida esperado: {values}",
-			"tone": "Tono y estilo: {values}"
-		}
-	},
-	"agentForm": {
-		"editAgent": "Editar agente",
-		"newAgent": "Nuevo agente",
-		"icon": "Icono",
-		"name": "Nombre",
-		"namePlaceholder": "ej. Fix Bug",
-		"description": "Descripción",
-		"descriptionPlaceholder": "Descripción corta de lo que hace este agente",
-		"promptTemplate": "Plantilla de prompt",
-		"promptPlaceholder": "La plantilla de prompt enviada a Claude...",
-		"color": "Color"
 	},
 	"agentActivity": {
 		"reportTitle": "Informe del agente",
