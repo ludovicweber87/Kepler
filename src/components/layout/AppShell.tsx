@@ -70,6 +70,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 					alignItems: 'center',
 					py: 6,
 					px: 2,
+					pb: 12,
 				}}
 			>
 				<Image src="/logo.svg" alt="Devora" width={200} height={48} priority />
@@ -94,13 +95,28 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 				<Box sx={{ width: '100%', maxWidth: 900 }}>
 					<SettingsPanel />
 				</Box>
+			</Box>
+			<Box
+				sx={{
+					position: 'fixed',
+					bottom: 0,
+					left: 0,
+					right: 0,
+					display: 'flex',
+					justifyContent: 'center',
+					py: 2,
+					bgcolor: 'background.default',
+					boxShadow: '0 -4px 12px rgba(0,0,0,0.15)',
+					zIndex: 1200,
+				}}
+			>
 				<Button
 					variant="contained"
 					size="large"
 					startIcon={<RocketLaunchRoundedIcon />}
 					disabled={!hasRepos || !hasProjects}
 					onClick={() => setOnboardingDone(true)}
-					sx={{ mt: 4, px: 4, py: 1.5, fontWeight: 600, fontSize: '1rem' }}
+					sx={{ px: 5, py: 1.5, fontWeight: 600, fontSize: '1rem' }}
 				>
 					{t('launch')}
 				</Button>
