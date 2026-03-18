@@ -311,11 +311,17 @@ export default function AgentTerminalModal({
 	}, [open, existingSessionId]);
 
 	// Skip project step when projectPath is already provided (from issue context, agents page, etc.)
+	// When issueContext is provided, skip directly to branch step (worktree mode)
 	useEffect(() => {
 		if (open && !existingSessionId && !existingWorktree && projectPath && step === 'project') {
-			setStep('launch-mode');
+			if (issueContext) {
+				setLaunchMode('worktree');
+				setStep('branch');
+			} else {
+				setStep('launch-mode');
+			}
 		}
-	}, [open, existingSessionId, existingWorktree, projectPath, step]);
+	}, [open, existingSessionId, existingWorktree, projectPath, step, issueContext]);
 
 	// Skip branch step when launching in an existing worktree
 	useEffect(() => {

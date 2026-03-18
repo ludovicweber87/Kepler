@@ -1,7 +1,8 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { supabase } from '@/lib/supabase';
+import { useSupabase } from '@/hooks/useSupabase';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export interface AgentSession {
 	id: string;
@@ -33,7 +34,7 @@ function queryKey(sessionId: string) {
 	return ['agent-session', sessionId];
 }
 
-async function fetchSession(sessionId: string) {
+async function fetchSession(supabase: SupabaseClient, sessionId: string) {
 	const { data, error } = await supabase
 		.from('agent_sessions')
 		.select('*')
@@ -43,7 +44,7 @@ async function fetchSession(sessionId: string) {
 	return data as AgentSession | null;
 }
 
-async function fetchLogs(agentSessionId: string) {
+async function fetchLogs(supabase: SupabaseClient, agentSessionId: string) {
 	const { data, error } = await supabase
 		.from('agent_activity_logs')
 		.select('*')
@@ -57,17 +58,18 @@ export function useAgentSession(sessionId: string | undefined) {
 	const qc = useQueryClient();
 	const { data: authSession } = useSession();
 	const userId = authSession?.user?.id ?? null;
+	const { supabase, isReady } = useSupabase();
 
 	const { data: session = null } = useQuery({
 		queryKey: queryKey(sessionId ?? ''),
-		queryFn: () => fetchSession(sessionId!),
-		enabled: !!sessionId,
+		queryFn: () => fetchSession(supabase, sessionId!),
+		enabled: !!sessionId && isReady,
 	});
 
 	const { data: logs = [] } = useQuery({
 		queryKey: ['agent-session-logs', session?.id],
-		queryFn: () => fetchLogs(session!.id),
-		enabled: !!session?.id,
+		queryFn: () => fetchLogs(supabase, session!.id),
+		enabled: !!session?.id && isReady,
 		refetchInterval: 10_000,
 	});
 
@@ -200,6 +202,7 @@ export function useAgentSession(sessionId: string | undefined) {
 export function useAgentSessionHistory() {
 	const { data: session } = useSession();
 	const userId = session?.user?.id ?? null;
+	const { supabase, isReady } = useSupabase();
 
 	return useQuery({
 		queryKey: ['agent-sessions', 'history'],
@@ -212,6 +215,6 @@ export function useAgentSessionHistory() {
 			if (error) throw error;
 			return (data ?? []) as AgentSession[];
 		},
-		enabled: !!userId,
+		enabled: !!userId && isReady,
 	});
 }

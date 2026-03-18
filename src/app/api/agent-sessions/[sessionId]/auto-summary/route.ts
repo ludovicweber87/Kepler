@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { execSync } from 'child_process';
-import { supabase } from '@/lib/supabase';
+import { createServiceRoleClient } from '@/lib/supabase';
 
 const CLAUDE_BIN = '/opt/homebrew/bin/claude';
 
@@ -9,6 +9,7 @@ export async function POST(
 	{ params }: { params: Promise<{ sessionId: string }> },
 ) {
 	const { sessionId } = await params;
+	const supabase = createServiceRoleClient();
 
 	try {
 		const { paneContent } = (await req.json()) as { paneContent: string };

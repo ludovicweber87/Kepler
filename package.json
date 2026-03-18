@@ -25,6 +25,7 @@
 		"@xterm/addon-webgl": "^0.19.0",
 		"@xterm/xterm": "^6.0.0",
 		"framer-motion": "^12.35.1",
+		"jsonwebtoken": "^9.0.3",
 		"next": "16.1.6",
 		"next-auth": "^5.0.0-beta.30",
 		"next-intl": "^4.8.3",
@@ -39,6 +40,7 @@
 	},
 	"devDependencies": {
 		"@evaneos/front-config": "^5.0.0",
+		"@types/jsonwebtoken": "^9.0.10",
 		"@types/node": "^20",
 		"@types/react": "^19",
 		"@types/react-dom": "^19",

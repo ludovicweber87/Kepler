@@ -1,7 +1,8 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { supabase } from '@/lib/supabase';
+import { useSupabase } from '@/hooks/useSupabase';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export interface Todo {
 	id: string;
@@ -19,7 +20,11 @@ function queryKey(repo: string) {
 	return ['todos', repo];
 }
 
-async function fetchTodos(repo: string, userId: string): Promise<Todo[]> {
+async function fetchTodos(
+	supabase: SupabaseClient,
+	repo: string,
+	userId: string,
+): Promise<Todo[]> {
 	const { data, error } = await supabase
 		.from('todos')
 		.select('*')
@@ -36,12 +41,13 @@ export function useTodos(repoFullName: string | null) {
 	const queryClient = useQueryClient();
 	const { data: session } = useSession();
 	const userId = session?.user?.id ?? null;
+	const { supabase, isReady } = useSupabase();
 	const key = queryKey(repoFullName ?? '');
 
 	const { data: todos = [], isLoading } = useQuery({
 		queryKey: key,
-		queryFn: () => fetchTodos(repoFullName!, userId!),
-		enabled: !!repoFullName && !!userId,
+		queryFn: () => fetchTodos(supabase, repoFullName!, userId!),
+		enabled: !!repoFullName && !!userId && isReady,
 	});
 
 	const addMutation = useMutation({
@@ -196,6 +202,7 @@ export function useTodos(repoFullName: string | null) {
 export function useIssueTodos(issueRepo: string | null, issueNumber: number | null) {
 	const { data: session } = useSession();
 	const userId = session?.user?.id ?? null;
+	const { supabase, isReady } = useSupabase();
 
 	return useQuery({
 		queryKey: ['todos', 'issue', issueRepo, issueNumber],
@@ -209,14 +216,16 @@ export function useIssueTodos(issueRepo: string | null, issueNumber: number | nu
 			if (error) throw error;
 			return (data ?? []) as Todo[];
 		},
-		enabled: !!issueRepo && issueNumber != null && !!userId,
+		enabled: !!issueRepo && issueNumber != null && !!userId && isReady,
 	});
 }
 
-/** Mark all todos for an issue as done (by FK or by title pattern fallback) */
+/** Mark all todos for an issue as done — called from server context, uses service role */
 export async function completeIssueTodos(issueRepo: string, issueNumber: number) {
-	// 1. By explicit link
-	const { data: linked } = await supabase
+	const { createServiceRoleClient } = await import('@/lib/supabase');
+	const sr = createServiceRoleClient();
+
+	const { data: linked } = await sr
 		.from('todos')
 		.update({ done: true })
 		.eq('issue_repo', issueRepo)
@@ -224,9 +233,8 @@ export async function completeIssueTodos(issueRepo: string, issueNumber: number)
 		.eq('done', false)
 		.select('id');
 
-	// 2. Fallback: match by title pattern "#123 ..."
 	if (!linked || linked.length === 0) {
-		await supabase
+		await sr
 			.from('todos')
 			.update({ done: true })
 			.eq('repo_full_name', issueRepo)

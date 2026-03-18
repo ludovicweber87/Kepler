@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { supabase } from '@/lib/supabase';
+import { useSupabase } from '@/hooks/useSupabase';
 import { useCallback } from 'react';
 
 export interface DashboardTodo {
@@ -15,6 +15,7 @@ export function useDashboardTodos(limit = 8) {
 	const { data: session } = useSession();
 	const userId = session?.user?.id ?? null;
 	const queryClient = useQueryClient();
+	const { supabase, isReady } = useSupabase();
 
 	const { data: todos = [], isLoading } = useQuery({
 		queryKey: ['todos', 'dashboard', limit],
@@ -31,7 +32,7 @@ export function useDashboardTodos(limit = 8) {
 			if (error) throw error;
 			return data as DashboardTodo[];
 		},
-		enabled: !!userId,
+		enabled: !!userId && isReady,
 		refetchInterval: 30_000,
 	});
 

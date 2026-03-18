@@ -1,11 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { useSupabase } from '@/hooks/useSupabase';
 
 /**
  * Returns a Set of worktree_path values where the agent's last log (excluding title)
  * is of type 'ask_question' — meaning the agent is waiting for an answer.
  */
 export function usePendingQuestions() {
+	const { supabase, isReady } = useSupabase();
+
 	const { data: pendingPaths = new Set<string>() } = useQuery({
 		queryKey: ['pending-questions'],
 		queryFn: async () => {
@@ -50,6 +52,7 @@ export function usePendingQuestions() {
 
 			return paths;
 		},
+		enabled: isReady,
 		refetchInterval: 5_000,
 	});
 

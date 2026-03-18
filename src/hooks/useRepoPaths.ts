@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { supabase } from '@/lib/supabase';
+import { useSupabase } from '@/hooks/useSupabase';
 
 interface RepoPathRow {
 	id: string;
@@ -15,6 +15,7 @@ export function useRepoPaths() {
 	const queryClient = useQueryClient();
 	const { data: session } = useSession();
 	const userId = session?.user?.id ?? null;
+	const { supabase, isReady } = useSupabase();
 
 	const { data: repoPaths = [], isLoading: repoPathsLoading } = useQuery({
 		queryKey: QUERY_KEY,
@@ -27,7 +28,7 @@ export function useRepoPaths() {
 			if (error) throw error;
 			return data as RepoPathRow[];
 		},
-		enabled: !!userId,
+		enabled: !!userId && isReady,
 	});
 
 	const saveMutation = useMutation({

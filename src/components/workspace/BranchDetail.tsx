@@ -12,7 +12,7 @@ import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import FiberManualRecordRoundedIcon from '@mui/icons-material/FiberManualRecordRounded';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { useSupabase } from '@/hooks/useSupabase';
 import { useBranchLog, type Branch } from '@/hooks/useBranches';
 import type { AgentSession } from '@/hooks/useAgentSession';
 import AgentTerminalModal from '@/components/agents/AgentTerminalModal';
@@ -28,6 +28,7 @@ function formatDate(dateStr: string): string {
 }
 
 function useBranchSessions(branch: string) {
+	const { supabase, isReady } = useSupabase();
 	return useQuery({
 		queryKey: ['agent-sessions', 'branch', branch],
 		queryFn: async () => {
@@ -39,7 +40,7 @@ function useBranchSessions(branch: string) {
 			if (error) throw error;
 			return (data ?? []) as AgentSession[];
 		},
-		enabled: !!branch,
+		enabled: !!branch && isReady,
 	});
 }
 

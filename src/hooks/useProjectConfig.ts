@@ -1,7 +1,8 @@
 import { useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { supabase } from '@/lib/supabase';
+import { useSupabase } from '@/hooks/useSupabase';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ProjectV2Config, ProjectV2View, ViewRepoMapping } from '@/types';
 
 const QUERY_KEY = ['project-config'];
@@ -47,7 +48,7 @@ function configToRow(config: ProjectV2Config) {
 	};
 }
 
-async function fetchConfigs(userId: string): Promise<ProjectV2Config[]> {
+async function fetchConfigs(supabase: SupabaseClient, userId: string): Promise<ProjectV2Config[]> {
 	const { data, error } = await supabase
 		.from('project_configs')
 		.select('*')
@@ -74,11 +75,12 @@ export function useProjectConfig() {
 	const queryClient = useQueryClient();
 	const { data: session } = useSession();
 	const userId = session?.user?.id ?? null;
+	const { supabase, isReady } = useSupabase();
 
 	const { data: configs = [] } = useQuery({
 		queryKey: QUERY_KEY,
-		queryFn: () => fetchConfigs(userId!),
-		enabled: !!userId,
+		queryFn: () => fetchConfigs(supabase, userId!),
+		enabled: !!userId && isReady,
 	});
 
 	// Backward compat: expose first config as `config` for consumers that need a single one

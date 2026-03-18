@@ -51,9 +51,15 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useIssue, useDashboard } from '@/hooks/useGitHub';
 import { useTodos, useIssueTodos } from '@/hooks/useTodos';
-import { supabase } from '@/lib/supabase';
+import { useSupabase } from '@/hooks/useSupabase';
 import { GitHubComment } from '@/types';
+import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
 import IssueTimelineModal from '@/components/dashboard/IssueTimelineModal';
+import dynamic from 'next/dynamic';
+
+const AgentTerminalModal = dynamic(() => import('@/components/agents/AgentTerminalModal'), {
+	ssr: false,
+});
 
 const markdownSx = {
 	'& h1': { fontSize: '1.4rem', fontWeight: 700, mt: 3, mb: 1.5, color: 'text.primary' },
@@ -395,9 +401,11 @@ export default function IssueDetail({
 	const repoFullName = `${owner}/${repo}`;
 	const issueNum = parseInt(number, 10);
 	const qc = useQueryClient();
+	const { supabase } = useSupabase();
 	const { todos, addTodo } = useTodos(repoFullName);
 	const { data: issueTodos = [] } = useIssueTodos(repoFullName, issueNum);
 	const [timelineOpen, setTimelineOpen] = useState(false);
+	const [agentModalOpen, setAgentModalOpen] = useState(false);
 	const [taskAnchor, setTaskAnchor] = useState<HTMLElement | null>(null);
 
 	// Edit state
@@ -749,6 +757,20 @@ export default function IssueDetail({
 							))}
 						</Box>
 						<Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+							<Button
+								variant="contained"
+								size="small"
+								startIcon={<RocketLaunchRoundedIcon />}
+								onClick={() => setAgentModalOpen(true)}
+								sx={{
+									textTransform: 'none',
+									fontWeight: 600,
+									bgcolor: 'primary.main',
+									'&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.85) },
+								}}
+							>
+								{t('launchAgent')}
+							</Button>
 							<Button
 								variant="outlined"
 								size="small"
@@ -1157,6 +1179,18 @@ export default function IssueDetail({
 				repo={repo}
 				number={number}
 				issueTitle={issue.title}
+			/>
+
+			<AgentTerminalModal
+				open={agentModalOpen}
+				onClose={() => setAgentModalOpen(false)}
+				issueContext={{
+					owner,
+					repo,
+					issueNumber: issueNum,
+					issueTitle: issue.title,
+					labels: issue.labels.map((l) => l.name),
+				}}
 			/>
 		</Box>
 	);

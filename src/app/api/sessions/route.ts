@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { execSync } from 'child_process';
 import { getActiveSessions } from '@/lib/terminal-server';
-import { supabase } from '@/lib/supabase';
+import { createServiceRoleClient } from '@/lib/supabase';
 
 export interface ActiveSession {
 	sessionId: string;
@@ -58,6 +58,7 @@ interface DbSession {
 
 export async function GET() {
 	try {
+		const supabase = createServiceRoleClient();
 		const metas = getActiveSessions();
 		const sessionIds = metas.map((m) => m.sessionId);
 

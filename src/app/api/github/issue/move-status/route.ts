@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createServiceRoleClient } from '@/lib/supabase';
 import {
 	fetchIssue,
 	fetchStatusFieldInfo,
@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
 		}
 
 		// Find the project config that contains this repo in its view_repo_mappings
+		const supabase = createServiceRoleClient();
 		const repoFullName = `${owner}/${repo}`;
 		const { data: allConfigs } = await supabase
 			.from('project_configs')

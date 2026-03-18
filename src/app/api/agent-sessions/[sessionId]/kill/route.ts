@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { execSync } from 'child_process';
-import { supabase } from '@/lib/supabase';
+import { createServiceRoleClient } from '@/lib/supabase';
 
 function findTmux(): string {
 	const paths = ['/opt/homebrew/bin/tmux', '/usr/local/bin/tmux', '/usr/bin/tmux'];
@@ -39,6 +39,7 @@ export async function POST(
 		}
 
 		// 3. Update DB: mark as completed + set ended_at
+		const supabase = createServiceRoleClient();
 		await supabase
 			.from('agent_sessions')
 			.update({

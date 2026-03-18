@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { spawn, IPty } from 'node-pty';
 import { execSync } from 'child_process';
-import { supabase } from '@/lib/supabase';
+import { createServiceRoleClient } from '@/lib/supabase';
 
 function findTmux(): string {
 	const paths = ['/opt/homebrew/bin/tmux', '/usr/local/bin/tmux', '/usr/bin/tmux'];
@@ -168,6 +168,7 @@ function listTmuxSessions(): string[] {
  */
 async function isSessionCompleted(sessionId: string): Promise<boolean> {
 	try {
+		const supabase = createServiceRoleClient();
 		const { data } = await supabase
 			.from('agent_sessions')
 			.select('status')

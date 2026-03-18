@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { signOut } from 'next-auth/react';
 import { AuthError } from '@/lib/api-fetch';
 import { SnackbarProvider } from '@/hooks/useSnackbar';
+import { SupabaseProvider } from '@/hooks/useSupabase';
 
 function handleAuthError(error: Error) {
 	if (error instanceof AuthError) {
@@ -29,7 +30,9 @@ export default function QueryProvider({ children }: { children: React.ReactNode 
 
 	return (
 		<QueryClientProvider client={client}>
-			<SnackbarProvider>{children}</SnackbarProvider>
+			<SupabaseProvider>
+				<SnackbarProvider>{children}</SnackbarProvider>
+			</SupabaseProvider>
 		</QueryClientProvider>
 	);
 }

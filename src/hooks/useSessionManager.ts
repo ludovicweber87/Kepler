@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { supabase } from '@/lib/supabase';
+import { useSupabase } from '@/hooks/useSupabase';
 import { useActiveSessions, type ActiveSession } from '@/hooks/useActiveSessions';
 import { useAgentSessionHistory, type AgentSession } from '@/hooks/useAgentSession';
 import { useSnackbar } from '@/hooks/useSnackbar';
@@ -12,6 +12,7 @@ export function useSessionManager() {
 	const queryClient = useQueryClient();
 	const { showSnackbar } = useSnackbar();
 	const t = useTranslations('common');
+	const { supabase } = useSupabase();
 	const { data: activeSessions = [] } = useActiveSessions();
 	const { data: allPastSessions = [] } = useAgentSessionHistory();
 

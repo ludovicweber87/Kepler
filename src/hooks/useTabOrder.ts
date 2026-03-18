@@ -1,13 +1,14 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { supabase } from '@/lib/supabase';
+import { useSupabase } from '@/hooks/useSupabase';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 function queryKey(group: string) {
 	return ['tab-order', group];
 }
 
-async function fetchTabOrder(group: string, userId: string): Promise<string[]> {
+async function fetchTabOrder(supabase: SupabaseClient, group: string, userId: string): Promise<string[]> {
 	const { data, error } = await supabase
 		.from('tab_orders')
 		.select('tab_order')
@@ -27,11 +28,12 @@ export function useTabOrder(group: string) {
 	const qc = useQueryClient();
 	const { data: session } = useSession();
 	const userId = session?.user?.id ?? null;
+	const { supabase, isReady } = useSupabase();
 
 	const { data: order = [] } = useQuery({
 		queryKey: queryKey(group),
-		queryFn: () => fetchTabOrder(group, userId!),
-		enabled: !!userId,
+		queryFn: () => fetchTabOrder(supabase, group, userId!),
+		enabled: !!userId && isReady,
 	});
 
 	const mutation = useMutation({
