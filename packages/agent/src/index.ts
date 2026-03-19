@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { createServer, IncomingMessage, ServerResponse } from 'node:http';
 import { parsePath, sendJson, sendError } from './helpers.js';
 import { startTerminalServer } from './terminal.js';
@@ -81,5 +82,5 @@ startTerminalServer(server);
 
 server.listen(PORT, () => {
 	console.log(`[devora-agent] Running on http://localhost:${PORT}`);
-	console.log(`[devora-agent] CORS origin: ${ALLOWED_ORIGIN}`);
+	console.log(`[devora-agent] CORS origins: ${ALLOWED_ORIGINS.join(', ')}`);
 });

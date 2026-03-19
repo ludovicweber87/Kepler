@@ -175,7 +175,6 @@ function ProjectSection({
 
 	return (
 		<Accordion
-			defaultExpanded
 			disableGutters
 			sx={{
 				bgcolor: 'transparent',
