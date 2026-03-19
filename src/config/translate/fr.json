@@ -154,7 +154,8 @@
 		"noPath": "Aucun chemin configure",
 		"repoName": "Nom du depot (ex. owner/repo)",
 		"pathValid": "Chemin valide",
-		"pathNotSet": "Non configure"
+		"pathNotSet": "Non configure",
+		"localPath": "Chemin local"
 	},
 	"header": {
 		"lightMode": "Mode clair",

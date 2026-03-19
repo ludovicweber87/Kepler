@@ -21,6 +21,11 @@ import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import TextField from '@mui/material/TextField';
 import { alpha, useTheme } from '@mui/material/styles';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
@@ -536,6 +541,9 @@ export default function SettingsPanel() {
 	const [toastMessage, setToastMessage] = useState('');
 	const [localPaths, setLocalPaths] = useState<Record<string, string>>({});
 	const [pickingRepo, setPickingRepo] = useState<string | null>(null);
+	const [manualDialogOpen, setManualDialogOpen] = useState(false);
+	const [manualRepo, setManualRepo] = useState('');
+	const [manualPath, setManualPath] = useState('');
 
 	// Sync local paths from DB
 	useEffect(() => {
@@ -602,6 +610,13 @@ export default function SettingsPanel() {
 	};
 
 	const handleAddRepo = async () => {
+		if (!isAgentOnline) {
+			setManualRepo('');
+			setManualPath('');
+			setManualDialogOpen(true);
+			return;
+		}
+
 		setPickingRepo('__new__');
 		try {
 			const res = await localFetch('/filesystem/pick-directory');
@@ -624,6 +639,14 @@ export default function SettingsPanel() {
 			}
 		} finally {
 			setPickingRepo(null);
+		}
+	};
+
+	const handleManualSave = () => {
+		if (manualRepo.trim() && manualPath.trim()) {
+			savePath(manualRepo.trim(), manualPath.trim());
+			showToast(t('pathSaved'));
+			setManualDialogOpen(false);
 		}
 	};
 
@@ -659,12 +682,6 @@ export default function SettingsPanel() {
 					{t('repoPathsDesc')}
 				</Typography>
 
-				{!isAgentOnline && (
-					<Alert severity="warning" variant="outlined" sx={{ mb: 2, ml: 4.5 }}>
-						<Typography variant="body2">{tc('agentOffline')}</Typography>
-					</Alert>
-				)}
-
 				<Box
 					sx={{
 						display: 'grid',
@@ -685,7 +702,7 @@ export default function SettingsPanel() {
 					))}
 					<AddRepoCard
 						onClick={handleAddRepo}
-						disabled={!isAgentOnline || pickingRepo !== null}
+						disabled={pickingRepo !== null}
 						label={pickingRepo === '__new__' ? t('selecting') : t('addRepo')}
 					/>
 				</Box>
@@ -763,6 +780,44 @@ export default function SettingsPanel() {
 					</Box>
 				)}
 			</Box>
+
+			<Dialog
+				open={manualDialogOpen}
+				onClose={() => setManualDialogOpen(false)}
+				maxWidth="sm"
+				fullWidth
+			>
+				<DialogTitle>{t('addRepo')}</DialogTitle>
+				<DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
+					<TextField
+						label={t('repoName')}
+						placeholder="owner/repo"
+						value={manualRepo}
+						onChange={(e) => setManualRepo(e.target.value)}
+						size="small"
+						fullWidth
+						autoFocus
+					/>
+					<TextField
+						label={t('localPath')}
+						placeholder="/Users/you/projects/repo"
+						value={manualPath}
+						onChange={(e) => setManualPath(e.target.value)}
+						size="small"
+						fullWidth
+					/>
+				</DialogContent>
+				<DialogActions>
+					<Button onClick={() => setManualDialogOpen(false)}>{tc('cancel')}</Button>
+					<Button
+						variant="contained"
+						disabled={!manualRepo.trim() || !manualPath.trim()}
+						onClick={handleManualSave}
+					>
+						{tc('save')}
+					</Button>
+				</DialogActions>
+			</Dialog>
 
 			<Snackbar
 				open={toast}

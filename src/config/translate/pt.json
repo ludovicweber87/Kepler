@@ -133,7 +133,8 @@
 	"settings": {
 		"title": "Configurações",
 		"viewsSaved": "Visualizações salvas",
-		"pathSaved": "Caminho salvo"
+		"pathSaved": "Caminho salvo",
+		"localPath": "Caminho local"
 	},
 	"header": {
 		"lightMode": "Modo claro",

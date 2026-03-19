@@ -154,7 +154,8 @@
 		"noPath": "No path configured",
 		"repoName": "Repository name (e.g. owner/repo)",
 		"pathValid": "Valid path",
-		"pathNotSet": "Not configured"
+		"pathNotSet": "Not configured",
+		"localPath": "Local path"
 	},
 	"header": {
 		"lightMode": "Light mode",
