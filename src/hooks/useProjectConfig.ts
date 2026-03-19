@@ -18,6 +18,7 @@ interface ProjectConfigRow {
 	view_repo_mappings: ViewRepoMapping[];
 	status_columns: string[];
 	views: ProjectV2View[];
+	owner_type: 'organization' | 'user' | null;
 }
 
 function rowToConfig(row: ProjectConfigRow): ProjectV2Config {
@@ -31,6 +32,7 @@ function rowToConfig(row: ProjectConfigRow): ProjectV2Config {
 		viewRepoMappings: row.view_repo_mappings ?? [],
 		statusColumns: row.status_columns ?? [],
 		views: row.views ?? [],
+		ownerType: row.owner_type ?? undefined,
 	};
 }
 
@@ -45,6 +47,7 @@ function configToRow(config: ProjectV2Config) {
 		view_repo_mappings: config.viewRepoMappings as unknown as Record<string, unknown>[],
 		status_columns: config.statusColumns,
 		views: config.views as unknown as Record<string, unknown>[],
+		owner_type: config.ownerType ?? null,
 	};
 }
 
@@ -77,7 +80,7 @@ export function useProjectConfig() {
 	const userId = session?.user?.id ?? null;
 	const { supabase, isReady } = useSupabase();
 
-	const { data: configs = [] } = useQuery({
+	const { data: configs = [], isLoading: configsLoading } = useQuery({
 		queryKey: QUERY_KEY,
 		queryFn: () => fetchConfigs(supabase, userId!),
 		enabled: !!userId && isReady,
@@ -263,6 +266,7 @@ export function useProjectConfig() {
 	return {
 		config,
 		configs,
+		configsLoading,
 		saveConfig,
 		removeConfig,
 		clearConfig,

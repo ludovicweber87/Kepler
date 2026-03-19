@@ -192,7 +192,7 @@ export async function handleSessionRoutes(
 			const { data: session } = await supabase
 				.from('agent_sessions')
 				.select(
-					'id, session_id, project_name, agent_name, issue_owner, issue_repo, issue_number, issue_title',
+					'id, session_id, project_name, agent_name, issue_owner, issue_repo, issue_number, issue_title, user_id',
 				)
 				.eq('session_id', sessionId)
 				.maybeSingle();
@@ -249,6 +249,7 @@ ${truncated}`;
 				agent_session_id: session.id,
 				content: summary,
 				log_type: 'summary',
+				user_id: session.user_id,
 			});
 
 			if (logError) return sendError(res, logError.message);

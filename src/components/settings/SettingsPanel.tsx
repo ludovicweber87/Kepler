@@ -69,6 +69,7 @@ function ProjectSection({
 	org,
 	ownerType,
 	savedConfig,
+	configsLoaded,
 	onSave,
 	onToast,
 }: {
@@ -76,6 +77,7 @@ function ProjectSection({
 	org: string;
 	ownerType: 'organization' | 'user';
 	savedConfig: ProjectV2Config | undefined;
+	configsLoaded: boolean;
 	onSave: (config: ProjectV2Config) => void;
 	onToast: (msg: string) => void;
 }) {
@@ -134,13 +136,13 @@ function ProjectSection({
 		}
 	}, [org, project.number, project.title, ownerType, savedConfig, onSave]);
 
-	// Auto-fetch on mount if not yet fetched
+	// Auto-fetch once configs are loaded and views haven't been fetched yet
 	useEffect(() => {
-		if (!hasFetched) {
+		if (configsLoaded && !hasFetched) {
 			fetchViews();
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+	}, [configsLoaded]);
 
 	const toggleView = (viewName: string) => {
 		const next = new Set(selectedViews);
@@ -529,7 +531,7 @@ export default function SettingsPanel() {
 	const theme = useTheme();
 	const t = useTranslations('settings');
 	const tc = useTranslations('common');
-	const { configs, saveConfig, clearConfig } = useProjectConfig();
+	const { configs, configsLoading, saveConfig, clearConfig } = useProjectConfig();
 	const { repoPaths, savePath, deletePath } = useRepoPaths();
 	const { isAgentOnline } = useAgentStatus();
 
@@ -757,6 +759,7 @@ export default function SettingsPanel() {
 										org={o.org}
 										ownerType={o.ownerType}
 										savedConfig={findSavedConfig(o.org, p.number)}
+										configsLoaded={!configsLoading}
 										onSave={saveConfig}
 										onToast={showToast}
 									/>

@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 		// Look up existing session
 		const { data: session } = await supabase
 			.from('agent_sessions')
-			.select('id, session_id, project_name, agent_name, issue_owner, issue_repo, issue_number, issue_title')
+			.select('id, session_id, project_name, agent_name, issue_owner, issue_repo, issue_number, issue_title, user_id')
 			.eq('session_id', sessionId)
 			.single();
 
@@ -41,8 +41,7 @@ export async function POST(req: NextRequest) {
 				await supabase
 					.from('agent_sessions')
 					.update({ agent_name: title })
-					.eq('id', session.id)
-					.is('agent_name', null);
+					.eq('id', session.id);
 			}
 			return NextResponse.json({ ok: true });
 		}
@@ -52,6 +51,7 @@ export async function POST(req: NextRequest) {
 			agent_session_id: session.id,
 			content,
 			log_type: logType,
+			user_id: session.user_id,
 		});
 
 		if (logError) {
