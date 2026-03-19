@@ -37,6 +37,7 @@ import { useProjectConfig } from '@/hooks/useProjectConfig';
 import { useTranslations } from 'next-intl';
 import { localFetch } from '@/lib/local-fetch';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
+import { useAgentStatus } from '@/hooks/useAgentStatus';
 
 interface OrgProject {
 	id: string;
@@ -523,8 +524,10 @@ function AddRepoCard({
 export default function SettingsPanel() {
 	const theme = useTheme();
 	const t = useTranslations('settings');
+	const tc = useTranslations('common');
 	const { configs, saveConfig, clearConfig } = useProjectConfig();
 	const { repoPaths, savePath, deletePath } = useRepoPaths();
+	const { isAgentOnline } = useAgentStatus();
 
 	const [orgProjects, setOrgProjects] = useState<OrgWithProjects[]>([]);
 	const [loadingProjects, setLoadingProjects] = useState(true);
@@ -656,6 +659,12 @@ export default function SettingsPanel() {
 					{t('repoPathsDesc')}
 				</Typography>
 
+				{!isAgentOnline && (
+					<Alert severity="warning" variant="outlined" sx={{ mb: 2, ml: 4.5 }}>
+						<Typography variant="body2">{tc('agentOffline')}</Typography>
+					</Alert>
+				)}
+
 				<Box
 					sx={{
 						display: 'grid',
@@ -676,7 +685,7 @@ export default function SettingsPanel() {
 					))}
 					<AddRepoCard
 						onClick={handleAddRepo}
-						disabled={pickingRepo !== null}
+						disabled={!isAgentOnline || pickingRepo !== null}
 						label={pickingRepo === '__new__' ? t('selecting') : t('addRepo')}
 					/>
 				</Box>
