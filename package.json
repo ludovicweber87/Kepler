@@ -6,6 +6,7 @@
 	"scripts": {
 		"dev": "npx concurrently \"next dev -p 4000\" \"npm run dev -w packages/agent\"",
 		"dev:web": "next dev -p 4000",
+		"dev:local": "node scripts/dev-auto-port.mjs",
 		"dev:agent": "npm run dev -w packages/agent",
 		"build": "next build",
 		"start": "next start -p 4000",
