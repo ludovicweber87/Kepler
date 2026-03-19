@@ -61,42 +61,43 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
 	if (showOnboarding) {
 		return (
-			<Box
-				sx={{
-					minHeight: '100vh',
-					bgcolor: 'background.default',
-					display: 'flex',
-					flexDirection: 'column',
-					alignItems: 'center',
-					py: 6,
-					px: 2,
-					pb: 12,
-				}}
-			>
-				<Image src="/logo.svg" alt="Devora" width={200} height={48} priority />
-				<Typography
-					variant="h5"
-					sx={{ fontWeight: 700, mt: 4, mb: 1, color: 'text.primary' }}
-				>
-					{t('welcome')}
-				</Typography>
-				<Typography
-					variant="body1"
+			<>
+				<Box
 					sx={{
-						color: 'text.secondary',
-						textAlign: 'center',
-						maxWidth: 600,
-						mb: 4,
-						lineHeight: 1.7,
+						minHeight: '100vh',
+						bgcolor: 'background.default',
+						display: 'flex',
+						flexDirection: 'column',
+						alignItems: 'center',
+						py: 6,
+						px: 2,
+						pb: 12,
 					}}
 				>
-					{t('description')}
-				</Typography>
-				<Box sx={{ width: '100%', maxWidth: 900 }}>
-					<SettingsPanel />
+					<Image src="/logo.svg" alt="Devora" width={200} height={48} priority />
+					<Typography
+						variant="h5"
+						sx={{ fontWeight: 700, mt: 4, mb: 1, color: 'text.primary' }}
+					>
+						{t('welcome')}
+					</Typography>
+					<Typography
+						variant="body1"
+						sx={{
+							color: 'text.secondary',
+							textAlign: 'center',
+							maxWidth: 600,
+							mb: 4,
+							lineHeight: 1.7,
+						}}
+					>
+						{t('description')}
+					</Typography>
+					<Box sx={{ width: '100%', maxWidth: 900 }}>
+						<SettingsPanel />
+					</Box>
 				</Box>
-			</Box>
-			<Box
+				<Box
 				sx={{
 					position: 'fixed',
 					bottom: 0,
@@ -121,6 +122,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 					{t('launch')}
 				</Button>
 			</Box>
+			</>
 		);
 	}
 

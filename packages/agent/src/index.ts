@@ -7,16 +7,26 @@ import { handleChatRoutes } from './routes/chat.js';
 import { handleFilesystemRoutes } from './routes/filesystem.js';
 
 const PORT = parseInt(process.env.DEVORA_AGENT_PORT ?? '4001', 10);
-const ALLOWED_ORIGIN = process.env.DEVORA_ORIGIN ?? 'http://localhost:4000';
+const ALLOWED_ORIGINS = (process.env.DEVORA_ORIGIN ?? 'http://localhost:4000')
+	.split(',')
+	.map((o) => o.trim());
 
-function setCors(res: ServerResponse) {
-	res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
+function setCors(req: IncomingMessage, res: ServerResponse) {
+	const origin = req.headers.origin ?? '';
+	// Allow any localhost port in dev, or explicit origins from env
+	const allowed =
+		ALLOWED_ORIGINS.includes(origin) ||
+		/^https?:\/\/localhost(:\d+)?$/.test(origin) ||
+		/^https:\/\/devora[a-z0-9-]*\.vercel\.app$/.test(origin);
+	if (allowed) {
+		res.setHeader('Access-Control-Allow-Origin', origin);
+	}
 	res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
 	res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 }
 
 async function handleRequest(req: IncomingMessage, res: ServerResponse) {
-	setCors(res);
+	setCors(req, res);
 
 	// Preflight
 	if (req.method === 'OPTIONS') {

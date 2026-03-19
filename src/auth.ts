@@ -32,6 +32,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 		}),
 	],
 	callbacks: {
+		async signIn({ profile }) {
+			const allowedUsers = process.env.ALLOWED_GITHUB_USERS;
+			if (!allowedUsers) return true;
+			const login = (profile as Record<string, unknown>)?.login as string | undefined;
+			if (!login) return false;
+			const allowed = allowedUsers.split(',').map((u) => u.trim().toLowerCase());
+			return allowed.includes(login.toLowerCase());
+		},
 		async jwt({ token, account, profile }) {
 			if (account?.access_token) {
 				token.accessToken = account.access_token as string;
