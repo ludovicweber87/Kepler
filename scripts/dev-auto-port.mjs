@@ -1,6 +1,8 @@
 import { createServer } from 'net';
 import { spawn } from 'child_process';
 
+const webOnly = process.argv.includes('--web-only');
+
 function isPortAvailable(port) {
 	return new Promise((resolve) => {
 		const server = createServer();
@@ -26,7 +28,11 @@ if (port !== 4000) {
 	console.log(`\x1b[32m✓ Starting on port ${port}\x1b[0m`);
 }
 
-const child = spawn('npx', ['next', 'dev', '--turbopack', '-p', String(port)], {
+const args = webOnly
+	? ['next', 'dev', '-p', String(port)]
+	: ['concurrently', `next dev -p ${port}`, 'npm run dev -w packages/agent'];
+
+const child = spawn('npx', args, {
 	stdio: 'inherit',
 	env: { ...process.env, PORT: String(port) },
 });

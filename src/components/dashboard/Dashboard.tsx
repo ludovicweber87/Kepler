@@ -9,17 +9,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useActiveSessions, type ActiveSession } from '@/hooks/useActiveSessions';
 import { useAgentSessionHistory, type AgentSession } from '@/hooks/useAgentSession';
 import { useAgentSummaries, type AgentSummary } from '@/hooks/useRecentLogs';
-import { useDashboardTodos } from '@/hooks/useDashboardTodos';
 import { usePendingQuestions } from '@/hooks/usePendingQuestions';
-import { useDashboard } from '@/hooks/useGitHub';
-import { usePullRequests } from '@/hooks/usePullRequests';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useSessionManager } from '@/hooks/useSessionManager';
 import { localFetch } from '@/lib/local-fetch';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 
-import KpiCards from './KpiCards';
 import ActiveAgentsWidget from './ActiveAgentsWidget';
 import RecentSessionsWidget from './RecentSessionsWidget';
 import SummariesWidget from './SummariesWidget';
@@ -57,13 +53,10 @@ export default function Dashboard() {
 	const { data: sessions = [] } = useActiveSessions();
 	const { data: pastSessions = [] } = useAgentSessionHistory();
 	const { data: summaries = [], isLoading: summariesLoading } = useAgentSummaries();
-	const { todos: allTodos } = useDashboardTodos(100);
 	const pendingQuestions = usePendingQuestions();
-	const { data: dashboardData } = useDashboard();
 	const { repoPaths } = useRepoPaths();
 	const { deleteSession } = useSessionManager();
 	const repos = useMemo(() => repoPaths.map((r) => r.repo_full_name), [repoPaths]);
-	const { data: prs = [] } = usePullRequests(repos);
 
 	// Selected repo for filtering (null = all)
 	const selectedRepo = repoTab === 0 ? null : (repos[repoTab - 1] ?? null);
@@ -96,28 +89,6 @@ export default function Dashboard() {
 		}
 		return result.slice(0, 10);
 	}, [summaries, selectedRepo]);
-
-	// KPI data — filtered by selected repo
-	const openIssuesCount = useMemo(() => {
-		const openIssues = dashboardData?.issues?.filter((i) => i.state === 'open') ?? [];
-		if (!selectedRepo) return openIssues.length;
-		return openIssues.filter(
-			(i) => i.repo_full_name?.toLowerCase() === selectedRepo.toLowerCase(),
-		).length;
-	}, [dashboardData, selectedRepo]);
-
-	const filteredPrsCount = useMemo(() => {
-		if (!selectedRepo) return prs.length;
-		return prs.filter((pr) => pr.repo_full_name?.toLowerCase() === selectedRepo.toLowerCase())
-			.length;
-	}, [prs, selectedRepo]);
-
-	const filteredTodoCount = useMemo(() => {
-		if (!selectedRepo) return allTodos.length;
-		return allTodos.filter(
-			(todo) => todo.repo_full_name.toLowerCase() === selectedRepo.toLowerCase(),
-		).length;
-	}, [allTodos, selectedRepo]);
 
 	// Handlers
 	const handleKillSession = useCallback(
@@ -226,16 +197,6 @@ export default function Dashboard() {
 							<Tab key={repo} label={repoShortName(repo)} />
 						))}
 					</Tabs>
-				</Box>
-
-				{/* KPI Cards */}
-				<Box sx={{ flexShrink: 0 }}>
-					<KpiCards
-						activeAgents={filteredActiveSessions.length}
-						openIssues={openIssuesCount}
-						pendingPrs={filteredPrsCount}
-						pendingTodos={filteredTodoCount}
-					/>
 				</Box>
 
 				{/* Top row: Active Agents + Recent Sessions */}

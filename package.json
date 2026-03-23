@@ -6,9 +6,8 @@
 		"packages/agent"
 	],
 	"scripts": {
-		"dev": "npx concurrently \"next dev -p 4000\" \"npm run dev -w packages/agent\"",
-		"dev:web": "next dev -p 4000",
-		"dev:local": "node scripts/dev-auto-port.mjs",
+		"dev": "node scripts/dev-auto-port.mjs",
+		"dev:web": "node scripts/dev-auto-port.mjs --web-only",
 		"dev:agent": "npm run dev -w packages/agent",
 		"build": "next build",
 		"start": "next start -p 4000",
