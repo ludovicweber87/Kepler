@@ -1,8 +1,6 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSession } from 'next-auth/react';
-import { useSupabase } from '@/hooks/useSupabase';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { apiFetch } from '@/lib/api-fetch';
 
 export interface AgentSession {
 	id: string;
@@ -34,42 +32,31 @@ function queryKey(sessionId: string) {
 	return ['agent-session', sessionId];
 }
 
-async function fetchSession(supabase: SupabaseClient, sessionId: string) {
-	const { data, error } = await supabase
-		.from('agent_sessions')
-		.select('*')
-		.eq('session_id', sessionId)
-		.maybeSingle();
-	if (error) throw error;
-	return data as AgentSession | null;
-}
-
-async function fetchLogs(supabase: SupabaseClient, agentSessionId: string) {
-	const { data, error } = await supabase
-		.from('agent_activity_logs')
-		.select('*')
-		.eq('agent_session_id', agentSessionId)
-		.order('created_at', { ascending: true });
-	if (error) throw error;
-	return (data ?? []) as AgentActivityLog[];
-}
-
 export function useAgentSession(sessionId: string | undefined) {
 	const qc = useQueryClient();
-	const { data: authSession } = useSession();
-	const userId = authSession?.user?.id ?? null;
-	const { supabase, isReady } = useSupabase();
 
 	const { data: session = null } = useQuery({
 		queryKey: queryKey(sessionId ?? ''),
-		queryFn: () => fetchSession(supabase, sessionId!),
-		enabled: !!sessionId && isReady,
+		queryFn: async () => {
+			const res = await apiFetch(
+				`/api/agent-sessions?sessionId=${encodeURIComponent(sessionId!)}`,
+			);
+			if (!res.ok) throw new Error('Failed to fetch session');
+			return (await res.json()) as AgentSession | null;
+		},
+		enabled: !!sessionId,
 	});
 
 	const { data: logs = [] } = useQuery({
 		queryKey: ['agent-session-logs', session?.id],
-		queryFn: () => fetchLogs(supabase, session!.id),
-		enabled: !!session?.id && isReady,
+		queryFn: async () => {
+			const res = await apiFetch(
+				`/api/agent-sessions/logs?sessionId=${encodeURIComponent(session!.id)}`,
+			);
+			if (!res.ok) throw new Error('Failed to fetch logs');
+			return (await res.json()) as AgentActivityLog[];
+		},
+		enabled: !!session?.id,
 		refetchInterval: 10_000,
 	});
 
@@ -86,57 +73,24 @@ export function useAgentSession(sessionId: string | undefined) {
 			issueNumber?: number | null;
 			issueTitle?: string | null;
 		}) => {
-			// Check if session already exists — don't overwrite status
-			const { data: existing } = await supabase
-				.from('agent_sessions')
-				.select('*')
-				.eq('session_id', params.sessionId)
-				.maybeSingle();
-
-			if (existing) {
-				// Backfill issue fields if missing
-				if (!existing.issue_number && params.issueNumber) {
-					await supabase
-						.from('agent_sessions')
-						.update({
-							issue_owner: params.issueOwner,
-							issue_repo: params.issueRepo,
-							issue_number: params.issueNumber,
-							issue_title: params.issueTitle,
-						})
-						.eq('id', existing.id);
-					return {
-						...existing,
-						issue_owner: params.issueOwner,
-						issue_repo: params.issueRepo,
-						issue_number: params.issueNumber,
-						issue_title: params.issueTitle,
-					} as AgentSession;
-				}
-				return existing as AgentSession;
-			}
-
-			// Create new session only if it doesn't exist
-			const { data, error } = await supabase
-				.from('agent_sessions')
-				.insert({
+			const res = await apiFetch('/api/agent-sessions', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
 					session_id: params.sessionId,
 					project_path: params.projectPath,
 					project_name: params.projectName,
 					branch: params.branch ?? null,
 					worktree_path: params.worktreePath ?? null,
 					agent_name: params.agentName ?? null,
-					status: 'active',
 					issue_owner: params.issueOwner ?? null,
 					issue_repo: params.issueRepo ?? null,
 					issue_number: params.issueNumber ?? null,
 					issue_title: params.issueTitle ?? null,
-					user_id: userId,
-				})
-				.select()
-				.single();
-			if (error) throw error;
-			return data as AgentSession;
+				}),
+			});
+			if (!res.ok) throw new Error('Failed to ensure session');
+			return (await res.json()) as AgentSession;
 		},
 		onSuccess: (data) => {
 			qc.setQueryData(queryKey(data.session_id), data);
@@ -146,17 +100,17 @@ export function useAgentSession(sessionId: string | undefined) {
 	const addLogMutation = useMutation({
 		mutationFn: async (params: { content: string; logType?: AgentActivityLog['log_type'] }) => {
 			if (!session) throw new Error('No session');
-			const { data, error } = await supabase
-				.from('agent_activity_logs')
-				.insert({
+			const res = await apiFetch('/api/agent-sessions/logs', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
 					agent_session_id: session.id,
 					content: params.content,
 					log_type: params.logType ?? 'info',
-				})
-				.select()
-				.single();
-			if (error) throw error;
-			return data as AgentActivityLog;
+				}),
+			});
+			if (!res.ok) throw new Error('Failed to add log');
+			return (await res.json()) as AgentActivityLog;
 		},
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ['agent-session-logs', session?.id] });
@@ -166,11 +120,16 @@ export function useAgentSession(sessionId: string | undefined) {
 	const updateStatusMutation = useMutation({
 		mutationFn: async (status: 'completed' | 'error') => {
 			if (!session) throw new Error('No session');
-			const { error } = await supabase
-				.from('agent_sessions')
-				.update({ status, ended_at: new Date().toISOString() })
-				.eq('id', session.id);
-			if (error) throw error;
+			const res = await apiFetch('/api/agent-sessions', {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					id: session.id,
+					status,
+					ended_at: new Date().toISOString(),
+				}),
+			});
+			if (!res.ok) throw new Error('Failed to update status');
 		},
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: queryKey(sessionId ?? '') });
@@ -200,21 +159,12 @@ export function useAgentSession(sessionId: string | undefined) {
 
 /** Fetch all sessions for history view */
 export function useAgentSessionHistory() {
-	const { data: session } = useSession();
-	const userId = session?.user?.id ?? null;
-	const { supabase, isReady } = useSupabase();
-
 	return useQuery({
 		queryKey: ['agent-sessions', 'history'],
 		queryFn: async () => {
-			const { data, error } = await supabase
-				.from('agent_sessions')
-				.select('*')
-				.eq('user_id', userId!)
-				.order('started_at', { ascending: false });
-			if (error) throw error;
-			return (data ?? []) as AgentSession[];
+			const res = await apiFetch('/api/agent-sessions');
+			if (!res.ok) throw new Error('Failed to fetch session history');
+			return (await res.json()) as AgentSession[];
 		},
-		enabled: !!userId && isReady,
 	});
 }

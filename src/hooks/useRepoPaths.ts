@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSession } from 'next-auth/react';
-import { useSupabase } from '@/hooks/useSupabase';
+import { apiFetch } from '@/lib/api-fetch';
 
 interface RepoPathRow {
 	id: string;
@@ -13,28 +12,17 @@ const QUERY_KEY = ['repo-paths'];
 
 export function useRepoPaths() {
 	const queryClient = useQueryClient();
-	const { data: session } = useSession();
-	const userId = session?.user?.id ?? null;
-	const { supabase, isReady } = useSupabase();
-
-	const notReady = !userId || !isReady;
 
 	const { data: repoPaths = [], isLoading } = useQuery({
 		queryKey: QUERY_KEY,
 		queryFn: async () => {
-			const { data, error } = await supabase
-				.from('repo_paths')
-				.select('*')
-				.eq('user_id', userId!)
-				.order('repo_full_name');
-			if (error) throw error;
-			return data as RepoPathRow[];
+			const res = await apiFetch('/api/repo-paths');
+			if (!res.ok) throw new Error('Failed to fetch repo paths');
+			return (await res.json()) as RepoPathRow[];
 		},
-		enabled: !!userId && isReady,
 	});
 
-	// Still loading if deps aren't ready OR query is fetching
-	const repoPathsLoading = notReady || isLoading;
+	const repoPathsLoading = isLoading;
 
 	const saveMutation = useMutation({
 		mutationFn: async ({
@@ -44,13 +32,12 @@ export function useRepoPaths() {
 			repoFullName: string;
 			localPath: string;
 		}) => {
-			const { error } = await supabase
-				.from('repo_paths')
-				.upsert(
-					{ repo_full_name: repoFullName, local_path: localPath, user_id: userId },
-					{ onConflict: 'repo_full_name' },
-				);
-			if (error) throw error;
+			const res = await apiFetch('/api/repo-paths', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ repo_full_name: repoFullName, local_path: localPath }),
+			});
+			if (!res.ok) throw new Error('Failed to save repo path');
 		},
 		onMutate: async ({ repoFullName, localPath }) => {
 			await queryClient.cancelQueries({ queryKey: QUERY_KEY });
@@ -93,11 +80,11 @@ export function useRepoPaths() {
 
 	const deleteMutation = useMutation({
 		mutationFn: async (repoFullName: string) => {
-			const { error } = await supabase
-				.from('repo_paths')
-				.delete()
-				.eq('repo_full_name', repoFullName);
-			if (error) throw error;
+			const res = await apiFetch(
+				`/api/repo-paths?repo_full_name=${encodeURIComponent(repoFullName)}`,
+				{ method: 'DELETE' },
+			);
+			if (!res.ok) throw new Error('Failed to delete repo path');
 		},
 		onMutate: async (repoFullName) => {
 			await queryClient.cancelQueries({ queryKey: QUERY_KEY });

@@ -51,7 +51,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useIssue, useDashboard } from '@/hooks/useGitHub';
 import { useTodos, useIssueTodos } from '@/hooks/useTodos';
-import { useSupabase } from '@/hooks/useSupabase';
+import { apiFetch } from '@/lib/api-fetch';
 import { GitHubComment } from '@/types';
 import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
 import IssueTimelineModal from '@/components/dashboard/IssueTimelineModal';
@@ -401,7 +401,6 @@ export default function IssueDetail({
 	const repoFullName = `${owner}/${repo}`;
 	const issueNum = parseInt(number, 10);
 	const qc = useQueryClient();
-	const { supabase } = useSupabase();
 	const { todos, addTodo } = useTodos(repoFullName);
 	const { data: issueTodos = [] } = useIssueTodos(repoFullName, issueNum);
 	const [timelineOpen, setTimelineOpen] = useState(false);
@@ -585,19 +584,21 @@ export default function IssueDetail({
 	};
 
 	const handleUnlinkTodo = async (todoId: string) => {
-		await supabase
-			.from('todos')
-			.update({ issue_number: null, issue_repo: null })
-			.eq('id', todoId);
+		await apiFetch('/api/todos', {
+			method: 'PATCH',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ id: todoId, issue_number: null, issue_repo: null }),
+		});
 		invalidateTodos();
 	};
 
 	const handleLinkTodo = async (todoId: string) => {
 		setTaskAnchor(null);
-		await supabase
-			.from('todos')
-			.update({ issue_number: issueNum, issue_repo: repoFullName })
-			.eq('id', todoId);
+		await apiFetch('/api/todos', {
+			method: 'PATCH',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ id: todoId, issue_number: issueNum, issue_repo: repoFullName }),
+		});
 		invalidateTodos();
 	};
 

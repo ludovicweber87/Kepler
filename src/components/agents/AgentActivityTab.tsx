@@ -16,7 +16,7 @@ import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
 import PublishRoundedIcon from '@mui/icons-material/PublishRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import { useQueryClient } from '@tanstack/react-query';
-import { useSupabase } from '@/hooks/useSupabase';
+import { apiFetch } from '@/lib/api-fetch';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { localFetch } from '@/lib/local-fetch';
 import type { AgentSession, AgentActivityLog } from '@/hooks/useAgentSession';
@@ -80,7 +80,6 @@ export default function AgentActivityTab({
 	const [publishing, setPublishing] = useState(false);
 	const [published, setPublished] = useState(false);
 	const qc = useQueryClient();
-	const { supabase } = useSupabase();
 	const { showSnackbar } = useSnackbar();
 	// Derive issue context from session DB fields
 	const hasIssue = !!(session?.issue_owner && session?.issue_repo && session?.issue_number);
@@ -167,12 +166,14 @@ export default function AgentActivityTab({
 			setPublished(true);
 
 			// Mark session as report published (do NOT kill — user decides when to close)
-			await supabase
-				.from('agent_sessions')
-				.update({
+			await apiFetch('/api/agent-sessions', {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					id: session.id,
 					report_published_at: new Date().toISOString(),
-				})
-				.eq('id', session.id);
+				}),
+			});
 
 			qc.invalidateQueries({ queryKey: ['claude-activity'] });
 			qc.invalidateQueries({ queryKey: ['agent-session', session.session_id] });

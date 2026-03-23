@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/supabase';
+import { db } from '@/db';
+import { agentSessions, agentActivityLogs } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 
 export async function POST(req: NextRequest) {
-	const supabase = createServiceRoleClient();
 	try {
 		const body = await req.json();
 		const {
@@ -24,39 +25,45 @@ export async function POST(req: NextRequest) {
 		}
 
 		// Look up existing session
-		const { data: session } = await supabase
-			.from('agent_sessions')
-			.select('id, session_id, project_name, agent_name, issue_owner, issue_repo, issue_number, issue_title, user_id')
-			.eq('session_id', sessionId)
-			.single();
+		const session = db
+			.select({
+				id: agentSessions.id,
+				session_id: agentSessions.session_id,
+				project_name: agentSessions.project_name,
+				agent_name: agentSessions.agent_name,
+				issue_owner: agentSessions.issue_owner,
+				issue_repo: agentSessions.issue_repo,
+				issue_number: agentSessions.issue_number,
+				issue_title: agentSessions.issue_title,
+			})
+			.from(agentSessions)
+			.where(eq(agentSessions.session_id, sessionId))
+			.get();
 
 		if (!session) {
 			return NextResponse.json({ ok: true, skipped: true });
 		}
 
-		// Handle "title" log type — update agent_name if not already set
+		// Handle "title" log type — update agent_name
 		if (logType === 'title') {
 			const title = content.slice(0, 60).trim();
 			if (title) {
-				await supabase
-					.from('agent_sessions')
-					.update({ agent_name: title })
-					.eq('id', session.id);
+				db.update(agentSessions)
+					.set({ agent_name: title })
+					.where(eq(agentSessions.id, session.id))
+					.run();
 			}
 			return NextResponse.json({ ok: true });
 		}
 
-		// Insert activity log first (so the trigger can read it)
-		const { error: logError } = await supabase.from('agent_activity_logs').insert({
-			agent_session_id: session.id,
-			content,
-			log_type: logType,
-			user_id: session.user_id,
-		});
-
-		if (logError) {
-			return NextResponse.json({ error: logError.message }, { status: 500 });
-		}
+		// Insert activity log
+		db.insert(agentActivityLogs)
+			.values({
+				agent_session_id: session.id,
+				content,
+				log_type: logType,
+			})
+			.run();
 
 		// Update branch and status
 		const updates: Record<string, unknown> = {};
@@ -68,7 +75,10 @@ export async function POST(req: NextRequest) {
 			}
 		}
 		if (Object.keys(updates).length > 0) {
-			await supabase.from('agent_sessions').update(updates).eq('id', session.id);
+			db.update(agentSessions)
+				.set(updates)
+				.where(eq(agentSessions.id, session.id))
+				.run();
 		}
 
 		return NextResponse.json({ ok: true });

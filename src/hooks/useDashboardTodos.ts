@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSession } from 'next-auth/react';
-import { useSupabase } from '@/hooks/useSupabase';
 import { useCallback } from 'react';
+import { apiFetch } from '@/lib/api-fetch';
 
 export interface DashboardTodo {
 	id: string;
@@ -12,34 +11,26 @@ export interface DashboardTodo {
 }
 
 export function useDashboardTodos(limit = 8) {
-	const { data: session } = useSession();
-	const userId = session?.user?.id ?? null;
 	const queryClient = useQueryClient();
-	const { supabase, isReady } = useSupabase();
 
 	const { data: todos = [], isLoading } = useQuery({
 		queryKey: ['todos', 'dashboard', limit],
 		queryFn: async () => {
-			const { data, error } = await supabase
-				.from('todos')
-				.select('id, repo_full_name, title, done, created_at')
-				.eq('user_id', userId!)
-				.eq('done', false)
-				.order('sort_order')
-				.order('created_at')
-				.limit(limit);
-
-			if (error) throw error;
-			return data as DashboardTodo[];
+			const res = await apiFetch(`/api/todos?limit=${limit}`);
+			if (!res.ok) throw new Error('Failed to fetch dashboard todos');
+			return (await res.json()) as DashboardTodo[];
 		},
-		enabled: !!userId && isReady,
 		refetchInterval: 30_000,
 	});
 
 	const toggleMutation = useMutation({
 		mutationFn: async ({ id, done }: { id: string; done: boolean }) => {
-			const { error } = await supabase.from('todos').update({ done }).eq('id', id);
-			if (error) throw error;
+			const res = await apiFetch('/api/todos', {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ id, done }),
+			});
+			if (!res.ok) throw new Error('Failed to toggle todo');
 		},
 		onMutate: async ({ id, done }) => {
 			await queryClient.cancelQueries({ queryKey: ['todos', 'dashboard'] });

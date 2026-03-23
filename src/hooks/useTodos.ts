@@ -1,8 +1,6 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSession } from 'next-auth/react';
-import { useSupabase } from '@/hooks/useSupabase';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { apiFetch } from '@/lib/api-fetch';
 
 export interface Todo {
 	id: string;
@@ -20,48 +18,35 @@ function queryKey(repo: string) {
 	return ['todos', repo];
 }
 
-async function fetchTodos(
-	supabase: SupabaseClient,
-	repo: string,
-	userId: string,
-): Promise<Todo[]> {
-	const { data, error } = await supabase
-		.from('todos')
-		.select('*')
-		.eq('user_id', userId)
-		.eq('repo_full_name', repo)
-		.order('sort_order')
-		.order('created_at');
-
-	if (error) throw error;
-	return data as Todo[];
-}
-
 export function useTodos(repoFullName: string | null) {
 	const queryClient = useQueryClient();
-	const { data: session } = useSession();
-	const userId = session?.user?.id ?? null;
-	const { supabase, isReady } = useSupabase();
 	const key = queryKey(repoFullName ?? '');
 
 	const { data: todos = [], isLoading } = useQuery({
 		queryKey: key,
-		queryFn: () => fetchTodos(supabase, repoFullName!, userId!),
-		enabled: !!repoFullName && !!userId && isReady,
+		queryFn: async () => {
+			const res = await apiFetch(`/api/todos?repo=${encodeURIComponent(repoFullName!)}`);
+			if (!res.ok) throw new Error('Failed to fetch todos');
+			return (await res.json()) as Todo[];
+		},
+		enabled: !!repoFullName,
 	});
 
 	const addMutation = useMutation({
 		mutationFn: async (params: { title: string; issueNumber?: number; issueRepo?: string }) => {
 			const maxOrder = todos.length > 0 ? Math.max(...todos.map((t) => t.sort_order)) + 1 : 0;
-			const { error } = await supabase.from('todos').insert({
-				repo_full_name: repoFullName,
-				title: params.title,
-				sort_order: maxOrder,
-				issue_number: params.issueNumber ?? null,
-				issue_repo: params.issueRepo ?? null,
-				user_id: userId,
+			const res = await apiFetch('/api/todos', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					repo_full_name: repoFullName,
+					title: params.title,
+					sort_order: maxOrder,
+					issue_number: params.issueNumber ?? null,
+					issue_repo: params.issueRepo ?? null,
+				}),
 			});
-			if (error) throw error;
+			if (!res.ok) throw new Error('Failed to add todo');
 		},
 		onMutate: async (params) => {
 			await queryClient.cancelQueries({ queryKey: key });
@@ -93,8 +78,12 @@ export function useTodos(repoFullName: string | null) {
 
 	const toggleMutation = useMutation({
 		mutationFn: async ({ id, done }: { id: string; done: boolean }) => {
-			const { error } = await supabase.from('todos').update({ done }).eq('id', id);
-			if (error) throw error;
+			const res = await apiFetch('/api/todos', {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ id, done }),
+			});
+			if (!res.ok) throw new Error('Failed to toggle todo');
 		},
 		onMutate: async ({ id, done }) => {
 			await queryClient.cancelQueries({ queryKey: key });
@@ -115,8 +104,12 @@ export function useTodos(repoFullName: string | null) {
 
 	const updateMutation = useMutation({
 		mutationFn: async ({ id, title }: { id: string; title: string }) => {
-			const { error } = await supabase.from('todos').update({ title }).eq('id', id);
-			if (error) throw error;
+			const res = await apiFetch('/api/todos', {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ id, title }),
+			});
+			if (!res.ok) throw new Error('Failed to update todo');
 		},
 		onMutate: async ({ id, title }) => {
 			await queryClient.cancelQueries({ queryKey: key });
@@ -137,8 +130,12 @@ export function useTodos(repoFullName: string | null) {
 
 	const descriptionMutation = useMutation({
 		mutationFn: async ({ id, description }: { id: string; description: string }) => {
-			const { error } = await supabase.from('todos').update({ description }).eq('id', id);
-			if (error) throw error;
+			const res = await apiFetch('/api/todos', {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ id, description }),
+			});
+			if (!res.ok) throw new Error('Failed to update description');
 		},
 		onMutate: async ({ id, description }) => {
 			await queryClient.cancelQueries({ queryKey: key });
@@ -158,8 +155,10 @@ export function useTodos(repoFullName: string | null) {
 
 	const deleteMutation = useMutation({
 		mutationFn: async (id: string) => {
-			const { error } = await supabase.from('todos').delete().eq('id', id);
-			if (error) throw error;
+			const res = await apiFetch(`/api/todos?id=${encodeURIComponent(id)}`, {
+				method: 'DELETE',
+			});
+			if (!res.ok) throw new Error('Failed to delete todo');
 		},
 		onMutate: async (id) => {
 			await queryClient.cancelQueries({ queryKey: key });
@@ -200,45 +199,25 @@ export function useTodos(repoFullName: string | null) {
 
 /** Find todos linked to a specific issue */
 export function useIssueTodos(issueRepo: string | null, issueNumber: number | null) {
-	const { data: session } = useSession();
-	const userId = session?.user?.id ?? null;
-	const { supabase, isReady } = useSupabase();
-
 	return useQuery({
 		queryKey: ['todos', 'issue', issueRepo, issueNumber],
 		queryFn: async () => {
-			const { data, error } = await supabase
-				.from('todos')
-				.select('*')
-				.eq('user_id', userId!)
-				.eq('issue_repo', issueRepo!)
-				.eq('issue_number', issueNumber!);
-			if (error) throw error;
-			return (data ?? []) as Todo[];
+			const res = await apiFetch(
+				`/api/todos?issueRepo=${encodeURIComponent(issueRepo!)}&issueNumber=${issueNumber}`,
+			);
+			if (!res.ok) throw new Error('Failed to fetch issue todos');
+			return (await res.json()) as Todo[];
 		},
-		enabled: !!issueRepo && issueNumber != null && !!userId && isReady,
+		enabled: !!issueRepo && issueNumber != null,
 	});
 }
 
-/** Mark all todos for an issue as done — called from server context, uses service role */
+/** Mark all todos for an issue as done */
 export async function completeIssueTodos(issueRepo: string, issueNumber: number) {
-	const { createServiceRoleClient } = await import('@/lib/supabase');
-	const sr = createServiceRoleClient();
-
-	const { data: linked } = await sr
-		.from('todos')
-		.update({ done: true })
-		.eq('issue_repo', issueRepo)
-		.eq('issue_number', issueNumber)
-		.eq('done', false)
-		.select('id');
-
-	if (!linked || linked.length === 0) {
-		await sr
-			.from('todos')
-			.update({ done: true })
-			.eq('repo_full_name', issueRepo)
-			.like('title', `#${issueNumber} %`)
-			.eq('done', false);
-	}
+	const res = await apiFetch('/api/todos/complete-issue', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ issueRepo, issueNumber }),
+	});
+	if (!res.ok) throw new Error('Failed to complete issue todos');
 }

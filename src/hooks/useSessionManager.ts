@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { localFetch } from '@/lib/local-fetch';
-import { useSupabase } from '@/hooks/useSupabase';
+import { apiFetch } from '@/lib/api-fetch';
 import { useActiveSessions, type ActiveSession } from '@/hooks/useActiveSessions';
 import { useAgentSessionHistory, type AgentSession } from '@/hooks/useAgentSession';
 import { useSnackbar } from '@/hooks/useSnackbar';
@@ -13,7 +13,6 @@ export function useSessionManager() {
 	const queryClient = useQueryClient();
 	const { showSnackbar } = useSnackbar();
 	const t = useTranslations('common');
-	const { supabase } = useSupabase();
 	const { data: activeSessions = [] } = useActiveSessions();
 	const { data: allPastSessions = [] } = useAgentSessionHistory();
 
@@ -49,8 +48,9 @@ export function useSessionManager() {
 	const deleteSession = useCallback(
 		async (id: string) => {
 			try {
-				await supabase.from('agent_activity_logs').delete().eq('agent_session_id', id);
-				await supabase.from('agent_sessions').delete().eq('id', id);
+				await apiFetch(`/api/agent-sessions?id=${encodeURIComponent(id)}`, {
+					method: 'DELETE',
+				});
 				queryClient.invalidateQueries({ queryKey: ['agent-sessions', 'history'] });
 				showSnackbar(t('sessionDeleted'), 'success');
 			} catch {
@@ -75,18 +75,16 @@ export function useSessionManager() {
 		[pastSessions],
 	);
 
-	// Direct DB check — always fresh, no cache race condition
+	// Direct API check — always fresh, no cache race condition
 	// Use this in click handlers to determine if a worktree has a completed session
 	const fetchSessionForPath = useCallback(
 		async (worktreePath: string): Promise<AgentSession | null> => {
-			const { data } = await supabase
-				.from('agent_sessions')
-				.select('*')
-				.eq('worktree_path', worktreePath)
-				.order('started_at', { ascending: false })
-				.limit(1)
-				.maybeSingle();
-			return (data as AgentSession | null) ?? null;
+			const res = await apiFetch(
+				`/api/agent-sessions?worktreePath=${encodeURIComponent(worktreePath)}&limit=1`,
+			);
+			if (!res.ok) return null;
+			const sessions = (await res.json()) as AgentSession[];
+			return sessions[0] ?? null;
 		},
 		[],
 	);

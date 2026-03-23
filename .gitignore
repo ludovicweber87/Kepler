@@ -51,3 +51,6 @@ next-env.d.ts
 
 # agent build
 packages/agent/dist/
+
+# SQLite database
+data/
