@@ -1,13 +1,52 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 56" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 64" fill="none">
   <defs>
-    <linearGradient id="hex-grad" x1="0" y1="0" x2="48" y2="56" gradientUnits="userSpaceOnUse">
+    <linearGradient id="d-grad" x1="0" y1="0" x2="52" y2="56" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#7C5CFF"/>
-      <stop offset="50%" stop-color="#9A84FF"/>
       <stop offset="100%" stop-color="#00D4FF"/>
     </linearGradient>
+    <filter id="node-glow">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
   </defs>
-  <path d="M24 4 L44 14 L44 42 L24 52 L4 42 L4 14 Z" stroke="url(#hex-grad)" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
-  <path d="M18 22 L11 28 L18 34" stroke="#9A84FF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-  <path d="M30 22 L37 28 L30 34" stroke="#00D4FF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-  <line x1="26" y1="19" x2="22" y2="37" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+
+  <!-- D shape - vertical bar -->
+  <line x1="12" y1="8" x2="12" y2="56" stroke="url(#d-grad)" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- D curve - angular PCB segments -->
+  <polyline points="12,8 24,8 40,16 46,28 46,36 40,48 24,56 12,56" stroke="url(#d-grad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- Circuit branches -->
+  <line x1="12" y1="22" x2="5" y2="22" stroke="#7C5CFF" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="12" y1="42" x2="5" y2="42" stroke="#00B8D9" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="46" y1="32" x2="53" y2="32" stroke="#00D4FF" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="40" y1="16" x2="48" y2="10" stroke="#9A84FF" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="40" y1="48" x2="48" y2="54" stroke="#00C4EF" stroke-width="1.2" stroke-linecap="round"/>
+
+  <!-- Circuit nodes with glow -->
+  <g filter="url(#node-glow)">
+    <circle cx="12" cy="8" r="3" fill="#7C5CFF"/>
+    <circle cx="12" cy="22" r="2.2" fill="#8E72FF"/>
+    <circle cx="12" cy="42" r="2.2" fill="#00C4EF"/>
+    <circle cx="12" cy="56" r="3" fill="#00D4FF"/>
+    <circle cx="24" cy="8" r="2" fill="#7C5CFF"/>
+    <circle cx="40" cy="16" r="2" fill="#8E72FF"/>
+    <circle cx="46" cy="28" r="2" fill="#00B8D9"/>
+    <circle cx="46" cy="36" r="2" fill="#00C4EF"/>
+    <circle cx="40" cy="48" r="2" fill="#00D4FF"/>
+    <circle cx="24" cy="56" r="2" fill="#00D4FF"/>
+    <circle cx="5" cy="22" r="1.8" fill="#7C5CFF"/>
+    <circle cx="5" cy="42" r="1.8" fill="#00B8D9"/>
+    <circle cx="53" cy="32" r="1.8" fill="#00D4FF"/>
+    <circle cx="48" cy="10" r="1.5" fill="#9A84FF"/>
+    <circle cx="48" cy="54" r="1.5" fill="#00C4EF"/>
+  </g>
+
+  <!-- Inner circuit traces -->
+  <line x1="12" y1="32" x2="38" y2="32" stroke="url(#d-grad)" stroke-width="1.2" stroke-linecap="round" opacity="0.4"/>
+  <line x1="18" y1="22" x2="34" y2="22" stroke="#8E72FF" stroke-width="1" stroke-linecap="round" opacity="0.3"/>
+  <line x1="18" y1="42" x2="34" y2="42" stroke="#00C4EF" stroke-width="1" stroke-linecap="round" opacity="0.3"/>
 </svg>
