@@ -138,8 +138,8 @@
 	"header": {
 		"lightMode": "Modo claro",
 		"darkMode": "Modo oscuro",
-		"hideAgents": "Ocultar agentes",
-		"showAgents": "Mostrar agentes"
+		"hideAgents": "Ocultar workers",
+		"showAgents": "Mostrar workers"
 	},
 	"common": {
 		"loading": "Cargando...",

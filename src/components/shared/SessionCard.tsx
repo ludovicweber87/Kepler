@@ -13,6 +13,7 @@ import ListItemText from '@mui/material/ListItemText';
 import { alpha, useTheme } from '@mui/material/styles';
 import FiberManualRecordRoundedIcon from '@mui/icons-material/FiberManualRecordRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
+import TerminalRoundedIcon from '@mui/icons-material/TerminalRounded';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
 import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded';
 import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded';
@@ -43,6 +44,8 @@ export interface SessionCardProps {
 	hasPendingQuestion?: boolean;
 	/** Compact layout for tight spaces (e.g. sidebar) */
 	compact?: boolean;
+	/** Whether this worker runs in a worktree (vs direct on main repo) */
+	isWorktree?: boolean;
 }
 
 export default function SessionCard({
@@ -57,6 +60,7 @@ export default function SessionCard({
 	onStop,
 	onDelete,
 	compact = false,
+	isWorktree,
 }: SessionCardProps) {
 	const theme = useTheme();
 	const t = useTranslations('sessionCard');
@@ -81,6 +85,8 @@ export default function SessionCard({
 			: isFinished
 				? finishedColor
 				: idleColor;
+
+	const workerAccentColor = isWorktree ? theme.palette.primary.main : theme.palette.secondary.main;
 
 	const borderColor = isActive
 		? alpha(activeColor, isStreaming ? 0.25 : 0.1)
@@ -112,8 +118,12 @@ export default function SessionCard({
 				bgcolor: bgColor,
 				border: 1,
 				borderColor,
-				borderLeft: isActive && isStreaming ? 3 : 1,
-				borderLeftColor: isActive && isStreaming ? activeColor : borderColor,
+				borderLeft: (isActive && isStreaming) || isWorktree !== undefined ? 3 : 1,
+				borderLeftColor: isActive && isStreaming
+					? activeColor
+					: isWorktree !== undefined
+						? alpha(workerAccentColor, 0.5)
+						: borderColor,
 				cursor: 'pointer',
 				transition: 'all 0.15s',
 				opacity: isFinished ? 0.6 : 1,
@@ -156,6 +166,8 @@ export default function SessionCard({
 					) : (
 						<CheckCircleOutlineRoundedIcon sx={{ fontSize: iconSize, color: finishedColor }} />
 					)
+				) : isWorktree === false ? (
+					<TerminalRoundedIcon sx={{ fontSize: iconSize, color: idleColor }} />
 				) : (
 					<AccountTreeRoundedIcon sx={{ fontSize: iconSize, color: idleColor }} />
 				)}
@@ -239,6 +251,24 @@ export default function SessionCard({
 							bgcolor: alpha(errorColor, 0.12),
 							color: errorColor,
 							border: `1px solid ${alpha(errorColor, 0.2)}`,
+						}}
+					/>
+				)}
+
+				{/* Worktree chip */}
+				{isWorktree && (
+					<Chip
+						icon={<AccountTreeRoundedIcon sx={{ fontSize: `${compact ? 11 : 12}px !important` }} />}
+						label="worktree"
+						size="small"
+						sx={{
+							height: chipHeight,
+							fontSize: chipFontSize,
+							fontWeight: 600,
+							bgcolor: alpha(theme.palette.primary.main, 0.08),
+							color: 'primary.main',
+							border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+							'& .MuiChip-icon': { color: 'primary.main' },
 						}}
 					/>
 				)}

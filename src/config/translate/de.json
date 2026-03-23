@@ -138,8 +138,8 @@
 	"header": {
 		"lightMode": "Heller Modus",
 		"darkMode": "Dunkler Modus",
-		"hideAgents": "Agents ausblenden",
-		"showAgents": "Agents einblenden"
+		"hideAgents": "Workers ausblenden",
+		"showAgents": "Workers einblenden"
 	},
 	"common": {
 		"loading": "Wird geladen...",

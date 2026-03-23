@@ -160,8 +160,8 @@
 	"header": {
 		"lightMode": "Light mode",
 		"darkMode": "Dark mode",
-		"hideAgents": "Hide agents",
-		"showAgents": "Show agents"
+		"hideAgents": "Hide workers",
+		"showAgents": "Show workers"
 	},
 	"common": {
 		"loading": "Loading...",

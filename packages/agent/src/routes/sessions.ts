@@ -57,7 +57,8 @@ function deriveAgentName(sessionId: string, branch: string | null): string | nul
 	const base = sessionId.replace('devora-', '');
 	const parts = base.split('-');
 	const last = parts[parts.length - 1];
-	if (/^\d+$/.test(last)) return null;
+	// Detect uid suffixes: pure digits OR base36-like alphanumeric (6+ chars)
+	if (/^\d+$/.test(last) || /^[a-z0-9]{6,}$/i.test(last)) return null;
 	return last === 'session' ? null : last;
 }
 

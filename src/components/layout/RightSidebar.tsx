@@ -7,7 +7,7 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Popover from '@mui/material/Popover';
 import { alpha, useTheme } from '@mui/material/styles';
-import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
+import EngineeringRoundedIcon from '@mui/icons-material/EngineeringRounded';
 import { useAgentViews } from '@/hooks/useAgentViews';
 import { useRightSidebar } from '@/hooks/useRightSidebar';
 import { useWorktrees, type WorktreeInfo } from '@/hooks/useWorktrees';
@@ -21,12 +21,18 @@ export const RIGHT_SIDEBAR_WIDTH = 400;
 const MIN_WIDTH = 400;
 const MAX_WIDTH = 400;
 
-
 export default function RightSidebar() {
 	const theme = useTheme();
 	const { open, width, setWidth } = useRightSidebar();
 	const { views, reorderViews } = useAgentViews();
-	const { activeSessions, pastSessions, killSession, getActiveForPath, getPastForPath, fetchSessionForPath } = useSessionManager();
+	const {
+		activeSessions,
+		pastSessions,
+		killSession,
+		getActiveForPath,
+		getPastForPath,
+		fetchSessionForPath,
+	} = useSessionManager();
 	const pendingQuestions = usePendingQuestions();
 	const [tabIndex, setTabIndex] = useState(0);
 	const [isResizing, setIsResizing] = useState(false);
@@ -46,16 +52,45 @@ export default function RightSidebar() {
 	const [deleteTarget, setDeleteTarget] = useState<WorktreeInfo | null>(null);
 	const [deleteAnchorEl, setDeleteAnchorEl] = useState<HTMLElement | null>(null);
 
-	// Sort: active worktrees first
-	const sortedWorktrees = useMemo(
-		() => [...worktrees].sort((a, b) => {
-			const aActive = !!getActiveForPath(a.path);
-			const bActive = !!getActiveForPath(b.path);
+	// Build unified workers list: worktrees + direct sessions (not in any worktree)
+	type WorkerItem =
+		| { type: 'worktree'; worktree: WorktreeInfo; key: string }
+		| {
+			type: 'direct';
+			session: import('@/hooks/useActiveSessions').ActiveSession;
+			key: string;
+		};
+
+	const workers = useMemo(() => {
+		const worktreePaths = new Set(worktrees.map((wt) => wt.path));
+
+		// Worktree items
+		const wtItems: WorkerItem[] = worktrees.map((wt) => ({
+			type: 'worktree' as const,
+			worktree: wt,
+			key: `wt-${wt.path}`,
+		}));
+
+		// Direct sessions: active sessions in this project but not in any worktree
+		const directItems: WorkerItem[] = activeView?.path
+			? activeSessions
+				.filter((s) => s.cwd.startsWith(activeView.path) && !worktreePaths.has(s.cwd))
+				.map((s) => ({
+					type: 'direct' as const,
+					session: s,
+					key: `direct-${s.sessionId}`,
+				}))
+			: [];
+
+		// Merge and sort: active workers first
+		const all = [...wtItems, ...directItems];
+		return all.sort((a, b) => {
+			const aActive = a.type === 'direct' || !!getActiveForPath(a.worktree.path);
+			const bActive = b.type === 'direct' || !!getActiveForPath(b.worktree.path);
 			if (aActive === bActive) return 0;
 			return aActive ? -1 : 1;
-		}),
-		[worktrees, getActiveForPath],
-	);
+		});
+	}, [worktrees, activeSessions, activeView?.path, getActiveForPath]);
 
 	// Count active tmux sessions per view for tab badges
 	const viewCounts = useMemo(
@@ -186,12 +221,14 @@ export default function RightSidebar() {
 				{/* Header */}
 				<Box sx={{ px: 2, pt: 2, pb: 1, flexShrink: 0 }}>
 					<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-						<AccountTreeRoundedIcon sx={{ color: 'primary.main', fontSize: '1.1rem' }} />
+						<EngineeringRoundedIcon
+							sx={{ color: 'primary.main', fontSize: '1.1rem' }}
+						/>
 						<Typography
 							variant="subtitle2"
 							sx={{ fontWeight: 700, letterSpacing: 0.5 }}
 						>
-							Worktrees
+							Workers
 						</Typography>
 						{activeSessions.length > 0 && (
 							<Box
@@ -229,30 +266,76 @@ export default function RightSidebar() {
 
 				{/* Content */}
 				<Box sx={{ p: 2, overflow: 'auto', flex: 1 }}>
-					{worktrees.length > 0 ? (
+					{workers.length > 0 ? (
 						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-							{sortedWorktrees.map((wt) => {
-								const active = getActiveForPath(wt.path);
-								const past = !active ? getPastForPath(wt.path, wt.branch) : null;
-								const isError = past?.status === 'error';
+							{workers.map((worker) => {
+								if (worker.type === 'worktree') {
+									const wt = worker.worktree;
+									const active = getActiveForPath(wt.path);
+									const past = !active
+										? getPastForPath(wt.path, wt.branch)
+										: null;
+									const isError = past?.status === 'error';
+									return (
+										<SessionCard
+											key={worker.key}
+											name={wt.branch}
+											subtitle={wt.path.split('/').slice(-2).join('/')}
+											status={
+												active
+													? 'active'
+													: past
+														? isError
+															? 'error'
+															: 'completed'
+														: 'idle'
+											}
+											isStreaming={active?.isStreaming}
+											hasPendingQuestion={pendingQuestions.has(wt.path)}
+											onClick={() => handleWorktreeClick(wt)}
+											onStop={
+												active
+													? () => killSession(active.sessionId)
+													: undefined
+											}
+											onDelete={
+												!active
+													? (e) => {
+														setDeleteTarget(wt);
+														setDeleteAnchorEl(
+															e.currentTarget as HTMLElement,
+														);
+													}
+													: undefined
+											}
+											isWorktree
+											compact
+										/>
+									);
+								}
+								// Direct session (not in a worktree)
+								const s = worker.session;
 								return (
 									<SessionCard
-										key={wt.path}
-										name={wt.branch}
-										subtitle={wt.path.split('/').slice(-2).join('/')}
-										status={
-											active ? 'active'
-												: past ? (isError ? 'error' : 'completed')
-													: 'idle'
-										}
-										isStreaming={active?.isStreaming}
-										hasPendingQuestion={pendingQuestions.has(wt.path)}
-										onClick={() => handleWorktreeClick(wt)}
-										onStop={active ? () => killSession(active.sessionId) : undefined}
-										onDelete={!active ? (e) => {
-											setDeleteTarget(wt);
-											setDeleteAnchorEl(e.currentTarget as HTMLElement);
-										} : undefined}
+										key={worker.key}
+										name={s.branch ?? s.projectName}
+										subtitle={s.cwd.split('/').slice(-2).join('/')}
+										status="active"
+										isStreaming={s.isStreaming}
+										hasPendingQuestion={pendingQuestions.has(s.cwd)}
+										onClick={() => {
+											// Create a synthetic worktree-like object for the modal
+											setSelected({
+												worktree: {
+													path: s.cwd,
+													branch: s.branch ?? 'main',
+													head: '',
+												},
+												existingSessionId: s.sessionId,
+											});
+										}}
+										onStop={() => killSession(s.sessionId)}
+										isWorktree={false}
 										compact
 									/>
 								);
@@ -268,12 +351,12 @@ export default function RightSidebar() {
 								gap: 1,
 							}}
 						>
-							<AccountTreeRoundedIcon sx={{ fontSize: 36, color: 'text.disabled' }} />
+							<EngineeringRoundedIcon sx={{ fontSize: 36, color: 'text.disabled' }} />
 							<Typography
 								variant="caption"
 								sx={{ color: 'text.disabled', textAlign: 'center' }}
 							>
-								Aucun worktree sur ce projet
+								No active workers
 							</Typography>
 						</Box>
 					)}
@@ -344,9 +427,9 @@ export default function RightSidebar() {
 				existingWorktree={
 					selected && !selected.existingSessionId
 						? {
-								branch: selected.worktree.branch,
-								worktreePath: selected.worktree.path,
-							}
+							branch: selected.worktree.branch,
+							worktreePath: selected.worktree.path,
+						}
 						: undefined
 				}
 			/>

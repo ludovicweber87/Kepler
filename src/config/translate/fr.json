@@ -160,8 +160,8 @@
 	"header": {
 		"lightMode": "Mode clair",
 		"darkMode": "Mode sombre",
-		"hideAgents": "Masquer agents",
-		"showAgents": "Afficher agents"
+		"hideAgents": "Masquer workers",
+		"showAgents": "Afficher workers"
 	},
 	"common": {
 		"loading": "Chargement...",
