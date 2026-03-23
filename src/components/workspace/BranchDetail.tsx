@@ -12,7 +12,7 @@ import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import FiberManualRecordRoundedIcon from '@mui/icons-material/FiberManualRecordRounded';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
 import { useQuery } from '@tanstack/react-query';
-import { useSupabase } from '@/hooks/useSupabase';
+import { apiFetch } from '@/lib/api-fetch';
 import { useBranchLog, type Branch } from '@/hooks/useBranches';
 import type { AgentSession } from '@/hooks/useAgentSession';
 import AgentTerminalModal from '@/components/agents/AgentTerminalModal';
@@ -28,19 +28,14 @@ function formatDate(dateStr: string): string {
 }
 
 function useBranchSessions(branch: string) {
-	const { supabase, isReady } = useSupabase();
 	return useQuery({
 		queryKey: ['agent-sessions', 'branch', branch],
 		queryFn: async () => {
-			const { data, error } = await supabase
-				.from('agent_sessions')
-				.select('*')
-				.eq('branch', branch)
-				.order('started_at', { ascending: false });
-			if (error) throw error;
-			return (data ?? []) as AgentSession[];
+			const res = await apiFetch(`/api/agent-sessions?branch=${encodeURIComponent(branch)}`);
+			if (!res.ok) throw new Error('Failed to fetch branch sessions');
+			return (await res.json()) as AgentSession[];
 		},
-		enabled: !!branch && isReady,
+		enabled: !!branch,
 	});
 }
 

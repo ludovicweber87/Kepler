@@ -1,7 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useSession } from 'next-auth/react';
-import { useSupabase } from '@/hooks/useSupabase';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { apiFetch } from '@/lib/api-fetch';
 
 export interface AgentSummary {
 	session_id: string;
@@ -20,73 +18,59 @@ export interface AgentSummary {
 	summary_at: string | null;
 }
 
-async function fetchAgentSummaries(supabase: SupabaseClient, userId: string): Promise<AgentSummary[]> {
-	// Fetch recent sessions (completed or error, last 50)
-	const { data: sessions, error: sessErr } = await supabase
-		.from('agent_sessions')
-		.select('*')
-		.eq('user_id', userId)
-		.in('status', ['completed', 'error'])
-		.order('started_at', { ascending: false })
-		.limit(50);
+const LOG_TYPE_ICON: Record<string, string> = {
+	commit: '📦',
+	file_change: '📝',
+	error: '❌',
+	info: 'ℹ️',
+	ask_question: '❓',
+};
 
-	if (sessErr) throw sessErr;
+interface SessionWithLogs {
+	id: string;
+	session_id: string;
+	agent_name: string | null;
+	project_name: string;
+	project_path: string;
+	branch: string | null;
+	status: string;
+	started_at: string;
+	ended_at: string | null;
+	logs: Array<{ agent_session_id: string; content: string; log_type: string; created_at: string }>;
+}
+
+async function fetchAgentSummaries(): Promise<AgentSummary[]> {
+	const res = await apiFetch('/api/agent-sessions?status=completed&limit=50&withLogs=true');
+	if (!res.ok) throw new Error('Failed to fetch agent summaries');
+	const sessions = (await res.json()) as SessionWithLogs[];
+
 	if (!sessions || sessions.length === 0) return [];
 
-	// Fetch ALL logs for those sessions (not just summary/title)
-	const sessionIds = sessions.map((s) => s.id);
-	const { data: logs, error: logErr } = await supabase
-		.from('agent_activity_logs')
-		.select('agent_session_id, content, log_type, created_at')
-		.in('agent_session_id', sessionIds)
-		.order('created_at', { ascending: true });
-
-	if (logErr) throw logErr;
-
-	// Index logs by session id
-	const LOG_TYPE_ICON: Record<string, string> = {
-		commit: '📦',
-		file_change: '📝',
-		error: '❌',
-		info: 'ℹ️',
-		ask_question: '❓',
-	};
-
-	const summaryMap = new Map<string, { summary: string | null; title: string | null; summary_at: string | null }>();
-	const allLogsMap = new Map<string, Array<{ content: string; log_type: string; created_at: string }>>();
-
-	for (const log of logs ?? []) {
-		// Collect summary/title
-		const existing = summaryMap.get(log.agent_session_id) ?? { summary: null, title: null, summary_at: null };
-		if (log.log_type === 'summary' && !existing.summary) {
-			existing.summary = log.content;
-			existing.summary_at = log.created_at;
-		}
-		if (log.log_type === 'title' && !existing.title) {
-			existing.title = log.content;
-		}
-		summaryMap.set(log.agent_session_id, existing);
-
-		// Collect all non-summary logs for fallback
-		if (log.log_type !== 'summary' && log.log_type !== 'title') {
-			const arr = allLogsMap.get(log.agent_session_id) ?? [];
-			arr.push(log);
-			allLogsMap.set(log.agent_session_id, arr);
-		}
-	}
-
 	return sessions.map((s) => {
-		const logData = summaryMap.get(s.id);
-		let summary = logData?.summary ?? null;
+		const logs = s.logs ?? [];
+		let summary: string | null = null;
+		let title: string | null = null;
+		let summary_at: string | null = null;
+		const activityLogs: Array<{ content: string; log_type: string }> = [];
 
-		// Fallback: build summary from activity logs if no dedicated summary exists
-		if (!summary) {
-			const activityLogs = allLogsMap.get(s.id);
-			if (activityLogs && activityLogs.length > 0) {
-				summary = activityLogs
-					.map((l) => `- ${LOG_TYPE_ICON[l.log_type] ?? '•'} ${l.content}`)
-					.join('\n');
+		for (const log of logs) {
+			if (log.log_type === 'summary' && !summary) {
+				summary = log.content;
+				summary_at = log.created_at;
 			}
+			if (log.log_type === 'title' && !title) {
+				title = log.content;
+			}
+			if (log.log_type !== 'summary' && log.log_type !== 'title') {
+				activityLogs.push(log);
+			}
+		}
+
+		// Fallback: build summary from activity logs
+		if (!summary && activityLogs.length > 0) {
+			summary = activityLogs
+				.map((l) => `- ${LOG_TYPE_ICON[l.log_type] ?? '•'} ${l.content}`)
+				.join('\n');
 		}
 
 		return {
@@ -95,25 +79,20 @@ async function fetchAgentSummaries(supabase: SupabaseClient, userId: string): Pr
 			project_name: s.project_name,
 			project_path: s.project_path,
 			branch: s.branch,
-			status: s.status,
+			status: s.status as AgentSummary['status'],
 			started_at: s.started_at,
 			ended_at: s.ended_at,
 			summary,
-			title: logData?.title ?? null,
-			summary_at: logData?.summary_at ?? null,
+			title,
+			summary_at,
 		};
 	});
 }
 
 export function useAgentSummaries() {
-	const { data: session } = useSession();
-	const userId = session?.user?.id ?? null;
-	const { supabase, isReady } = useSupabase();
-
 	return useQuery({
 		queryKey: ['agent-summaries'],
-		queryFn: () => fetchAgentSummaries(supabase, userId!),
-		enabled: !!userId && isReady,
+		queryFn: fetchAgentSummaries,
 		refetchInterval: 15_000,
 	});
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/supabase';
+import { db } from '@/db';
+import { projectConfigs } from '@/db/schema';
 import {
 	fetchIssue,
 	fetchStatusFieldInfo,
@@ -28,11 +29,15 @@ export async function POST(req: NextRequest) {
 		}
 
 		// Find the project config that contains this repo in its view_repo_mappings
-		const supabase = createServiceRoleClient();
 		const repoFullName = `${owner}/${repo}`;
-		const { data: allConfigs } = await supabase
-			.from('project_configs')
-			.select('org, project_number, view_repo_mappings');
+		const allConfigs = db
+			.select({
+				org: projectConfigs.org,
+				project_number: projectConfigs.project_number,
+				view_repo_mappings: projectConfigs.view_repo_mappings,
+			})
+			.from(projectConfigs)
+			.all();
 
 		const config =
 			allConfigs?.find((c) => {

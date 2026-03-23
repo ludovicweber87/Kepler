@@ -1,8 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSession } from 'next-auth/react';
-import { useSupabase } from '@/hooks/useSupabase';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { apiFetch } from '@/lib/api-fetch';
 import type { ProjectV2Config, ProjectV2View, ViewRepoMapping } from '@/types';
 
 const QUERY_KEY = ['project-config'];
@@ -51,39 +49,17 @@ function configToRow(config: ProjectV2Config) {
 	};
 }
 
-async function fetchConfigs(supabase: SupabaseClient, userId: string): Promise<ProjectV2Config[]> {
-	const { data, error } = await supabase
-		.from('project_configs')
-		.select('*')
-		.eq('user_id', userId);
-
-	if (error) throw error;
-	if (!data || data.length === 0) return [];
-
-	return (data as ProjectConfigRow[]).map(rowToConfig);
-}
-
-/** Find the config that owns a given repo based on viewRepoMappings */
-function findConfigForRepo(
-	configs: ProjectV2Config[],
-	repoFullName: string,
-): ProjectV2Config | undefined {
-	const lower = repoFullName.toLowerCase();
-	return configs.find((c) =>
-		c.viewRepoMappings.some((m) => m.repos.some((r) => r.toLowerCase() === lower)),
-	);
-}
-
 export function useProjectConfig() {
 	const queryClient = useQueryClient();
-	const { data: session } = useSession();
-	const userId = session?.user?.id ?? null;
-	const { supabase, isReady } = useSupabase();
 
 	const { data: configs = [], isLoading: configsLoading } = useQuery({
 		queryKey: QUERY_KEY,
-		queryFn: () => fetchConfigs(supabase, userId!),
-		enabled: !!userId && isReady,
+		queryFn: async () => {
+			const res = await apiFetch('/api/project-configs');
+			if (!res.ok) throw new Error('Failed to fetch project configs');
+			const rows = (await res.json()) as ProjectConfigRow[];
+			return rows.map(rowToConfig);
+		},
 	});
 
 	// Backward compat: expose first config as `config` for consumers that need a single one
@@ -92,27 +68,12 @@ export function useProjectConfig() {
 	const saveMutation = useMutation({
 		mutationFn: async (newConfig: ProjectV2Config) => {
 			const row = configToRow(newConfig);
-			// Check if row exists for this user + project combo
-			const { data: existing } = await supabase
-				.from('project_configs')
-				.select('id')
-				.eq('user_id', userId)
-				.eq('org', newConfig.org)
-				.eq('project_number', newConfig.projectNumber)
-				.maybeSingle();
-
-			if (existing) {
-				const { error } = await supabase
-					.from('project_configs')
-					.update(row)
-					.eq('id', existing.id);
-				if (error) throw error;
-			} else {
-				const { error } = await supabase
-					.from('project_configs')
-					.insert({ ...row, user_id: userId });
-				if (error) throw error;
-			}
+			const res = await apiFetch('/api/project-configs', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(row),
+			});
+			if (!res.ok) throw new Error('Failed to save project config');
 		},
 		onMutate: async (newConfig) => {
 			await queryClient.cancelQueries({ queryKey: QUERY_KEY });
@@ -139,28 +100,24 @@ export function useProjectConfig() {
 
 	const removeConfig = useCallback(
 		async (org: string, projectNumber: number) => {
-			await supabase
-				.from('project_configs')
-				.delete()
-				.eq('user_id', userId)
-				.eq('org', org)
-				.eq('project_number', projectNumber);
+			await apiFetch(
+				`/api/project-configs?org=${encodeURIComponent(org)}&project_number=${projectNumber}`,
+				{ method: 'DELETE' },
+			);
 			const previous = queryClient.getQueryData<ProjectV2Config[]>(QUERY_KEY) ?? [];
 			queryClient.setQueryData(
 				QUERY_KEY,
 				previous.filter((c) => !(c.org === org && c.projectNumber === projectNumber)),
 			);
 		},
-		[userId, queryClient],
+		[queryClient],
 	);
 
 	const clearConfig = useCallback(() => {
-		supabase
-			.from('project_configs')
-			.delete()
-			.eq('user_id', userId)
-			.then(() => queryClient.setQueryData(QUERY_KEY, []));
-	}, [userId, queryClient]);
+		apiFetch('/api/project-configs?all=true', { method: 'DELETE' }).then(() =>
+			queryClient.setQueryData(QUERY_KEY, []),
+		);
+	}, [queryClient]);
 
 	const setActiveView = useCallback(
 		(viewName: string | null) => {
@@ -230,7 +187,6 @@ export function useProjectConfig() {
 		if (configs.length === 0 || syncingRef.current) return;
 		syncingRef.current = true;
 		try {
-			const { apiFetch } = await import('@/lib/api-fetch');
 			for (const c of configs) {
 				const res = await apiFetch(
 					`/api/github/projects?org=${c.org}&projectNumber=${c.projectNumber}&ownerType=${c.ownerType ?? 'organization'}`,
@@ -258,7 +214,10 @@ export function useProjectConfig() {
 	/** Find the config that owns a repo (for status mutations) */
 	const getConfigForRepo = useCallback(
 		(repoFullName: string): ProjectV2Config | undefined => {
-			return findConfigForRepo(configs, repoFullName);
+			const lower = repoFullName.toLowerCase();
+			return configs.find((c) =>
+				c.viewRepoMappings.some((m) => m.repos.some((r) => r.toLowerCase() === lower)),
+			);
 		},
 		[configs],
 	);

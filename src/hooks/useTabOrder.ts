@@ -1,22 +1,9 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSession } from 'next-auth/react';
-import { useSupabase } from '@/hooks/useSupabase';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { apiFetch } from '@/lib/api-fetch';
 
 function queryKey(group: string) {
 	return ['tab-order', group];
-}
-
-async function fetchTabOrder(supabase: SupabaseClient, group: string, userId: string): Promise<string[]> {
-	const { data, error } = await supabase
-		.from('tab_orders')
-		.select('tab_order')
-		.eq('user_id', userId)
-		.eq('tab_group', group)
-		.maybeSingle();
-	if (error) throw error;
-	return (data?.tab_order as string[]) ?? [];
 }
 
 /**
@@ -26,25 +13,25 @@ async function fetchTabOrder(supabase: SupabaseClient, group: string, userId: st
  */
 export function useTabOrder(group: string) {
 	const qc = useQueryClient();
-	const { data: session } = useSession();
-	const userId = session?.user?.id ?? null;
-	const { supabase, isReady } = useSupabase();
 
 	const { data: order = [] } = useQuery({
 		queryKey: queryKey(group),
-		queryFn: () => fetchTabOrder(supabase, group, userId!),
-		enabled: !!userId && isReady,
+		queryFn: async () => {
+			const res = await apiFetch(`/api/tab-orders?group=${encodeURIComponent(group)}`);
+			if (!res.ok) throw new Error('Failed to fetch tab order');
+			const data = await res.json();
+			return (data.tab_order as string[]) ?? [];
+		},
 	});
 
 	const mutation = useMutation({
 		mutationFn: async (newOrder: string[]) => {
-			const { error } = await supabase
-				.from('tab_orders')
-				.upsert(
-					{ tab_group: group, tab_order: newOrder, updated_at: new Date().toISOString(), user_id: userId },
-					{ onConflict: 'tab_group' },
-				);
-			if (error) throw error;
+			const res = await apiFetch('/api/tab-orders', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ tab_group: group, tab_order: newOrder }),
+			});
+			if (!res.ok) throw new Error('Failed to save tab order');
 		},
 		onMutate: async (newOrder) => {
 			await qc.cancelQueries({ queryKey: queryKey(group) });
