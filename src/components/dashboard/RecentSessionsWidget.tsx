@@ -151,7 +151,7 @@ export default function RecentSessionsWidget({
 											whiteSpace: 'nowrap',
 										}}
 									>
-										{session.branch ?? session.agent_name ?? 'Claude'}
+										{session.agent_name ?? session.branch ?? 'Claude'}
 									</Typography>
 									<Typography
 										sx={{
@@ -162,9 +162,8 @@ export default function RecentSessionsWidget({
 											whiteSpace: 'nowrap',
 										}}
 									>
-										{session.agent_name ?? 'Claude'}
-										{' · '}
-										{session.project_name}
+										{session.branch ?? session.project_name}
+										{session.branch ? ` · ${session.project_name}` : ''}
 										{duration && ` · ${duration}`}
 									</Typography>
 								</Box>

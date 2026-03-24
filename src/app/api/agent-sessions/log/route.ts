@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
 
 		// Handle "title" log type — update agent_name
 		if (logType === 'title') {
-			const title = content.slice(0, 60).trim();
+			const title = content.slice(0, 80).trim();
 			if (title) {
 				db.update(agentSessions)
 					.set({ agent_name: title })
