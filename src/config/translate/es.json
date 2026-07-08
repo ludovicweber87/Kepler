@@ -181,7 +181,8 @@
 		"branchName": "Nombre de la rama",
 		"branchDesc": "Se creara un worktree aislado en .worktrees/ para esta sesion.",
 		"launch": "Lanzar",
-		"creating": "Creando..."
+		"creating": "Creando...",
+		"issueUrl": "URL de issue de GitHub para contexto (opcional)"
 	},
 	"agentActivity": {
 		"reportTitle": "Informe del agente",

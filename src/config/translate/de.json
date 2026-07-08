@@ -181,7 +181,8 @@
 		"branchName": "Branch-Name",
 		"branchDesc": "Ein isolierter Worktree wird in .worktrees/ fur diese Sitzung erstellt.",
 		"launch": "Starten",
-		"creating": "Erstellen..."
+		"creating": "Erstellen...",
+		"issueUrl": "GitHub-Issue-URL für Kontext (optional)"
 	},
 	"agentActivity": {
 		"reportTitle": "Agent-Bericht",

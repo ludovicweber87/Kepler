@@ -44,6 +44,7 @@ import { useOverlayTerminal } from '@/hooks/useOverlayTerminal';
 import { useWorktrees } from '@/hooks/useWorktrees';
 import { useTranslations } from 'next-intl';
 import { localFetch, getAgentWsUrl } from '@/lib/local-fetch';
+import { apiFetch } from '@/lib/api-fetch';
 import AgentActivityTab from './AgentActivityTab';
 import AgentDiffTab from './AgentDiffTab';
 import AgentIssueTab from './AgentIssueTab';
@@ -164,6 +165,11 @@ export default function AgentTerminalModal({
 	// Step management: 'project' → 'launch-mode' → 'branch' → 'terminal'
 	const [step, setStep] = useState<'project' | 'launch-mode' | 'branch' | 'terminal'>('project');
 	const [branchInput, setBranchInput] = useState('');
+	// F2 — optional GitHub issue linked at launch, injected into the agent prompt as context
+	const [issueUrl, setIssueUrl] = useState('');
+	const [issueFetching, setIssueFetching] = useState(false);
+	const [issueLoaded, setIssueLoaded] = useState<string | null>(null);
+	const issueCtxRef = useRef<string | null>(null);
 	const [worktreePath, setWorktreePath] = useState<string | null>(null);
 	const [worktreeError, setWorktreeError] = useState<string | null>(null);
 	// Current branch mode state
@@ -349,6 +355,33 @@ export default function AgentTerminalModal({
 	}, [open, existingWorktree]);
 
 	// Handle branch submission + worktree creation
+	const fetchIssueContext = useCallback(async (url: string) => {
+		const m = url.match(/github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)/);
+		if (!m) {
+			issueCtxRef.current = null;
+			setIssueLoaded(null);
+			return;
+		}
+		const [, owner, repo, number] = m;
+		setIssueFetching(true);
+		try {
+			const res = await apiFetch(
+				`/api/github/issue?owner=${owner}&repo=${repo}&number=${number}`,
+			);
+			if (!res.ok) return;
+			const data = await res.json();
+			const issue = data.issue;
+			if (issue) {
+				issueCtxRef.current = `## Contexte de l'issue #${issue.number} : ${issue.title}\n\n${issue.body ?? ''}`;
+				setIssueLoaded(`#${issue.number} ${issue.title}`);
+			}
+		} catch {
+			// silent — context is optional
+		} finally {
+			setIssueFetching(false);
+		}
+	}, []);
+
 	const handleLaunch = useCallback(async () => {
 		if (!branchInput.trim() || !projectPath) return;
 		setWorktreeError(null);
@@ -626,7 +659,10 @@ export default function AgentTerminalModal({
 							claudeLaunchedRef.current = true;
 							const reporting = buildReportingPrompt(sessionId);
 							const basePrompt = agentFile ? agentFile.content : '';
-							const fullPrompt = basePrompt + reporting;
+							const issueBlock = issueCtxRef.current
+								? `\n\n${issueCtxRef.current}`
+								: '';
+							const fullPrompt = basePrompt + reporting + issueBlock;
 							const escaped = fullPrompt.replace(/'/g, "'\\''");
 							const claudeCmd = `unset CLAUDECODE CLAUDE_CODE_ENTRYPOINT && /opt/homebrew/bin/claude --system-prompt '${escaped}'\n`;
 
@@ -1325,6 +1361,32 @@ export default function AgentTerminalModal({
 						>
 							{tl('branchDesc')}
 						</Typography>
+
+						{/* F2 — optional GitHub issue for agent context */}
+						<Box sx={{ width: '100%', maxWidth: 500 }}>
+							<TextField
+								fullWidth
+								size="small"
+								placeholder={tl('issueUrl')}
+								value={issueUrl}
+								onChange={(e) => setIssueUrl(e.target.value)}
+								onBlur={() => issueUrl.trim() && fetchIssueContext(issueUrl.trim())}
+								disabled={isCreating}
+								InputProps={{
+									endAdornment: issueFetching ? (
+										<CircularProgress size={14} />
+									) : undefined,
+								}}
+							/>
+							{issueLoaded && (
+								<Typography
+									variant="caption"
+									sx={{ color: 'success.main', mt: 0.5, display: 'block' }}
+								>
+									✓ {issueLoaded}
+								</Typography>
+							)}
+						</Box>
 
 						<Box
 							component="form"

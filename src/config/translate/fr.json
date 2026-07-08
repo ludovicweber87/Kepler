@@ -203,7 +203,8 @@
 		"branchName": "Nom de la branche",
 		"branchDesc": "Un worktree isole sera cree dans .worktrees/ pour cette session.",
 		"launch": "Lancer",
-		"creating": "Creation..."
+		"creating": "Creation...",
+		"issueUrl": "URL d'issue GitHub pour le contexte (optionnel)"
 	},
 	"agentActivity": {
 		"reportTitle": "Rapport agent",
