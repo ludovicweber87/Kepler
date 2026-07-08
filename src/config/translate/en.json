@@ -15,7 +15,8 @@
 		"todos": "Tasks",
 		"settings": "Settings",
 		"signOut": "Sign out",
-		"launchAgent": "Launch Agent"
+		"launchAgent": "Launch Agent",
+		"workers": "Workers"
 	},
 	"landing": {
 		"nav": {
@@ -101,7 +102,8 @@
 		"creating": "Creating...",
 		"created": "Created",
 		"branchCreated": "Branch {branchName} created",
-		"moveTo": "Move to"
+		"moveTo": "Move to",
+		"updated": "Updated {time}"
 	},
 	"todos": {
 		"title": "Tasks",
@@ -112,7 +114,9 @@
 		"taskDescription": "What needs to be done for this task?",
 		"inProgress": "In progress",
 		"noTasks": "No tasks",
-		"done": "Done"
+		"done": "Done",
+		"allRepos": "All repos",
+		"suggestions": "Suggestions"
 	},
 	"prs": {
 		"title": "Pull Requests",
@@ -246,5 +250,35 @@
 		"closeSession": "Close session",
 		"delete": "Delete",
 		"question": "Question"
+	},
+	"issueDetail": {
+		"backToIssues": "Back to issues",
+		"loadError": "Loading error: {message}",
+		"launchAgent": "Launch agent",
+		"associateTask": "Associate a task",
+		"tasksCount": "{count, plural, one {# task} other {# tasks}}",
+		"createTask": "Create a task",
+		"history": "History",
+		"commentsTitle": "Comments ({count})",
+		"noDescription": "No description. Click to add one.",
+		"addComment": "Add a comment",
+		"commentPlaceholder": "Write a comment (Markdown)...",
+		"send": "Send",
+		"editComment": "Edit comment",
+		"deleteComment": "Delete comment",
+		"deleteCommentConfirm": "This comment will be permanently deleted from the GitHub issue."
+	},
+	"workers": {
+		"title": "Workers",
+		"allProjects": "All",
+		"inProgress": "In progress",
+		"inactive": "Inactive",
+		"none": "No workers",
+		"kpiActive": "active",
+		"kpiQuestions": "questions",
+		"kpiCompleted": "completed",
+		"deleteTitle": "Delete {branch}",
+		"deleteWorktreeOnly": "Worktree only",
+		"deleteWorktreeAndBranch": "Worktree + branch"
 	}
 }

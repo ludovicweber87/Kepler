@@ -15,7 +15,8 @@
 		"todos": "Tareas",
 		"settings": "Ajustes",
 		"signOut": "Cerrar sesión",
-		"launchAgent": "Lanzar agente"
+		"launchAgent": "Lanzar agente",
+		"workers": "Workers"
 	},
 	"landing": {
 		"nav": {
@@ -101,7 +102,8 @@
 		"creating": "Creando...",
 		"created": "Creada",
 		"branchCreated": "Rama {branchName} creada",
-		"moveTo": "Mover a"
+		"moveTo": "Mover a",
+		"updated": "Actualizado a las {time}"
 	},
 	"todos": {
 		"title": "Tareas",
@@ -112,7 +114,9 @@
 		"taskDescription": "¿Qué hay que hacer para esta tarea?",
 		"inProgress": "En progreso",
 		"noTasks": "Sin tareas",
-		"done": "Hecho"
+		"done": "Hecho",
+		"allRepos": "Todos los repos",
+		"suggestions": "Sugerencias"
 	},
 	"prs": {
 		"title": "Pull Requests",
@@ -224,5 +228,35 @@
 		"closeSession": "Cerrar sesion",
 		"delete": "Eliminar",
 		"question": "Pregunta"
+	},
+	"issueDetail": {
+		"backToIssues": "Volver a issues",
+		"loadError": "Error de carga: {message}",
+		"launchAgent": "Lanzar agente",
+		"associateTask": "Asociar una tarea",
+		"tasksCount": "{count, plural, one {# tarea} other {# tareas}}",
+		"createTask": "Crear una tarea",
+		"history": "Historial",
+		"commentsTitle": "Comentarios ({count})",
+		"noDescription": "Sin descripción. Haz clic para añadir una.",
+		"addComment": "Añadir un comentario",
+		"commentPlaceholder": "Escribe un comentario (Markdown)...",
+		"send": "Enviar",
+		"editComment": "Editar comentario",
+		"deleteComment": "Eliminar comentario",
+		"deleteCommentConfirm": "Este comentario sera eliminado permanentemente de la issue de GitHub."
+	},
+	"workers": {
+		"title": "Workers",
+		"allProjects": "Todos",
+		"inProgress": "En curso",
+		"inactive": "Inactivos",
+		"none": "Sin workers",
+		"kpiActive": "activos",
+		"kpiQuestions": "preguntas",
+		"kpiCompleted": "completados",
+		"deleteTitle": "Eliminar {branch}",
+		"deleteWorktreeOnly": "Solo worktree",
+		"deleteWorktreeAndBranch": "Worktree + rama"
 	}
 }
