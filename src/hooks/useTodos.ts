@@ -14,55 +14,70 @@ export interface Todo {
 	issue_repo: string | null;
 }
 
-function queryKey(repo: string) {
-	return ['todos', repo];
+interface AddTodoOptions {
+	repo?: string;
+	issueNumber?: number;
+	issueRepo?: string;
 }
 
-export function useTodos(repoFullName: string | null) {
+/**
+ * Todos hook.
+ * - `useTodos()` (no scope) → all todos (global list).
+ * - `useTodos(repoFullName)` → todos scoped to a repo (used by the issue detail view).
+ * A todo's repo (`repo_full_name`) is optional: `''` means a global/untagged task.
+ */
+export function useTodos(repoScope: string | null = null) {
 	const queryClient = useQueryClient();
-	const key = queryKey(repoFullName ?? '');
+	const key = ['todos', repoScope ?? '__all__'];
 
 	const { data: todos = [], isLoading } = useQuery({
 		queryKey: key,
 		queryFn: async () => {
-			const res = await apiFetch(`/api/todos?repo=${encodeURIComponent(repoFullName!)}`);
+			const url = repoScope
+				? `/api/todos?repo=${encodeURIComponent(repoScope)}`
+				: '/api/todos';
+			const res = await apiFetch(url);
 			if (!res.ok) throw new Error('Failed to fetch todos');
 			return (await res.json()) as Todo[];
 		},
-		enabled: !!repoFullName,
 	});
 
+	const invalidate = () => {
+		queryClient.invalidateQueries({ queryKey: key });
+		queryClient.invalidateQueries({ queryKey: ['todos', 'pending-count'] });
+	};
+
 	const addMutation = useMutation({
-		mutationFn: async (params: { title: string; issueNumber?: number; issueRepo?: string }) => {
+		mutationFn: async ({ title, opts }: { title: string; opts?: AddTodoOptions }) => {
 			const maxOrder = todos.length > 0 ? Math.max(...todos.map((t) => t.sort_order)) + 1 : 0;
 			const res = await apiFetch('/api/todos', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
-					repo_full_name: repoFullName,
-					title: params.title,
+					repo_full_name: opts?.repo ?? repoScope ?? '',
+					title,
 					sort_order: maxOrder,
-					issue_number: params.issueNumber ?? null,
-					issue_repo: params.issueRepo ?? null,
+					issue_number: opts?.issueNumber ?? null,
+					issue_repo: opts?.issueRepo ?? null,
 				}),
 			});
 			if (!res.ok) throw new Error('Failed to add todo');
 		},
-		onMutate: async (params) => {
+		onMutate: async ({ title, opts }) => {
 			await queryClient.cancelQueries({ queryKey: key });
 			const previous = queryClient.getQueryData<Todo[]>(key);
 			queryClient.setQueryData<Todo[]>(key, (old = []) => [
 				...old,
 				{
 					id: crypto.randomUUID(),
-					repo_full_name: repoFullName!,
-					title: params.title,
+					repo_full_name: opts?.repo ?? repoScope ?? '',
+					title,
 					description: '',
 					done: false,
 					sort_order: old.length,
 					created_at: new Date().toISOString(),
-					issue_number: params.issueNumber ?? null,
-					issue_repo: params.issueRepo ?? null,
+					issue_number: opts?.issueNumber ?? null,
+					issue_repo: opts?.issueRepo ?? null,
 				},
 			]);
 			return { previous };
@@ -70,10 +85,7 @@ export function useTodos(repoFullName: string | null) {
 		onError: (_err, _vars, ctx) => {
 			if (ctx?.previous) queryClient.setQueryData(key, ctx.previous);
 		},
-		onSettled: () => {
-			queryClient.invalidateQueries({ queryKey: key });
-			queryClient.invalidateQueries({ queryKey: ['todos', 'pending-count'] });
-		},
+		onSettled: invalidate,
 	});
 
 	const toggleMutation = useMutation({
@@ -96,10 +108,7 @@ export function useTodos(repoFullName: string | null) {
 		onError: (_err, _vars, ctx) => {
 			if (ctx?.previous) queryClient.setQueryData(key, ctx.previous);
 		},
-		onSettled: () => {
-			queryClient.invalidateQueries({ queryKey: key });
-			queryClient.invalidateQueries({ queryKey: ['todos', 'pending-count'] });
-		},
+		onSettled: invalidate,
 	});
 
 	const updateMutation = useMutation({
@@ -122,10 +131,7 @@ export function useTodos(repoFullName: string | null) {
 		onError: (_err, _vars, ctx) => {
 			if (ctx?.previous) queryClient.setQueryData(key, ctx.previous);
 		},
-		onSettled: () => {
-			queryClient.invalidateQueries({ queryKey: key });
-			queryClient.invalidateQueries({ queryKey: ['todos', 'pending-count'] });
-		},
+		onSettled: invalidate,
 	});
 
 	const descriptionMutation = useMutation({
@@ -148,9 +154,7 @@ export function useTodos(repoFullName: string | null) {
 		onError: (_err, _vars, ctx) => {
 			if (ctx?.previous) queryClient.setQueryData(key, ctx.previous);
 		},
-		onSettled: () => {
-			queryClient.invalidateQueries({ queryKey: key });
-		},
+		onSettled: () => queryClient.invalidateQueries({ queryKey: key }),
 	});
 
 	const deleteMutation = useMutation({
@@ -169,15 +173,11 @@ export function useTodos(repoFullName: string | null) {
 		onError: (_err, _vars, ctx) => {
 			if (ctx?.previous) queryClient.setQueryData(key, ctx.previous);
 		},
-		onSettled: () => {
-			queryClient.invalidateQueries({ queryKey: key });
-			queryClient.invalidateQueries({ queryKey: ['todos', 'pending-count'] });
-		},
+		onSettled: invalidate,
 	});
 
 	const addTodo = useCallback(
-		(title: string, issueNumber?: number, issueRepo?: string) =>
-			addMutation.mutate({ title, issueNumber, issueRepo }),
+		(title: string, opts?: AddTodoOptions) => addMutation.mutate({ title, opts }),
 		[addMutation],
 	);
 	const toggleTodo = useCallback(
