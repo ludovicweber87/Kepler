@@ -14,7 +14,6 @@ import RightSidebar, { RIGHT_SIDEBAR_WIDTH } from './RightSidebar';
 import OverlayTerminal from './OverlayTerminal';
 import AppLoadingSplash from './AppLoadingSplash';
 import SettingsPanel from '@/components/settings/SettingsPanel';
-import AgentStatusBanner from '@/components/shared/AgentStatusBanner';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useProjectConfig } from '@/hooks/useProjectConfig';
 import { RightSidebarContext } from '@/hooks/useRightSidebar';
@@ -144,7 +143,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 							transition: 'margin-right 0.2s',
 						}}
 					>
-						<AgentStatusBanner />
 						{children}
 					</Box>
 					<RightSidebar />
