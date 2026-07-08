@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -38,6 +39,7 @@ function slugify(text: string): string {
 export default function CreateBranchModal({ open, onClose, issue }: CreateBranchModalProps) {
 	const t = useTranslations('issues');
 	const tc = useTranslations('common');
+	const router = useRouter();
 	const defaultBranch = useMemo(() => `feat/${slugify(issue.title)}`, [issue.title]);
 
 	const [branchName, setBranchName] = useState(defaultBranch);
@@ -67,8 +69,12 @@ export default function CreateBranchModal({ open, onClose, issue }: CreateBranch
 
 			setStatus('success');
 			setToast(true);
+			const [owner, repo] = (issue.repo_full_name ?? '').split('/');
 			setTimeout(() => {
 				onClose();
+				if (owner && repo) {
+					router.push(`/task/${owner}/${repo}/${issue.number}`);
+				}
 			}, 1500);
 		} catch (err) {
 			setStatus('error');

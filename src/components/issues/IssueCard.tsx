@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
@@ -40,8 +41,10 @@ export default function IssueCard({
 	columns,
 	onStatusChange,
 }: IssueCardProps) {
+	const router = useRouter();
 	const t = useTranslations('issues');
-	const repo = (issue.repo_full_name ?? '').split('/')[1] ?? '';
+	const [owner, repo] = (issue.repo_full_name ?? '').split('/');
+	const href = `/task/${owner}/${repo}/${issue.number}`;
 
 	const handleStatusChange = (event: SelectChangeEvent<string>) => {
 		event.stopPropagation();
@@ -53,7 +56,7 @@ export default function IssueCard({
 
 	return (
 		<Card
-			onClick={() => window.open(issue.html_url, '_blank', 'noopener,noreferrer')}
+			onClick={() => router.push(href)}
 			sx={{
 				cursor: 'pointer',
 				borderRadius: 1,
