@@ -46,9 +46,16 @@ export async function runStart(opts = {}) {
 	const agent = AGENT_PORT;
 	writePorts({ web, agent });
 
+	// Detached services inherit a minimal PATH — ensure Homebrew bins (gh, git,
+	// tmux, claude) are found regardless of how `devora` was launched.
+	const PATH = ['/opt/homebrew/bin', '/usr/local/bin', process.env.PATH || '']
+		.filter(Boolean)
+		.join(':');
+
 	const env = {
 		...process.env,
 		...parseEnvFile(ENV_FILE),
+		PATH,
 		DEVORA_DB_PATH: DB_PATH,
 		DEVORA_AGENT_PORT: String(agent),
 		NEXT_PUBLIC_AGENT_URL: `http://localhost:${agent}`,

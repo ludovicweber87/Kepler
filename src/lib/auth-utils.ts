@@ -1,5 +1,14 @@
 import { NextResponse } from 'next/server';
 import { execFileSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
+
+/** Resolve the gh binary absolutely — the server process may have a minimal PATH. */
+function resolveGh(): string {
+	for (const p of ['/opt/homebrew/bin/gh', '/usr/local/bin/gh', '/usr/bin/gh']) {
+		if (existsSync(p)) return p;
+	}
+	return 'gh';
+}
 
 export interface AuthContext {
 	userId: string;
@@ -16,7 +25,7 @@ function readGhToken(): string | null {
 	const now = Date.now();
 	if (tokenCache && now - tokenCache.at < TOKEN_TTL) return tokenCache.token;
 	try {
-		const token = execFileSync('gh', ['auth', 'token'], {
+		const token = execFileSync(resolveGh(), ['auth', 'token'], {
 			encoding: 'utf-8',
 			timeout: 5000,
 		}).trim();
