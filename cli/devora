@@ -1,0 +1,5 @@
+#!/usr/bin/env node
+// Stable entrypoint. Its path is the only thing the install/update contract
+// depends on: ~/.devora/bin/devora -> <repo>/cli/devora. The symlink never
+// moves; only the code behind it changes, so `devora update` just works.
+import('../packages/cli/index.mjs');
