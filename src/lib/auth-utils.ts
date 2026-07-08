@@ -24,6 +24,16 @@ let tokenCache: { token: string; at: number } | null = null;
 function readGhToken(): string | null {
 	const now = Date.now();
 	if (tokenCache && now - tokenCache.at < TOKEN_TTL) return tokenCache.token;
+
+	// Prefer an injected token — the `devora` CLI reads gh in the user's session
+	// and passes it via GITHUB_TOKEN, so the detached server never calls gh.
+	const envToken = process.env.GITHUB_TOKEN?.trim();
+	if (envToken) {
+		tokenCache = { token: envToken, at: now };
+		return envToken;
+	}
+
+	// Fallback (e.g. `npm run dev`): read the local gh session directly.
 	try {
 		const token = execFileSync(resolveGh(), ['auth', 'token'], {
 			encoding: 'utf-8',
@@ -35,11 +45,6 @@ function readGhToken(): string | null {
 		}
 	} catch {
 		/* gh missing or not logged in */
-	}
-	const envToken = process.env.GITHUB_TOKEN?.trim();
-	if (envToken) {
-		tokenCache = { token: envToken, at: now };
-		return envToken;
 	}
 	return null;
 }

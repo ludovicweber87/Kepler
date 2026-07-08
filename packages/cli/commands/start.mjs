@@ -1,4 +1,5 @@
 import { join } from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { ensureDirs, resolveRepoDir, DB_PATH, ENV_FILE } from '../core/paths.mjs';
 import { parseEnvFile } from '../core/env.mjs';
 import { isBuilt, build } from '../core/build.mjs';
@@ -6,6 +7,23 @@ import { AGENT_PORT, findFreePort, writePorts, readPorts } from '../core/ports.m
 import { spawnDetached, readPid, isAlive, CORE_SERVICES } from '../core/process.mjs';
 import { launchDesktop } from '../core/desktop.mjs';
 import { runStatus } from './status.mjs';
+
+/**
+ * Resolve the GitHub token via the local gh CLI. Run from the CLI (which has a
+ * reliable gh/keychain session) and injected into the services, so the detached
+ * server never has to call gh itself.
+ */
+function ghToken() {
+	for (const gh of ['/opt/homebrew/bin/gh', '/usr/local/bin/gh', '/usr/bin/gh', 'gh']) {
+		try {
+			const t = execFileSync(gh, ['auth', 'token'], { encoding: 'utf-8', timeout: 5000 }).trim();
+			if (t) return t;
+		} catch {
+			/* try next */
+		}
+	}
+	return null;
+}
 
 async function waitFor(url, label, timeoutMs = 30000) {
 	const deadline = Date.now() + timeoutMs;
@@ -52,6 +70,11 @@ export async function runStart(opts = {}) {
 		.filter(Boolean)
 		.join(':');
 
+	const token = ghToken();
+	if (!token) {
+		console.warn('⚠ Could not read a GitHub token from gh — run `gh auth login`.');
+	}
+
 	const env = {
 		...process.env,
 		...parseEnvFile(ENV_FILE),
@@ -59,6 +82,8 @@ export async function runStart(opts = {}) {
 		DEVORA_DB_PATH: DB_PATH,
 		DEVORA_AGENT_PORT: String(agent),
 		NEXT_PUBLIC_AGENT_URL: `http://localhost:${agent}`,
+		// Injected so the detached server needn't call gh at runtime.
+		...(token ? { GITHUB_TOKEN: token } : {}),
 	};
 
 	console.log(`Starting agent on :${agent} ...`);
