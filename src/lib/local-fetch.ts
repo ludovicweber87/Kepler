@@ -24,6 +24,16 @@ export function getAgentWsUrl(): string {
 	return AGENT_BASE_URL.replace(/^http/, 'ws');
 }
 
+/** Thrown when the devora-agent is unreachable (offline / wrong port / CORS). */
+export class AgentOfflineError extends Error {
+	constructor(public path: string) {
+		super(
+			`Serveur agent injoignable sur ${AGENT_BASE_URL}. Lance \`npm run dev\` pour le démarrer.`,
+		);
+		this.name = 'AgentOfflineError';
+	}
+}
+
 export async function localFetch(path: string, init?: RequestInit): Promise<Response> {
 	const headers = new Headers(init?.headers);
 	if (_token) {
@@ -35,8 +45,8 @@ export async function localFetch(path: string, init?: RequestInit): Promise<Resp
 			...init,
 			headers,
 		});
-	} catch (err) {
-		// In development, fallback to Next.js API routes if agent is offline
+	} catch {
+		// Agent unreachable. In dev, fall back only to Next.js routes that still exist.
 		if (process.env.NODE_ENV === 'development') {
 			const fallbackPath = mapToApiFallback(path);
 			if (fallbackPath) {
@@ -44,25 +54,18 @@ export async function localFetch(path: string, init?: RequestInit): Promise<Resp
 				return apiFetch(fallbackPath, init);
 			}
 		}
-		throw err;
+		// No valid fallback → surface a clear, typed error instead of a cryptic
+		// network failure (or an HTML 404 that later crashes res.json()).
+		throw new AgentOfflineError(path);
 	}
 }
 
 /**
  * Map agent paths to their Next.js API equivalents for dev fallback.
+ * Only /agent-sessions/* still has a Next.js route — git, sessions, chat,
+ * agent-builder and filesystem all migrated to the agent and have no fallback.
  */
 function mapToApiFallback(agentPath: string): string | null {
-	// /git/* → /api/git/*
-	if (agentPath.startsWith('/git/')) return `/api${agentPath}`;
-	// /sessions → /api/sessions
-	if (agentPath === '/sessions') return '/api/sessions';
-	// /agent-sessions/* → /api/agent-sessions/*
 	if (agentPath.startsWith('/agent-sessions/')) return `/api${agentPath}`;
-	// /chat → /api/chat
-	if (agentPath === '/chat') return '/api/chat';
-	// /agent-builder → /api/agent-builder
-	if (agentPath === '/agent-builder') return '/api/agent-builder';
-	// /filesystem/* → /api/filesystem/*
-	if (agentPath.startsWith('/filesystem/')) return `/api${agentPath}`;
 	return null;
 }

@@ -4,6 +4,16 @@ import type { WorktreeInfo } from '@/types';
 
 export type { WorktreeInfo };
 
+/** Reads an error message from a failed response without crashing on non-JSON bodies. */
+async function readError(res: Response, fallback: string): Promise<string> {
+	try {
+		const data = await res.json();
+		return data?.error || fallback;
+	} catch {
+		return fallback;
+	}
+}
+
 export function useWorktrees(localPath: string | undefined) {
 	const queryClient = useQueryClient();
 
@@ -29,8 +39,7 @@ export function useWorktrees(localPath: string | undefined) {
 				body: JSON.stringify({ cwd: localPath, branch }),
 			});
 			if (!res.ok) {
-				const data = await res.json();
-				throw new Error(data.error || 'Failed to create worktree');
+				throw new Error(await readError(res, 'Failed to create worktree'));
 			}
 			return (await res.json()) as { worktreePath: string; branch: string };
 		},
@@ -47,8 +56,7 @@ export function useWorktrees(localPath: string | undefined) {
 				body: JSON.stringify({ cwd: localPath, worktreePath, deleteBranch }),
 			});
 			if (!res.ok) {
-				const data = await res.json();
-				throw new Error(data.error || 'Failed to delete worktree');
+				throw new Error(await readError(res, 'Failed to delete worktree'));
 			}
 		},
 		onMutate: async ({ worktreePath }) => {
