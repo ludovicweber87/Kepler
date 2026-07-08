@@ -15,7 +15,10 @@
 		"todos": "Tasks",
 		"settings": "Settings",
 		"signOut": "Sign out",
-		"launchAgent": "Launch Agent"
+		"launchAgent": "Launch Agent",
+		"workers": "Workers",
+		"projects": "Projects",
+		"noWorktrees": "No worktrees"
 	},
 	"landing": {
 		"nav": {
@@ -101,7 +104,8 @@
 		"creating": "Creating...",
 		"created": "Created",
 		"branchCreated": "Branch {branchName} created",
-		"moveTo": "Move to"
+		"moveTo": "Move to",
+		"updated": "Updated {time}"
 	},
 	"todos": {
 		"title": "Tasks",
@@ -112,7 +116,9 @@
 		"taskDescription": "What needs to be done for this task?",
 		"inProgress": "In progress",
 		"noTasks": "No tasks",
-		"done": "Done"
+		"done": "Done",
+		"allRepos": "All repos",
+		"suggestions": "Suggestions"
 	},
 	"prs": {
 		"title": "Pull Requests",
@@ -173,6 +179,7 @@
 		"close": "Close",
 		"confirm": "Confirm",
 		"search": "Search",
+		"refresh": "Refresh",
 		"noResults": "No results",
 		"language": "Language",
 		"back": "Back",
@@ -198,7 +205,8 @@
 		"branchName": "Branch name",
 		"branchDesc": "An isolated worktree will be created in .worktrees/ for this session.",
 		"launch": "Launch",
-		"creating": "Creating..."
+		"creating": "Creating...",
+		"issueUrl": "GitHub issue URL for context (optional)"
 	},
 	"agentActivity": {
 		"reportTitle": "Agent report",
@@ -262,5 +270,19 @@
 		"editComment": "Edit comment",
 		"deleteComment": "Delete comment",
 		"deleteCommentConfirm": "This comment will be permanently deleted from the GitHub issue."
+	},
+	"workers": {
+		"title": "Workers",
+		"allProjects": "All",
+		"inProgress": "In progress",
+		"inactive": "Inactive",
+		"none": "No workers",
+		"kpiActive": "active",
+		"kpiQuestions": "questions",
+		"kpiCompleted": "completed",
+		"deleteTitle": "Delete {branch}",
+		"deleteWorktreeOnly": "Worktree only",
+		"deleteWorktreeAndBranch": "Worktree + branch",
+		"history": "History"
 	}
 }

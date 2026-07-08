@@ -20,13 +20,20 @@ import MergeTypeRoundedIcon from '@mui/icons-material/MergeTypeRounded';
 import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
 import ChecklistRoundedIcon from '@mui/icons-material/ChecklistRounded';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
+import EngineeringRoundedIcon from '@mui/icons-material/EngineeringRounded';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
+import Collapse from '@mui/material/Collapse';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
 import Image from 'next/image';
 import { useSession, signOut } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import { usePendingTodoCount } from '@/hooks/usePendingTodoCount';
+import { useActiveSessions } from '@/hooks/useActiveSessions';
+import { useAgentViews } from '@/hooks/useAgentViews';
+import { useAllWorktrees } from '@/hooks/useAllWorktrees';
 import LocaleSwitcher from '@/components/LocaleSwitcher';
 import AgentTerminalModal from '@/components/agents/AgentTerminalModal';
 
@@ -38,12 +45,25 @@ export default function Sidebar() {
 	const { data: session } = useSession();
 	const t = useTranslations('sidebar');
 	const pendingCount = usePendingTodoCount();
-	const [launchOpen, setLaunchOpen] = useState(false);
+	const { data: activeSessions = [] } = useActiveSessions();
+	const { views } = useAgentViews();
+	const { byPath } = useAllWorktrees(views.map((v) => v.path));
+	const [expandedProject, setExpandedProject] = useState<string | null>(null);
+	const [modalConfig, setModalConfig] = useState<{
+		projectPath?: string;
+		existingSessionId?: string;
+		existingWorktree?: { branch: string; worktreePath: string };
+	} | null>(null);
 	const mainItems = [
 		{ label: t('dashboard'), href: '/dashboard', icon: <DashboardRoundedIcon /> },
 		{ label: t('issues'), href: '/issues', icon: <BugReportRoundedIcon /> },
 		{ label: t('prs'), href: '/prs', icon: <MergeTypeRoundedIcon /> },
-		{ label: t('worktrees'), href: '/workspace', icon: <AccountTreeRoundedIcon /> },
+		{
+			label: t('workers'),
+			href: '/workers',
+			icon: <EngineeringRoundedIcon />,
+			badge: activeSessions.length,
+		},
 		{ label: t('todos'), href: '/todos', icon: <ChecklistRoundedIcon />, badge: pendingCount },
 	];
 
@@ -82,7 +102,7 @@ export default function Sidebar() {
 							variant="contained"
 							fullWidth
 							startIcon={<RocketLaunchRoundedIcon sx={{ fontSize: 18 }} />}
-							onClick={() => setLaunchOpen(true)}
+							onClick={() => setModalConfig({})}
 							sx={{
 								bgcolor: 'primary.main',
 								textTransform: 'none',
@@ -171,7 +191,167 @@ export default function Sidebar() {
 						})}
 					</List>
 
-					<Box sx={{ flex: 1 }} />
+					{/* PROJETS — each configured repo, with active worktrees (F3) */}
+					<Box sx={{ flex: 1, overflowY: 'auto', px: 1.5, mt: 1 }}>
+						{views.length > 0 && (
+							<Typography
+								variant="caption"
+								sx={{
+									px: 1,
+									color: 'text.disabled',
+									fontWeight: 700,
+									textTransform: 'uppercase',
+									letterSpacing: 1,
+								}}
+							>
+								{t('projects')}
+							</Typography>
+						)}
+						{views.map((view) => {
+							const worktrees = byPath.get(view.path) ?? [];
+							const expanded = expandedProject === view.path;
+							return (
+								<Box key={view.path}>
+									<Box sx={{ display: 'flex', alignItems: 'center' }}>
+										<ListItemButton
+											onClick={() =>
+												setExpandedProject(expanded ? null : view.path)
+											}
+											sx={{
+												borderRadius: 1,
+												py: 0.6,
+												px: 1,
+												flex: 1,
+												minWidth: 0,
+											}}
+										>
+											<ExpandMoreRoundedIcon
+												sx={{
+													fontSize: 16,
+													mr: 0.5,
+													color: 'text.disabled',
+													transform: expanded ? 'none' : 'rotate(-90deg)',
+													transition: 'transform 0.15s',
+												}}
+											/>
+											<ListItemText
+												primary={view.label}
+												primaryTypographyProps={{
+													fontSize: '0.8rem',
+													fontWeight: 500,
+													noWrap: true,
+												}}
+											/>
+										</ListItemButton>
+										<Tooltip title={t('launchAgent')}>
+											<IconButton
+												size="small"
+												onClick={() =>
+													setModalConfig({ projectPath: view.path })
+												}
+												sx={{
+													mr: 0.5,
+													color: 'text.disabled',
+													'&:hover': { color: 'primary.main' },
+												}}
+											>
+												<AddRoundedIcon sx={{ fontSize: 16 }} />
+											</IconButton>
+										</Tooltip>
+									</Box>
+									<Collapse in={expanded} unmountOnExit>
+										<Box
+											sx={{
+												pl: 2.5,
+												pb: 0.5,
+												display: 'flex',
+												flexDirection: 'column',
+												gap: 0.25,
+											}}
+										>
+											{worktrees.length === 0 ? (
+												<Typography
+													variant="caption"
+													sx={{ color: 'text.disabled', px: 1, py: 0.4 }}
+												>
+													{t('noWorktrees')}
+												</Typography>
+											) : (
+												worktrees.map((wt) => {
+													const activeS = activeSessions.find(
+														(s) => s.cwd === wt.path,
+													);
+													return (
+														<Box
+															key={wt.path}
+															onClick={() =>
+																setModalConfig(
+																	activeS
+																		? {
+																				projectPath:
+																					view.path,
+																				existingSessionId:
+																					activeS.sessionId,
+																			}
+																		: {
+																				projectPath:
+																					view.path,
+																				existingWorktree: {
+																					branch: wt.branch,
+																					worktreePath:
+																						wt.path,
+																				},
+																			},
+																)
+															}
+															sx={{
+																display: 'flex',
+																alignItems: 'center',
+																gap: 0.75,
+																px: 1,
+																py: 0.4,
+																borderRadius: 1,
+																cursor: 'pointer',
+																'&:hover': {
+																	bgcolor: alpha(
+																		theme.palette.primary.main,
+																		0.1,
+																	),
+																},
+															}}
+														>
+															<AccountTreeRoundedIcon
+																sx={{
+																	fontSize: 13,
+																	color: activeS
+																		? 'success.main'
+																		: 'text.disabled',
+																}}
+															/>
+															<Typography
+																variant="caption"
+																sx={{
+																	flex: 1,
+																	overflow: 'hidden',
+																	textOverflow: 'ellipsis',
+																	whiteSpace: 'nowrap',
+																	color: activeS
+																		? 'text.primary'
+																		: 'text.secondary',
+																}}
+															>
+																{wt.branch}
+															</Typography>
+														</Box>
+													);
+												})
+											)}
+										</Box>
+									</Collapse>
+								</Box>
+							);
+						})}
+					</Box>
 
 					<List sx={{ px: 1.5, pb: 1 }}>
 						<LocaleSwitcher />
@@ -271,7 +451,13 @@ export default function Sidebar() {
 				</Box>
 			</Drawer>
 
-			<AgentTerminalModal open={launchOpen} onClose={() => setLaunchOpen(false)} />
+			<AgentTerminalModal
+				open={!!modalConfig}
+				onClose={() => setModalConfig(null)}
+				projectPath={modalConfig?.projectPath}
+				existingSessionId={modalConfig?.existingSessionId}
+				existingWorktree={modalConfig?.existingWorktree}
+			/>
 		</>
 	);
 }

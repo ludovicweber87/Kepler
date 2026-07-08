@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-fetch';
 import type { ProjectV2Config, ProjectV2View, ViewRepoMapping } from '@/types';
@@ -181,36 +181,6 @@ export function useProjectConfig() {
 		return ordered;
 	})();
 
-	// Background sync: re-fetch Project V2 data from GitHub for all configs
-	const syncingRef = useRef(false);
-	const syncViews = useCallback(async () => {
-		if (configs.length === 0 || syncingRef.current) return;
-		syncingRef.current = true;
-		try {
-			for (const c of configs) {
-				const res = await apiFetch(
-					`/api/github/projects?org=${c.org}&projectNumber=${c.projectNumber}&ownerType=${c.ownerType ?? 'organization'}`,
-				);
-				if (!res.ok) continue;
-				const data = await res.json();
-				const newMappings: ViewRepoMapping[] = data.viewRepoMappings ?? [];
-				const newViews: ProjectV2View[] = data.views ?? [];
-				const newStatusColumns: string[] = data.statusColumns ?? c.statusColumns;
-
-				saveMutation.mutate({
-					...c,
-					viewRepoMappings: newMappings,
-					views: newViews,
-					statusColumns: newStatusColumns,
-				});
-			}
-		} catch {
-			// Sync failed silently — stale data is still usable
-		} finally {
-			syncingRef.current = false;
-		}
-	}, [configs, saveMutation]);
-
 	/** Find the config that owns a repo (for status mutations) */
 	const getConfigForRepo = useCallback(
 		(repoFullName: string): ProjectV2Config | undefined => {
@@ -233,7 +203,6 @@ export function useProjectConfig() {
 		reorderViews,
 		getViewRepos,
 		selectedViewMappings,
-		syncViews,
 		getConfigForRepo,
 	};
 }

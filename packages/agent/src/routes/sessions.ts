@@ -1,17 +1,11 @@
 import { IncomingMessage, ServerResponse } from 'node:http';
 import { execSync } from 'node:child_process';
-import { createClient } from '@supabase/supabase-js';
+import { randomUUID } from 'node:crypto';
 import { readBody, sendJson, sendError, findTmux, findClaude } from '../helpers.js';
 import { getActiveSessions } from '../terminal.js';
+import { getDb } from '../db.js';
 
 const TMUX = findTmux();
-
-function createSupabase() {
-	const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
-	const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-	if (!url || !key) return null;
-	return createClient(url, key);
-}
 
 // ── Active session types ──
 
@@ -80,17 +74,19 @@ export async function handleSessionRoutes(
 	// GET /sessions
 	if (path === '/sessions' && method === 'GET') {
 		try {
-			const supabase = createSupabase();
+			const db = getDb();
 			const metas = getActiveSessions();
 			const sessionIds = metas.map((m) => m.sessionId);
 
 			const dbMap = new Map<string, DbSession>();
-			if (supabase && sessionIds.length > 0) {
-				const { data } = await supabase
-					.from('agent_sessions')
-					.select('session_id, branch, agent_name')
-					.in('session_id', sessionIds);
-				for (const row of data ?? []) {
+			if (db && sessionIds.length > 0) {
+				const placeholders = sessionIds.map(() => '?').join(',');
+				const rows = db
+					.prepare(
+						`SELECT session_id, branch, agent_name FROM agent_sessions WHERE session_id IN (${placeholders})`,
+					)
+					.all(...sessionIds) as DbSession[];
+				for (const row of rows) {
 					dbMap.set(row.session_id, row);
 				}
 			}
@@ -124,14 +120,12 @@ export async function handleSessionRoutes(
 			});
 
 			// Persist branch snapshots
-			if (supabase) {
+			if (db && toBackfill.length > 0) {
+				const stmt = db.prepare(
+					'UPDATE agent_sessions SET branch = ? WHERE session_id = ? AND branch IS NULL',
+				);
 				for (const { sessionId, branch } of toBackfill) {
-					supabase
-						.from('agent_sessions')
-						.update({ branch })
-						.eq('session_id', sessionId)
-						.is('branch', null)
-						.then();
+					stmt.run(branch, sessionId);
 				}
 			}
 
@@ -160,15 +154,11 @@ export async function handleSessionRoutes(
 				// session may be dead
 			}
 
-			const supabase = createSupabase();
-			if (supabase) {
-				await supabase
-					.from('agent_sessions')
-					.update({
-						status: 'completed',
-						ended_at: new Date().toISOString(),
-					})
-					.eq('session_id', sessionId);
+			const db = getDb();
+			if (db) {
+				db.prepare(
+					'UPDATE agent_sessions SET status = ?, ended_at = ? WHERE session_id = ?',
+				).run('completed', new Date().toISOString(), sessionId);
 			}
 
 			sendJson(res, { ok: true });
@@ -187,26 +177,22 @@ export async function handleSessionRoutes(
 			const { paneContent } = await readBody<{ paneContent: string }>(req);
 			if (!paneContent) return sendJson(res, { error: 'paneContent required' }, 400);
 
-			const supabase = createSupabase();
-			if (!supabase) return sendError(res, 'Supabase not configured', 500);
+			const db = getDb();
+			if (!db) return sendError(res, 'Database not available', 500);
 
-			const { data: session } = await supabase
-				.from('agent_sessions')
-				.select(
-					'id, session_id, project_name, agent_name, issue_owner, issue_repo, issue_number, issue_title, user_id',
+			const session = db
+				.prepare(
+					'SELECT id, session_id, project_name, agent_name, issue_owner, issue_repo, issue_number, issue_title FROM agent_sessions WHERE session_id = ?',
 				)
-				.eq('session_id', sessionId)
-				.maybeSingle();
+				.get(sessionId) as { id: string } | undefined;
 
 			if (!session) return sendJson(res, { error: 'Session not found' }, 404);
 
-			const { data: existingSummary } = await supabase
-				.from('agent_activity_logs')
-				.select('id')
-				.eq('agent_session_id', session.id)
-				.eq('log_type', 'summary')
-				.limit(1)
-				.maybeSingle();
+			const existingSummary = db
+				.prepare(
+					"SELECT id FROM agent_activity_logs WHERE agent_session_id = ? AND log_type = 'summary' LIMIT 1",
+				)
+				.get(session.id);
 
 			if (existingSummary) return sendJson(res, { ok: true, skipped: true });
 
@@ -246,14 +232,9 @@ ${truncated}`;
 
 			if (!summary) return sendError(res, 'Empty summary');
 
-			const { error: logError } = await supabase.from('agent_activity_logs').insert({
-				agent_session_id: session.id,
-				content: summary,
-				log_type: 'summary',
-				user_id: session.user_id,
-			});
-
-			if (logError) return sendError(res, logError.message);
+			db.prepare(
+				'INSERT INTO agent_activity_logs (id, agent_session_id, content, log_type) VALUES (?, ?, ?, ?)',
+			).run(randomUUID(), session.id, summary, 'summary');
 
 			sendJson(res, { ok: true });
 		} catch (err) {

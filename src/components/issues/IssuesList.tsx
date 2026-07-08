@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Skeleton from '@mui/material/Skeleton';
@@ -12,17 +12,19 @@ import Tooltip from '@mui/material/Tooltip';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import ClearRoundedIcon from '@mui/icons-material/ClearRounded';
+import Dialog from '@mui/material/Dialog';
 import KanbanColumn from './KanbanColumn';
 import CreateBranchModal from './CreateBranchModal';
+import IssueDetail from '@/components/dashboard/IssueDetail';
 import DraggableTabs from '@/components/shared/DraggableTabs';
-import { useDashboard } from '@/hooks/useGitHub';
 import { useProjectConfig } from '@/hooks/useProjectConfig';
+import { useProjectBoards } from '@/hooks/useProjectBoards';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUpdateIssueStatus } from '@/hooks/useUpdateIssueStatus';
 import { completeIssueTodos } from '@/hooks/useTodos';
 import { useTranslations } from 'next-intl';
 import { useTheme } from '@mui/material/styles';
-import { GitHubIssue, ViewIssueRef } from '@/types';
+import { GitHubIssue } from '@/types';
 
 const COLUMN_WIDTH = 300;
 
@@ -42,37 +44,54 @@ function buildColumns(issues: GitHubIssue[], statusColumns: string[]): [string, 
 export default function IssuesList() {
 	const theme = useTheme();
 	const t = useTranslations('issues');
-	const { configs, selectedViewMappings, reorderViews, syncViews, getConfigForRepo } =
-		useProjectConfig();
+	const {
+		configs,
+		configsLoading,
+		selectedViewMappings,
+		reorderViews,
+		saveConfig,
+		getConfigForRepo,
+	} = useProjectConfig();
 
-	// Auto-sync Project V2 data on mount to pick up new issues
-	const hasSynced = useRef(false);
-	useEffect(() => {
-		if (configs.length > 0 && !hasSynced.current) {
-			hasSynced.current = true;
-			syncViews();
+	// Only fetch boards for projects that actually contribute selected views to the board
+	const boardConfigs = configs.filter((c) => c.selectedViews.length > 0);
+
+	// Board data (SQLite cache-backed): issues per view + raw response per config + last fetch time
+	const { issuesByView, perConfig, error, isLoading, refresh, fetchedAt } =
+		useProjectBoards(boardConfigs);
+	const [refreshing, setRefreshing] = useState(false);
+
+	const handleRefresh = useCallback(async () => {
+		setRefreshing(true);
+		try {
+			await refresh();
+		} finally {
+			setRefreshing(false);
 		}
-	}, [configs, syncViews]);
+	}, [refresh]);
 
-	const allIssueRefs = useMemo(() => {
-		if (selectedViewMappings.length === 0) return undefined;
-		const hasExplicitIssues = selectedViewMappings.some((m) => m.issues?.length > 0);
-		if (!hasExplicitIssues) return undefined;
-		const seen = new Set<string>();
-		const refs: ViewIssueRef[] = [];
-		for (const m of selectedViewMappings) {
-			for (const issue of m.issues ?? []) {
-				const key = `${issue.repo}#${issue.number}`;
-				if (!seen.has(key)) {
-					seen.add(key);
-					refs.push(issue);
-				}
+	// Persist fresh Project V2 metadata (views / mappings / status columns) into the stored config,
+	// reusing the board fetch — no separate sync request. The diff guard avoids a save loop.
+	useEffect(() => {
+		for (const { config, data } of perConfig) {
+			const nextMappings = data.viewRepoMappings ?? config.viewRepoMappings;
+			const nextViews = data.views ?? config.views;
+			const nextColumns = data.statusColumns ?? config.statusColumns;
+			const changed =
+				JSON.stringify(config.viewRepoMappings) !== JSON.stringify(nextMappings) ||
+				JSON.stringify(config.views) !== JSON.stringify(nextViews) ||
+				JSON.stringify(config.statusColumns) !== JSON.stringify(nextColumns);
+			if (changed) {
+				saveConfig({
+					...config,
+					viewRepoMappings: nextMappings,
+					views: nextViews,
+					statusColumns: nextColumns,
+				});
 			}
 		}
-		return refs.length > 0 ? refs : undefined;
-	}, [selectedViewMappings]);
+	}, [perConfig, saveConfig]);
 
-	const { data, error, isLoading, refetch, isFetching } = useDashboard(allIssueRefs);
 	const [activeTab, setActiveTab] = useState(0);
 	const [search, setSearch] = useState('');
 	const mutation = useUpdateIssueStatus();
@@ -81,39 +100,27 @@ export default function IssuesList() {
 	// Branch modal state
 	const [branchModalIssue, setBranchModalIssue] = useState<GitHubIssue | null>(null);
 
+	// Issue detail modal state
+	const [detailIssue, setDetailIssue] = useState<{
+		owner: string;
+		repo: string;
+		number: string;
+	} | null>(null);
+
+	const openDetail = useCallback((issue: GitHubIssue) => {
+		const [owner, repo] = (issue.repo_full_name ?? '').split('/');
+		if (owner && repo) setDetailIssue({ owner, repo, number: String(issue.number) });
+	}, []);
+
 	const hasViews = selectedViewMappings.length > 0;
-
-	const isProjectMode = !!allIssueRefs;
-
-	const allIssues = useMemo(() => {
-		if (!data) return [];
-		return data.issues.filter(
-			(i) => i.repo_full_name && i.assignees?.some((a) => a.login === data.user),
-		);
-	}, [data]);
 
 	const tabs = hasViews ? selectedViewMappings.map((m) => m.viewName) : [];
 	const safeTab = activeTab >= tabs.length ? 0 : activeTab;
 
 	const filteredIssues = useMemo(() => {
-		if (!hasViews) return allIssues;
-		const mapping = selectedViewMappings[safeTab];
-		if (!mapping) return allIssues;
-		if (mapping.issues?.length) {
-			const issueKeys = new Set(
-				mapping.issues.map((i) => `${i.repo.toLowerCase()}#${i.number}`),
-			);
-			return allIssues.filter(
-				(i) =>
-					i.repo_full_name &&
-					issueKeys.has(`${i.repo_full_name.toLowerCase()}#${i.number}`),
-			);
-		}
-		const viewRepos = new Set((mapping.repos ?? []).map((r) => r.toLowerCase()));
-		return allIssues.filter(
-			(i) => i.repo_full_name && viewRepos.has(i.repo_full_name.toLowerCase()),
-		);
-	}, [allIssues, selectedViewMappings, safeTab, hasViews]);
+		const viewName = selectedViewMappings[safeTab]?.viewName;
+		return viewName ? (issuesByView.get(viewName) ?? []) : [];
+	}, [issuesByView, selectedViewMappings, safeTab]);
 
 	const searchedIssues = useMemo(() => {
 		const q = search.trim().toLowerCase();
@@ -172,7 +179,7 @@ export default function IssuesList() {
 		[configs, getConfigForRepo, mutation, todoQc],
 	);
 
-	if (isLoading) {
+	if (isLoading || configsLoading) {
 		return (
 			<Box>
 				<Skeleton
@@ -212,8 +219,6 @@ export default function IssuesList() {
 			</Alert>
 		);
 	}
-
-	if (!data) return null;
 
 	return (
 		<Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
@@ -278,16 +283,26 @@ export default function IssuesList() {
 							},
 						}}
 					/>
+					{fetchedAt && (
+						<Typography
+							variant="caption"
+							sx={{ color: 'text.disabled', whiteSpace: 'nowrap' }}
+						>
+							{t('updated', {
+								time: new Date(fetchedAt).toLocaleTimeString(undefined, {
+									hour: '2-digit',
+									minute: '2-digit',
+								}),
+							})}
+						</Typography>
+					)}
 					<Tooltip title={t('refresh')}>
 						<IconButton
-							onClick={() => {
-								syncViews();
-								refetch();
-							}}
-							disabled={isFetching}
+							onClick={handleRefresh}
+							disabled={refreshing}
 							sx={{
 								color: 'text.secondary',
-								animation: isFetching ? 'spin 1s linear infinite' : 'none',
+								animation: refreshing ? 'spin 1s linear infinite' : 'none',
 							}}
 						>
 							<RefreshRoundedIcon />
@@ -303,21 +318,7 @@ export default function IssuesList() {
 						activeTab={safeTab}
 						onTabChange={(idx) => setActiveTab(idx)}
 						onReorder={reorderViews}
-						counts={tabs.map((_, idx) => {
-							const m = selectedViewMappings[idx];
-							if (m?.issues?.length) {
-								const keys = new Set(m.issues.map((i) => `${i.repo}#${i.number}`));
-								return allIssues.filter(
-									(i) =>
-										i.repo_full_name &&
-										keys.has(`${i.repo_full_name}#${i.number}`),
-								).length;
-							}
-							const viewRepos = new Set(m?.repos ?? []);
-							return allIssues.filter(
-								(i) => i.repo_full_name && viewRepos.has(i.repo_full_name),
-							).length;
-						})}
+						counts={tabs.map((name) => issuesByView.get(name)?.length ?? 0)}
 					/>
 				</Box>
 			)}
@@ -350,6 +351,7 @@ export default function IssuesList() {
 							issues={issues}
 							allColumns={activeStatusColumns}
 							onStatusChange={handleStatusChange}
+							onCardClick={openDetail}
 						/>
 					))}
 				</Box>
@@ -362,6 +364,25 @@ export default function IssuesList() {
 					issue={branchModalIssue}
 				/>
 			)}
+
+			<Dialog
+				open={!!detailIssue}
+				onClose={() => setDetailIssue(null)}
+				maxWidth="md"
+				fullWidth
+				PaperProps={{ sx: { borderRadius: 1 } }}
+			>
+				{detailIssue && (
+					<Box sx={{ p: 3 }}>
+						<IssueDetail
+							owner={detailIssue.owner}
+							repo={detailIssue.repo}
+							number={detailIssue.number}
+							onClose={() => setDetailIssue(null)}
+						/>
+					</Box>
+				)}
+			</Dialog>
 		</Box>
 	);
 }

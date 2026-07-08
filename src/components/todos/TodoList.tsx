@@ -1,122 +1,85 @@
 'use client';
 
-import { useState, useRef, useMemo } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
-import Tooltip from '@mui/material/Tooltip';
 import Checkbox from '@mui/material/Checkbox';
 import Chip from '@mui/material/Chip';
+import Collapse from '@mui/material/Collapse';
 import CircularProgress from '@mui/material/CircularProgress';
-import Button from '@mui/material/Button';
-import Accordion from '@mui/material/Accordion';
-import AccordionSummary from '@mui/material/AccordionSummary';
-import AccordionDetails from '@mui/material/AccordionDetails';
+import Select, { type SelectChangeEvent } from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
 import { alpha, useTheme } from '@mui/material/styles';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
 import ChecklistRoundedIcon from '@mui/icons-material/ChecklistRounded';
-import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
-import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
-import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
-import DraggableTabs from '@/components/shared/DraggableTabs';
-import { useAgentViews } from '@/hooks/useAgentViews';
+import NotesRoundedIcon from '@mui/icons-material/NotesRounded';
 import { useTodos, type Todo } from '@/hooks/useTodos';
-import { useTranslations } from 'next-intl';
+import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useDashboard } from '@/hooks/useGitHub';
+import type { GitHubIssue } from '@/types';
+import { useTranslations } from 'next-intl';
 
-function TodoAccordion({
+function TodoRow({
 	todo,
-	done,
 	onToggle,
 	onUpdateTitle,
 	onUpdateDescription,
 	onDelete,
 }: {
 	todo: Todo;
-	done?: boolean;
 	onToggle: () => void;
 	onUpdateTitle: (title: string) => void;
 	onUpdateDescription: (desc: string) => void;
 	onDelete: () => void;
 }) {
-	const [editingTitle, setEditingTitle] = useState(false);
+	const theme = useTheme();
+	const t = useTranslations('todos');
+	const [editing, setEditing] = useState(false);
+	const [expanded, setExpanded] = useState(false);
 	const [titleDraft, setTitleDraft] = useState(todo.title);
 	const [descDraft, setDescDraft] = useState(todo.description);
-	const [descFocused, setDescFocused] = useState(false);
+
+	const done = todo.done;
+	const repoLabel = todo.repo_full_name ? todo.repo_full_name.split('/')[1] : null;
 
 	const commitTitle = () => {
-		if (titleDraft.trim() && titleDraft.trim() !== todo.title) {
-			onUpdateTitle(titleDraft.trim());
-		}
-		setEditingTitle(false);
+		const next = titleDraft.trim();
+		if (next && next !== todo.title) onUpdateTitle(next);
+		else setTitleDraft(todo.title);
+		setEditing(false);
 	};
 
 	const commitDesc = () => {
-		setDescFocused(false);
-		if (descDraft !== todo.description) {
-			onUpdateDescription(descDraft);
-		}
+		if (descDraft !== todo.description) onUpdateDescription(descDraft);
 	};
 
-	const dateStr = new Date(todo.created_at).toLocaleDateString('fr-FR', {
-		day: 'numeric',
-		month: 'short',
-		year: 'numeric',
-	});
-
 	return (
-		<Accordion
-			disableGutters
-			elevation={0}
+		<Box
 			sx={{
-				bgcolor: done ? 'transparent' : 'background.paper',
-				border: done ? 'none' : 1,
+				border: 1,
 				borderColor: 'divider',
-				borderRadius: '4px !important',
-				opacity: done ? 0.5 : 1,
-				transition: 'opacity 0.15s',
-				'&:before': { display: 'none' },
-				'&:hover': {
-					opacity: done ? 0.8 : 1,
-					'& .delete-btn': { opacity: 1 },
-				},
-				overflow: 'hidden',
+				borderRadius: 1,
+				bgcolor: done ? 'transparent' : 'background.paper',
+				opacity: done ? 0.55 : 1,
+				transition: 'opacity 0.15s, border-color 0.15s',
+				'&:hover': { '& .todo-actions': { opacity: 1 } },
 			}}
 		>
-			<AccordionSummary
-				expandIcon={
-					!done ? (
-						<ExpandMoreRoundedIcon
-							sx={{ color: 'text.disabled', fontSize: '1.1rem' }}
-						/>
-					) : undefined
-				}
-				sx={{
-					minHeight: 48,
-					px: 1,
-					'& .MuiAccordionSummary-content': {
-						alignItems: 'center',
-						gap: 0.5,
-						my: 0,
-					},
-				}}
-			>
+			<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1, py: 0.5 }}>
 				<Checkbox
-					checked={!!done}
-					onChange={(e) => {
-						e.stopPropagation();
-						onToggle();
-					}}
-					onClick={(e) => e.stopPropagation()}
+					checked={done}
+					onChange={onToggle}
 					size="small"
-					sx={(theme) => ({
+					sx={{
 						color: alpha(theme.palette.warning.main, 0.4),
 						'&.Mui-checked': { color: theme.palette.warning.main },
-					})}
+					}}
 				/>
-				{editingTitle && !done ? (
+
+				{editing && !done ? (
 					<TextField
 						autoFocus
 						fullWidth
@@ -124,158 +87,171 @@ function TodoAccordion({
 						value={titleDraft}
 						onChange={(e) => setTitleDraft(e.target.value)}
 						onBlur={commitTitle}
-						onClick={(e) => e.stopPropagation()}
 						onKeyDown={(e) => {
-							e.stopPropagation();
 							if (e.key === 'Enter') commitTitle();
 							if (e.key === 'Escape') {
 								setTitleDraft(todo.title);
-								setEditingTitle(false);
+								setEditing(false);
 							}
 						}}
-						sx={{
-							'& .MuiOutlinedInput-root': {
-								bgcolor: 'transparent',
-								'& fieldset': { border: 'none' },
-							},
-						}}
+						variant="standard"
+						slotProps={{ input: { disableUnderline: true } }}
 					/>
 				) : (
 					<Typography
 						variant="body2"
+						onClick={() => !done && setEditing(true)}
 						sx={{
 							flex: 1,
-							cursor: done ? 'default' : 'pointer',
 							py: 0.5,
+							cursor: done ? 'default' : 'text',
 							textDecoration: done ? 'line-through' : 'none',
 							color: done ? 'text.disabled' : 'text.primary',
-						}}
-						onDoubleClick={(e) => {
-							if (done) return;
-							e.stopPropagation();
-							setEditingTitle(true);
 						}}
 					>
 						{todo.title}
 					</Typography>
 				)}
-				<Typography
-					variant="caption"
-					sx={{
-						color: 'text.disabled',
-						whiteSpace: 'nowrap',
-						fontSize: '0.7rem',
-						mr: 0.5,
-					}}
+
+				{repoLabel && (
+					<Chip
+						label={repoLabel}
+						size="small"
+						sx={{
+							height: 18,
+							fontSize: '0.65rem',
+							bgcolor: alpha(theme.palette.primary.main, 0.1),
+							color: 'primary.light',
+						}}
+					/>
+				)}
+
+				<Box
+					className="todo-actions"
+					sx={{ display: 'flex', opacity: 0, transition: 'opacity 0.15s' }}
 				>
-					{dateStr}
-				</Typography>
-				<IconButton
-					className="delete-btn"
-					size="small"
-					onClick={(e) => {
-						e.stopPropagation();
-						onDelete();
-					}}
-					sx={{
-						opacity: 0,
-						transition: 'opacity 0.15s',
-						color: 'text.disabled',
-						'&:hover': { color: 'error.main' },
-					}}
-				>
-					<DeleteRoundedIcon fontSize="small" />
-				</IconButton>
-			</AccordionSummary>
-			{!done && (
-				<AccordionDetails sx={{ px: 2, pt: 0, pb: 2 }}>
+					{!done && (
+						<IconButton
+							size="small"
+							onClick={() => setExpanded((v) => !v)}
+							sx={{
+								color: todo.description
+									? theme.palette.warning.main
+									: 'text.disabled',
+								opacity: todo.description ? 1 : undefined,
+							}}
+						>
+							<NotesRoundedIcon fontSize="small" />
+						</IconButton>
+					)}
+					<IconButton
+						size="small"
+						onClick={onDelete}
+						sx={{ color: 'text.disabled', '&:hover': { color: 'error.main' } }}
+					>
+						<DeleteRoundedIcon fontSize="small" />
+					</IconButton>
+				</Box>
+			</Box>
+
+			<Collapse in={expanded && !done} unmountOnExit>
+				<Box sx={{ px: 1.5, pb: 1.5 }}>
 					<TextField
 						fullWidth
 						multiline
 						minRows={2}
 						maxRows={8}
 						size="small"
-						placeholder=""
-						value={descFocused ? descDraft : todo.description}
+						placeholder={t('taskDescription')}
+						value={descDraft}
 						onChange={(e) => setDescDraft(e.target.value)}
-						onFocus={() => {
-							setDescDraft(todo.description);
-							setDescFocused(true);
-						}}
 						onBlur={commitDesc}
-						sx={(theme) => ({
+						sx={{
 							'& .MuiOutlinedInput-root': {
 								bgcolor: alpha(theme.palette.warning.main, 0.04),
 								fontSize: '0.85rem',
-								borderRadius: 1,
-								'& fieldset': { borderColor: alpha(theme.palette.warning.main, 0.15) },
-								'&:hover fieldset': { borderColor: alpha(theme.palette.warning.main, 0.3) },
-								'&.Mui-focused fieldset': { borderColor: theme.palette.warning.main },
 							},
-						})}
+						}}
 					/>
-				</AccordionDetails>
-			)}
-		</Accordion>
+				</Box>
+			</Collapse>
+		</Box>
 	);
 }
 
 export default function TodoList() {
 	const theme = useTheme();
 	const t = useTranslations('todos');
-	const { views, activeIndex, activeView, setActiveIndex, addView, reorderViews } =
-		useAgentViews();
-
 	const { todos, isLoading, addTodo, toggleTodo, updateTodo, updateDescription, deleteTodo } =
-		useTodos(activeView?.repoFullName ?? null);
-
+		useTodos();
+	const { repoPaths } = useRepoPaths();
 	const { data: dashboardData } = useDashboard();
 
-	const suggestions = useMemo(() => {
-		if (!dashboardData || !activeView) return [];
-		const repoName = activeView.repoFullName;
-		const todoTitles = new Set(todos.map((t) => t.title.toLowerCase()));
-
-		return dashboardData.issues.filter((issue) => {
-			if (issue.repo_full_name !== repoName) return false;
-			if (issue.state !== 'open') return false;
-			const col = issue.project_columns?.[0]?.column;
-			if (!col || !col.toLowerCase().includes('progress')) return false;
-			const issueLabel = `#${issue.number} ${issue.title}`;
-			if (todoTitles.has(issueLabel.toLowerCase())) return false;
-			if (todoTitles.has(issue.title.toLowerCase())) return false;
-			return true;
-		});
-	}, [dashboardData, activeView, todos]);
-
+	const [repoFilter, setRepoFilter] = useState('');
 	const [newTitle, setNewTitle] = useState('');
 	const inputRef = useRef<HTMLInputElement>(null);
 
+	const repoOptions = useMemo(() => {
+		const set = new Set<string>();
+		for (const r of repoPaths) set.add(r.repo_full_name);
+		for (const td of todos) if (td.repo_full_name) set.add(td.repo_full_name);
+		return Array.from(set).sort();
+	}, [repoPaths, todos]);
+
+	const visible = repoFilter ? todos.filter((td) => td.repo_full_name === repoFilter) : todos;
+	const pending = visible.filter((td) => !td.done);
+	const done = visible.filter((td) => td.done);
+
+	// Suggestions: open issues assigned to me sitting in a Backlog/Todo column, not yet a task
+	const suggestions = useMemo(() => {
+		if (!dashboardData) return [];
+		const linked = new Set(
+			todos
+				.filter((td) => td.issue_number && td.issue_repo)
+				.map((td) => `${td.issue_repo!.toLowerCase()}#${td.issue_number}`),
+		);
+		const titles = new Set(todos.map((td) => td.title.toLowerCase()));
+		const out: { issue: GitHubIssue; column: string }[] = [];
+		for (const issue of dashboardData.issues) {
+			if (issue.state !== 'open' || !issue.repo_full_name) continue;
+			if (repoFilter && issue.repo_full_name !== repoFilter) continue;
+			// An issue can belong to several projects — match if ANY of its columns is Backlog/Todo
+			const match = (issue.project_columns ?? []).find((pc) => {
+				const c = pc.column.toLowerCase();
+				return c.includes('backlog') || c.includes('todo') || c.includes('to do');
+			});
+			if (!match) continue;
+			if (linked.has(`${issue.repo_full_name.toLowerCase()}#${issue.number}`)) continue;
+			if (titles.has(`#${issue.number} ${issue.title}`.toLowerCase())) continue;
+			out.push({ issue, column: match.column });
+		}
+		return out;
+	}, [dashboardData, todos, repoFilter]);
+
 	const handleAdd = () => {
-		if (!newTitle.trim()) return;
-		addTodo(newTitle.trim());
+		const title = newTitle.trim();
+		if (!title) return;
+		addTodo(title, { repo: repoFilter });
 		setNewTitle('');
 		inputRef.current?.focus();
 	};
 
-	const handleKeyDown = (e: React.KeyboardEvent) => {
-		if (e.key === 'Enter') {
-			e.preventDefault();
-			handleAdd();
-		}
-	};
-
-	const pending = todos.filter((t) => !t.done);
-	const done = todos.filter((t) => t.done);
-
-	if (views.length === 0) {
-		return (
-			<Box sx={{ p: 4, maxWidth: 800, mx: 'auto' }}>
+	return (
+		<Box sx={{ p: 4, maxWidth: 720, mx: 'auto' }}>
+			{/* Header + repo filter */}
+			<Box
+				sx={{
+					display: 'flex',
+					alignItems: 'center',
+					justifyContent: 'space-between',
+					mb: 3,
+					gap: 2,
+				}}
+			>
 				<Typography
 					variant="h4"
 					sx={{
 						fontWeight: 700,
-						mb: 4,
 						background: `linear-gradient(135deg, ${theme.palette.warning.main} 0%, ${theme.palette.primary.main} 100%)`,
 						WebkitBackgroundClip: 'text',
 						WebkitTextFillColor: 'transparent',
@@ -283,81 +259,26 @@ export default function TodoList() {
 				>
 					{t('title')}
 				</Typography>
-				<Box
-					sx={{
-						display: 'flex',
-						flexDirection: 'column',
-						alignItems: 'center',
-						justifyContent: 'center',
-						py: 12,
-						gap: 2,
-					}}
-				>
-					<FolderOpenRoundedIcon sx={{ fontSize: 64, color: 'text.disabled' }} />
-					<Typography variant="h6" color="text.secondary">
-						{t('noProjectSelected')}
-					</Typography>
-					<Typography variant="body2" color="text.disabled" sx={{ mb: 2 }}>
-						{t('addRepoFirst')}
-					</Typography>
-					<Button
-						variant="outlined"
-						startIcon={<AddRoundedIcon />}
-						onClick={() => addView()}
-						sx={{
-							borderColor: theme.palette.warning.main,
-							color: theme.palette.warning.main,
-							textTransform: 'none',
-							'&:hover': {
-								borderColor: theme.palette.warning.main,
-								bgcolor: alpha(theme.palette.warning.main, 0.08),
-							},
-						}}
+
+				{repoOptions.length > 0 && (
+					<Select
+						size="small"
+						value={repoFilter}
+						onChange={(e: SelectChangeEvent) => setRepoFilter(e.target.value)}
+						displayEmpty
+						sx={{ minWidth: 160, fontSize: '0.82rem', borderRadius: 1 }}
 					>
-						{t('addProject')}
-					</Button>
-				</Box>
+						<MenuItem value="">{t('allRepos')}</MenuItem>
+						{repoOptions.map((repo) => (
+							<MenuItem key={repo} value={repo} sx={{ fontSize: '0.82rem' }}>
+								{repo}
+							</MenuItem>
+						))}
+					</Select>
+				)}
 			</Box>
-		);
-	}
 
-	return (
-		<Box sx={{ p: 4, maxWidth: 800, mx: 'auto' }}>
-			{/* Header */}
-			<Typography
-				variant="h4"
-				sx={{
-					fontWeight: 700,
-					mb: 3,
-					background: `linear-gradient(135deg, ${theme.palette.warning.main} 0%, ${theme.palette.primary.main} 100%)`,
-					WebkitBackgroundClip: 'text',
-					WebkitTextFillColor: 'transparent',
-				}}
-			>
-				{t('title')}
-			</Typography>
-
-			{/* Tabs */}
-			<DraggableTabs
-				tabs={views.map((v) => v.label)}
-				activeTab={activeIndex}
-				onTabChange={setActiveIndex}
-				onReorder={reorderViews}
-				color={theme.palette.warning.main}
-				trailing={
-					<Tooltip title={t('addProject')}>
-						<IconButton
-							size="small"
-							onClick={() => addView()}
-							sx={{ color: 'text.disabled', '&:hover': { color: theme.palette.warning.main } }}
-						>
-							<AddRoundedIcon fontSize="small" />
-						</IconButton>
-					</Tooltip>
-				}
-			/>
-
-			{/* Add input */}
+			{/* Add bar */}
 			<Box
 				sx={{
 					display: 'flex',
@@ -367,7 +288,7 @@ export default function TodoList() {
 					borderRadius: 1,
 					border: 1,
 					borderColor: 'divider',
-					p: 1.5,
+					p: 1,
 				}}
 			>
 				<TextField
@@ -377,20 +298,24 @@ export default function TodoList() {
 					placeholder={t('whatToDo')}
 					value={newTitle}
 					onChange={(e) => setNewTitle(e.target.value)}
-					onKeyDown={handleKeyDown}
-					sx={{
-						'& .MuiOutlinedInput-root': {
-							bgcolor: 'transparent',
-							'& fieldset': { border: 'none' },
-						},
+					onKeyDown={(e) => {
+						if (e.key === 'Enter') {
+							e.preventDefault();
+							handleAdd();
+						}
 					}}
+					variant="standard"
+					slotProps={{ input: { disableUnderline: true } }}
+					sx={{ px: 1 }}
 				/>
 				<IconButton
 					onClick={handleAdd}
 					disabled={!newTitle.trim()}
 					sx={{
 						color: newTitle.trim() ? theme.palette.warning.main : 'text.disabled',
-						bgcolor: newTitle.trim() ? alpha(theme.palette.warning.main, 0.1) : 'transparent',
+						bgcolor: newTitle.trim()
+							? alpha(theme.palette.warning.main, 0.1)
+							: 'transparent',
 						'&:hover': { bgcolor: alpha(theme.palette.warning.main, 0.2) },
 					}}
 				>
@@ -398,7 +323,6 @@ export default function TodoList() {
 				</IconButton>
 			</Box>
 
-			{/* Suggestions */}
 			{suggestions.length > 0 && (
 				<Box sx={{ mb: 3 }}>
 					<Typography
@@ -409,55 +333,97 @@ export default function TodoList() {
 							textTransform: 'uppercase',
 							letterSpacing: 1,
 							mb: 1,
-							display: 'flex',
-							alignItems: 'center',
-							gap: 0.75,
+							display: 'block',
 						}}
 					>
-						<BugReportRoundedIcon sx={{ fontSize: 14 }} />
-						{t('inProgress')} — {suggestions.length}
+						{t('suggestions')} — {suggestions.length}
 					</Typography>
-					<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-						{suggestions.map((issue) => (
-							<Chip
+					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+						{suggestions.map(({ issue, column }) => (
+							<Box
 								key={issue.id}
-								label={`#${issue.number} ${issue.title}`}
-								size="small"
-								onClick={() => addTodo(`#${issue.number} ${issue.title}`)}
-								icon={<AddRoundedIcon sx={{ fontSize: '14px !important' }} />}
+								onClick={() =>
+									addTodo(`#${issue.number} ${issue.title}`, {
+										repo: issue.repo_full_name,
+										issueNumber: issue.number,
+										issueRepo: issue.repo_full_name,
+									})
+								}
 								sx={{
-									bgcolor: alpha(theme.palette.warning.main, 0.08),
-									color: 'text.secondary',
+									display: 'flex',
+									alignItems: 'center',
+									gap: 1,
+									p: 1.25,
+									borderRadius: 1,
 									border: 1,
-									borderColor: alpha(theme.palette.warning.main, 0.2),
+									borderColor: alpha(theme.palette.warning.main, 0.25),
+									bgcolor: alpha(theme.palette.warning.main, 0.05),
 									cursor: 'pointer',
-									maxWidth: 350,
 									transition: 'all 0.15s',
 									'&:hover': {
-										bgcolor: alpha(theme.palette.warning.main, 0.15),
-										color: theme.palette.warning.main,
-										borderColor: alpha(theme.palette.warning.main, 0.4),
-									},
-									'& .MuiChip-label': {
-										overflow: 'hidden',
-										textOverflow: 'ellipsis',
+										borderColor: theme.palette.warning.main,
+										bgcolor: alpha(theme.palette.warning.main, 0.12),
 									},
 								}}
-							/>
+							>
+								<Box sx={{ flex: 1, minWidth: 0 }}>
+									<Typography
+										variant="body2"
+										sx={{
+											fontWeight: 500,
+											overflow: 'hidden',
+											textOverflow: 'ellipsis',
+											whiteSpace: 'nowrap',
+										}}
+									>
+										{issue.title}
+									</Typography>
+									<Box
+										sx={{
+											display: 'flex',
+											alignItems: 'center',
+											gap: 0.75,
+											mt: 0.25,
+										}}
+									>
+										<Typography
+											variant="caption"
+											sx={{ color: 'text.disabled' }}
+										>
+											{issue.repo_full_name?.split('/')[1]} #{issue.number}
+										</Typography>
+										<Chip
+											label={column}
+											size="small"
+											sx={{
+												height: 18,
+												fontSize: '0.65rem',
+												bgcolor: alpha(theme.palette.warning.main, 0.15),
+												color: theme.palette.warning.main,
+											}}
+										/>
+									</Box>
+								</Box>
+								<AddRoundedIcon
+									sx={{
+										fontSize: 20,
+										color: theme.palette.warning.main,
+										flexShrink: 0,
+									}}
+								/>
+							</Box>
 						))}
 					</Box>
 				</Box>
 			)}
 
-			{/* Loading */}
 			{isLoading && (
 				<Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
 					<CircularProgress size={28} sx={{ color: theme.palette.warning.main }} />
 				</Box>
 			)}
 
-			{/* Empty state */}
-			{!isLoading && todos.length === 0 && (
+			{!isLoading && visible.length === 0 && (
 				<Box
 					sx={{
 						display: 'flex',
@@ -474,7 +440,6 @@ export default function TodoList() {
 				</Box>
 			)}
 
-			{/* Pending */}
 			{!isLoading && pending.length > 0 && (
 				<Box
 					sx={{
@@ -485,7 +450,7 @@ export default function TodoList() {
 					}}
 				>
 					{pending.map((todo) => (
-						<TodoAccordion
+						<TodoRow
 							key={todo.id}
 							todo={todo}
 							onToggle={() => toggleTodo(todo.id, true)}
@@ -497,7 +462,6 @@ export default function TodoList() {
 				</Box>
 			)}
 
-			{/* Done */}
 			{!isLoading && done.length > 0 && (
 				<Box>
 					<Typography
@@ -515,10 +479,9 @@ export default function TodoList() {
 					</Typography>
 					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
 						{done.map((todo) => (
-							<TodoAccordion
+							<TodoRow
 								key={todo.id}
 								todo={todo}
-								done
 								onToggle={() => toggleTodo(todo.id, false)}
 								onUpdateTitle={(title) => updateTodo(todo.id, title)}
 								onUpdateDescription={(desc) => updateDescription(todo.id, desc)}

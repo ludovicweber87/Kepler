@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
@@ -33,6 +32,7 @@ interface IssueCardProps {
 	currentColumn: string;
 	columns: string[];
 	onStatusChange?: (issue: GitHubIssue, newStatus: string) => void;
+	onOpen?: (issue: GitHubIssue) => void;
 }
 
 export default function IssueCard({
@@ -40,11 +40,10 @@ export default function IssueCard({
 	currentColumn,
 	columns,
 	onStatusChange,
+	onOpen,
 }: IssueCardProps) {
-	const router = useRouter();
 	const t = useTranslations('issues');
-	const [owner, repo] = (issue.repo_full_name ?? '').split('/');
-	const href = `/task/${owner}/${repo}/${issue.number}`;
+	const repo = (issue.repo_full_name ?? '').split('/')[1] ?? '';
 
 	const handleStatusChange = (event: SelectChangeEvent<string>) => {
 		event.stopPropagation();
@@ -56,7 +55,7 @@ export default function IssueCard({
 
 	return (
 		<Card
-			onClick={() => router.push(href)}
+			onClick={() => onOpen?.(issue)}
 			sx={{
 				cursor: 'pointer',
 				borderRadius: 1,

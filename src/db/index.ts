@@ -5,7 +5,7 @@ import { mkdirSync } from 'fs';
 import { join } from 'path';
 import * as schema from './schema';
 
-const DB_PATH = join(process.cwd(), 'data', 'devora.db');
+const DB_PATH = process.env.DEVORA_DB_PATH ?? join(process.cwd(), 'data', 'devora.db');
 
 // Ensure data directory exists
 mkdirSync(join(process.cwd(), 'data'), { recursive: true });

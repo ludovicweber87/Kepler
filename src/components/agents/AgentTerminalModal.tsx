@@ -44,6 +44,7 @@ import { useOverlayTerminal } from '@/hooks/useOverlayTerminal';
 import { useWorktrees } from '@/hooks/useWorktrees';
 import { useTranslations } from 'next-intl';
 import { localFetch, getAgentWsUrl } from '@/lib/local-fetch';
+import { apiFetch } from '@/lib/api-fetch';
 import AgentActivityTab from './AgentActivityTab';
 import AgentDiffTab from './AgentDiffTab';
 import AgentIssueTab from './AgentIssueTab';
@@ -149,6 +150,39 @@ function buildReportingPrompt(sessionId: string): string {
 	].join('\n');
 }
 
+// Auto-generated worktree name. The `wip-` prefix marks it as un-named: the server
+// renames the branch (Karma convention) on the agent's first activity log.
+const WT_ADJ = [
+	'dusty',
+	'light',
+	'bold',
+	'calm',
+	'swift',
+	'brave',
+	'quiet',
+	'warm',
+	'sharp',
+	'soft',
+];
+const WT_NOUN = [
+	'canyon',
+	'ivy',
+	'pine',
+	'river',
+	'delta',
+	'harbor',
+	'meadow',
+	'summit',
+	'ember',
+	'vale',
+];
+function randomWorktreeName(): string {
+	const a = WT_ADJ[Math.floor(Math.random() * WT_ADJ.length)];
+	const n = WT_NOUN[Math.floor(Math.random() * WT_NOUN.length)];
+	const id = Math.random().toString(36).slice(2, 6);
+	return `wip-${a}-${n}-${id}`;
+}
+
 export default function AgentTerminalModal({
 	open,
 	onClose,
@@ -164,6 +198,11 @@ export default function AgentTerminalModal({
 	// Step management: 'project' → 'launch-mode' → 'branch' → 'terminal'
 	const [step, setStep] = useState<'project' | 'launch-mode' | 'branch' | 'terminal'>('project');
 	const [branchInput, setBranchInput] = useState('');
+	// F2 — optional GitHub issue linked at launch, injected into the agent prompt as context
+	const [issueUrl, setIssueUrl] = useState('');
+	const [issueFetching, setIssueFetching] = useState(false);
+	const [issueLoaded, setIssueLoaded] = useState<string | null>(null);
+	const issueCtxRef = useRef<string | null>(null);
 	const [worktreePath, setWorktreePath] = useState<string | null>(null);
 	const [worktreeError, setWorktreeError] = useState<string | null>(null);
 	// Current branch mode state
@@ -349,12 +388,41 @@ export default function AgentTerminalModal({
 	}, [open, existingWorktree]);
 
 	// Handle branch submission + worktree creation
+	const fetchIssueContext = useCallback(async (url: string) => {
+		const m = url.match(/github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)/);
+		if (!m) {
+			issueCtxRef.current = null;
+			setIssueLoaded(null);
+			return;
+		}
+		const [, owner, repo, number] = m;
+		setIssueFetching(true);
+		try {
+			const res = await apiFetch(
+				`/api/github/issue?owner=${owner}&repo=${repo}&number=${number}`,
+			);
+			if (!res.ok) return;
+			const data = await res.json();
+			const issue = data.issue;
+			if (issue) {
+				issueCtxRef.current = `## Contexte de l'issue #${issue.number} : ${issue.title}\n\n${issue.body ?? ''}`;
+				setIssueLoaded(`#${issue.number} ${issue.title}`);
+			}
+		} catch {
+			// silent — context is optional
+		} finally {
+			setIssueFetching(false);
+		}
+	}, []);
+
 	const handleLaunch = useCallback(async () => {
-		if (!branchInput.trim() || !projectPath) return;
+		if (!projectPath) return;
+		// Name is optional — fall back to an auto-generated `wip-` name (renamed later by the server)
+		const name = branchInput.trim() || randomWorktreeName();
 		setWorktreeError(null);
 
 		try {
-			const result = await createWorktree(branchInput.trim());
+			const result = await createWorktree(name);
 			setWorktreePath(result.worktreePath);
 
 			// Ensure DB session with worktree info
@@ -365,7 +433,7 @@ export default function AgentTerminalModal({
 				projectName,
 				agentName:
 					agentFile?.name ?? (issueContext ? `#${issueContext.issueNumber}` : null),
-				branch: branchInput.trim(),
+				branch: name,
 				worktreePath: result.worktreePath,
 				issueOwner: issueContext?.owner ?? null,
 				issueRepo: issueContext?.repo ?? null,
@@ -626,7 +694,10 @@ export default function AgentTerminalModal({
 							claudeLaunchedRef.current = true;
 							const reporting = buildReportingPrompt(sessionId);
 							const basePrompt = agentFile ? agentFile.content : '';
-							const fullPrompt = basePrompt + reporting;
+							const issueBlock = issueCtxRef.current
+								? `\n\n${issueCtxRef.current}`
+								: '';
+							const fullPrompt = basePrompt + reporting + issueBlock;
 							const escaped = fullPrompt.replace(/'/g, "'\\''");
 							const claudeCmd = `unset CLAUDECODE CLAUDE_CODE_ENTRYPOINT && /opt/homebrew/bin/claude --system-prompt '${escaped}'\n`;
 
@@ -1326,6 +1397,32 @@ export default function AgentTerminalModal({
 							{tl('branchDesc')}
 						</Typography>
 
+						{/* F2 — optional GitHub issue for agent context */}
+						<Box sx={{ width: '100%', maxWidth: 500 }}>
+							<TextField
+								fullWidth
+								size="small"
+								placeholder={tl('issueUrl')}
+								value={issueUrl}
+								onChange={(e) => setIssueUrl(e.target.value)}
+								onBlur={() => issueUrl.trim() && fetchIssueContext(issueUrl.trim())}
+								disabled={isCreating}
+								InputProps={{
+									endAdornment: issueFetching ? (
+										<CircularProgress size={14} />
+									) : undefined,
+								}}
+							/>
+							{issueLoaded && (
+								<Typography
+									variant="caption"
+									sx={{ color: 'success.main', mt: 0.5, display: 'block' }}
+								>
+									✓ {issueLoaded}
+								</Typography>
+							)}
+						</Box>
+
 						<Box
 							component="form"
 							onSubmit={(e) => {
@@ -1366,7 +1463,7 @@ export default function AgentTerminalModal({
 							<Button
 								type="submit"
 								variant="contained"
-								disabled={!branchInput.trim() || isCreating || !projectPath}
+								disabled={isCreating || !projectPath}
 								startIcon={
 									isCreating ? (
 										<CircularProgress size={16} color="inherit" />

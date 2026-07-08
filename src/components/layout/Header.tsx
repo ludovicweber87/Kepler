@@ -6,21 +6,15 @@ import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
-import Badge from '@mui/material/Badge';
 import { alpha, useTheme } from '@mui/material/styles';
-import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
 import LightModeRoundedIcon from '@mui/icons-material/LightModeRounded';
 import DarkModeRoundedIcon from '@mui/icons-material/DarkModeRounded';
 import { SIDEBAR_WIDTH } from './Sidebar';
-import { useRightSidebar } from '@/hooks/useRightSidebar';
-import { useActiveSessions } from '@/hooks/useActiveSessions';
 import { useColorMode } from '@/hooks/useColorMode';
 import { useTranslations } from 'next-intl';
 
 export default function Header() {
 	const theme = useTheme();
-	const { open, toggle, width: rightWidth } = useRightSidebar();
-	const { data: sessions = [] } = useActiveSessions();
 	const { mode, toggleColorMode } = useColorMode();
 	const t = useTranslations('header');
 
@@ -29,9 +23,8 @@ export default function Header() {
 			position="fixed"
 			elevation={0}
 			sx={{
-				width: `calc(100% - ${SIDEBAR_WIDTH}px - ${open ? rightWidth : 0}px)`,
+				width: `calc(100% - ${SIDEBAR_WIDTH}px)`,
 				ml: `${SIDEBAR_WIDTH}px`,
-				transition: 'width 0.2s',
 				bgcolor: 'transparent',
 				backdropFilter: 'blur(12px)',
 				borderBottom: 1,
@@ -59,38 +52,6 @@ export default function Header() {
 							) : (
 								<DarkModeRoundedIcon fontSize="small" />
 							)}
-						</IconButton>
-					</Tooltip>
-
-					{/* Agents toggle */}
-					<Tooltip title={open ? t('hideAgents') : t('showAgents')}>
-						<IconButton
-							onClick={toggle}
-							size="small"
-							sx={{
-								color: open ? 'primary.main' : 'text.secondary',
-								bgcolor: open ? alpha(theme.palette.primary.main, 0.12) : 'transparent',
-								'&:hover': {
-									bgcolor: alpha(theme.palette.primary.main, 0.15),
-									color: 'primary.main',
-								},
-							}}
-						>
-							<Badge
-								badgeContent={sessions.length}
-								color="success"
-								invisible={sessions.length === 0}
-								sx={{
-									'& .MuiBadge-badge': {
-										fontSize: '0.6rem',
-										height: 14,
-										minWidth: 14,
-										fontWeight: 700,
-									},
-								}}
-							>
-								<SmartToyRoundedIcon fontSize="small" />
-							</Badge>
 						</IconButton>
 					</Tooltip>
 

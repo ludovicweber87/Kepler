@@ -15,7 +15,10 @@
 		"todos": "Tarefas",
 		"settings": "Configurações",
 		"signOut": "Sair",
-		"launchAgent": "Iniciar agente"
+		"launchAgent": "Iniciar agente",
+		"workers": "Workers",
+		"projects": "Projetos",
+		"noWorktrees": "Nenhum worktree"
 	},
 	"landing": {
 		"nav": {
@@ -101,7 +104,8 @@
 		"creating": "Criando...",
 		"created": "Criada",
 		"branchCreated": "Branch {branchName} criada",
-		"moveTo": "Mover para"
+		"moveTo": "Mover para",
+		"updated": "Atualizado às {time}"
 	},
 	"todos": {
 		"title": "Tarefas",
@@ -112,7 +116,9 @@
 		"taskDescription": "O que precisa ser feito para esta tarefa?",
 		"inProgress": "Em andamento",
 		"noTasks": "Nenhuma tarefa",
-		"done": "Concluído"
+		"done": "Concluído",
+		"allRepos": "Todos os repos",
+		"suggestions": "Sugestões"
 	},
 	"prs": {
 		"title": "Pull Requests",
@@ -152,6 +158,7 @@
 		"close": "Fechar",
 		"confirm": "Confirmar",
 		"search": "Buscar",
+		"refresh": "Atualizar",
 		"noResults": "Nenhum resultado",
 		"language": "Idioma",
 		"back": "Voltar",
@@ -177,7 +184,8 @@
 		"branchName": "Nome do branch",
 		"branchDesc": "Um worktree isolado sera criado em .worktrees/ para esta sessao.",
 		"launch": "Iniciar",
-		"creating": "Criando..."
+		"creating": "Criando...",
+		"issueUrl": "URL da issue do GitHub para contexto (opcional)"
 	},
 	"agentActivity": {
 		"reportTitle": "Relatório do agente",
@@ -241,5 +249,19 @@
 		"editComment": "Editar comentario",
 		"deleteComment": "Excluir comentario",
 		"deleteCommentConfirm": "Este comentario sera excluido permanentemente da issue do GitHub."
+	},
+	"workers": {
+		"title": "Workers",
+		"allProjects": "Todos",
+		"inProgress": "Em curso",
+		"inactive": "Inativos",
+		"none": "Nenhum worker",
+		"kpiActive": "ativos",
+		"kpiQuestions": "perguntas",
+		"kpiCompleted": "concluídos",
+		"deleteTitle": "Excluir {branch}",
+		"deleteWorktreeOnly": "Apenas worktree",
+		"deleteWorktreeAndBranch": "Worktree + branch",
+		"history": "Histórico"
 	}
 }
