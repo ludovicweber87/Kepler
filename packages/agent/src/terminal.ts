@@ -2,8 +2,8 @@ import { Server as HttpServer } from 'node:http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { spawn, IPty } from 'node-pty';
 import { execSync } from 'node:child_process';
-import { createClient } from '@supabase/supabase-js';
 import { findTmux } from './helpers.js';
+import { getDb } from './db.js';
 
 const TMUX = findTmux();
 
@@ -141,24 +141,16 @@ export function listTmuxSessions(): string[] {
 	}
 }
 
-function createSupabase() {
-	const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
-	const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-	if (!url || !key) return null;
-	return createClient(url, key);
-}
-
 async function isSessionCompleted(sessionId: string): Promise<boolean> {
 	try {
-		const supabase = createSupabase();
-		if (!supabase) return false;
-		const { data } = await supabase
-			.from('agent_sessions')
-			.select('status')
-			.eq('session_id', sessionId)
-			.in('status', ['completed', 'error'])
-			.limit(1);
-		return (data?.length ?? 0) > 0;
+		const db = getDb();
+		if (!db) return false;
+		const row = db
+			.prepare(
+				"SELECT status FROM agent_sessions WHERE session_id = ? AND status IN ('completed', 'error') LIMIT 1",
+			)
+			.get(sessionId);
+		return !!row;
 	} catch {
 		return false;
 	}

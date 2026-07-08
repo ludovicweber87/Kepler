@@ -40,7 +40,7 @@ Dashboard de développement personnel pour gérer issues GitHub, PRs, todos, wor
 | Design system   | MUI 7.3 (Material UI) + Emotion 11                    |
 | Data fetching   | TanStack React Query 5                                |
 | Auth            | NextAuth 5 (beta) — GitHub OAuth                      |
-| Backend         | Supabase (PostgreSQL + RLS)                           |
+| Backend         | SQLite local (better-sqlite3) + Drizzle ORM           |
 | Intégrations    | GitHub API (REST + GraphQL), Claude CLI (stream-json) |
 | i18n            | next-intl 4.8 (5 locales : en, fr, es, de, pt)       |
 | Graphiques      | Recharts 3                                            |
@@ -93,8 +93,9 @@ src/
 │   ├── workspace/              # WorkspaceView, BranchDetail
 │   ├── settings/               # SettingsPanel
 │   └── shared/                 # DraggableTabs, SessionCard
-├── hooks/                      # 20 custom hooks (React Query + Supabase)
-├── lib/                        # 7 services (github, supabase, terminal-server, auth, api-fetch, locale, projectViews)
+├── hooks/                      # 20 custom hooks (React Query + SQLite/Drizzle)
+├── db/                         # SQLite : index.ts (client + migrations), schema.ts (Drizzle), migrations/
+├── lib/                        # services (github, auth-utils, api-fetch, local-fetch, locale, projectViews)
 ├── theme/                      # MUI theme (dark + light mode)
 ├── types/                      # Types centralisés (index.ts)
 ├── config/
@@ -141,7 +142,7 @@ Composant client ("use client")
     → React Query (useQuery / useMutation)
       → apiFetch("/api/...") — wrapper avec gestion 401
         → API route Next.js (server-side, requireAuth())
-          → lib/github.ts (GitHub API) ou lib/supabase.ts (Supabase)
+          → lib/github.ts (GitHub API) ou db/index.ts (SQLite/Drizzle)
 ```
 
 ### React Query
@@ -157,14 +158,14 @@ Composant client ("use client")
 | Type de données                    | Mécanisme                                      |
 | ---------------------------------- | ---------------------------------------------- |
 | GitHub (issues, PRs, projects)     | React Query ← `/api/github/*` ← GitHub API     |
-| Todos, sessions, config            | React Query ← Supabase (mutations optimistes)  |
+| Todos, sessions, config            | React Query ← SQLite/Drizzle (mutations optimistes) |
 | Agents/Skills files                | React Query ← `/api/filesystem/*` ← FS local   |
 | UI state (tabs, dialogs, toggles)  | `useState` local                               |
 | Sidebar droit                      | `RightSidebarContext` (React Context)          |
 | Terminal overlay                   | `OverlayTerminalContext` (React Context)       |
 | Color mode                         | `ColorModeContext` (React Context + localStorage)|
 | Snackbars                          | `SnackbarContext` (React Context)              |
-| Tab order                          | Supabase (`tab_orders` table)                  |
+| Tab order                          | SQLite (`tabOrders` table)                     |
 
 ### Context Providers
 
@@ -208,25 +209,31 @@ Composant client ("use client")
 - Messages WebSocket : `init`, `input`, `resize`, `list-sessions`
 - `getActiveSessions()` : liste sessions avec metadata (cwd, createdAt, lastActivity, lastOutput, hasRecentOutput)
 - Session dedup : `findSessionByCwd()` — refuse de créer si déjà active
-- Vérification DB : refuse de créer tmux si session marquée completed en Supabase
+- Vérification DB : refuse de créer tmux si session marquée completed en base
 - Frontend : **xterm.js** dans `AgentTerminalModal` (modal 1400×90vh) + `OverlayTerminal` (flottant, draggable)
 
-### Supabase
+### Base de données (SQLite + Drizzle)
 
-**Tables :**
+> Migration Supabase → SQLite **terminée** : l'app Next.js (`src/`) **et** le serveur agent (`packages/agent/`) tapent tous deux dans le même fichier SQLite. Plus aucune dépendance Supabase.
 
-| Table                  | Colonnes clés                                                       | Usage                          |
-| ---------------------- | ------------------------------------------------------------------- | ------------------------------ |
-| `todos`                | id, repo_full_name, title, description, done, sort_order, user_id   | Todos par repo                 |
-| `agent_sessions`       | id, session_id, project_path, project_name, branch, agent_name, status, user_id | Sessions agents          |
-| `agent_activity_logs`  | id, agent_session_id, content, log_type, branch, status, created_at | Logs activité agents           |
-| `repo_paths`           | id, repo_full_name, local_path, user_id                            | Mapping repo → path local      |
-| `project_configs`      | id, user_id, config (jsonb)                                        | Config Project V2              |
-| `tab_orders`           | id, user_id, group_key, order (jsonb)                              | Ordre des tabs persisté        |
+- **Fichier DB** : `data/devora.db` (racine projet, gitignored, créé au runtime)
+- **ORM** : Drizzle (`drizzle-orm/better-sqlite3`), schéma dans `src/db/schema.ts`
+- **Setup app Next** : `src/db/index.ts` — instancie `better-sqlite3`, active WAL, exporte `db` + `schema`, joue les migrations à l'import (`migrate()` depuis `src/db/migrations/`)
+- **Accès depuis l'agent** : `packages/agent/src/db.ts` — `getDb()` ouvre le **même** fichier en `{ fileMustExist: true }` (SQL brut via `better-sqlite3`, pas de Drizzle), **ne joue pas** les migrations (l'app Next en reste propriétaire)
+- **Chemin partagé** : env var `DEVORA_DB_PATH` (injectée par `scripts/dev-auto-port.mjs`) + fallback ; nécessaire car les 2 process ont des `cwd` différents. WAL gère la concurrence
+- IDs : `text` + `crypto.randomUUID()` ; timestamps : `text` défaut `datetime('now')` ; JSON : `text({ mode: 'json' })` typé
+- ⚠️ Plus de colonne `user_id` ni de RLS (app mono-utilisateur locale)
 
-- Client initialisé avec `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- Upsert avec `onConflict` pour les configs
-- RLS policies (user_id based)
+**Tables** (`src/db/schema.ts`) :
+
+| Table                  | Colonnes clés                                                                                          | Usage                     |
+| ---------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------- |
+| `todos`                | id, repo_full_name, title, description, done, sort_order, issue_number, issue_repo, created_at         | Todos par repo            |
+| `agentSessions`        | id, session_id (unique), project_path, project_name, branch, worktree_path, agent_name, status, issue_* | Sessions agents           |
+| `agentActivityLogs`    | id, agent_session_id, content, log_type, created_at                                                    | Logs activité agents      |
+| `repoPaths`            | id, repo_full_name (unique), local_path                                                                | Mapping repo → path local |
+| `projectConfigs`       | id, org, project_number, selected_views, active_view, view_order, view_repo_mappings, status_columns, views (json) | Config Project V2 |
+| `tabOrders`            | id, tab_group (unique), tab_order (json), updated_at                                                   | Ordre des tabs persisté   |
 
 ---
 
@@ -404,13 +411,13 @@ Composant client ("use client")
 | --------------- | ------------------ | -------------------------------------------------------- |
 | `useWorktrees`  | `useWorktrees.ts`  | List/create/delete worktrees, cwd-specific, staleTime 30s|
 | `useBranches`   | `useBranches.ts`   | Branches + metadata (lastCommitDate, author, isCurrent)  |
-| `useRepoPaths`  | `useRepoPaths.ts`  | Map repo_full_name ↔ local_path (Supabase), getLocalPath()|
+| `useRepoPaths`  | `useRepoPaths.ts`  | Map repo_full_name ↔ local_path (SQLite), getLocalPath()  |
 
 ### UI State
 
 | Hook               | Fichier              | Description                                           |
 | ------------------ | -------------------- | ----------------------------------------------------- |
-| `useTabOrder`      | `useTabOrder.ts`     | Persistance ordre tabs en Supabase, applyOrder()      |
+| `useTabOrder`      | `useTabOrder.ts`     | Persistance ordre tabs en SQLite, applyOrder()        |
 | `useRightSidebar`  | `useRightSidebar.ts` | Context RightSidebar (open, toggle, width)            |
 | `useSnackbar`      | `useSnackbar.tsx`    | Context Provider snackbars, showSnackbar()            |
 | `useColorMode`     | `useColorMode.tsx`   | Context dark/light, persisté localStorage             |
@@ -423,12 +430,13 @@ Composant client ("use client")
 | Fichier              | Description                                                              |
 | -------------------- | ------------------------------------------------------------------------ |
 | `github.ts` (24 KB)  | REST + GraphQL GitHub : fetch user/repos/issues/PRs/projects, mutations  |
-| `supabase.ts`        | Client Supabase init (env vars)                                          |
-| `terminal-server.ts` | WebSocket server (port 4001) : spawn PTY, tmux, session dedup           |
 | `auth-utils.ts`      | `getAuthContext()`, `requireAuth()` — NextAuth session parsing           |
 | `api-fetch.ts`       | `apiFetch()` — wrapper fetch avec détection 401 → logout                |
+| `local-fetch.ts`     | `localFetch()` — appelle le serveur agent (:4001), fallback API Next en dev, WS url helpers |
 | `projectViews.ts`    | `parseViewFilter()`, `mapViewsToRepos()` — helpers Project V2           |
 | `locale.ts`          | Server action `setLocale()` — persistance cookie                        |
+
+> Le WebSocket/terminal server vit désormais dans `packages/agent/` (serveur `devora-agent` autonome sur le port 4001), plus dans `src/lib/`. Il accède au SQLite partagé via `packages/agent/src/db.ts`.
 
 ---
 
@@ -536,9 +544,13 @@ Todo { id, repo_full_name, title, description, done, sort_order, issueNumber?, i
 
 ### Env vars requises
 
-- `GITHUB_TOKEN` — Token GitHub (REST + GraphQL)
-- `NEXT_PUBLIC_SUPABASE_URL` — URL Supabase
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Clé publique Supabase
-- `NEXTAUTH_SECRET` — Secret NextAuth
-- `AUTH_GITHUB_ID` — GitHub OAuth App ID
-- `AUTH_GITHUB_SECRET` — GitHub OAuth App Secret
+> Plus aucune variable Supabase. La DB SQLite est locale (`data/devora.db`, créée au runtime). Noms vérifiés dans le code (`src/auth.ts`, `src/lib/*`).
+
+- `AUTH_SECRET` — Secret NextAuth (lu automatiquement par authjs). Générer : `openssl rand -base64 33`
+- `GITHUB_CLIENT_ID` — GitHub OAuth App ID
+- `GITHUB_CLIENT_SECRET` — GitHub OAuth App Secret
+- `GITHUB_TOKEN` — Token GitHub (REST + GraphQL, fallback)
+- `ALLOWED_GITHUB_USERS` — (optionnel) whitelist de logins séparés par virgule
+- `NEXT_PUBLIC_APP_URL` — (optionnel) URL publique de l'app
+- `NEXT_PUBLIC_AGENT_URL` — (optionnel) URL du serveur agent, défaut `http://localhost:4001`
+- `DEVORA_DB_PATH` — (optionnel) chemin absolu de la DB, injecté auto par `scripts/dev-auto-port.mjs` pour que l'app Next et l'agent partagent le même fichier

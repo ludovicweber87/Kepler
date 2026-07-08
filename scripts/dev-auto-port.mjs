@@ -1,5 +1,6 @@
 import { createServer } from 'net';
 import { spawn } from 'child_process';
+import { resolve as resolvePath } from 'path';
 
 const webOnly = process.argv.includes('--web-only');
 
@@ -32,9 +33,15 @@ const args = webOnly
 	? ['next', 'dev', '-p', String(port)]
 	: ['concurrently', `next dev -p ${port}`, 'npm run dev -w packages/agent'];
 
+// Chemin absolu partagé de la DB SQLite : l'app Next et le serveur agent (cwd différents)
+// ouvrent ainsi le même fichier data/devora.db.
 const child = spawn('npx', args, {
 	stdio: 'inherit',
-	env: { ...process.env, PORT: String(port) },
+	env: {
+		...process.env,
+		PORT: String(port),
+		DEVORA_DB_PATH: resolvePath('data', 'devora.db'),
+	},
 });
 
 child.on('exit', (code) => process.exit(code ?? 0));

@@ -2,7 +2,6 @@ import { IncomingMessage, ServerResponse } from 'node:http';
 import { execSync, execFileSync } from 'node:child_process';
 import { readdirSync, copyFileSync, existsSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
-import { createClient } from '@supabase/supabase-js';
 import {
 	parseQuery,
 	readBody,
@@ -11,6 +10,7 @@ import {
 	getToken,
 	findClaude,
 } from '../helpers.js';
+import { getDb } from '../db.js';
 
 // ── Types ──
 
@@ -62,12 +62,6 @@ function getBaseBranch(cwd: string): string {
 	return 'main';
 }
 
-function createSupabase() {
-	const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
-	const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-	if (!url || !key) return null;
-	return createClient(url, key);
-}
 
 async function postGitHubComment(
 	token: string,
@@ -312,24 +306,22 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 			if (!/^[\w./-]+$/.test(branchName))
 				return sendJson(res, { error: 'Invalid branch name' }, 400);
 
-			// Resolve local path from Supabase
-			const supabase = createSupabase();
-			if (!supabase) return sendError(res, 'Supabase not configured', 500);
+			// Resolve local path from the SQLite DB
+			const db = getDb();
+			if (!db) return sendError(res, 'Database not available', 500);
 
-			const { data, error } = await supabase
-				.from('repo_paths')
-				.select('local_path')
-				.eq('repo_full_name', repoFullName)
-				.single();
+			const row = db
+				.prepare('SELECT local_path FROM repo_paths WHERE repo_full_name = ?')
+				.get(repoFullName) as { local_path: string } | undefined;
 
-			if (error || !data)
+			if (!row)
 				return sendJson(
 					res,
 					{ error: `No local path configured for ${repoFullName}. Set it in Settings.` },
 					404,
 				);
 
-			const cwd = data.local_path;
+			const cwd = row.local_path;
 			const slug = branchName.replace(/\//g, '-');
 			const worktreePath = `${cwd}/.worktrees/${slug}`;
 

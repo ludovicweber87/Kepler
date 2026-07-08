@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react" alt="React 19" />
   <img src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript" alt="TypeScript 5" />
   <img src="https://img.shields.io/badge/Claude-Agent%20SDK-7C5CFF" alt="Claude Agent SDK" />
-  <img src="https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?logo=supabase" alt="Supabase" />
+  <img src="https://img.shields.io/badge/SQLite-Drizzle%20ORM-003B57?logo=sqlite" alt="SQLite + Drizzle" />
 </p>
 
 ---
@@ -110,7 +110,7 @@ Killed an agent by mistake? Need to pick up where you left off? Devora keeps ful
 | **Frontend** | Next.js 16 · React 19 · TypeScript 5          |
 | **UI**       | Material UI 7 · Emotion · Framer Motion       |
 | **Data**     | TanStack React Query 5 (optimistic mutations) |
-| **Backend**  | Supabase (PostgreSQL + Row Level Security)    |
+| **Backend**  | SQLite (better-sqlite3) + Drizzle ORM         |
 | **AI**       | Claude Agent SDK · Claude CLI                 |
 | **Terminal** | xterm.js 6 · node-pty · WebSocket · tmux      |
 | **GitHub**   | REST API + GraphQL (Project V2)               |
@@ -122,8 +122,8 @@ Killed an agent by mistake? Need to pick up where you left off? Devora keeps ful
 
 ### Prerequisites
 
-- Node.js 20+
-- A [Supabase](https://supabase.com) project
+- Node.js 20–25 (native modules `better-sqlite3` / `node-pty` don't support Node 26 yet)
+- A [GitHub OAuth App](https://github.com/settings/developers) (Client ID + Secret)
 - A [GitHub Personal Access Token](https://github.com/settings/tokens) with `repo` and `project` scopes
 - [Claude CLI](https://docs.anthropic.com/en/docs/claude-code) installed (`claude` available in PATH)
 - `tmux` installed
@@ -141,10 +141,13 @@ npm install
 Create a `.env.local` file:
 
 ```env
+AUTH_SECRET=your_generated_secret        # openssl rand -base64 33
+GITHUB_CLIENT_ID=your_oauth_app_id
+GITHUB_CLIENT_SECRET=your_oauth_app_secret
 GITHUB_TOKEN=ghp_your_token_here
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
 ```
+
+The SQLite database is created automatically at `data/devora.db` on first run — no external service to provision.
 
 ### Run
 
@@ -177,9 +180,9 @@ Open [http://localhost:4000](http://localhost:4000).
          ┌────────┘       │       └────────┐
          ▼                ▼                ▼
    ┌──────────┐    ┌──────────┐    ┌──────────────┐
-   │  GitHub  │    │ Supabase │    │  Terminal WS  │
-   │ REST +   │    │ Postgres │    │  (port 4001)  │
-   │ GraphQL  │    │  + RLS   │    │  tmux + pty   │
+   │  GitHub  │    │  SQLite  │    │  Terminal WS  │
+   │ REST +   │    │ Drizzle  │    │  (port 4001)  │
+   │ GraphQL  │    │   ORM    │    │  tmux + pty   │
    └──────────┘    └──────────┘    └──────┬───────┘
                                           │
                                    ┌──────┴───────┐
