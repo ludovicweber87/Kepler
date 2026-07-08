@@ -89,6 +89,14 @@ export interface ProjectV2Item {
 	repoFullName: string | null;
 	number: number | null;
 	fieldValues: Record<string, string>; // field name → value
+	labels: GitHubLabel[]; // issue/PR labels (for `label:` view filters + rendering)
+	// Render fields (issues + PRs), used to build the board directly from Project V2 items
+	nodeId: string | null;
+	title: string;
+	url: string;
+	state: string; // OPEN | CLOSED | MERGED
+	updatedAt: string;
+	assignees: { login: string; avatarUrl: string }[];
 }
 
 export interface ProjectV2Data {
@@ -204,7 +212,15 @@ export type GitHubTimelineEvent =
 export interface CheckRun {
 	name: string;
 	status: 'queued' | 'in_progress' | 'completed';
-	conclusion: 'success' | 'failure' | 'neutral' | 'cancelled' | 'skipped' | 'timed_out' | 'action_required' | null;
+	conclusion:
+		| 'success'
+		| 'failure'
+		| 'neutral'
+		| 'cancelled'
+		| 'skipped'
+		| 'timed_out'
+		| 'action_required'
+		| null;
 }
 
 export interface GitHubPullRequest {
@@ -246,7 +262,6 @@ export interface GitHubPullRequest {
 	check_status: 'success' | 'failure' | 'pending' | null;
 	check_runs: CheckRun[];
 }
-
 
 // Agent sessions (from local agent /sessions endpoint)
 

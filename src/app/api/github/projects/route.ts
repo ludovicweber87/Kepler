@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchOrgProjects, fetchProjectV2Data, fetchViewerOrgProjects } from '@/lib/github';
-import { mapViewsToRepos } from '@/lib/projectViews';
+import {
+	fetchOrgProjects,
+	fetchProjectV2Data,
+	fetchViewerOrgProjects,
+	fetchUserLogin,
+	projectItemToIssue,
+} from '@/lib/github';
+import { mapViewsToRepos, matchViewItems, knownFieldsFromItems } from '@/lib/projectViews';
 import { requireAuth, isAuthError } from '@/lib/auth-utils';
+import type { GitHubIssue } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +30,9 @@ export async function GET(request: NextRequest) {
 			return NextResponse.json({ error: 'org parameter is required' }, { status: 400 });
 		}
 
-		const ownerType = (searchParams.get('ownerType') === 'user' ? 'user' : 'organization') as 'organization' | 'user';
+		const ownerType = (searchParams.get('ownerType') === 'user' ? 'user' : 'organization') as
+			| 'organization'
+			| 'user';
 
 		if (!projectNumber) {
 			const projects = await fetchOrgProjects(org, auth.accessToken);
@@ -45,6 +54,20 @@ export async function GET(request: NextRequest) {
 		}
 		const viewRepoMappings = mapViewsToRepos(projectData.views, projectData.items);
 
+		// Board data: per view, items matching the filter AND assigned to the logged-in user,
+		// mapped to the GitHubIssue shape (issues + PRs) — the board renders straight from this.
+		const viewer = (await fetchUserLogin(auth.accessToken)).toLowerCase();
+		const knownFields = knownFieldsFromItems(projectData.items);
+		const boardIssuesByView: Record<string, GitHubIssue[]> = {};
+		for (const view of projectData.views) {
+			const mine = matchViewItems(view, projectData.items, knownFields).filter((it) =>
+				it.assignees.some((a) => a.login.toLowerCase() === viewer),
+			);
+			boardIssuesByView[view.name] = mine.map((it) =>
+				projectItemToIssue(it, projectData.title),
+			);
+		}
+
 		return NextResponse.json({
 			project: {
 				id: projectData.id,
@@ -54,6 +77,7 @@ export async function GET(request: NextRequest) {
 			views: projectData.views,
 			viewRepoMappings,
 			statusColumns: projectData.statusColumns,
+			boardIssuesByView,
 		});
 	} catch (err) {
 		console.error('Projects API error:', err);

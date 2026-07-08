@@ -15,14 +15,14 @@ import ClearRoundedIcon from '@mui/icons-material/ClearRounded';
 import KanbanColumn from './KanbanColumn';
 import CreateBranchModal from './CreateBranchModal';
 import DraggableTabs from '@/components/shared/DraggableTabs';
-import { useDashboard } from '@/hooks/useGitHub';
 import { useProjectConfig } from '@/hooks/useProjectConfig';
+import { useProjectBoards } from '@/hooks/useProjectBoards';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUpdateIssueStatus } from '@/hooks/useUpdateIssueStatus';
 import { completeIssueTodos } from '@/hooks/useTodos';
 import { useTranslations } from 'next-intl';
 import { useTheme } from '@mui/material/styles';
-import { GitHubIssue, ViewIssueRef } from '@/types';
+import { GitHubIssue } from '@/types';
 
 const COLUMN_WIDTH = 300;
 
@@ -42,10 +42,22 @@ function buildColumns(issues: GitHubIssue[], statusColumns: string[]): [string, 
 export default function IssuesList() {
 	const theme = useTheme();
 	const t = useTranslations('issues');
-	const { configs, selectedViewMappings, reorderViews, syncViews, getConfigForRepo } =
-		useProjectConfig();
+	const {
+		configs,
+		configsLoading,
+		selectedViewMappings,
+		reorderViews,
+		syncViews,
+		getConfigForRepo,
+	} = useProjectConfig();
 
-	// Auto-sync Project V2 data on mount to pick up new issues
+	// Only fetch boards for projects that actually contribute selected views to the board
+	const boardConfigs = configs.filter((c) => c.selectedViews.length > 0);
+
+	// Board data: issues + PRs assigned to the logged-in user, per view, straight from Project V2 items
+	const { issuesByView, error, isLoading, refetch, isFetching } = useProjectBoards(boardConfigs);
+
+	// Auto-sync Project V2 view metadata on mount (keeps the tab list / settings fresh)
 	const hasSynced = useRef(false);
 	useEffect(() => {
 		if (configs.length > 0 && !hasSynced.current) {
@@ -54,25 +66,6 @@ export default function IssuesList() {
 		}
 	}, [configs, syncViews]);
 
-	const allIssueRefs = useMemo(() => {
-		if (selectedViewMappings.length === 0) return undefined;
-		const hasExplicitIssues = selectedViewMappings.some((m) => m.issues?.length > 0);
-		if (!hasExplicitIssues) return undefined;
-		const seen = new Set<string>();
-		const refs: ViewIssueRef[] = [];
-		for (const m of selectedViewMappings) {
-			for (const issue of m.issues ?? []) {
-				const key = `${issue.repo}#${issue.number}`;
-				if (!seen.has(key)) {
-					seen.add(key);
-					refs.push(issue);
-				}
-			}
-		}
-		return refs.length > 0 ? refs : undefined;
-	}, [selectedViewMappings]);
-
-	const { data, error, isLoading, refetch, isFetching } = useDashboard(allIssueRefs);
 	const [activeTab, setActiveTab] = useState(0);
 	const [search, setSearch] = useState('');
 	const mutation = useUpdateIssueStatus();
@@ -83,37 +76,13 @@ export default function IssuesList() {
 
 	const hasViews = selectedViewMappings.length > 0;
 
-	const isProjectMode = !!allIssueRefs;
-
-	const allIssues = useMemo(() => {
-		if (!data) return [];
-		return data.issues.filter(
-			(i) => i.repo_full_name && i.assignees?.some((a) => a.login === data.user),
-		);
-	}, [data]);
-
 	const tabs = hasViews ? selectedViewMappings.map((m) => m.viewName) : [];
 	const safeTab = activeTab >= tabs.length ? 0 : activeTab;
 
 	const filteredIssues = useMemo(() => {
-		if (!hasViews) return allIssues;
-		const mapping = selectedViewMappings[safeTab];
-		if (!mapping) return allIssues;
-		if (mapping.issues?.length) {
-			const issueKeys = new Set(
-				mapping.issues.map((i) => `${i.repo.toLowerCase()}#${i.number}`),
-			);
-			return allIssues.filter(
-				(i) =>
-					i.repo_full_name &&
-					issueKeys.has(`${i.repo_full_name.toLowerCase()}#${i.number}`),
-			);
-		}
-		const viewRepos = new Set((mapping.repos ?? []).map((r) => r.toLowerCase()));
-		return allIssues.filter(
-			(i) => i.repo_full_name && viewRepos.has(i.repo_full_name.toLowerCase()),
-		);
-	}, [allIssues, selectedViewMappings, safeTab, hasViews]);
+		const viewName = selectedViewMappings[safeTab]?.viewName;
+		return viewName ? (issuesByView.get(viewName) ?? []) : [];
+	}, [issuesByView, selectedViewMappings, safeTab]);
 
 	const searchedIssues = useMemo(() => {
 		const q = search.trim().toLowerCase();
@@ -172,7 +141,7 @@ export default function IssuesList() {
 		[configs, getConfigForRepo, mutation, todoQc],
 	);
 
-	if (isLoading) {
+	if (isLoading || configsLoading) {
 		return (
 			<Box>
 				<Skeleton
@@ -212,8 +181,6 @@ export default function IssuesList() {
 			</Alert>
 		);
 	}
-
-	if (!data) return null;
 
 	return (
 		<Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
@@ -303,21 +270,7 @@ export default function IssuesList() {
 						activeTab={safeTab}
 						onTabChange={(idx) => setActiveTab(idx)}
 						onReorder={reorderViews}
-						counts={tabs.map((_, idx) => {
-							const m = selectedViewMappings[idx];
-							if (m?.issues?.length) {
-								const keys = new Set(m.issues.map((i) => `${i.repo}#${i.number}`));
-								return allIssues.filter(
-									(i) =>
-										i.repo_full_name &&
-										keys.has(`${i.repo_full_name}#${i.number}`),
-								).length;
-							}
-							const viewRepos = new Set(m?.repos ?? []);
-							return allIssues.filter(
-								(i) => i.repo_full_name && viewRepos.has(i.repo_full_name),
-							).length;
-						})}
+						counts={tabs.map((name) => issuesByView.get(name)?.length ?? 0)}
 					/>
 				</Box>
 			)}

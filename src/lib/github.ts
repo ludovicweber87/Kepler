@@ -183,7 +183,10 @@ export async function fetchProjectColumns(
 	return result;
 }
 
-export async function fetchSpecificIssues(refs: ViewIssueRef[], token: string): Promise<GitHubIssue[]> {
+export async function fetchSpecificIssues(
+	refs: ViewIssueRef[],
+	token: string,
+): Promise<GitHubIssue[]> {
 	const results = await Promise.allSettled(
 		refs.map((ref) => {
 			const [owner, repo] = ref.repo.split('/');
@@ -193,6 +196,41 @@ export async function fetchSpecificIssues(refs: ViewIssueRef[], token: string): 
 	return results
 		.filter((r): r is PromiseFulfilledResult<GitHubIssue> => r.status === 'fulfilled')
 		.map((r) => r.value);
+}
+
+/**
+ * Map a Project V2 item (issue OR pull request) to the GitHubIssue shape the board renders.
+ * Everything the board needs comes from the enriched item — no per-issue REST call.
+ */
+export function projectItemToIssue(item: ProjectV2Item, projectTitle: string): GitHubIssue {
+	const status = Object.entries(item.fieldValues).find(
+		([key]) => key.toLowerCase() === 'status',
+	)?.[1];
+	const assignees = item.assignees.map((a) => ({ login: a.login, avatar_url: a.avatarUrl }));
+	const isClosed = item.state === 'CLOSED' || item.state === 'MERGED';
+
+	return {
+		id: item.number ?? 0,
+		node_id: item.nodeId ?? '',
+		number: item.number ?? 0,
+		title: item.title,
+		body: null,
+		state: isClosed ? 'closed' : 'open',
+		html_url: item.url,
+		updated_at: item.updatedAt,
+		created_at: item.updatedAt,
+		closed_at: null,
+		labels: item.labels,
+		assignee: assignees[0] ?? null,
+		assignees,
+		user: assignees[0] ?? { login: '', avatar_url: '' },
+		repository_url: item.repoFullName
+			? `https://api.github.com/repos/${item.repoFullName}`
+			: '',
+		pull_request: item.contentType === 'PullRequest' ? {} : undefined,
+		repo_full_name: item.repoFullName ?? undefined,
+		project_columns: status ? [{ project: projectTitle, column: status }] : [],
+	};
 }
 
 export async function fetchIssue(
@@ -462,7 +500,11 @@ async function fetchCheckRunsForRef(
 		if (runs.length > 0) {
 			const hasInProgress = runs.some((r) => r.status !== 'completed');
 			const hasFailed = runs.some(
-				(r) => r.status === 'completed' && r.conclusion !== 'success' && r.conclusion !== 'neutral' && r.conclusion !== 'skipped',
+				(r) =>
+					r.status === 'completed' &&
+					r.conclusion !== 'success' &&
+					r.conclusion !== 'neutral' &&
+					r.conclusion !== 'skipped',
 			);
 			if (hasInProgress) check_status = 'pending';
 			else if (hasFailed) check_status = 'failure';
@@ -483,14 +525,11 @@ export async function mergePullRequest(
 	pullNumber: number,
 	token: string,
 ): Promise<{ sha: string; message: string }> {
-	const res = await fetch(
-		`${GITHUB_API}/repos/${owner}/${repo}/pulls/${pullNumber}/merge`,
-		{
-			method: 'PUT',
-			headers: { ...getHeaders(token), 'Content-Type': 'application/json' },
-			body: JSON.stringify({ merge_method: 'squash' }),
-		},
-	);
+	const res = await fetch(`${GITHUB_API}/repos/${owner}/${repo}/pulls/${pullNumber}/merge`, {
+		method: 'PUT',
+		headers: { ...getHeaders(token), 'Content-Type': 'application/json' },
+		body: JSON.stringify({ merge_method: 'squash' }),
+	});
 	if (!res.ok) {
 		const err = await res.json().catch(() => ({}));
 		throw new Error(err.message || `Merge failed: ${res.status}`);
@@ -507,7 +546,11 @@ function graphqlHeaders(token: string): HeadersInit {
 	};
 }
 
-async function graphqlRequest(query: string, variables: Record<string, unknown> = {}, token: string) {
+async function graphqlRequest(
+	query: string,
+	variables: Record<string, unknown> = {},
+	token: string,
+) {
 	const res = await fetch('https://api.github.com/graphql', {
 		method: 'POST',
 		headers: graphqlHeaders(token),
@@ -645,7 +688,11 @@ export async function fetchStatusFieldInfo(
 	}
 }
 
-export async function findProjectItemId(issueNodeId: string, projectId: string, token: string): Promise<string> {
+export async function findProjectItemId(
+	issueNodeId: string,
+	projectId: string,
+	token: string,
+): Promise<string> {
 	const query = `
     query($id: ID!) {
       node(id: $id) {
@@ -722,8 +769,8 @@ export async function fetchProjectV2Data(
             nodes {
               content {
                 __typename
-                ... on Issue { number repository { nameWithOwner } }
-                ... on PullRequest { number repository { nameWithOwner } }
+                ... on Issue { id number title url state updatedAt repository { nameWithOwner } assignees(first: 10) { nodes { login avatarUrl } } labels(first: 20) { nodes { name color } } }
+                ... on PullRequest { id number title url state updatedAt repository { nameWithOwner } assignees(first: 10) { nodes { login avatarUrl } } labels(first: 20) { nodes { name color } } }
               }
               fieldValues(first: 20) {
                 nodes {
@@ -767,10 +814,32 @@ export async function fetchProjectV2Data(
 	function parseItemNodes(nodes: Record<string, unknown>[]): ProjectV2Item[] {
 		return nodes.map((node) => {
 			const content = node.content as Record<string, unknown> | null;
-			const contentType = ((content?.__typename as string) ?? 'DraftIssue') as ProjectV2Item['contentType'];
+			const contentType = ((content?.__typename as string) ??
+				'DraftIssue') as ProjectV2Item['contentType'];
 			const repo = content?.repository as { nameWithOwner: string } | null;
 			const repoFullName = repo?.nameWithOwner ?? null;
 			const number = (content?.number as number) ?? null;
+
+			const labelNodes = (
+				content?.labels as { nodes?: { name: string; color: string }[] } | undefined
+			)?.nodes;
+			const labels = (labelNodes ?? [])
+				.filter((l) => l.name)
+				.map((l) => ({ name: l.name, color: l.color ?? '888888' }));
+
+			const assigneeNodes = (
+				content?.assignees as { nodes?: { login: string; avatarUrl: string }[] } | undefined
+			)?.nodes;
+			const assignees = (assigneeNodes ?? []).map((a) => ({
+				login: a.login,
+				avatarUrl: a.avatarUrl,
+			}));
+
+			const nodeId = (content?.id as string) ?? null;
+			const title = (content?.title as string) ?? '';
+			const url = (content?.url as string) ?? '';
+			const state = (content?.state as string) ?? '';
+			const updatedAt = (content?.updatedAt as string) ?? '';
 
 			const fieldValues: Record<string, string> = {};
 			const fvNodes = (node.fieldValues as { nodes: Record<string, unknown>[] }).nodes;
@@ -783,7 +852,19 @@ export async function fetchProjectV2Data(
 				}
 			}
 
-			return { contentType, repoFullName, number, fieldValues };
+			return {
+				contentType,
+				repoFullName,
+				number,
+				fieldValues,
+				labels,
+				nodeId,
+				title,
+				url,
+				state,
+				updatedAt,
+				assignees,
+			};
 		});
 	}
 
@@ -802,8 +883,8 @@ export async function fetchProjectV2Data(
               nodes {
                 content {
                   __typename
-                  ... on Issue { number repository { nameWithOwner } }
-                  ... on PullRequest { number repository { nameWithOwner } }
+                  ... on Issue { id number title url state updatedAt repository { nameWithOwner } assignees(first: 10) { nodes { login avatarUrl } } labels(first: 20) { nodes { name color } } }
+                  ... on PullRequest { id number title url state updatedAt repository { nameWithOwner } assignees(first: 10) { nodes { login avatarUrl } } labels(first: 20) { nodes { name color } } }
                 }
                 fieldValues(first: 20) {
                   nodes {
