@@ -665,6 +665,13 @@ export default function AgentTerminalModal({
 		wsRef.current = ws;
 
 		ws.onopen = () => {
+			// Compose the agent system prompt and let the server launch Claude at
+			// session creation — robust (file-based, no shell escaping) and race-free
+			// (Claude is started before we attach). Ignored by the server on resume.
+			const reporting = buildReportingPrompt(sessionId);
+			const basePrompt = agentFile ? agentFile.content : '';
+			const issueBlock = issueCtxRef.current ? `\n\n${issueCtxRef.current}` : '';
+			const claudeSystemPrompt = basePrompt + reporting + issueBlock;
 			ws.send(
 				JSON.stringify({
 					type: 'init',
@@ -672,6 +679,7 @@ export default function AgentTerminalModal({
 					cwd,
 					cols: terminal.cols,
 					rows: terminal.rows,
+					claudeSystemPrompt,
 				}),
 			);
 		};
@@ -688,26 +696,10 @@ export default function AgentTerminalModal({
 								`[AgentTerminalModal] Attached to existing session: ${msg.actualSessionId}`,
 							);
 						}
-						if (!msg.resumed) {
-							// Worktree is already on the right branch — launch Claude
-							// Send after a short delay to let tmux initialize
-							claudeLaunchedRef.current = true;
-							const reporting = buildReportingPrompt(sessionId);
-							const basePrompt = agentFile ? agentFile.content : '';
-							const issueBlock = issueCtxRef.current
-								? `\n\n${issueCtxRef.current}`
-								: '';
-							const fullPrompt = basePrompt + reporting + issueBlock;
-							const escaped = fullPrompt.replace(/'/g, "'\\''");
-							const claudeCmd = `unset CLAUDECODE CLAUDE_CODE_ENTRYPOINT && /opt/homebrew/bin/claude --system-prompt '${escaped}'\n`;
-
-							setTimeout(() => {
-								ws.send(JSON.stringify({ type: 'input', data: claudeCmd }));
-							}, 500);
-						} else {
-							// Resumed existing session — Claude was already running
-							claudeLaunchedRef.current = true;
-						}
+						// Claude is launched server-side at session creation (see the
+						// claudeSystemPrompt sent in the init message); on resume it was
+						// already running. Nothing to type from the client.
+						claudeLaunchedRef.current = true;
 						setTimeout(() => {
 							readyRef.current = true;
 						}, 2000);

@@ -1,6 +1,8 @@
 import { IncomingMessage, ServerResponse } from 'node:http';
 import { URL } from 'node:url';
 import { execSync } from 'node:child_process';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 
 // ── Request helpers ──
 
@@ -55,7 +57,12 @@ export function startSSE(res: ServerResponse) {
 // ── Binary locators ──
 
 export function findClaude(): string {
-	const paths = ['/opt/homebrew/bin/claude', '/usr/local/bin/claude', '/usr/bin/claude'];
+	const paths = [
+		join(homedir(), '.local/bin/claude'),
+		'/opt/homebrew/bin/claude',
+		'/usr/local/bin/claude',
+		'/usr/bin/claude',
+	];
 	for (const p of paths) {
 		try {
 			execSync(`test -x ${p}`, { stdio: 'ignore' });
@@ -63,6 +70,13 @@ export function findClaude(): string {
 		} catch {
 			/* continue */
 		}
+	}
+	// Fall back to PATH resolution, then the bare name.
+	try {
+		const resolved = execSync('command -v claude', { encoding: 'utf-8' }).trim();
+		if (resolved) return resolved;
+	} catch {
+		/* continue */
 	}
 	return 'claude';
 }

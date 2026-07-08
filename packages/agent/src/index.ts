@@ -73,6 +73,14 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
 	}
 }
 
+// ── Resilience: a terminal/pty error must never take down the whole agent ──
+process.on('unhandledRejection', (reason) => {
+	console.error('[devora-agent] Unhandled rejection:', reason);
+});
+process.on('uncaughtException', (err) => {
+	console.error('[devora-agent] Uncaught exception:', err);
+});
+
 // ── Start ──
 
 const server = createServer(handleRequest);
@@ -80,7 +88,27 @@ const server = createServer(handleRequest);
 // WebSocket upgrade for terminal
 startTerminalServer(server);
 
+// EADDRINUSE is common when `tsx watch` restarts before the previous process
+// frees the port. Retry a few times, then fail loudly instead of lingering as a
+// zombie that never binds (the source of "[Session disconnected]" in the UI).
+const MAX_LISTEN_RETRIES = 10;
+let listenRetries = 0;
+
+server.on('error', (err: NodeJS.ErrnoException) => {
+	if (err.code === 'EADDRINUSE' && listenRetries < MAX_LISTEN_RETRIES) {
+		listenRetries++;
+		console.warn(
+			`[devora-agent] Port ${PORT} occupé, nouvelle tentative ${listenRetries}/${MAX_LISTEN_RETRIES}...`,
+		);
+		setTimeout(() => server.listen(PORT), 500);
+		return;
+	}
+	console.error(`[devora-agent] Impossible de démarrer sur le port ${PORT}: ${err.message}`);
+	process.exit(1);
+});
+
 server.listen(PORT, () => {
+	listenRetries = 0;
 	console.log(`[devora-agent] Running on http://localhost:${PORT}`);
 	console.log(`[devora-agent] CORS origins: ${ALLOWED_ORIGINS.join(', ')}`);
 });
