@@ -152,6 +152,7 @@
 		"close": "Fechar",
 		"confirm": "Confirmar",
 		"search": "Buscar",
+		"refresh": "Atualizar",
 		"noResults": "Nenhum resultado",
 		"language": "Idioma",
 		"back": "Voltar",
@@ -224,22 +225,5 @@
 		"closeSession": "Encerrar sessao",
 		"delete": "Excluir",
 		"question": "Pergunta"
-	},
-	"issueDetail": {
-		"backToIssues": "Voltar para issues",
-		"loadError": "Erro de carregamento: {message}",
-		"launchAgent": "Iniciar agente",
-		"associateTask": "Associar uma tarefa",
-		"tasksCount": "{count, plural, one {# tarefa} other {# tarefas}}",
-		"createTask": "Criar uma tarefa",
-		"history": "Histórico",
-		"commentsTitle": "Comentários ({count})",
-		"noDescription": "Sem descrição. Clique para adicionar uma.",
-		"addComment": "Adicionar um comentário",
-		"commentPlaceholder": "Escrever um comentário (Markdown)...",
-		"send": "Enviar",
-		"editComment": "Editar comentario",
-		"deleteComment": "Excluir comentario",
-		"deleteCommentConfirm": "Este comentario sera excluido permanentemente da issue do GitHub."
 	}
 }

@@ -173,6 +173,7 @@
 		"close": "Close",
 		"confirm": "Confirm",
 		"search": "Search",
+		"refresh": "Refresh",
 		"noResults": "No results",
 		"language": "Language",
 		"back": "Back",
@@ -245,22 +246,5 @@
 		"closeSession": "Close session",
 		"delete": "Delete",
 		"question": "Question"
-	},
-	"issueDetail": {
-		"backToIssues": "Back to issues",
-		"loadError": "Loading error: {message}",
-		"launchAgent": "Launch agent",
-		"associateTask": "Associate a task",
-		"tasksCount": "{count, plural, one {# task} other {# tasks}}",
-		"createTask": "Create a task",
-		"history": "History",
-		"commentsTitle": "Comments ({count})",
-		"noDescription": "No description. Click to add one.",
-		"addComment": "Add a comment",
-		"commentPlaceholder": "Write a comment (Markdown)...",
-		"send": "Send",
-		"editComment": "Edit comment",
-		"deleteComment": "Delete comment",
-		"deleteCommentConfirm": "This comment will be permanently deleted from the GitHub issue."
 	}
 }
