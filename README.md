@@ -46,18 +46,19 @@ Launch, monitor, and manage Claude agents directly from the UI. Each agent runs 
 - **Activity tracking** — agents log what they do as they work
 - **Session history** — reopen past sessions, review what happened
 - **Custom system prompts** via `.md` agent files
+- **Link a GitHub issue** at launch — its content is injected into the agent's prompt as context
 
-### 🔀 Workspace — Branch-Level Visibility
+### 👷 Workers & Worktrees
 
-The **Workspace** page gives you a bird's-eye view of all branches across your projects. Click any branch to see its commit history and linked agent sessions. Start a new agent directly on a branch.
+The **Workers** page is a live activity feed — who's working right now (streaming status) and the history of past sessions with their summaries. The left sidebar lists your projects: expand one to see its git worktrees, or hit **+** to launch an agent (project pre-filled). Worktree names are **optional** — launch with nothing and the branch is auto-renamed (Karma convention) from the agent's first activity.
 
 ### 📋 Kanban Issues (GitHub Project V2)
 
-Full integration with GitHub Projects V2. Drag-and-drop Kanban board with status updates that sync back to GitHub via GraphQL. Create branches from issues in one click.
+Full integration with GitHub Projects V2. Drag-and-drop Kanban board of the issues **and PRs assigned to you**, status updates synced back to GitHub via GraphQL, and an issue-detail modal on click. Backed by a **local SQLite cache** — the board loads instantly and only hits GitHub on explicit refresh (no more rate-limit surprises). Create branches from issues in one click.
 
 ### ✅ Smart Todos
 
-Per-repository todo lists with **auto-suggestions** from your in-progress GitHub issues. Optimistic mutations for instant UI feedback.
+A single **global** task list with inline editing and an optional repo filter. One-click **suggestions** from GitHub issues assigned to you sitting in a Backlog/Todo column. Optimistic mutations for instant UI feedback.
 
 ### 🔃 Pull Requests
 
@@ -83,7 +84,7 @@ Create and manage reusable agent presets (`.md` files in `.claude/skills/`). Def
 
 ### Built for Multi-Repo Workflows
 
-Devora natively supports **multiple repositories**. Add your projects, and every page — Issues, PRs, Todos, Workspace, Agents, Skills — shows tabs for each repo. Drag to reorder, and the order persists across all pages.
+Devora natively supports **multiple repositories**. Add your projects, and every page — Issues, PRs, Todos, Workers, Agents, Skills — shows tabs for each repo. Drag to reorder, and the order persists across all pages.
 
 ### AI Agents That Report Back
 
@@ -165,7 +166,7 @@ Open [http://localhost:4000](http://localhost:4000).
 ┌─────────────────────────────────────────────────────┐
 │                    Browser (React)                    │
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌─────────┐ │
-│  │Dashboard │ │ Issues   │ │Workspace │ │ Agents  │ │
+│  │Dashboard │ │ Issues   │ │ Workers  │ │ Agents  │ │
 │  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬────┘ │
 │       │             │            │             │      │
 │       └─────────────┴────────────┴─────────────┘      │
@@ -195,8 +196,8 @@ Open [http://localhost:4000](http://localhost:4000).
 
 ## Roadmap
 
+- [x] Git worktree integration for parallel agent execution
 - [ ] Multi-user support with auth
-- [ ] Git worktree integration for parallel agent execution
 - [ ] Agent-to-agent communication
 - [ ] PR review automation with Claude
 - [ ] Notifications (Slack, email) on agent completion
@@ -246,18 +247,19 @@ Lancez, supervisez et gérez vos agents Claude directement depuis l'interface. C
 - **Suivi d'activité** — les agents documentent ce qu'ils font en travaillant
 - **Historique des sessions** — rouvrez une session passée, revoyez ce qui s'est passé
 - **Prompts système personnalisés** via des fichiers `.md`
+- **Liez une issue GitHub** au lancement — son contenu est injecté dans le prompt de l'agent comme contexte
 
-### 🔀 Workspace — Visibilité par branche
+### 👷 Workers & Worktrees
 
-La page **Workspace** offre une vue d'ensemble de toutes les branches de vos projets. Cliquez sur une branche pour voir son historique de commits et les sessions d'agents associées. Démarrez un nouvel agent directement sur une branche.
+La page **Workers** est un feed d'activité en direct — qui travaille maintenant (statut streaming) et l'historique des sessions passées avec leurs summaries. La sidebar gauche liste vos projets : dépliez-en un pour voir ses worktrees git, ou cliquez **+** pour lancer un agent (projet pré-rempli). Le nom du worktree est **optionnel** — lancez sans rien et la branche est renommée automatiquement (convention Karma) depuis la première activité de l'agent.
 
 ### 📋 Kanban Issues (GitHub Project V2)
 
-Intégration complète avec GitHub Projects V2. Board Kanban en drag-and-drop avec mise à jour des statuts synchronisés vers GitHub via GraphQL. Créez des branches depuis une issue en un clic.
+Intégration complète avec GitHub Projects V2. Board Kanban en drag-and-drop des issues **et PRs qui vous sont assignées**, statuts synchronisés vers GitHub via GraphQL, et une modal de détail au clic. Adossé à un **cache SQLite local** — le board charge instantanément et n'appelle GitHub que sur refresh explicite (fini les surprises de rate-limit). Créez des branches depuis une issue en un clic.
 
 ### ✅ Todos intelligents
 
-Listes de tâches par repository avec **suggestions automatiques** depuis vos issues GitHub en cours. Mutations optimistes pour un feedback UI instantané.
+Une **liste globale** unique avec édition inline et filtre repo optionnel. **Suggestions** en un clic depuis les issues GitHub qui vous sont assignées et rangées en colonne Backlog/Todo. Mutations optimistes pour un feedback UI instantané.
 
 ### 🔃 Pull Requests
 
@@ -283,7 +285,7 @@ Créez et gérez des presets d'agents réutilisables (fichiers `.md` dans `.clau
 
 ### Conçu pour le multi-repo
 
-Devora supporte nativement **plusieurs repositories**. Ajoutez vos projets, et chaque page — Issues, PRs, Todos, Workspace, Agents, Skills — affiche des onglets par repo. Réorganisez par drag-and-drop, l'ordre persiste sur toutes les pages.
+Devora supporte nativement **plusieurs repositories**. Ajoutez vos projets, et chaque page — Issues, PRs, Todos, Workers, Agents, Skills — affiche des onglets par repo. Réorganisez par drag-and-drop, l'ordre persiste sur toutes les pages.
 
 ### Des agents IA qui rendent compte
 
