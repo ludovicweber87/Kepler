@@ -64,12 +64,10 @@ export async function runStart(opts = {}) {
 	const agent = AGENT_PORT;
 	writePorts({ web, agent });
 
-	// Detached services inherit a minimal PATH — ensure Homebrew bins (gh, git,
-	// tmux, claude) are found regardless of how `devora` was launched.
-	const PATH = ['/opt/homebrew/bin', '/usr/local/bin', process.env.PATH || '']
-		.filter(Boolean)
-		.join(':');
-
+	// NB: we deliberately DON'T prepend Homebrew to PATH — it can shadow the
+	// user's `node` (brew node vs nvm node) and break native modules built for a
+	// different ABI (better-sqlite3). External tools (gh, tmux, claude) are
+	// resolved by absolute path elsewhere, and the token is injected below.
 	const token = ghToken();
 	if (!token) {
 		console.warn('⚠ Could not read a GitHub token from gh — run `gh auth login`.');
@@ -78,7 +76,6 @@ export async function runStart(opts = {}) {
 	const env = {
 		...process.env,
 		...parseEnvFile(ENV_FILE),
-		PATH,
 		DEVORA_DB_PATH: DB_PATH,
 		DEVORA_AGENT_PORT: String(agent),
 		NEXT_PUBLIC_AGENT_URL: `http://localhost:${agent}`,

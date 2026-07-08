@@ -56,6 +56,9 @@ export function runUpdate() {
 
 	console.log('Installing dependencies...');
 	run('npm', ['install'], repoDir);
+	// npm install won't rebuild an already-present native module even if the node
+	// ABI changed — force it so better-sqlite3 matches the current node.
+	run('npm', ['rebuild', 'better-sqlite3'], repoDir);
 
 	console.log('Building...');
 	run('npm', ['run', 'build'], repoDir);
