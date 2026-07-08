@@ -16,9 +16,13 @@
 		"settings": "Configurações",
 		"signOut": "Sair",
 		"launchAgent": "Iniciar agente",
-		"workers": "Workers",
 		"projects": "Projetos",
-		"noWorktrees": "Nenhum worktree"
+		"noWorktrees": "Nenhum worktree",
+		"deleteWorktree": "Excluir worktree",
+		"deleteWorktreeOnly": "Apenas worktree",
+		"deleteWorktreeAndBranch": "Worktree + branch",
+		"worktreeDeleted": "Worktree excluído",
+		"deleteWorktreeError": "Falha ao excluir o worktree"
 	},
 	"landing": {
 		"nav": {
@@ -97,6 +101,10 @@
 		"refresh": "Atualizar",
 		"noOpenIssues": "Nenhuma issue aberta",
 		"noOpenIssuesDesc": "Nenhuma issue aberta está atribuída a você aqui.",
+		"noViewsSelected": "Nenhuma vista selecionada",
+		"noViewsSelectedDesc": "Selecione quais vistas do Project V2 exibir nas configurações.",
+		"configureViews": "Configurar minhas vistas",
+		"refreshNeedsViews": "Selecione vistas para poder atualizar",
 		"createBranch": "Criar branch",
 		"branchName": "Nome da branch",
 		"issue": "Issue",
@@ -249,19 +257,5 @@
 		"editComment": "Editar comentario",
 		"deleteComment": "Excluir comentario",
 		"deleteCommentConfirm": "Este comentario sera excluido permanentemente da issue do GitHub."
-	},
-	"workers": {
-		"title": "Workers",
-		"allProjects": "Todos",
-		"inProgress": "Em curso",
-		"inactive": "Inativos",
-		"none": "Nenhum worker",
-		"kpiActive": "ativos",
-		"kpiQuestions": "perguntas",
-		"kpiCompleted": "concluídos",
-		"deleteTitle": "Excluir {branch}",
-		"deleteWorktreeOnly": "Apenas worktree",
-		"deleteWorktreeAndBranch": "Worktree + branch",
-		"history": "Histórico"
 	}
 }

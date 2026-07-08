@@ -43,7 +43,16 @@ export function useAllWorktrees(paths: string[]) {
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ cwd, worktreePath, deleteBranch }),
 			});
-			if (!res.ok) throw new Error('Failed to delete worktree');
+			if (!res.ok) {
+				let detail = `HTTP ${res.status}`;
+				try {
+					const data = await res.json();
+					if (data?.error) detail = data.error;
+				} catch {
+					/* non-JSON body */
+				}
+				throw new Error(detail);
+			}
 		} catch (err) {
 			if (previous) queryClient.setQueryData(['git-worktrees', cwd], previous);
 			throw err;

@@ -1,8 +1,11 @@
 import { Server as HttpServer } from 'node:http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { spawn, IPty } from 'node-pty';
-import { execSync } from 'node:child_process';
-import { findTmux } from './helpers.js';
+import { execSync, execFileSync } from 'node:child_process';
+import { writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { findTmux, findClaude } from './helpers.js';
 import { getDb } from './db.js';
 
 const TMUX = findTmux();
@@ -15,6 +18,8 @@ interface InitMessage {
 	cwd: string;
 	cols: number;
 	rows: number;
+	/** When set on a brand-new session, launch the Claude CLI with this system prompt. */
+	claudeSystemPrompt?: string;
 }
 
 interface InputMessage {
@@ -165,6 +170,22 @@ function createTmuxSession(sessionId: string, cwd: string): void {
 	});
 }
 
+/**
+ * Launch the Claude CLI inside a freshly-created tmux session.
+ * The system prompt is written to a temp file and passed via --system-prompt-file,
+ * so no prompt content ever needs shell escaping. Args are passed to tmux as an
+ * array (execFileSync), so the command string needs no outer-shell quoting either.
+ */
+function launchClaudeInSession(sessionId: string, systemPrompt: string): void {
+	const promptFile = join(tmpdir(), `devora-sysprompt-${sessionId}.md`);
+	writeFileSync(promptFile, systemPrompt, 'utf-8');
+	const claude = findClaude();
+	// `$(...)`-free: the pane shell reads the file path literally; unset avoids
+	// Claude thinking it runs inside another Claude session.
+	const command = `unset CLAUDECODE CLAUDE_CODE_ENTRYPOINT && ${claude} --system-prompt-file ${JSON.stringify(promptFile)}`;
+	execFileSync(TMUX, ['send-keys', '-t', sessionId, command, 'Enter']);
+}
+
 function spawnTmuxAttach(sessionId: string, cols: number, rows: number): IPty {
 	return spawn(TMUX, ['attach-session', '-t', sessionId], {
 		name: 'xterm-256color',
@@ -182,6 +203,13 @@ function spawnTmuxAttach(sessionId: string, cols: number, rows: number): IPty {
 export function startTerminalServer(httpServer: HttpServer) {
 	const wss = new WebSocketServer({ server: httpServer });
 	console.log('[devora-agent] WebSocket terminal server attached');
+
+	// `ws` re-emits the HTTP server's 'error' onto the WSS. Without this handler
+	// that re-emit throws (no listener) and preempts the server's own 'error'
+	// handler — leaving the agent as a zombie on port conflicts.
+	wss.on('error', (err) => {
+		console.error('[devora-agent] WebSocket server error:', err.message);
+	});
 
 	wss.on('connection', (ws: WebSocket) => {
 		let pty: IPty | null = null;
@@ -203,49 +231,62 @@ export function startTerminalServer(httpServer: HttpServer) {
 
 			if (msg.type === 'init') {
 				initReady = (async () => {
-					const attachId = msg.sessionId;
-					const existed = tmuxSessionExists(msg.sessionId);
-					const isShellSession = msg.sessionId.endsWith('-shell');
+					try {
+						const attachId = msg.sessionId;
+						const existed = tmuxSessionExists(msg.sessionId);
+						const isShellSession = msg.sessionId.endsWith('-shell');
 
-					if (!existed) {
-						if (!isShellSession) {
-							const completed = await isSessionCompleted(msg.sessionId);
-							if (completed) {
-								ws.send(
-									JSON.stringify({
-										type: 'init-error',
-										reason: 'session_completed',
-									}),
-								);
-								return;
+						if (!existed) {
+							if (!isShellSession) {
+								const completed = await isSessionCompleted(msg.sessionId);
+								if (completed) {
+									ws.send(
+										JSON.stringify({
+											type: 'init-error',
+											reason: 'session_completed',
+										}),
+									);
+									return;
+								}
+							}
+							createTmuxSession(msg.sessionId, msg.cwd);
+							// New session + a system prompt → launch Claude server-side,
+							// before the client attaches (no timing race).
+							if (msg.claudeSystemPrompt) {
+								launchClaudeInSession(msg.sessionId, msg.claudeSystemPrompt);
 							}
 						}
-						createTmuxSession(msg.sessionId, msg.cwd);
+
+						pty = spawnTmuxAttach(attachId, msg.cols, msg.rows);
+
+						ws.send(
+							JSON.stringify({
+								type: 'init-ack',
+								resumed: existed,
+								...(attachId !== msg.sessionId ? { actualSessionId: attachId } : {}),
+							}),
+						);
+
+						pty.onData((data: string) => {
+							sessionOutputTimestamps.set(attachId, Date.now());
+							if (ws.readyState === WebSocket.OPEN) {
+								ws.send(data);
+							}
+						});
+
+						pty.onExit(() => {
+							if (ws.readyState === WebSocket.OPEN) {
+								ws.close();
+							}
+							pty = null;
+						});
+					} catch (err) {
+						// A tmux/pty spawn failure must not crash the whole agent.
+						console.error('[devora-agent] Terminal init failed:', err);
+						if (ws.readyState === WebSocket.OPEN) {
+							ws.send(JSON.stringify({ type: 'init-error', reason: 'spawn_failed' }));
+						}
 					}
-
-					pty = spawnTmuxAttach(attachId, msg.cols, msg.rows);
-
-					ws.send(
-						JSON.stringify({
-							type: 'init-ack',
-							resumed: existed,
-							...(attachId !== msg.sessionId ? { actualSessionId: attachId } : {}),
-						}),
-					);
-
-					pty.onData((data: string) => {
-						sessionOutputTimestamps.set(attachId, Date.now());
-						if (ws.readyState === WebSocket.OPEN) {
-							ws.send(data);
-						}
-					});
-
-					pty.onExit(() => {
-						if (ws.readyState === WebSocket.OPEN) {
-							ws.close();
-						}
-						pty = null;
-					});
 				})();
 				return;
 			}

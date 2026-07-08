@@ -64,6 +64,18 @@ export default function Dashboard() {
 	// Filtered sessions (exclude active from past, filter by repo)
 	const activeSessionIds = useMemo(() => new Set(sessions.map((s) => s.sessionId)), [sessions]);
 
+	// Sessions whose agent has finished (DB status), even if their tmux still lingers.
+	// Opening one of these must be read-only — never relaunch/reconnect a finished agent.
+	const finishedSessionIds = useMemo(
+		() =>
+			new Set(
+				pastSessions
+					.filter((s) => s.status === 'completed' || s.status === 'error')
+					.map((s) => s.session_id),
+			),
+		[pastSessions],
+	);
+
 	const filteredActiveSessions = useMemo(() => {
 		if (!selectedRepo) return sessions;
 		return sessions.filter((s) => matchesRepo(s.projectName, s.cwd, selectedRepo));
@@ -125,6 +137,9 @@ export default function Dashboard() {
 			? {
 					projectPath: selected.session.cwd,
 					existingSessionId: selected.session.sessionId,
+					// A finished agent (DB completed/error) opens read-only even if its
+					// tmux is still alive — clicking it must not relaunch/reconnect.
+					isPastSession: finishedSessionIds.has(selected.session.sessionId),
 				}
 			: selected?.type === 'past'
 				? {

@@ -16,9 +16,13 @@
 		"settings": "Parametres",
 		"signOut": "Se deconnecter",
 		"launchAgent": "Lancer un agent",
-		"workers": "Workers",
 		"projects": "Projets",
-		"noWorktrees": "Aucun worktree"
+		"noWorktrees": "Aucun worktree",
+		"deleteWorktree": "Supprimer le worktree",
+		"deleteWorktreeOnly": "Worktree seulement",
+		"deleteWorktreeAndBranch": "Worktree + branche",
+		"worktreeDeleted": "Worktree supprimé",
+		"deleteWorktreeError": "Échec de la suppression du worktree"
 	},
 	"landing": {
 		"nav": {
@@ -97,6 +101,10 @@
 		"refresh": "Rafraichir",
 		"noOpenIssues": "Aucune issue ouverte",
 		"noOpenIssuesDesc": "Aucune issue ouverte ne vous est assignee ici.",
+		"noViewsSelected": "Aucune vue sélectionnée",
+		"noViewsSelectedDesc": "Sélectionnez les vues Project V2 à afficher dans les paramètres.",
+		"configureViews": "Configurer mes vues",
+		"refreshNeedsViews": "Sélectionnez des vues pour pouvoir rafraîchir",
 		"createBranch": "Creer une branche",
 		"branchName": "Nom de la branche",
 		"issue": "Issue",
@@ -270,19 +278,5 @@
 		"editComment": "Modifier le commentaire",
 		"deleteComment": "Supprimer le commentaire",
 		"deleteCommentConfirm": "Ce commentaire sera definitivement supprime de l'issue GitHub."
-	},
-	"workers": {
-		"title": "Workers",
-		"allProjects": "Tous",
-		"inProgress": "En cours",
-		"inactive": "Inactifs",
-		"none": "Aucun worker",
-		"kpiActive": "actifs",
-		"kpiQuestions": "questions",
-		"kpiCompleted": "terminés",
-		"deleteTitle": "Supprimer {branch}",
-		"deleteWorktreeOnly": "Worktree uniquement",
-		"deleteWorktreeAndBranch": "Worktree + branche",
-		"history": "Historique"
 	}
 }
