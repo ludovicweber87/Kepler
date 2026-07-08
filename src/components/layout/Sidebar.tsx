@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Box from '@mui/material/Box';
@@ -34,6 +34,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import { usePendingTodoCount } from '@/hooks/usePendingTodoCount';
 import { useActiveSessions } from '@/hooks/useActiveSessions';
+import { useAgentSessionHistory } from '@/hooks/useAgentSession';
 import { useAgentViews } from '@/hooks/useAgentViews';
 import { useAllWorktrees } from '@/hooks/useAllWorktrees';
 import { useSnackbar } from '@/hooks/useSnackbar';
@@ -49,6 +50,17 @@ export default function Sidebar() {
 	const t = useTranslations('sidebar');
 	const pendingCount = usePendingTodoCount();
 	const { data: activeSessions = [] } = useActiveSessions();
+	const { data: pastSessions = [] } = useAgentSessionHistory();
+	// Sessions whose agent finished (DB status) — open read-only even if their tmux lingers.
+	const finishedSessionIds = useMemo(
+		() =>
+			new Set(
+				pastSessions
+					.filter((s) => s.status === 'completed' || s.status === 'error')
+					.map((s) => s.session_id),
+			),
+		[pastSessions],
+	);
 	const { views } = useAgentViews();
 	const { byPath, deleteWorktree } = useAllWorktrees(views.map((v) => v.path));
 	const { showSnackbar } = useSnackbar();
@@ -64,6 +76,7 @@ export default function Sidebar() {
 		projectPath?: string;
 		existingSessionId?: string;
 		existingWorktree?: { branch: string; worktreePath: string };
+		isPastSession?: boolean;
 	} | null>(null);
 
 	const toggleProject = (path: string) => {
@@ -318,6 +331,10 @@ export default function Sidebar() {
 																					view.path,
 																				existingSessionId:
 																					activeS.sessionId,
+																				isPastSession:
+																					finishedSessionIds.has(
+																						activeS.sessionId,
+																					),
 																			}
 																		: {
 																				projectPath:
@@ -531,6 +548,7 @@ export default function Sidebar() {
 				projectPath={modalConfig?.projectPath}
 				existingSessionId={modalConfig?.existingSessionId}
 				existingWorktree={modalConfig?.existingWorktree}
+				isPastSession={modalConfig?.isPastSession}
 			/>
 		</>
 	);
