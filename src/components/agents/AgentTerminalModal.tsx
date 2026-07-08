@@ -150,6 +150,39 @@ function buildReportingPrompt(sessionId: string): string {
 	].join('\n');
 }
 
+// Auto-generated worktree name. The `wip-` prefix marks it as un-named: the server
+// renames the branch (Karma convention) on the agent's first activity log.
+const WT_ADJ = [
+	'dusty',
+	'light',
+	'bold',
+	'calm',
+	'swift',
+	'brave',
+	'quiet',
+	'warm',
+	'sharp',
+	'soft',
+];
+const WT_NOUN = [
+	'canyon',
+	'ivy',
+	'pine',
+	'river',
+	'delta',
+	'harbor',
+	'meadow',
+	'summit',
+	'ember',
+	'vale',
+];
+function randomWorktreeName(): string {
+	const a = WT_ADJ[Math.floor(Math.random() * WT_ADJ.length)];
+	const n = WT_NOUN[Math.floor(Math.random() * WT_NOUN.length)];
+	const id = Math.random().toString(36).slice(2, 6);
+	return `wip-${a}-${n}-${id}`;
+}
+
 export default function AgentTerminalModal({
 	open,
 	onClose,
@@ -383,11 +416,13 @@ export default function AgentTerminalModal({
 	}, []);
 
 	const handleLaunch = useCallback(async () => {
-		if (!branchInput.trim() || !projectPath) return;
+		if (!projectPath) return;
+		// Name is optional — fall back to an auto-generated `wip-` name (renamed later by the server)
+		const name = branchInput.trim() || randomWorktreeName();
 		setWorktreeError(null);
 
 		try {
-			const result = await createWorktree(branchInput.trim());
+			const result = await createWorktree(name);
 			setWorktreePath(result.worktreePath);
 
 			// Ensure DB session with worktree info
@@ -398,7 +433,7 @@ export default function AgentTerminalModal({
 				projectName,
 				agentName:
 					agentFile?.name ?? (issueContext ? `#${issueContext.issueNumber}` : null),
-				branch: branchInput.trim(),
+				branch: name,
 				worktreePath: result.worktreePath,
 				issueOwner: issueContext?.owner ?? null,
 				issueRepo: issueContext?.repo ?? null,
@@ -1428,7 +1463,7 @@ export default function AgentTerminalModal({
 							<Button
 								type="submit"
 								variant="contained"
-								disabled={!branchInput.trim() || isCreating || !projectPath}
+								disabled={isCreating || !projectPath}
 								startIcon={
 									isCreating ? (
 										<CircularProgress size={16} color="inherit" />
