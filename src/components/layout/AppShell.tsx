@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
@@ -10,13 +10,11 @@ import { useTranslations } from 'next-intl';
 import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
 import Sidebar from './Sidebar';
 import Header from './Header';
-import RightSidebar, { RIGHT_SIDEBAR_WIDTH } from './RightSidebar';
 import OverlayTerminal from './OverlayTerminal';
 import AppLoadingSplash from './AppLoadingSplash';
 import SettingsPanel from '@/components/settings/SettingsPanel';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useProjectConfig } from '@/hooks/useProjectConfig';
-import { RightSidebarContext } from '@/hooks/useRightSidebar';
 import { OverlayTerminalContext, type OverlaySession } from '@/hooks/useOverlayTerminal';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -24,21 +22,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 	const { repoPaths, repoPathsLoading } = useRepoPaths();
 	const { configs } = useProjectConfig();
 	const t = useTranslations('onboarding');
-	const [rightOpen, setRightOpen] = useState(true);
-	const [rightWidth, setRightWidth] = useState(RIGHT_SIDEBAR_WIDTH);
 	const [overlaySession, setOverlaySession] = useState<OverlaySession | null>(null);
 	const [onboardingDone, setOnboardingDone] = useState(false);
-	const skipOnboarding = useRef<boolean | null>(null);
-
-	const rightCtx = useMemo(
-		() => ({
-			open: rightOpen,
-			toggle: () => setRightOpen((v) => !v),
-			width: rightWidth,
-			setWidth: setRightWidth,
-		}),
-		[rightOpen, rightWidth],
-	);
+	// Captured once (after repo paths load): did the user already have repos on entry?
+	const [skipOnboarding, setSkipOnboarding] = useState<boolean | null>(null);
 
 	const openOverlay = useCallback((s: OverlaySession) => setOverlaySession(s), []);
 	const closeOverlay = useCallback(() => setOverlaySession(null), []);
@@ -50,13 +37,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
 	if (status === 'loading' || repoPathsLoading) return <AppLoadingSplash />;
 
-	if (skipOnboarding.current === null) {
-		skipOnboarding.current = repoPaths.length > 0;
+	if (skipOnboarding === null) {
+		setSkipOnboarding(repoPaths.length > 0);
+		return <AppLoadingSplash />;
 	}
 
 	const hasRepos = repoPaths.length > 0;
 	const hasProjects = configs.some((c) => c.selectedViews.length > 0);
-	const showOnboarding = !skipOnboarding.current && !onboardingDone;
+	const showOnboarding = !skipOnboarding && !onboardingDone;
 
 	if (showOnboarding) {
 		return (
@@ -97,58 +85,54 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 					</Box>
 				</Box>
 				<Box
-				sx={{
-					position: 'fixed',
-					bottom: 0,
-					left: 0,
-					right: 0,
-					display: 'flex',
-					justifyContent: 'center',
-					py: 2,
-					bgcolor: 'background.default',
-					boxShadow: '0 -4px 12px rgba(0,0,0,0.15)',
-					zIndex: 1200,
-				}}
-			>
-				<Button
-					variant="contained"
-					size="large"
-					startIcon={<RocketLaunchRoundedIcon />}
-					disabled={!hasRepos || !hasProjects}
-					onClick={() => setOnboardingDone(true)}
-					sx={{ px: 5, py: 1.5, fontWeight: 600, fontSize: '1rem' }}
+					sx={{
+						position: 'fixed',
+						bottom: 0,
+						left: 0,
+						right: 0,
+						display: 'flex',
+						justifyContent: 'center',
+						py: 2,
+						bgcolor: 'background.default',
+						boxShadow: '0 -4px 12px rgba(0,0,0,0.15)',
+						zIndex: 1200,
+					}}
 				>
-					{t('launch')}
-				</Button>
-			</Box>
+					<Button
+						variant="contained"
+						size="large"
+						startIcon={<RocketLaunchRoundedIcon />}
+						disabled={!hasRepos || !hasProjects}
+						onClick={() => setOnboardingDone(true)}
+						sx={{ px: 5, py: 1.5, fontWeight: 600, fontSize: '1rem' }}
+					>
+						{t('launch')}
+					</Button>
+				</Box>
 			</>
 		);
 	}
 
 	return (
-		<RightSidebarContext.Provider value={rightCtx}>
-			<OverlayTerminalContext.Provider value={overlayCtx}>
-				<Box sx={{ display: 'flex', minHeight: '100vh' }}>
-					<Sidebar />
-					<Header />
-					<Box
-						component="main"
-						sx={{
-							flexGrow: 1,
-							mt: '64px',
-							p: { xs: 2, md: 4 },
-							bgcolor: 'background.default',
-							height: 'calc(100vh - 64px)',
-							overflow: 'auto',
-							transition: 'margin-right 0.2s',
-						}}
-					>
-						{children}
-					</Box>
-					<RightSidebar />
+		<OverlayTerminalContext.Provider value={overlayCtx}>
+			<Box sx={{ display: 'flex', minHeight: '100vh' }}>
+				<Sidebar />
+				<Header />
+				<Box
+					component="main"
+					sx={{
+						flexGrow: 1,
+						mt: '64px',
+						p: { xs: 2, md: 4 },
+						bgcolor: 'background.default',
+						height: 'calc(100vh - 64px)',
+						overflow: 'auto',
+					}}
+				>
+					{children}
 				</Box>
-				<OverlayTerminal />
-			</OverlayTerminalContext.Provider>
-		</RightSidebarContext.Provider>
+			</Box>
+			<OverlayTerminal />
+		</OverlayTerminalContext.Provider>
 	);
 }

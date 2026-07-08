@@ -20,13 +20,14 @@ import MergeTypeRoundedIcon from '@mui/icons-material/MergeTypeRounded';
 import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
 import ChecklistRoundedIcon from '@mui/icons-material/ChecklistRounded';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
-import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
+import EngineeringRoundedIcon from '@mui/icons-material/EngineeringRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
 import Image from 'next/image';
 import { useSession, signOut } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import { usePendingTodoCount } from '@/hooks/usePendingTodoCount';
+import { useActiveSessions } from '@/hooks/useActiveSessions';
 import LocaleSwitcher from '@/components/LocaleSwitcher';
 import AgentTerminalModal from '@/components/agents/AgentTerminalModal';
 
@@ -38,12 +39,18 @@ export default function Sidebar() {
 	const { data: session } = useSession();
 	const t = useTranslations('sidebar');
 	const pendingCount = usePendingTodoCount();
+	const { data: activeSessions = [] } = useActiveSessions();
 	const [launchOpen, setLaunchOpen] = useState(false);
 	const mainItems = [
 		{ label: t('dashboard'), href: '/dashboard', icon: <DashboardRoundedIcon /> },
 		{ label: t('issues'), href: '/issues', icon: <BugReportRoundedIcon /> },
 		{ label: t('prs'), href: '/prs', icon: <MergeTypeRoundedIcon /> },
-		{ label: t('worktrees'), href: '/workspace', icon: <AccountTreeRoundedIcon /> },
+		{
+			label: t('workers'),
+			href: '/workers',
+			icon: <EngineeringRoundedIcon />,
+			badge: activeSessions.length,
+		},
 		{ label: t('todos'), href: '/todos', icon: <ChecklistRoundedIcon />, badge: pendingCount },
 	];
 
