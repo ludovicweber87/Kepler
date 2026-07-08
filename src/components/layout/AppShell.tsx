@@ -5,7 +5,6 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import Image from 'next/image';
-import { useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
 import Sidebar from './Sidebar';
@@ -18,7 +17,6 @@ import { useProjectConfig } from '@/hooks/useProjectConfig';
 import { OverlayTerminalContext, type OverlaySession } from '@/hooks/useOverlayTerminal';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
-	const { status } = useSession();
 	const { repoPaths, repoPathsLoading } = useRepoPaths();
 	const { configs } = useProjectConfig();
 	const t = useTranslations('onboarding');
@@ -35,7 +33,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 		[overlaySession, openOverlay, closeOverlay],
 	);
 
-	if (status === 'loading' || repoPathsLoading) return <AppLoadingSplash />;
+	if (repoPathsLoading) return <AppLoadingSplash />;
 
 	if (skipOnboarding === null) {
 		setSkipOnboarding(repoPaths.length > 0);

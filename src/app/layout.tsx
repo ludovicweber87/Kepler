@@ -3,7 +3,6 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import ThemeRegistry from '@/components/ThemeRegistry';
 import QueryProvider from '@/components/QueryProvider';
-import AuthProvider from '@/components/AuthProvider';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -27,11 +26,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 			</head>
 			<body style={{ margin: 0 }}>
 				<NextIntlClientProvider messages={messages}>
-					<AuthProvider>
-						<QueryProvider>
-							<ThemeRegistry>{children}</ThemeRegistry>
-						</QueryProvider>
-					</AuthProvider>
+					<QueryProvider>
+						<ThemeRegistry>{children}</ThemeRegistry>
+					</QueryProvider>
 				</NextIntlClientProvider>
 			</body>
 		</html>

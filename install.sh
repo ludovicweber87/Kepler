@@ -9,7 +9,6 @@ set -euo pipefail
 DEVORA_HOME="${DEVORA_HOME:-$HOME/.devora}"
 REPO_DIR="$DEVORA_HOME/repo"
 BIN_DIR="$DEVORA_HOME/bin"
-ENV_FILE="$DEVORA_HOME/.env"
 CLI_NAME="devora"
 
 # Resolve the repo URL: explicit arg > current repo's origin > default.
@@ -31,23 +30,12 @@ else
 	git clone "$REPO_URL" "$REPO_DIR"
 fi
 
-# 2. Bootstrap secrets (~/.devora/.env), reused across updates.
-if [ ! -f "$ENV_FILE" ]; then
-	if [ -f "$PWD/.env" ]; then
-		cp "$PWD/.env" "$ENV_FILE"
-		chmod 600 "$ENV_FILE"
-		echo "→ Copied .env from $PWD/.env"
-	else
-		cat > "$ENV_FILE" <<'ENVEOF'
-# Required for Devora to run — fill these in.
-AUTH_SECRET=
-GITHUB_CLIENT_ID=
-GITHUB_CLIENT_SECRET=
-GITHUB_TOKEN=
-ENVEOF
-		chmod 600 "$ENV_FILE"
-		echo "→ Created template $ENV_FILE — fill in your secrets before starting."
-	fi
+# 2. GitHub auth comes from the local `gh` CLI — no secrets to configure.
+if ! command -v gh >/dev/null 2>&1; then
+	echo "⚠ GitHub CLI (gh) not found. Install it: https://cli.github.com"
+	echo "  Devora uses your gh session for GitHub access."
+elif ! gh auth status >/dev/null 2>&1; then
+	echo "⚠ gh is installed but not logged in — run: gh auth login"
 fi
 
 # 3. Install deps and build (app + agent).

@@ -27,10 +27,9 @@ import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import Collapse from '@mui/material/Collapse';
-import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
 import Image from 'next/image';
-import { useSession, signOut } from 'next-auth/react';
+import { useMe } from '@/hooks/useMe';
 import { useTranslations } from 'next-intl';
 import { usePendingTodoCount } from '@/hooks/usePendingTodoCount';
 import { useActiveSessions } from '@/hooks/useActiveSessions';
@@ -46,7 +45,7 @@ export const SIDEBAR_WIDTH = 220;
 export default function Sidebar() {
 	const theme = useTheme();
 	const pathname = usePathname();
-	const { data: session } = useSession();
+	const { me } = useMe();
 	const t = useTranslations('sidebar');
 	const pendingCount = usePendingTodoCount();
 	const { data: activeSessions = [] } = useActiveSessions();
@@ -476,7 +475,7 @@ export default function Sidebar() {
 						})}
 					</List>
 
-					{session?.user && (
+					{me && (
 						<Box
 							sx={{
 								px: 2,
@@ -490,8 +489,8 @@ export default function Sidebar() {
 							}}
 						>
 							<Avatar
-								src={session.user.image ?? undefined}
-								alt={session.user.name ?? ''}
+								src={me.avatarUrl ?? undefined}
+								alt={me.name ?? me.login}
 								sx={{ width: 32, height: 32 }}
 							/>
 							<Box sx={{ flex: 1, minWidth: 0 }}>
@@ -506,19 +505,9 @@ export default function Sidebar() {
 										whiteSpace: 'nowrap',
 									}}
 								>
-									{(session.user as { login?: string }).login ??
-										session.user.name}
+									{me.login}
 								</Typography>
 							</Box>
-							<Tooltip title={t('signOut')}>
-								<IconButton
-									size="small"
-									onClick={() => signOut({ callbackUrl: '/login' })}
-									sx={{ color: 'text.secondary' }}
-								>
-									<LogoutRoundedIcon fontSize="small" />
-								</IconButton>
-							</Tooltip>
 						</Box>
 					)}
 				</Box>
