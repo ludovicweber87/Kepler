@@ -78,6 +78,8 @@ export default function KanbanColumn({
 					scrollbarWidth: 'thin',
 					'&::-webkit-scrollbar': { width: 4 },
 					'&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 1 },
+					// Empêche flexbox d'écraser les cards quand la colonne déborde : on scrolle à la place
+					'& > *': { flexShrink: 0 },
 				}}
 			>
 				{issues.map((issue) => (
