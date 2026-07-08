@@ -1,5 +1,7 @@
 const { app, BrowserWindow, shell } = require('electron');
 
+app.setName('Devora');
+
 const PORT = process.env.DEVORA_WEB_PORT || '4000';
 const SERVER_URL = `http://localhost:${PORT}`;
 

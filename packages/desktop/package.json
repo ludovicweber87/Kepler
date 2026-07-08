@@ -4,6 +4,9 @@
 	"private": true,
 	"description": "Electron window wrapping the local Devora server",
 	"main": "src/main.js",
+	"scripts": {
+		"postinstall": "node scripts/patch-electron-name.js"
+	},
 	"dependencies": {
 		"electron": "^35.0.0"
 	}
