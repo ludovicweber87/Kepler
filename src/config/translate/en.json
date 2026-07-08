@@ -16,7 +16,6 @@
 		"settings": "Settings",
 		"signOut": "Sign out",
 		"launchAgent": "Launch Agent",
-		"workers": "Workers",
 		"projects": "Projects",
 		"noWorktrees": "No worktrees",
 		"deleteWorktree": "Delete worktree",
@@ -279,19 +278,5 @@
 		"editComment": "Edit comment",
 		"deleteComment": "Delete comment",
 		"deleteCommentConfirm": "This comment will be permanently deleted from the GitHub issue."
-	},
-	"workers": {
-		"title": "Workers",
-		"allProjects": "All",
-		"inProgress": "In progress",
-		"inactive": "Inactive",
-		"none": "No workers",
-		"kpiActive": "active",
-		"kpiQuestions": "questions",
-		"kpiCompleted": "completed",
-		"deleteTitle": "Delete {branch}",
-		"deleteWorktreeOnly": "Worktree only",
-		"deleteWorktreeAndBranch": "Worktree + branch",
-		"history": "History"
 	}
 }

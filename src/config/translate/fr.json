@@ -16,7 +16,6 @@
 		"settings": "Parametres",
 		"signOut": "Se deconnecter",
 		"launchAgent": "Lancer un agent",
-		"workers": "Workers",
 		"projects": "Projets",
 		"noWorktrees": "Aucun worktree",
 		"deleteWorktree": "Supprimer le worktree",
@@ -279,19 +278,5 @@
 		"editComment": "Modifier le commentaire",
 		"deleteComment": "Supprimer le commentaire",
 		"deleteCommentConfirm": "Ce commentaire sera definitivement supprime de l'issue GitHub."
-	},
-	"workers": {
-		"title": "Workers",
-		"allProjects": "Tous",
-		"inProgress": "En cours",
-		"inactive": "Inactifs",
-		"none": "Aucun worker",
-		"kpiActive": "actifs",
-		"kpiQuestions": "questions",
-		"kpiCompleted": "terminés",
-		"deleteTitle": "Supprimer {branch}",
-		"deleteWorktreeOnly": "Worktree uniquement",
-		"deleteWorktreeAndBranch": "Worktree + branche",
-		"history": "Historique"
 	}
 }
