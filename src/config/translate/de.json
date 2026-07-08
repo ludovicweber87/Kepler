@@ -16,7 +16,9 @@
 		"settings": "Einstellungen",
 		"signOut": "Abmelden",
 		"launchAgent": "Agent starten",
-		"workers": "Workers"
+		"workers": "Workers",
+		"projects": "Projekte",
+		"noWorktrees": "Keine Worktrees"
 	},
 	"landing": {
 		"nav": {
@@ -258,6 +260,7 @@
 		"kpiCompleted": "erledigt",
 		"deleteTitle": "{branch} löschen",
 		"deleteWorktreeOnly": "Nur Worktree",
-		"deleteWorktreeAndBranch": "Worktree + Branch"
+		"deleteWorktreeAndBranch": "Worktree + Branch",
+		"history": "Verlauf"
 	}
 }

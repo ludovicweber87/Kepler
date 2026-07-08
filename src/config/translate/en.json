@@ -16,7 +16,9 @@
 		"settings": "Settings",
 		"signOut": "Sign out",
 		"launchAgent": "Launch Agent",
-		"workers": "Workers"
+		"workers": "Workers",
+		"projects": "Projects",
+		"noWorktrees": "No worktrees"
 	},
 	"landing": {
 		"nav": {
@@ -280,6 +282,7 @@
 		"kpiCompleted": "completed",
 		"deleteTitle": "Delete {branch}",
 		"deleteWorktreeOnly": "Worktree only",
-		"deleteWorktreeAndBranch": "Worktree + branch"
+		"deleteWorktreeAndBranch": "Worktree + branch",
+		"history": "History"
 	}
 }
