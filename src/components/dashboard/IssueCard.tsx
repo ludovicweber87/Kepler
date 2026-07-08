@@ -34,8 +34,6 @@ export default function IssueCard({ issue }: { issue: GitHubIssue }) {
 	const isOpen = issue.state === 'open';
 	const stateColor = isOpen ? theme.palette.success.main : theme.palette.text.disabled;
 	const stateLabel = isOpen ? 'Open' : 'Closed';
-	const [owner, repo] = (issue.repo_full_name ?? '').split('/');
-	const href = `/task/${owner}/${repo}/${issue.number}`;
 
 	return (
 		<Card
@@ -45,7 +43,12 @@ export default function IssueCard({ issue }: { issue: GitHubIssue }) {
 				'&:hover': { transform: 'translateY(-2px)' },
 			}}
 		>
-			<Link href={href} style={{ textDecoration: 'none' }}>
+			<Link
+				href={issue.html_url}
+				target="_blank"
+				rel="noopener noreferrer"
+				style={{ textDecoration: 'none' }}
+			>
 				<CardActionArea>
 					<CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
 						<Box
