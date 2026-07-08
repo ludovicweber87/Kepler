@@ -1,9 +1,11 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
 const timestamp = () => text().default(sql`(datetime('now'))`);
 const uuid = () =>
-	text().primaryKey().$defaultFn(() => crypto.randomUUID());
+	text()
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID());
 
 // ─── Todos ───────────────────────────────────────────────
 
@@ -81,3 +83,17 @@ export const tabOrders = sqliteTable('tab_orders', {
 	tab_order: text({ mode: 'json' }).$type<string[]>().default([]),
 	updated_at: timestamp(),
 });
+
+// ─── Project Boards (SQLite cache of the GitHub Project V2 board) ──
+
+export const projectBoards = sqliteTable(
+	'project_boards',
+	{
+		id: uuid(),
+		org: text().notNull(),
+		project_number: integer().notNull(),
+		payload: text({ mode: 'json' }),
+		fetched_at: timestamp(),
+	},
+	(table) => [uniqueIndex('project_boards_org_num').on(table.org, table.project_number)],
+);

@@ -14,6 +14,7 @@ interface KanbanColumnProps {
 	issues: GitHubIssue[];
 	allColumns: string[];
 	onStatusChange: (issue: GitHubIssue, newStatus: string) => void;
+	onCardClick: (issue: GitHubIssue) => void;
 }
 
 export default function KanbanColumn({
@@ -21,6 +22,7 @@ export default function KanbanColumn({
 	issues,
 	allColumns,
 	onStatusChange,
+	onCardClick,
 }: KanbanColumnProps) {
 	const theme = useTheme();
 	const count = issues.length;
@@ -35,7 +37,8 @@ export default function KanbanColumn({
 				flexDirection: 'column',
 				bgcolor: 'background.paper',
 				borderRadius: 1,
-				boxShadow: theme.palette.mode === 'dark'
+				boxShadow:
+					theme.palette.mode === 'dark'
 						? `0 1px 4px ${alpha(theme.palette.common.black, 0.18)}, 0 0 1px ${alpha(theme.palette.common.black, 0.25)}`
 						: `0 1px 4px ${alpha(theme.palette.common.black, 0.06)}, 0 0 1px ${alpha(theme.palette.common.black, 0.1)}`,
 				p: 1.5,
@@ -89,6 +92,7 @@ export default function KanbanColumn({
 						currentColumn={columnName}
 						columns={allColumns}
 						onStatusChange={onStatusChange}
+						onOpen={onCardClick}
 					/>
 				))}
 			</Box>

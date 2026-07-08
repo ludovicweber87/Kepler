@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Skeleton from '@mui/material/Skeleton';
@@ -12,8 +12,10 @@ import Tooltip from '@mui/material/Tooltip';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import ClearRoundedIcon from '@mui/icons-material/ClearRounded';
+import Dialog from '@mui/material/Dialog';
 import KanbanColumn from './KanbanColumn';
 import CreateBranchModal from './CreateBranchModal';
+import IssueDetail from '@/components/dashboard/IssueDetail';
 import DraggableTabs from '@/components/shared/DraggableTabs';
 import { useProjectConfig } from '@/hooks/useProjectConfig';
 import { useProjectBoards } from '@/hooks/useProjectBoards';
@@ -47,24 +49,48 @@ export default function IssuesList() {
 		configsLoading,
 		selectedViewMappings,
 		reorderViews,
-		syncViews,
+		saveConfig,
 		getConfigForRepo,
 	} = useProjectConfig();
 
 	// Only fetch boards for projects that actually contribute selected views to the board
 	const boardConfigs = configs.filter((c) => c.selectedViews.length > 0);
 
-	// Board data: issues + PRs assigned to the logged-in user, per view, straight from Project V2 items
-	const { issuesByView, error, isLoading, refetch, isFetching } = useProjectBoards(boardConfigs);
+	// Board data (SQLite cache-backed): issues per view + raw response per config + last fetch time
+	const { issuesByView, perConfig, error, isLoading, refresh, fetchedAt } =
+		useProjectBoards(boardConfigs);
+	const [refreshing, setRefreshing] = useState(false);
 
-	// Auto-sync Project V2 view metadata on mount (keeps the tab list / settings fresh)
-	const hasSynced = useRef(false);
-	useEffect(() => {
-		if (configs.length > 0 && !hasSynced.current) {
-			hasSynced.current = true;
-			syncViews();
+	const handleRefresh = useCallback(async () => {
+		setRefreshing(true);
+		try {
+			await refresh();
+		} finally {
+			setRefreshing(false);
 		}
-	}, [configs, syncViews]);
+	}, [refresh]);
+
+	// Persist fresh Project V2 metadata (views / mappings / status columns) into the stored config,
+	// reusing the board fetch — no separate sync request. The diff guard avoids a save loop.
+	useEffect(() => {
+		for (const { config, data } of perConfig) {
+			const nextMappings = data.viewRepoMappings ?? config.viewRepoMappings;
+			const nextViews = data.views ?? config.views;
+			const nextColumns = data.statusColumns ?? config.statusColumns;
+			const changed =
+				JSON.stringify(config.viewRepoMappings) !== JSON.stringify(nextMappings) ||
+				JSON.stringify(config.views) !== JSON.stringify(nextViews) ||
+				JSON.stringify(config.statusColumns) !== JSON.stringify(nextColumns);
+			if (changed) {
+				saveConfig({
+					...config,
+					viewRepoMappings: nextMappings,
+					views: nextViews,
+					statusColumns: nextColumns,
+				});
+			}
+		}
+	}, [perConfig, saveConfig]);
 
 	const [activeTab, setActiveTab] = useState(0);
 	const [search, setSearch] = useState('');
@@ -73,6 +99,18 @@ export default function IssuesList() {
 
 	// Branch modal state
 	const [branchModalIssue, setBranchModalIssue] = useState<GitHubIssue | null>(null);
+
+	// Issue detail modal state
+	const [detailIssue, setDetailIssue] = useState<{
+		owner: string;
+		repo: string;
+		number: string;
+	} | null>(null);
+
+	const openDetail = useCallback((issue: GitHubIssue) => {
+		const [owner, repo] = (issue.repo_full_name ?? '').split('/');
+		if (owner && repo) setDetailIssue({ owner, repo, number: String(issue.number) });
+	}, []);
 
 	const hasViews = selectedViewMappings.length > 0;
 
@@ -245,16 +283,26 @@ export default function IssuesList() {
 							},
 						}}
 					/>
+					{fetchedAt && (
+						<Typography
+							variant="caption"
+							sx={{ color: 'text.disabled', whiteSpace: 'nowrap' }}
+						>
+							{t('updated', {
+								time: new Date(fetchedAt).toLocaleTimeString(undefined, {
+									hour: '2-digit',
+									minute: '2-digit',
+								}),
+							})}
+						</Typography>
+					)}
 					<Tooltip title={t('refresh')}>
 						<IconButton
-							onClick={() => {
-								syncViews();
-								refetch();
-							}}
-							disabled={isFetching}
+							onClick={handleRefresh}
+							disabled={refreshing}
 							sx={{
 								color: 'text.secondary',
-								animation: isFetching ? 'spin 1s linear infinite' : 'none',
+								animation: refreshing ? 'spin 1s linear infinite' : 'none',
 							}}
 						>
 							<RefreshRoundedIcon />
@@ -303,6 +351,7 @@ export default function IssuesList() {
 							issues={issues}
 							allColumns={activeStatusColumns}
 							onStatusChange={handleStatusChange}
+							onCardClick={openDetail}
 						/>
 					))}
 				</Box>
@@ -315,6 +364,25 @@ export default function IssuesList() {
 					issue={branchModalIssue}
 				/>
 			)}
+
+			<Dialog
+				open={!!detailIssue}
+				onClose={() => setDetailIssue(null)}
+				maxWidth="md"
+				fullWidth
+				PaperProps={{ sx: { borderRadius: 1 } }}
+			>
+				{detailIssue && (
+					<Box sx={{ p: 3 }}>
+						<IssueDetail
+							owner={detailIssue.owner}
+							repo={detailIssue.repo}
+							number={detailIssue.number}
+							onClose={() => setDetailIssue(null)}
+						/>
+					</Box>
+				)}
+			</Dialog>
 		</Box>
 	);
 }

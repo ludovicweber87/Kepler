@@ -166,10 +166,10 @@ function proxyGitHubImage(src: string | undefined): string | undefined {
 	return src;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function createMarkdownComponents(
 	onCheckboxToggle?: (index: number) => void,
 	counterRef?: React.RefObject<number>,
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Record<string, any> {
 	return {
 		img: ({ src, alt, ...props }: { src?: string; alt?: string }) => (
@@ -388,10 +388,12 @@ export default function IssueDetail({
 	owner,
 	repo,
 	number,
+	onClose,
 }: {
 	owner: string;
 	repo: string;
 	number: string;
+	onClose?: () => void;
 }) {
 	const theme = useTheme();
 	const t = useTranslations('issueDetail');
@@ -579,7 +581,7 @@ export default function IssueDetail({
 	const handleCreateTask = async () => {
 		setTaskAnchor(null);
 		const title = `#${number} ${data?.issue.title ?? ''}`;
-		addTodo(title, issueNum, repoFullName);
+		addTodo(title, { issueNumber: issueNum, issueRepo: repoFullName });
 		setTimeout(invalidateTodos, 500);
 	};
 
@@ -619,14 +621,24 @@ export default function IssueDetail({
 	if (error) {
 		return (
 			<Box sx={{ maxWidth: 860, mx: 'auto' }}>
-				<Link href="/issues" style={{ textDecoration: 'none' }}>
+				{onClose ? (
 					<Button
 						startIcon={<ArrowBackRoundedIcon />}
+						onClick={onClose}
 						sx={{ mb: 3, color: 'text.secondary' }}
 					>
 						{t('backToIssues')}
 					</Button>
-				</Link>
+				) : (
+					<Link href="/issues" style={{ textDecoration: 'none' }}>
+						<Button
+							startIcon={<ArrowBackRoundedIcon />}
+							sx={{ mb: 3, color: 'text.secondary' }}
+						>
+							{t('backToIssues')}
+						</Button>
+					</Link>
+				)}
 				<Alert severity="error" sx={{ borderRadius: 1 }}>
 					{t('loadError', { message: error.message })}
 				</Alert>
@@ -642,14 +654,24 @@ export default function IssueDetail({
 	const stateLabel = isOpen ? 'Open' : 'Closed';
 	return (
 		<Box sx={{ maxWidth: 860, mx: 'auto' }}>
-			<Link href="/issues" style={{ textDecoration: 'none' }}>
+			{onClose ? (
 				<Button
 					startIcon={<ArrowBackRoundedIcon />}
+					onClick={onClose}
 					sx={{ mb: 3, color: 'text.secondary' }}
 				>
 					{t('backToIssues')}
 				</Button>
-			</Link>
+			) : (
+				<Link href="/issues" style={{ textDecoration: 'none' }}>
+					<Button
+						startIcon={<ArrowBackRoundedIcon />}
+						sx={{ mb: 3, color: 'text.secondary' }}
+					>
+						{t('backToIssues')}
+					</Button>
+				</Link>
+			)}
 
 			<Card sx={{ mb: 3, animation: 'fadeInUp 0.4s ease-out both' }}>
 				<CardContent sx={{ p: 4, '&:last-child': { pb: 4 } }}>

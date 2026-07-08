@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchStatusFieldInfo, findProjectItemId, updateProjectItemStatus } from '@/lib/github';
 import { requireAuth, isAuthError } from '@/lib/auth-utils';
+import { patchSnapshotStatus } from '@/lib/projectBoardCache';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,12 @@ export async function PATCH(request: NextRequest) {
 			);
 		}
 
-		const fieldInfo = await fetchStatusFieldInfo(org, projectNumber, auth.accessToken, ownerType ?? 'organization');
+		const fieldInfo = await fetchStatusFieldInfo(
+			org,
+			projectNumber,
+			auth.accessToken,
+			ownerType ?? 'organization',
+		);
 
 		const option = fieldInfo.options.find((o) => o.name === newStatus);
 		if (!option) {
@@ -30,7 +36,16 @@ export async function PATCH(request: NextRequest) {
 
 		const itemId = await findProjectItemId(issueNodeId, fieldInfo.projectId, auth.accessToken);
 
-		await updateProjectItemStatus(fieldInfo.projectId, itemId, fieldInfo.fieldId, option.id, auth.accessToken);
+		await updateProjectItemStatus(
+			fieldInfo.projectId,
+			itemId,
+			fieldInfo.fieldId,
+			option.id,
+			auth.accessToken,
+		);
+
+		// Keep the cached board snapshot coherent with the change (no refetch needed).
+		patchSnapshotStatus(org, Number(projectNumber), issueNodeId, newStatus);
 
 		return NextResponse.json({ success: true });
 	} catch (error) {

@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { DashboardData } from '@/types';
+import { DashboardData, GitHubIssue } from '@/types';
 import { apiFetch } from '@/lib/api-fetch';
 
 interface UpdateStatusParams {
@@ -12,6 +12,15 @@ interface UpdateStatusParams {
 
 const DASHBOARD_KEY_PREFIX = ['github', 'dashboard'];
 
+function withStatus(issue: GitHubIssue, newStatus: string): GitHubIssue {
+	return {
+		...issue,
+		project_columns: issue.project_columns?.length
+			? issue.project_columns.map((col) => ({ ...col, column: newStatus }))
+			: [{ project: '', column: newStatus }],
+	};
+}
+
 function updateDashboardIssues(
 	old: DashboardData | undefined,
 	params: UpdateStatusParams,
@@ -20,17 +29,28 @@ function updateDashboardIssues(
 	return {
 		...old,
 		issues: old.issues.map((issue) =>
-			issue.node_id === params.issueNodeId
-				? {
-						...issue,
-						project_columns: issue.project_columns?.map((col) => ({
-							...col,
-							column: params.newStatus,
-						})) ?? [{ project: '', column: params.newStatus }],
-					}
-				: issue,
+			issue.node_id === params.issueNodeId ? withStatus(issue, params.newStatus) : issue,
 		),
 	};
+}
+
+interface BoardData {
+	boardIssuesByView?: Record<string, GitHubIssue[]>;
+	[k: string]: unknown;
+}
+
+function updateBoardIssues(
+	old: BoardData | undefined,
+	params: UpdateStatusParams,
+): BoardData | undefined {
+	if (!old?.boardIssuesByView) return old;
+	const next: Record<string, GitHubIssue[]> = {};
+	for (const [view, issues] of Object.entries(old.boardIssuesByView)) {
+		next[view] = issues.map((issue) =>
+			issue.node_id === params.issueNodeId ? withStatus(issue, params.newStatus) : issue,
+		);
+	}
+	return { ...old, boardIssuesByView: next };
 }
 
 export function useUpdateIssueStatus() {
@@ -49,30 +69,39 @@ export function useUpdateIssueStatus() {
 			}
 		},
 		onMutate: async (params) => {
-			await queryClient.cancelQueries({ queryKey: DASHBOARD_KEY_PREFIX });
+			const boardKey = ['project-board', params.org, params.projectNumber];
+			await Promise.all([
+				queryClient.cancelQueries({ queryKey: DASHBOARD_KEY_PREFIX }),
+				queryClient.cancelQueries({ queryKey: boardKey }),
+			]);
 
-			const previousEntries: [readonly unknown[], DashboardData][] = [];
-			const queries = queryClient.getQueriesData<DashboardData>({
+			const previousDashboard: [readonly unknown[], DashboardData][] = [];
+			for (const [key, data] of queryClient.getQueriesData<DashboardData>({
 				queryKey: DASHBOARD_KEY_PREFIX,
-			});
-			for (const [key, data] of queries) {
-				if (data) previousEntries.push([key, data]);
+			})) {
+				if (data) previousDashboard.push([key, data]);
 			}
-
 			queryClient.setQueriesData<DashboardData>({ queryKey: DASHBOARD_KEY_PREFIX }, (old) =>
 				updateDashboardIssues(old, params),
 			);
 
-			return { previousEntries };
+			// Move the card on the board (cache-backed, no refetch)
+			const previousBoard = queryClient.getQueryData<BoardData>(boardKey);
+			queryClient.setQueryData<BoardData>(boardKey, (old) => updateBoardIssues(old, params));
+
+			return { previousDashboard, previousBoard, boardKey };
 		},
 		onError: (_err, _params, context) => {
-			if (context?.previousEntries) {
-				for (const [key, data] of context.previousEntries) {
-					queryClient.setQueryData(key, data);
-				}
+			for (const [key, data] of context?.previousDashboard ?? []) {
+				queryClient.setQueryData(key, data);
+			}
+			if (context?.boardKey && context.previousBoard !== undefined) {
+				queryClient.setQueryData(context.boardKey, context.previousBoard);
 			}
 		},
 		onSettled: () => {
+			// Only invalidate the (assigned-issues) dashboard; the board stays cache-backed
+			// and was already patched optimistically + server-side. No board refetch.
 			queryClient.invalidateQueries({ queryKey: DASHBOARD_KEY_PREFIX });
 		},
 	});
