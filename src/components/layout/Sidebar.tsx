@@ -14,6 +14,8 @@ import Avatar from '@mui/material/Avatar';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
 import { alpha, useTheme } from '@mui/material/styles';
 import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
 import MergeTypeRoundedIcon from '@mui/icons-material/MergeTypeRounded';
@@ -24,6 +26,7 @@ import EngineeringRoundedIcon from '@mui/icons-material/EngineeringRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import Collapse from '@mui/material/Collapse';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
@@ -34,6 +37,7 @@ import { usePendingTodoCount } from '@/hooks/usePendingTodoCount';
 import { useActiveSessions } from '@/hooks/useActiveSessions';
 import { useAgentViews } from '@/hooks/useAgentViews';
 import { useAllWorktrees } from '@/hooks/useAllWorktrees';
+import { useSnackbar } from '@/hooks/useSnackbar';
 import LocaleSwitcher from '@/components/LocaleSwitcher';
 import AgentTerminalModal from '@/components/agents/AgentTerminalModal';
 
@@ -47,13 +51,44 @@ export default function Sidebar() {
 	const pendingCount = usePendingTodoCount();
 	const { data: activeSessions = [] } = useActiveSessions();
 	const { views } = useAgentViews();
-	const { byPath } = useAllWorktrees(views.map((v) => v.path));
-	const [expandedProject, setExpandedProject] = useState<string | null>(null);
+	const { byPath, deleteWorktree } = useAllWorktrees(views.map((v) => v.path));
+	const { showSnackbar } = useSnackbar();
+	// Projects are all expanded by default; we only track the ones the user collapsed,
+	// so each accordion opens/closes independently.
+	const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
+	const [deleteMenu, setDeleteMenu] = useState<{
+		el: HTMLElement;
+		projectPath: string;
+		worktreePath: string;
+	} | null>(null);
 	const [modalConfig, setModalConfig] = useState<{
 		projectPath?: string;
 		existingSessionId?: string;
 		existingWorktree?: { branch: string; worktreePath: string };
 	} | null>(null);
+
+	const toggleProject = (path: string) => {
+		setCollapsedProjects((prev) => {
+			const next = new Set(prev);
+			if (next.has(path)) next.delete(path);
+			else next.add(path);
+			return next;
+		});
+	};
+
+	const handleDeleteWorktree = (deleteBranch: boolean) => {
+		if (!deleteMenu) return;
+		const { projectPath, worktreePath } = deleteMenu;
+		setDeleteMenu(null);
+		deleteWorktree(projectPath, worktreePath, deleteBranch)
+			.then(() => showSnackbar(t('worktreeDeleted'), 'success'))
+			.catch((err) =>
+				showSnackbar(
+					`${t('deleteWorktreeError')}: ${err instanceof Error ? err.message : ''}`,
+					'error',
+				),
+			);
+	};
 	const mainItems = [
 		{ label: t('dashboard'), href: '/dashboard', icon: <DashboardRoundedIcon /> },
 		{ label: t('issues'), href: '/issues', icon: <BugReportRoundedIcon /> },
@@ -209,14 +244,12 @@ export default function Sidebar() {
 						)}
 						{views.map((view) => {
 							const worktrees = byPath.get(view.path) ?? [];
-							const expanded = expandedProject === view.path;
+							const expanded = !collapsedProjects.has(view.path);
 							return (
 								<Box key={view.path}>
 									<Box sx={{ display: 'flex', alignItems: 'center' }}>
 										<ListItemButton
-											onClick={() =>
-												setExpandedProject(expanded ? null : view.path)
-											}
+											onClick={() => toggleProject(view.path)}
 											sx={{
 												borderRadius: 1,
 												py: 0.6,
@@ -318,6 +351,9 @@ export default function Sidebar() {
 																		0.1,
 																	),
 																},
+																'&:hover .wt-delete': {
+																	opacity: 1,
+																},
 															}}
 														>
 															<AccountTreeRoundedIcon
@@ -342,6 +378,33 @@ export default function Sidebar() {
 															>
 																{wt.branch}
 															</Typography>
+															<Tooltip title={t('deleteWorktree')}>
+																<IconButton
+																	className="wt-delete"
+																	size="small"
+																	onClick={(e) => {
+																		e.stopPropagation();
+																		setDeleteMenu({
+																			el: e.currentTarget,
+																			projectPath: view.path,
+																			worktreePath: wt.path,
+																		});
+																	}}
+																	sx={{
+																		p: 0.25,
+																		opacity: 0,
+																		transition: 'opacity 0.15s',
+																		color: 'text.disabled',
+																		'&:hover': {
+																			color: 'error.main',
+																		},
+																	}}
+																>
+																	<DeleteOutlineRoundedIcon
+																		sx={{ fontSize: 14 }}
+																	/>
+																</IconButton>
+															</Tooltip>
 														</Box>
 													);
 												})
@@ -450,6 +513,24 @@ export default function Sidebar() {
 					)}
 				</Box>
 			</Drawer>
+
+			<Menu
+				anchorEl={deleteMenu?.el}
+				open={!!deleteMenu}
+				onClose={() => setDeleteMenu(null)}
+				anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+				transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+			>
+				<MenuItem onClick={() => handleDeleteWorktree(false)} sx={{ fontSize: '0.8rem' }}>
+					{t('deleteWorktreeOnly')}
+				</MenuItem>
+				<MenuItem
+					onClick={() => handleDeleteWorktree(true)}
+					sx={{ fontSize: '0.8rem', color: 'error.main' }}
+				>
+					{t('deleteWorktreeAndBranch')}
+				</MenuItem>
+			</Menu>
 
 			<AgentTerminalModal
 				open={!!modalConfig}

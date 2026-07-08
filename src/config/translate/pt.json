@@ -18,7 +18,12 @@
 		"launchAgent": "Iniciar agente",
 		"workers": "Workers",
 		"projects": "Projetos",
-		"noWorktrees": "Nenhum worktree"
+		"noWorktrees": "Nenhum worktree",
+		"deleteWorktree": "Excluir worktree",
+		"deleteWorktreeOnly": "Apenas worktree",
+		"deleteWorktreeAndBranch": "Worktree + branch",
+		"worktreeDeleted": "Worktree excluído",
+		"deleteWorktreeError": "Falha ao excluir o worktree"
 	},
 	"landing": {
 		"nav": {
@@ -97,6 +102,10 @@
 		"refresh": "Atualizar",
 		"noOpenIssues": "Nenhuma issue aberta",
 		"noOpenIssuesDesc": "Nenhuma issue aberta está atribuída a você aqui.",
+		"noViewsSelected": "Nenhuma vista selecionada",
+		"noViewsSelectedDesc": "Selecione quais vistas do Project V2 exibir nas configurações.",
+		"configureViews": "Configurar minhas vistas",
+		"refreshNeedsViews": "Selecione vistas para poder atualizar",
 		"createBranch": "Criar branch",
 		"branchName": "Nome da branch",
 		"issue": "Issue",

@@ -8,11 +8,14 @@ import Alert from '@mui/material/Alert';
 import InputAdornment from '@mui/material/InputAdornment';
 import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
+import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import ClearRoundedIcon from '@mui/icons-material/ClearRounded';
+import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import Dialog from '@mui/material/Dialog';
+import Link from 'next/link';
 import KanbanColumn from './KanbanColumn';
 import CreateBranchModal from './CreateBranchModal';
 import IssueDetail from '@/components/dashboard/IssueDetail';
@@ -296,17 +299,19 @@ export default function IssuesList() {
 							})}
 						</Typography>
 					)}
-					<Tooltip title={t('refresh')}>
-						<IconButton
-							onClick={handleRefresh}
-							disabled={refreshing}
-							sx={{
-								color: 'text.secondary',
-								animation: refreshing ? 'spin 1s linear infinite' : 'none',
-							}}
-						>
-							<RefreshRoundedIcon />
-						</IconButton>
+					<Tooltip title={hasViews ? t('refresh') : t('refreshNeedsViews')}>
+						<span>
+							<IconButton
+								onClick={handleRefresh}
+								disabled={refreshing || !hasViews}
+								sx={{
+									color: 'text.secondary',
+									animation: refreshing ? 'spin 1s linear infinite' : 'none',
+								}}
+							>
+								<RefreshRoundedIcon />
+							</IconButton>
+						</span>
 					</Tooltip>
 				</Box>
 			</Box>
@@ -324,12 +329,31 @@ export default function IssuesList() {
 			)}
 
 			{filteredIssues.length === 0 ? (
-				<Box sx={{ textAlign: 'center', py: 8 }}>
-					<Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
-						{t('noOpenIssues')}
-					</Typography>
-					<Typography variant="body2">{t('noOpenIssuesDesc')}</Typography>
-				</Box>
+				!hasViews ? (
+					<Box sx={{ textAlign: 'center', py: 8 }}>
+						<Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
+							{t('noViewsSelected')}
+						</Typography>
+						<Typography variant="body2" sx={{ mb: 3 }}>
+							{t('noViewsSelectedDesc')}
+						</Typography>
+						<Button
+							component={Link}
+							href="/settings"
+							variant="contained"
+							startIcon={<SettingsRoundedIcon />}
+						>
+							{t('configureViews')}
+						</Button>
+					</Box>
+				) : (
+					<Box sx={{ textAlign: 'center', py: 8 }}>
+						<Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
+							{t('noOpenIssues')}
+						</Typography>
+						<Typography variant="body2">{t('noOpenIssuesDesc')}</Typography>
+					</Box>
+				)
 			) : (
 				<Box
 					sx={{

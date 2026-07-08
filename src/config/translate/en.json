@@ -18,7 +18,12 @@
 		"launchAgent": "Launch Agent",
 		"workers": "Workers",
 		"projects": "Projects",
-		"noWorktrees": "No worktrees"
+		"noWorktrees": "No worktrees",
+		"deleteWorktree": "Delete worktree",
+		"deleteWorktreeOnly": "Worktree only",
+		"deleteWorktreeAndBranch": "Worktree + branch",
+		"worktreeDeleted": "Worktree deleted",
+		"deleteWorktreeError": "Failed to delete worktree"
 	},
 	"landing": {
 		"nav": {
@@ -97,6 +102,10 @@
 		"refresh": "Refresh",
 		"noOpenIssues": "No open issues",
 		"noOpenIssuesDesc": "No open issues are assigned to you here.",
+		"noViewsSelected": "No views selected",
+		"noViewsSelectedDesc": "Select which Project V2 views to display in the settings.",
+		"configureViews": "Configure my views",
+		"refreshNeedsViews": "Select views to enable refresh",
 		"createBranch": "Create branch",
 		"branchName": "Branch name",
 		"issue": "Issue",
