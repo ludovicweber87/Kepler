@@ -11,7 +11,6 @@ import { useAgentSessionHistory, type AgentSession } from '@/hooks/useAgentSessi
 import { useAgentSummaries, type AgentSummary } from '@/hooks/useRecentLogs';
 import { usePendingQuestions } from '@/hooks/usePendingQuestions';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
-import { useSessionManager } from '@/hooks/useSessionManager';
 import { localFetch } from '@/lib/local-fetch';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
@@ -55,7 +54,6 @@ export default function Dashboard() {
 	const { data: summaries = [], isLoading: summariesLoading } = useAgentSummaries();
 	const pendingQuestions = usePendingQuestions();
 	const { repoPaths } = useRepoPaths();
-	const { deleteSession } = useSessionManager();
 	const repos = useMemo(() => repoPaths.map((r) => r.repo_full_name), [repoPaths]);
 
 	// Selected repo for filtering (null = all)
@@ -228,7 +226,6 @@ export default function Dashboard() {
 						<RecentSessionsWidget
 							sessions={filteredPastSessions}
 							onSessionClick={handlePastSessionClick}
-							onDeleteSession={deleteSession}
 						/>
 					</Box>
 				</Box>
