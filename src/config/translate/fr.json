@@ -101,6 +101,17 @@
 		"activeAgents": "{count, plural, one {# agent actif} other {# agents actifs}}",
 		"pendingTodos": "{count, plural, one {# tache en attente} other {# taches en attente}}"
 	},
+	"workbench": {
+		"emptyTitle": "Aucune session sélectionnée",
+		"emptyDesc": "Sélectionne une session dans la barre latérale ou lance un nouveau worktree depuis un projet.",
+		"chipFiles": "Fichiers",
+		"chipActivity": "Activity",
+		"chipIssue": "Issue",
+		"terminal": "Terminal",
+		"newSession": "Nouvelle session",
+		"activeSession": "Session active",
+		"stopSession": "Arrêter la session"
+	},
 	"issues": {
 		"title": "Issues",
 		"searchPlaceholder": "Rechercher #id ou titre...",

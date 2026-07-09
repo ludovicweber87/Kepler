@@ -101,6 +101,17 @@
 		"activeAgents": "{count, plural, one {# agente activo} other {# agentes activos}}",
 		"pendingTodos": "{count, plural, one {# tarea pendiente} other {# tareas pendientes}}"
 	},
+	"workbench": {
+		"emptyTitle": "Ninguna sesión seleccionada",
+		"emptyDesc": "Selecciona una sesión en la barra lateral o lanza un nuevo worktree desde un proyecto.",
+		"chipFiles": "Archivos",
+		"chipActivity": "Actividad",
+		"chipIssue": "Issue",
+		"terminal": "Terminal",
+		"newSession": "Nueva sesión",
+		"activeSession": "Sesión activa",
+		"stopSession": "Detener la sesión"
+	},
 	"issues": {
 		"title": "Issues",
 		"searchPlaceholder": "Buscar #id o título...",
