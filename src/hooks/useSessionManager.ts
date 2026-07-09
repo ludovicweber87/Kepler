@@ -44,22 +44,6 @@ export function useSessionManager() {
 		[queryClient, showSnackbar, t],
 	);
 
-	// Delete a past session from DB
-	const deleteSession = useCallback(
-		async (id: string) => {
-			try {
-				await apiFetch(`/api/agent-sessions?id=${encodeURIComponent(id)}`, {
-					method: 'DELETE',
-				});
-				queryClient.invalidateQueries({ queryKey: ['agent-sessions', 'history'] });
-				showSnackbar(t('sessionDeleted'), 'success');
-			} catch {
-				// ignore
-			}
-		},
-		[queryClient, showSnackbar, t],
-	);
-
 	// Find active tmux session for a given worktree path
 	const getActiveForPath = useCallback(
 		(path: string) => activeSessions.find((s) => s.cwd === path) ?? null,
@@ -93,7 +77,6 @@ export function useSessionManager() {
 		activeSessions,
 		pastSessions,
 		killSession,
-		deleteSession,
 		getActiveForPath,
 		getPastForPath,
 		fetchSessionForPath,
