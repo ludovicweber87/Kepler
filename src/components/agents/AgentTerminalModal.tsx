@@ -144,6 +144,7 @@ export default function AgentTerminalModal({
 
 	const generatedIdRef = useRef<string | null>(null);
 	const redirectedRef = useRef(false);
+	const issueCtxRef = useRef<string | null>(null);
 	if (open && !existingSessionId && !generatedIdRef.current) {
 		generatedIdRef.current = buildSessionId(projectPath ?? undefined, agentFile, issueContext);
 	}
@@ -247,6 +248,7 @@ export default function AgentTerminalModal({
 				issueRepo: null,
 				issueNumber: null,
 				issueTitle: null,
+				systemPrompt: composeSystemPrompt(),
 			});
 
 			goToWorkbench(sessionId);
@@ -257,6 +259,7 @@ export default function AgentTerminalModal({
 	const fetchIssueContext = useCallback(async (url: string) => {
 		const m = url.match(/github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)/);
 		if (!m) {
+			issueCtxRef.current = null;
 			setIssueLoaded(null);
 			return;
 		}
@@ -270,6 +273,7 @@ export default function AgentTerminalModal({
 			const data = await res.json();
 			const issue = data.issue;
 			if (issue) {
+				issueCtxRef.current = `## Contexte de l'issue #${issue.number} : ${issue.title}\n\n${issue.body ?? ''}`;
 				setIssueLoaded(`#${issue.number} ${issue.title}`);
 			}
 		} catch {
@@ -278,6 +282,12 @@ export default function AgentTerminalModal({
 			setIssueFetching(false);
 		}
 	}, []);
+
+	const composeSystemPrompt = useCallback((): string | undefined => {
+		const base = agentFile ? agentFile.content : '';
+		const issueBlock = issueCtxRef.current ? `\n\n${issueCtxRef.current}` : '';
+		return (base + issueBlock).trim() || undefined;
+	}, [agentFile]);
 
 	const handleLaunch = useCallback(async () => {
 		if (!projectPath) return;
@@ -305,6 +315,7 @@ export default function AgentTerminalModal({
 				issueRepo: issueContext?.repo ?? null,
 				issueNumber: issueContext?.issueNumber ?? null,
 				issueTitle: issueContext?.issueTitle ?? null,
+				systemPrompt: composeSystemPrompt(),
 			});
 
 			goToWorkbench(sessionId);
@@ -361,6 +372,7 @@ export default function AgentTerminalModal({
 					issueRepo: issueContext?.repo ?? null,
 					issueNumber: issueContext?.issueNumber ?? null,
 					issueTitle: issueContext?.issueTitle ?? null,
+					systemPrompt: composeSystemPrompt(),
 				});
 
 				goToWorkbench(sessionId);

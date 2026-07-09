@@ -19,6 +19,7 @@ export interface AgentSession {
 	issue_repo: string | null;
 	issue_number: number | null;
 	issue_title: string | null;
+	system_prompt: string | null;
 }
 
 export interface AgentActivityLog {
@@ -73,6 +74,7 @@ export function useAgentSession(sessionId: string | undefined) {
 			issueRepo?: string | null;
 			issueNumber?: number | null;
 			issueTitle?: string | null;
+			systemPrompt?: string | null;
 		}) => {
 			const res = await apiFetch('/api/agent-sessions', {
 				method: 'POST',
@@ -88,6 +90,7 @@ export function useAgentSession(sessionId: string | undefined) {
 					issue_repo: params.issueRepo ?? null,
 					issue_number: params.issueNumber ?? null,
 					issue_title: params.issueTitle ?? null,
+					system_prompt: params.systemPrompt ?? null,
 				}),
 			});
 			if (!res.ok) throw new Error('Failed to ensure session');

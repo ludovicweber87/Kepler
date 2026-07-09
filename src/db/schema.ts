@@ -41,6 +41,7 @@ export const agentSessions = sqliteTable('agent_sessions', {
 	issue_number: integer(),
 	issue_title: text(),
 	claude_session_id: text(),
+	system_prompt: text(),
 });
 
 // ─── Agent Activity Logs ─────────────────────────────────

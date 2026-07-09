@@ -254,6 +254,7 @@ export default function Workbench() {
 					<AgentChatTab
 						sessionId={sessionId}
 						cwd={effectivePath}
+						systemPrompt={resolved?.system_prompt ?? undefined}
 						readOnly={chatReadOnly}
 						archived={isArchived}
 						onResume={() => {
