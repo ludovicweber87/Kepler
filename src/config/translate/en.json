@@ -6,6 +6,7 @@
 	},
 	"sidebar": {
 		"dashboard": "Dashboard",
+		"workbench": "Workbench",
 		"issues": "Issues",
 		"prs": "PRs",
 		"workspace": "Workspace",

@@ -122,7 +122,7 @@ export default function Sidebar() {
 			);
 	};
 	const mainItems = [
-		{ label: t('dashboard'), href: '/dashboard', icon: <DashboardRoundedIcon /> },
+		{ label: t('workbench'), href: '/workbench', icon: <DashboardRoundedIcon /> },
 		{ label: t('issues'), href: '/issues', icon: <BugReportRoundedIcon /> },
 		{ label: t('prs'), href: '/prs', icon: <MergeTypeRoundedIcon /> },
 		{ label: t('todos'), href: '/todos', icon: <ChecklistRoundedIcon />, badge: pendingCount },
