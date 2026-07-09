@@ -124,7 +124,6 @@ export default function AgentTerminalModal({
 	const [issueUrl, setIssueUrl] = useState('');
 	const [issueFetching, setIssueFetching] = useState(false);
 	const [issueLoaded, setIssueLoaded] = useState<string | null>(null);
-	const issueCtxRef = useRef<string | null>(null);
 	const [, setWorktreePath] = useState<string | null>(null);
 	const [worktreeError, setWorktreeError] = useState<string | null>(null);
 	// Current branch mode state
@@ -144,6 +143,7 @@ export default function AgentTerminalModal({
 	const { createWorktree, isCreating } = useWorktrees(projectPath ?? undefined);
 
 	const generatedIdRef = useRef<string | null>(null);
+	const redirectedRef = useRef(false);
 	if (open && !existingSessionId && !generatedIdRef.current) {
 		generatedIdRef.current = buildSessionId(projectPath ?? undefined, agentFile, issueContext);
 	}
@@ -158,6 +158,8 @@ export default function AgentTerminalModal({
 	// close this modal. The modal's job ends the moment a session id is ready.
 	const goToWorkbench = useCallback(
 		(id: string) => {
+			if (redirectedRef.current) return;
+			redirectedRef.current = true;
 			router.push(`/workbench?session=${encodeURIComponent(id)}`);
 			onClose();
 		},
@@ -208,6 +210,7 @@ export default function AgentTerminalModal({
 			setCurrentBranch(null);
 			setFetchingBranch(false);
 			setLaunchMode(null);
+			redirectedRef.current = false;
 		}
 	}, [open]);
 
@@ -254,7 +257,6 @@ export default function AgentTerminalModal({
 	const fetchIssueContext = useCallback(async (url: string) => {
 		const m = url.match(/github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)/);
 		if (!m) {
-			issueCtxRef.current = null;
 			setIssueLoaded(null);
 			return;
 		}
@@ -268,7 +270,6 @@ export default function AgentTerminalModal({
 			const data = await res.json();
 			const issue = data.issue;
 			if (issue) {
-				issueCtxRef.current = `## Contexte de l'issue #${issue.number} : ${issue.title}\n\n${issue.body ?? ''}`;
 				setIssueLoaded(`#${issue.number} ${issue.title}`);
 			}
 		} catch {
