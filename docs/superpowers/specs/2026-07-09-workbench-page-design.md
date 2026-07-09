@@ -24,7 +24,10 @@ Les widgets sessions récentes / agents actifs / logs (et leurs actions) **dispa
 1. **Nom** : la page s'appelle **Workbench**. Route `/workbench`.
 2. **Point d'entrée par défaut** : `/workbench` est la landing. Si aucune session sélectionnée
    → empty-state centré + sidebar droite vide.
-3. **Sélection de session existante** : via le **RightSidebar** existant (worktrees + sessions).
+3. **Sélection de session existante** : via la liste **PROJETS du `Sidebar` gauche** (worktrees
+   par projet). Note : le `CLAUDE.md` décrit encore un `RightSidebar` 400px — il n'existe plus,
+   il a été fusionné dans le `Sidebar` gauche. C'est bien cette liste que l'utilisateur appelle
+   « RightSidebar ».
 4. **Création** : « nouveau worktree depuis un projet » → modal (steps projet → mode → branche)
    → puis le Workbench se remplit.
 5. **Chips droite** : `Fichiers` + `Terminal` empilés simultanément ; les chips basculent surtout
@@ -46,8 +49,9 @@ redirige) :
 - `src/app/(app)/archived/page.tsx` (ouverture session archivée/passée)
 - `src/components/workspace/BranchDetail.tsx` (lancement dans worktree existant)
 - `src/components/dashboard/IssueDetail.tsx` (lancement depuis une issue, `issueContext`)
-- `src/components/layout/Sidebar.tsx` (nouvelle session / nouveau worktree depuis projet)
-- `src/components/layout/OverlayTerminal.tsx` (PiP — voir note plus bas)
+- `src/components/layout/Sidebar.tsx` (nouvelle session, nouveau worktree depuis projet, clic
+  worktree via `setModalConfig`)
+- `src/components/layout/OverlayTerminal.tsx` (PiP « expand » — voir note plus bas)
 - `src/components/dashboard/Dashboard.tsx` → **supprimé** (remplacé par Workbench)
 
 ### Source de vérité de la session affichée : l'URL
@@ -63,8 +67,18 @@ redirige) :
 
 ### Points d'entrée qui écrivent l'URL
 
-- **RightSidebar** : clic session active/passée → `router.push('/workbench?session=X')`
-  (au lieu du mécanisme actuel qui ouvrait la modal / le dashboard).
+La règle : **la modal redirige toujours vers `/workbench?session=<id>` quand la session est
+prête**. Les appelants n'ont donc rien à changer, SAUF le cas « worktree qui a déjà une session
+DB », qu'on peut router directement sans passer par la modal (évite un flash de modal).
+
+- **`Sidebar` PROJETS** :
+  - Worktree **avec** session DB (`wtSession.session_id` présent, cf. `Sidebar.tsx` ~356-368)
+    → `router.push('/workbench?session=<id>')` **directement** (on n'ouvre plus la modal).
+  - Worktree **sans** session DB (`setModalConfig({ projectPath, existingWorktree })`, ~373)
+    → **ouvre la modal** : elle génère l'id (`generatedIdRef`), fait `ensureSession`, puis
+    redirige. Nécessaire car il n'y a pas encore d'id à mettre dans l'URL.
+  - « Nouvelle session » (`setModalConfig({})`) / « nouveau worktree » (`{ projectPath }`)
+    → **ouvre la modal** → redirige après création.
 - **Modal (création)** : après `handleLaunch` / `handleLaunchCurrentBranch` / branche
   `existingWorktree`, une fois `ensureSession` fait → `router.push('/workbench?session=<id>')`
   + `onClose()` au lieu de `setStep('terminal')`.
@@ -92,6 +106,9 @@ redirige) :
   aujourd'hui inline dans `AgentTerminalModal` (init `Terminal`, `FitAddon`, `WebglAddon`, WS
   `getAgentWsUrl()`, `init`/`input`/`resize`, wheel handler, `ResizeObserver`, cleanup).
   Props : `sessionId`, `cwd`, `active` (pour refit/focus au montage/affichage).
+  ⚠️ Le shell utilise un id **dérivé** `` `${sessionId}-shell` `` (cf. modal ligne ~659) —
+  c'est un shell brut **distinct** de la session tmux de l'agent (que le PiP attache via
+  `sessionId` nu). Le composant doit conserver ce suffixe en interne (ou l'exposer en prop).
   Consommé par le Workbench (et disponible pour d'autres usages).
 
 ### Modifiés
@@ -100,9 +117,12 @@ redirige) :
   `AgentChatTab`, `AgentActivityTab`, `AgentDiffTab`, shell, `AgentIssueTab`), de la logique
   shell inline, PiP, rename-from-prompt, gestion `activeTab`/`termTabOrder`. Ajout de
   `useRouter` + callback de redirection. La modal ne fait plus que création/attache + redirect.
-- **`src/components/layout/RightSidebar.tsx`** : clic session → navigation `/workbench?session=X`.
-- **`src/components/layout/Sidebar.tsx`** : entrée nav `dashboard` → `workbench` (label, icône,
-  `href`).
+- **`src/components/layout/Sidebar.tsx`** :
+  - entrée nav `dashboard` → `workbench` (label, icône, `href` ligne ~125).
+  - clic worktree **avec** session (`onClick` ~362) → `router.push('/workbench?session=<id>')`
+    au lieu de `setModalConfig({ existingSessionId })`.
+  - les autres `setModalConfig` (nouvelle session, `{ projectPath }`, `existingWorktree`)
+    restent inchangés (la modal redirige elle-même).
 
 ### Supprimés
 
@@ -123,8 +143,8 @@ redirige) :
   `<Workbench />`).
 - `src/app/page.tsx` : redirect `/` → `/workbench` (au lieu de `/dashboard`).
 - Ajouter un redirect `/dashboard` → `/workbench` (compat liens/bookmarks).
-- `src/middleware.ts` : vérifier que la protection auth couvre `/workbench` (matcher
-  `/app/*` — la route est dans le group `(app)`, donc déjà couverte ; à confirmer).
+- Pas de `src/middleware.ts` dans le repo actuel : l'auth n'est pas à toucher ici. La route
+  vit dans le group `(app)` (layout `AppShell` authentifié), donc protégée comme les autres.
 - i18n : renommer la clé `sidebar.dashboard` et le namespace `dashboard.*` → `workbench.*` dans
   les 5 locales (`en, fr, es, de, pt`). Ajouter les libellés Workbench : titre, empty-state,
   chips (`files`, `activity`, `issue`, `terminal`). Réutiliser les clés `launchModal.*` /
@@ -158,28 +178,36 @@ redirige) :
 - **Rename-from-prompt** : au 1er message user d'une branche `wip-` auto-nommée, POST
   `/api/agent-sessions/rename-from-prompt` puis invalidation `git-worktrees` / `sessions` /
   `agent-sessions/history`. Migre dans le Workbench.
-- **PiP / OverlayTerminal** : **inchangé** (feature indépendante). Le bouton PiP reste dans le
-  header du Workbench.
+- **PiP / OverlayTerminal** : le terminal flottant reste (feature indépendante) ; le bouton PiP
+  reste dans le header du Workbench. **MAIS** son bouton « expand » (`OverlayTerminal.tsx`
+  ~194-203) rend aujourd'hui `<AgentTerminalModal existingSessionId=... />` pour ré-ouvrir en
+  grand. Comme la modal redirige désormais, ce rendu ne marchera plus : réécrire « expand » en
+  `router.push('/workbench?session=X')` + fermeture du PiP (sémantique : expand = ouvrir la
+  page pleine). C'est cohérent, mais ce n'est pas « inchangé » — à traiter dans le plan.
 - **Stop session** : bouton dans le header (si `active`), confirm dialog, `stop(sessionId)`.
 
 ## Hors scope (YAGNI v1)
 
-- Liste de threads/sessions dans une colonne gauche (on garde le RightSidebar comme sélecteur).
+- Liste de threads/sessions dans une colonne dédiée (on garde la liste PROJETS du `Sidebar`
+  gauche comme sélecteur).
 - Persistance de la largeur droite / du split vertical.
 - Multi-terminaux (onglets Terminal 1 / Terminal 2 de l'image de référence) : un seul shell.
 
 ## Risques / points à vérifier pendant le plan
 
-1. **OverlayTerminal (PiP)** utilise `AgentTerminalModal` (ligne ~196) **et** a son propre
-   `new Terminal(...)`. Comprendre exactement ce couplage avant de retirer le shell inline de la
-   modal, pour ne pas casser le PiP. Idéalement le PiP consomme aussi `ShellTerminal`.
-2. **RightSidebar** : identifier le mécanisme actuel de sélection de session (ouvrait-il la
-   modal, ou un state ?) pour le rebrancher proprement sur la navigation URL.
-3. **Hooks orphelins** : confirmer par `grep` que `useRecentLogs`/`usePendingQuestions` ne sont
-   pas consommés ailleurs avant suppression.
+1. **OverlayTerminal (PiP)** a son propre `new Terminal(...)` (shell flottant, attache la
+   session tmux via `sessionId` nu) **et** rend `AgentTerminalModal` pour le bouton « expand »
+   (~194-203). Le shell flottant reste ; seul « expand » doit être réécrit en `router.push`
+   (cf. section Comportements conservés).
+2. **`generatedIdRef` / buildSessionId** : la génération d'ID pour une nouvelle session reste
+   dans la modal (création) ; le Workbench ne reçoit que des `existingSessionId` via l'URL.
+   Le `Sidebar` ne route en direct que quand `wtSession.session_id` existe déjà.
+3. **Hooks orphelins** : confirmé — `useAgentSummaries`/`useRecentLogs` ne sont consommés que
+   par Dashboard + `SummariesWidget` + `AllReportsDialog` (tous supprimés) ; `usePendingQuestions`
+   que par Dashboard. Suppression sûre. Note : `dashboard/DashboardWidget.tsx` (utilisé par les
+   3 widgets supprimés + `TodosWidget`/`KpiCards` déjà morts) devient orphelin → nettoyage
+   optionnel, hors scope strict.
 4. **`waitingForSession`** : sur une navigation directe vers `/workbench?session=X` (refresh),
    attendre la résolution DB avant d'initialiser le shell (logique déjà présente dans la modal,
-   à préserver).
-5. **`generatedIdRef` / buildSessionId** : la génération d'ID pour une nouvelle session reste
-   dans la modal (création) ; le Workbench ne reçoit que des `existingSessionId` via l'URL.
+   à préserver dans `ShellTerminal` / le Workbench).
 ```
