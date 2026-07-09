@@ -27,10 +27,10 @@ describe('resolveEffectivePath', () => {
 		).toBe('/repo/.worktrees/wt');
 	});
 
-	it('derives .worktrees/<branch> from a non-main branch when no worktree_path', () => {
+	it('no worktree_path → falls back to projectPath (no branch derivation)', () => {
 		expect(
 			resolveEffectivePath({ projectPath: '/repo', session: { branch: 'feat/foo' } }),
-		).toBe('/repo/.worktrees/feat-foo');
+		).toBe('/repo');
 	});
 
 	it('main branch → projectPath (no derivation)', () => {
