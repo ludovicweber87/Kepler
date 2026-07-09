@@ -24,7 +24,6 @@ import TerminalRoundedIcon from '@mui/icons-material/TerminalRounded';
 import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
 import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
 import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
-import FiberManualRecordRoundedIcon from '@mui/icons-material/FiberManualRecordRounded';
 import TimelineRoundedIcon from '@mui/icons-material/TimelineRounded';
 import DifferenceRoundedIcon from '@mui/icons-material/DifferenceRounded';
 import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
@@ -54,6 +53,7 @@ import { apiFetch } from '@/lib/api-fetch';
 import AgentActivityTab from './AgentActivityTab';
 import AgentDiffTab from './AgentDiffTab';
 import AgentIssueTab from './AgentIssueTab';
+import AgentChatTab from './AgentChatTab';
 
 interface IssueContext {
 	owner: string;
@@ -92,68 +92,6 @@ function buildSessionId(
 	const suffix =
 		agentFile?.filename?.replace(/\.md$/, '').replace(/[^a-zA-Z0-9]/g, '-') ?? 'session';
 	return `devora-${base}-${suffix}-${uid}`;
-}
-
-function buildReportingPrompt(sessionId: string): string {
-	const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:4000';
-	const logEndpoint = `${appUrl}/api/agent-sessions/log`;
-
-	return [
-		'',
-		'## Activity Reporting',
-		'',
-		"Tu DOIS reporter ton activité en continu via l'API ci-dessous. Chaque log est une synthèse concise (1-2 phrases) de ce que tu viens de faire.",
-		'',
-		`Endpoint : POST ${logEndpoint}`,
-		`Payload JSON : { "sessionId": "${sessionId}", "content": "<MESSAGE>", "logType": "<TYPE>" }`,
-		'',
-		'### Titre de session (OBLIGATOIRE en premier) :',
-		'Dès que tu comprends la tâche, envoie IMMÉDIATEMENT un log de type `title` avec un résumé court (3-5 mots) de la tâche :',
-		'```bash',
-		`curl -s -X POST ${logEndpoint} \\`,
-		'  -H "Content-Type: application/json" \\',
-		`  -d '{"sessionId": "${sessionId}", "content": "<TITRE COURT 3-5 mots>", "logType": "title"}'`,
-		'```',
-		'Exemples de bons titres : "Refactor auth middleware", "Fix sidebar scroll bug", "Add dark mode toggle"',
-		'',
-		'### Types de logs et quand les utiliser :',
-		"- **info** : décisions prises, début d'analyse, changement d'approche",
-		'- **file_change** : fichiers créés/modifiés/supprimés (lister les fichiers)',
-		'- **commit** : quand tu fais un commit (inclure le message de commit)',
-		'- **error** : erreurs rencontrées, blocages',
-		'- **summary** : uniquement à la FIN de ta tâche, rapport structuré (voir format ci-dessous)',
-		'',
-		'### Format du summary final :',
-		'Le summary DOIT suivre ce format structuré en markdown :',
-		'',
-		'```',
-		'## Ce qui a été fait',
-		'- Point 1',
-		'- Point 2',
-		'',
-		'## Fichiers modifiés',
-		'- `path/to/file.ts` : description courte du changement',
-		'',
-		'## Décisions techniques',
-		'- Décision prise et pourquoi (si applicable)',
-		'',
-		'## Reste à faire',
-		'- Ce qui manque ou nécessite une review (si applicable, sinon "Rien")',
-		'```',
-		'',
-		'### Règles :',
-		'1. Envoie un log **après chaque action significative** (pas avant, après)',
-		'2. Pour le summary final, ajoute `"branch": "<BRANCHE>"` et `"status": "completed"` (ou `"error"`)',
-		'3. Sois concis : pas de blabla, juste les faits',
-		'4. Le summary DOIT être exhaustif — liste TOUS les fichiers modifiés et TOUTES les décisions prises',
-		'',
-		'### Exemple de log :',
-		'```bash',
-		`curl -s -X POST ${logEndpoint} \\`,
-		'  -H "Content-Type: application/json" \\',
-		`  -d '{"sessionId": "${sessionId}", "content": "Modifié src/components/Header.tsx : ajout du bouton de navigation", "logType": "file_change"}'`,
-		'```',
-	].join('\n');
 }
 
 // Auto-generated worktree name. The `wip-` prefix marks it as un-named: the server
@@ -217,23 +155,12 @@ export default function AgentTerminalModal({
 	const [fetchingBranch, setFetchingBranch] = useState(false);
 	const [launchMode, setLaunchMode] = useState<'worktree' | 'current-branch' | null>(null);
 
-	// Claude terminal refs
-	const [termNode, setTermNode] = useState<HTMLDivElement | null>(null);
-	const [resumed, setResumed] = useState(false);
+	// Tab state
 	const [activeTab, setActiveTab] = useState(0);
 	const [termTabOrder, setTermTabOrder] = useState<string[] | null>(null);
-	const [isStreaming, setIsStreaming] = useState(false);
-	const isStreamingRef = useRef(false);
-	const terminalRef = useRef<Terminal | null>(null);
-	const wsRef = useRef<WebSocket | null>(null);
-	const fitAddonRef = useRef<FitAddon | null>(null);
-	const streamTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-	const readyRef = useRef(false);
-	const claudeLaunchedRef = useRef(false);
 	// First-prompt capture → auto-rename the `wip-` branch from the user's demand.
 	// Only armed when the branch was auto-generated (user left the name blank).
 	const autoNamedRef = useRef(false);
-	const promptBufferRef = useRef('');
 	const promptSentRef = useRef(false);
 	// Ref tracking effectivePath so the shell effect reads the latest value
 	// without re-triggering when session loads async
@@ -248,7 +175,7 @@ export default function AgentTerminalModal({
 	// Path resolution for issue context
 	const { repoPaths, getLocalPath, savePath } = useRepoPaths();
 	const [resolvedPath, setResolvedPath] = useState<string | null>(null);
-	const [picking, setPicking] = useState(false);
+	const [, setPicking] = useState(false);
 
 	const projectPath = projectPathProp ?? resolvedPath;
 
@@ -323,6 +250,14 @@ export default function AgentTerminalModal({
 		existingWorktree?.worktreePath,
 	]);
 	effectivePathRef.current = effectivePath;
+
+	// Chat system prompt: agent file content + optional issue block, WITHOUT the
+	// curl reporting instructions (the chat streams activity natively).
+	const chatSystemPrompt = useMemo(() => {
+		const base = agentFile ? agentFile.content : '';
+		const issueBlock = issueCtxRef.current ? `\n\n${issueCtxRef.current}` : '';
+		return (base + issueBlock).trim() || undefined;
+	}, [agentFile]);
 
 	const handlePip = useCallback(() => {
 		if (!sessionId || !effectivePath) return;
@@ -460,7 +395,6 @@ export default function AgentTerminalModal({
 		const trimmedName = branchInput.trim();
 		const name = trimmedName || randomWorktreeName();
 		autoNamedRef.current = !trimmedName;
-		promptBufferRef.current = '';
 		promptSentRef.current = false;
 		setWorktreeError(null);
 
@@ -527,37 +461,6 @@ export default function AgentTerminalModal({
 		[sessionId, projectPath, queryClient],
 	);
 
-	// Accumulate terminal keystrokes into the first submitted line, ignoring ANSI
-	// escape sequences and short dialog keypresses. Fires the rename exactly once.
-	const captureFirstPrompt = useCallback(
-		(raw: string) => {
-			const chunk = raw
-				.replace(/\x1b\[[0-9;?]*[ -/]*[@-~]/g, '') // CSI (arrows, paste markers…)
-				.replace(/\x1bO[A-Za-z]/g, '') // SS3 (arrows in app-cursor mode)
-				.replace(/\x1b./g, '') // any other 2-byte ESC sequence
-				.replace(/\x1b/g, ''); // lone ESC
-			for (const ch of chunk) {
-				if (ch === '\r' || ch === '\n') {
-					const line = promptBufferRef.current.trim();
-					if (line.length >= 10) {
-						promptSentRef.current = true;
-						submitRenameFromPrompt(line);
-						return;
-					}
-					promptBufferRef.current = '';
-					continue;
-				}
-				if (ch === '\x7f' || ch === '\b') {
-					promptBufferRef.current = promptBufferRef.current.slice(0, -1);
-					continue;
-				}
-				if (ch.charCodeAt(0) < 0x20) continue;
-				promptBufferRef.current += ch;
-			}
-		},
-		[submitRenameFromPrompt],
-	);
-
 	// Handle selecting a project from repo_paths (selection only, navigation via Next)
 	const handleSelectProject = useCallback((localPath: string) => {
 		setSelectedProject(localPath);
@@ -620,16 +523,14 @@ export default function AgentTerminalModal({
 	const hasIssue = !!(issueContext || session?.issue_number);
 	const termTabs = useMemo(() => {
 		const items: TabItem[] = [];
-		if (!isPastSession) {
-			items.push({
-				key: 'claude',
-				label: (
-					<>
-						<SmartToyRoundedIcon sx={{ fontSize: 16 }} /> Claude
-					</>
-				),
-			});
-		}
+		items.push({
+			key: 'claude',
+			label: (
+				<>
+					<SmartToyRoundedIcon sx={{ fontSize: 16 }} /> Claude
+				</>
+			),
+		});
 		items.push({
 			key: 'activity',
 			label: (
@@ -681,14 +582,9 @@ export default function AgentTerminalModal({
 
 	const activeTabKey = orderedTermTabs[activeTab]?.key ?? orderedTermTabs[0]?.key ?? 'activity';
 
-	// Refit + refocus terminal when switching tabs
+	// Refit + refocus the shell terminal when switching to its tab
 	useEffect(() => {
-		if (activeTabKey === 'claude') {
-			requestAnimationFrame(() => {
-				fitAddonRef.current?.fit();
-				terminalRef.current?.focus();
-			});
-		} else if (activeTabKey === 'terminal') {
+		if (activeTabKey === 'terminal') {
 			requestAnimationFrame(() => {
 				shellFitAddonRef.current?.fit();
 				shellTerminalRef.current?.focus();
@@ -696,207 +592,9 @@ export default function AgentTerminalModal({
 		}
 	}, [activeTabKey]);
 
-	// Don't connect terminal for past sessions
-	const terminalEnabled = !isPastSession && step === 'terminal';
-
 	// Only block terminal init when re-attaching and waiting for DB session data.
 	// For new sessions (no existingSessionId), this stays false and never causes a re-run.
 	const waitingForSession = !!existingSessionId && !session;
-
-	// Claude terminal — only connect after worktree is created (step === 'terminal')
-	useEffect(() => {
-		if (!open || !termNode || !terminalEnabled) return;
-		// For re-attached sessions, wait for DB data to resolve the correct worktree path
-		if (waitingForSession) return;
-		// Use effectivePathRef which accounts for worktree path from session data
-		const cwd = effectivePathRef.current ?? worktreePath ?? projectPath;
-		if (!cwd) return;
-
-		setResumed(false);
-
-		const terminal = new Terminal({
-			cursorBlink: true,
-			fontSize: 14,
-			fontFamily: '"JetBrains Mono", "Fira Code", "Cascadia Code", monospace',
-			scrollback: 5000,
-			theme: {
-				background: '#1A1A1A',
-				foreground: '#E0E0E0',
-				cursor: '#7C4DFF',
-				selectionBackground: 'rgba(124, 77, 255, 0.3)',
-				black: '#1A1A1A',
-				red: '#FF5252',
-				green: '#69F0AE',
-				yellow: '#FFD740',
-				blue: '#448AFF',
-				magenta: '#E040FB',
-				cyan: '#00E5FF',
-				white: '#E0E0E0',
-				brightBlack: '#616161',
-				brightRed: '#FF8A80',
-				brightGreen: '#B9F6CA',
-				brightYellow: '#FFE57F',
-				brightBlue: '#82B1FF',
-				brightMagenta: '#EA80FC',
-				brightCyan: '#84FFFF',
-				brightWhite: '#FFFFFF',
-			},
-			allowProposedApi: true,
-		});
-
-		const fitAddon = new FitAddon();
-		terminal.loadAddon(fitAddon);
-		terminal.open(termNode);
-
-		try {
-			terminal.loadAddon(new WebglAddon());
-		} catch {
-			/* fallback to canvas */
-		}
-
-		requestAnimationFrame(() => {
-			fitAddon.fit();
-			terminal.focus();
-		});
-
-		terminalRef.current = terminal;
-		fitAddonRef.current = fitAddon;
-
-		const ws = new WebSocket(getAgentWsUrl());
-		wsRef.current = ws;
-
-		ws.onopen = () => {
-			// Compose the agent system prompt and let the server launch Claude at
-			// session creation — robust (file-based, no shell escaping) and race-free
-			// (Claude is started before we attach). Ignored by the server on resume.
-			const reporting = buildReportingPrompt(sessionId);
-			const basePrompt = agentFile ? agentFile.content : '';
-			const issueBlock = issueCtxRef.current ? `\n\n${issueCtxRef.current}` : '';
-			const claudeSystemPrompt = basePrompt + reporting + issueBlock;
-			ws.send(
-				JSON.stringify({
-					type: 'init',
-					sessionId,
-					cwd,
-					cols: terminal.cols,
-					rows: terminal.rows,
-					claudeSystemPrompt,
-				}),
-			);
-		};
-
-		ws.onmessage = (event) => {
-			if (typeof event.data === 'string') {
-				try {
-					const msg = JSON.parse(event.data);
-					if (msg.type === 'init-ack') {
-						setResumed(msg.resumed);
-						// If server attached to a different existing session, log it
-						if (msg.actualSessionId) {
-							console.log(
-								`[AgentTerminalModal] Attached to existing session: ${msg.actualSessionId}`,
-							);
-						}
-						// Claude is launched server-side at session creation (see the
-						// claudeSystemPrompt sent in the init message); on resume it was
-						// already running. Nothing to type from the client.
-						claudeLaunchedRef.current = true;
-						setTimeout(() => {
-							readyRef.current = true;
-						}, 2000);
-						return;
-					}
-				} catch {
-					// Not JSON — terminal output
-				}
-				terminal.write(event.data);
-
-				if (readyRef.current) {
-					if (!isStreamingRef.current) {
-						isStreamingRef.current = true;
-						setIsStreaming(true);
-					}
-					if (streamTimeoutRef.current) clearTimeout(streamTimeoutRef.current);
-					streamTimeoutRef.current = setTimeout(() => {
-						isStreamingRef.current = false;
-						setIsStreaming(false);
-					}, 3000);
-				}
-			}
-		};
-
-		ws.onclose = () => {
-			terminal.write('\r\n\x1b[90m[Session disconnected]\x1b[0m\r\n');
-		};
-
-		terminal.onData((data) => {
-			if (ws.readyState === WebSocket.OPEN) {
-				ws.send(JSON.stringify({ type: 'input', data }));
-			}
-			// Capture the first real demand to auto-rename an auto-generated branch.
-			if (autoNamedRef.current && !promptSentRef.current) {
-				captureFirstPrompt(data);
-			}
-		});
-
-		const handleWheel = (e: WheelEvent) => {
-			e.preventDefault();
-			e.stopPropagation();
-			if (ws.readyState !== WebSocket.OPEN) return;
-			const lines = Math.max(1, Math.round(Math.abs(e.deltaY) / 40));
-			const button = e.deltaY < 0 ? 64 : 65;
-			const seq = `\x1b[<${button};1;1M`;
-			for (let i = 0; i < lines; i++) {
-				ws.send(JSON.stringify({ type: 'input', data: seq }));
-			}
-		};
-		termNode.addEventListener('wheel', handleWheel, { passive: false });
-
-		let resizeTimer: ReturnType<typeof setTimeout> | null = null;
-		const observer = new ResizeObserver(() => {
-			if (resizeTimer) clearTimeout(resizeTimer);
-			resizeTimer = setTimeout(() => {
-				fitAddon.fit();
-				if (ws.readyState === WebSocket.OPEN) {
-					ws.send(
-						JSON.stringify({
-							type: 'resize',
-							cols: terminal.cols,
-							rows: terminal.rows,
-						}),
-					);
-				}
-			}, 100);
-		});
-		observer.observe(termNode);
-
-		return () => {
-			termNode.removeEventListener('wheel', handleWheel);
-			if (resizeTimer) clearTimeout(resizeTimer);
-			observer.disconnect();
-			ws.close();
-			terminal.dispose();
-			terminalRef.current = null;
-			wsRef.current = null;
-			fitAddonRef.current = null;
-			if (streamTimeoutRef.current) clearTimeout(streamTimeoutRef.current);
-			isStreamingRef.current = false;
-			claudeLaunchedRef.current = false;
-			setIsStreaming(false);
-			readyRef.current = false;
-		};
-	}, [
-		open,
-		worktreePath,
-		projectPath,
-		agentFile,
-		termNode,
-		sessionId,
-		terminalEnabled,
-		existingSessionId,
-		waitingForSession,
-		captureFirstPrompt,
-	]);
 
 	// Plain shell terminal — lazy init, uses worktree path via ref (avoids re-init on session load)
 	useEffect(() => {
@@ -1124,27 +822,6 @@ export default function AgentTerminalModal({
 								{subtitleText}
 							</Typography>
 						)}
-						{resumed && (
-							<Chip
-								icon={
-									<FiberManualRecordRoundedIcon
-										sx={{
-											fontSize: '10px !important',
-											color: 'success.main',
-										}}
-									/>
-								}
-								label="Reprise"
-								size="small"
-								sx={{
-									height: 22,
-									fontSize: '0.65rem',
-									bgcolor: (theme) => alpha(theme.palette.success.main, 0.12),
-									color: 'success.main',
-									fontWeight: 600,
-								}}
-							/>
-						)}
 						{step === 'terminal' && (branchInput || session?.branch) && (
 							<Chip
 								icon={
@@ -1189,7 +866,7 @@ export default function AgentTerminalModal({
 								</IconButton>
 							</Tooltip>
 						)}
-						{step === 'terminal' && (
+						{step === 'terminal' && activeTabKey !== 'claude' && (
 							<IconButton
 								size="small"
 								onClick={handlePip}
@@ -1641,78 +1318,26 @@ export default function AgentTerminalModal({
 							}}
 						/>
 
-						{/* Terminal panel */}
-						<Box
-							onWheel={(e) => e.stopPropagation()}
-							sx={{
-								flex: 1,
-								overflow: 'hidden',
-								display: activeTabKey === 'claude' ? 'flex' : 'none',
-								alignItems: 'stretch',
-								bgcolor: 'background.default',
-								'& .xterm': { height: '100%', p: 1 },
-								'& .xterm-viewport': {
-									overflowY: 'scroll !important',
-									'&::-webkit-scrollbar': { width: 6 },
-									'&::-webkit-scrollbar-thumb': {
-										bgcolor: 'divider',
-										borderRadius: 3,
-									},
-								},
-							}}
-						>
-							{picking && (
-								<Box
-									sx={{
-										flex: 1,
-										display: 'flex',
-										flexDirection: 'column',
-										alignItems: 'center',
-										justifyContent: 'center',
-										gap: 2,
-									}}
-								>
-									<CircularProgress size={28} sx={{ color: 'primary.main' }} />
-									<Typography variant="body2" color="text.secondary">
-										Sélection du répertoire...
-									</Typography>
-								</Box>
-							)}
-
-							{isPastSession && projectPath && (
-								<Box
-									sx={{
-										flex: 1,
-										display: 'flex',
-										flexDirection: 'column',
-										alignItems: 'center',
-										justifyContent: 'center',
-										gap: 2,
-									}}
-								>
-									<TerminalRoundedIcon
-										sx={{ fontSize: 48, color: 'text.disabled' }}
-									/>
-									<Typography variant="body2" sx={{ color: 'text.secondary' }}>
-										Session terminée
-									</Typography>
-								</Box>
-							)}
-
-							<Box
-								ref={setTermNode}
-								sx={{ flex: 1, display: terminalEnabled ? 'flex' : 'none' }}
+						{/* Claude chat panel */}
+						{activeTabKey === 'claude' && (
+							<AgentChatTab
+								sessionId={sessionId}
+								cwd={effectivePath ?? null}
+								systemPrompt={chatSystemPrompt}
+								isPastSession={isPastSession}
+								onFirstUserMessage={(text) => {
+									if (autoNamedRef.current && !promptSentRef.current) {
+										promptSentRef.current = true;
+										submitRenameFromPrompt(text);
+									}
+								}}
 							/>
-						</Box>
+						)}
 
 						{/* Activity panel */}
 						{activeTabKey === 'activity' && (
 							<Box sx={{ flex: 1, overflow: 'hidden' }}>
-								<AgentActivityTab
-									session={session}
-									logs={logs}
-									isStreaming={isStreaming}
-								/>
+								<AgentActivityTab session={session} logs={logs} />
 							</Box>
 						)}
 

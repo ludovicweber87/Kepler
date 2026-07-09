@@ -295,3 +295,43 @@ export interface AgentPreset {
 	color: string;
 	created_at: string;
 }
+
+// ─── Agent Chat (lot 2) ──────────────────────────────────
+export type ChatRole = 'user' | 'assistant';
+
+export interface ChatToolCall {
+	id: string;
+	name: string;
+	input: unknown;
+	result?: unknown;
+	truncated?: boolean;
+	status: 'running' | 'done' | 'error';
+}
+
+export type ChatSegment =
+	| { kind: 'text'; text: string }
+	| { kind: 'thinking'; text: string }
+	| { kind: 'tool'; call: ChatToolCall };
+
+export interface ChatMessage {
+	id: string;
+	role: ChatRole;
+	segments: ChatSegment[];
+}
+
+export type PermissionDecision = 'allow-once' | 'allow-always' | 'reject';
+
+export interface PendingPermission {
+	id: string;
+	toolName: string;
+	input: Record<string, unknown>;
+	title?: string;
+	displayName?: string;
+}
+
+/** Event tel qu'il arrive sur le fil WS (data selon l'`event`). */
+export interface StreamEventWire {
+	seq: number;
+	event: 'session' | 'thinking' | 'assistant' | 'tool_use' | 'tool_result' | 'result';
+	data: Record<string, unknown>;
+}

@@ -4,6 +4,10 @@ import { makePromptQueue, type PromptQueue } from './promptQueue.js';
 import { mapMessage } from './mapMessage.js';
 import { createPermissionController, type PermissionController, type PendingPermission } from './permissions.js';
 import type { PermissionDecision } from './types.js';
+import * as transcript from './transcriptStore.js';
+import { deriveLogs } from './activityDeriver.js';
+import { getDb } from '../db.js';
+import { randomUUID } from 'node:crypto';
 
 export interface StreamSocket { send(data: string): void; readyState?: number }
 export interface StartParams { cwd: string; systemPrompt?: string; model?: string; effort?: string; permissionMode?: string; resumeClaudeSessionId?: string }
@@ -26,6 +30,7 @@ interface SessionState {
   model: string; effort: string; permissionMode: string;
   busy: boolean;
   closed: boolean;
+  seq: number;
 }
 
 function cleanEnv(): Record<string, string> {
@@ -65,9 +70,18 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
     try {
       for await (const msg of s.q) {
         for (const ev of mapMessage(msg as never)) {
-          if (ev.event === 'session') s.claudeSessionId = ev.data.id;
+          if (ev.event === 'session') {
+            s.claudeSessionId = ev.data.id;
+            persistClaudeSessionId(sessionId, ev.data.id);
+          }
           if (ev.event === 'result') s.busy = false;
-          broadcast(s, { type: 'stream-event', ...ev });
+          const seq = s.seq++;
+          const role = ev.event === 'tool_result' ? 'tool'
+            : ev.event === 'thinking' || ev.event === 'assistant' || ev.event === 'tool_use' ? 'assistant'
+            : 'system';
+          transcript.appendEvent(sessionId, seq, role, ev);
+          for (const log of deriveLogs(ev)) writeActivityLog(sessionId, log.log_type, log.content);
+          broadcast(s, { type: 'stream-event', seq, ...ev });
         }
       }
       if (!s.closed) broadcast(s, { type: 'stream-closed', reason: 'generator-ended' });
@@ -79,6 +93,33 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
     }
   }
 
+  function persistClaudeSessionId(sessionId: string, claudeId: string) {
+    const d = getDb();
+    if (!d) return;
+    try {
+      d.prepare('UPDATE agent_sessions SET claude_session_id = ? WHERE session_id = ? AND (claude_session_id IS NULL OR claude_session_id != ?)')
+        .run(claudeId, sessionId, claudeId);
+    } catch { /* best-effort */ }
+  }
+  function readClaudeSessionId(sessionId: string): string | null {
+    const d = getDb();
+    if (!d) return null;
+    try {
+      const row = d.prepare('SELECT claude_session_id AS c FROM agent_sessions WHERE session_id = ?').get(sessionId) as { c: string | null } | undefined;
+      return row?.c ?? null;
+    } catch { return null; }
+  }
+  function writeActivityLog(sessionId: string, logType: string, content: string) {
+    const d = getDb();
+    if (!d) return;
+    try {
+      const row = d.prepare('SELECT id FROM agent_sessions WHERE session_id = ?').get(sessionId) as { id: string } | undefined;
+      if (!row) return;
+      d.prepare('INSERT INTO agent_activity_logs (id, agent_session_id, content, log_type) VALUES (?, ?, ?, ?)')
+        .run(randomUUID(), row.id, content, logType);
+    } catch { /* best-effort */ }
+  }
+
   return {
     has(sessionId: string) { return sessions.has(sessionId); },
 
@@ -86,6 +127,7 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
       const existing = sessions.get(sessionId);
       if (existing) {
         existing.clients.add(ws);
+        send(ws, { type: 'stream-history', events: transcript.loadTranscript(sessionId) });
         send(ws, readyPayload(existing, true));
         return;
       }
@@ -99,6 +141,7 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
         model: params.model ?? '', effort: params.effort ?? '', permissionMode: params.permissionMode ?? 'acceptEdits',
         busy: false,
         closed: false,
+        seq: transcript.nextSeq(sessionId),
       };
       const options: Record<string, unknown> = {
         cwd: params.cwd,
@@ -110,10 +153,12 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
       if (params.model) options.model = params.model;
       if (params.effort) options.effort = params.effort;
       if (params.systemPrompt) options.systemPrompt = params.systemPrompt;
-      if (params.resumeClaudeSessionId) options.resume = params.resumeClaudeSessionId;
+      const resumeId = params.resumeClaudeSessionId ?? readClaudeSessionId(sessionId);
+      if (resumeId) options.resume = resumeId;
 
       s.q = queryFn({ prompt: queue.iterable, options } as never) as unknown as QueryLike;
       sessions.set(sessionId, s);
+      send(ws, { type: 'stream-history', events: transcript.loadTranscript(sessionId) });
       send(ws, readyPayload(s, false));
       void runLoop(sessionId, s);
     },
