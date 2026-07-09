@@ -84,6 +84,12 @@ interface StreamPermissionResponseMessage {
 	id: string;
 	decision: 'allow-once' | 'allow-always' | 'reject';
 }
+interface StreamQuestionResponseMessage {
+	type: 'stream-question-response';
+	sessionId: string;
+	id: string;
+	answers: Record<string, string>;
+}
 
 type ClientMessage =
 	| InitMessage
@@ -97,7 +103,8 @@ type ClientMessage =
 	| StreamSetModeMessage
 	| StreamInterruptMessage
 	| StreamStopMessage
-	| StreamPermissionResponseMessage;
+	| StreamPermissionResponseMessage
+	| StreamQuestionResponseMessage;
 
 // Track last PTY output per session (sessionId → timestamp)
 const sessionOutputTimestamps = new Map<string, number>();
@@ -332,6 +339,10 @@ export function startTerminalServer(httpServer: HttpServer) {
 			}
 			if (msg.type === 'stream-permission-response') {
 				sdkAgent.resolvePermission(msg.sessionId, msg.id, msg.decision);
+				return;
+			}
+			if (msg.type === 'stream-question-response') {
+				sdkAgent.resolveQuestion(msg.sessionId, msg.id, msg.answers);
 				return;
 			}
 

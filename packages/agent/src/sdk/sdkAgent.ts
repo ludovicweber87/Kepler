@@ -2,7 +2,7 @@ import { query as realQuery } from '@anthropic-ai/claude-agent-sdk';
 import { findClaude } from '../helpers.js';
 import { makePromptQueue, type PromptQueue } from './promptQueue.js';
 import { mapMessage } from './mapMessage.js';
-import { createPermissionController, type PermissionController, type PendingPermission } from './permissions.js';
+import { createPermissionController, type PermissionController, type PendingPermission, type PendingQuestion, type QuestionAnswers } from './permissions.js';
 import type { PermissionDecision } from './types.js';
 import * as transcript from './transcriptStore.js';
 import { deriveLogs } from './activityDeriver.js';
@@ -67,6 +67,7 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
       model: s.model, effort: s.effort, permissionMode: s.permissionMode,
       busy: s.busy,
       pendingPermissions: s.perms.snapshot(),
+      pendingQuestions: s.perms.snapshotQuestions(),
     };
   }
 
@@ -146,7 +147,7 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
       const s: SessionState = {
         q: undefined as unknown as QueryLike,
         queue,
-        perms: createPermissionController((req: PendingPermission) => broadcast(s, { type: 'stream-permission-request', ...req }), () => s.permissionMode),
+        perms: createPermissionController((req: PendingPermission) => broadcast(s, { type: 'stream-permission-request', ...req }), () => s.permissionMode, (req: PendingQuestion) => broadcast(s, { type: 'stream-question-request', ...req })),
         clients: new Set([ws]),
         claudeSessionId: null,
         model: params.model ?? '', effort: params.effort ?? '', permissionMode: params.permissionMode ?? 'bypassPermissions',
@@ -218,6 +219,9 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
     },
     resolvePermission(sessionId: string, id: string, decision: PermissionDecision) {
       sessions.get(sessionId)?.perms.resolve(id, decision);
+    },
+    resolveQuestion(sessionId: string, id: string, answers: QuestionAnswers) {
+      sessions.get(sessionId)?.perms.resolveQuestion(id, answers);
     },
     detach(sessionId: string, ws: StreamSocket) {
       sessions.get(sessionId)?.clients.delete(ws);

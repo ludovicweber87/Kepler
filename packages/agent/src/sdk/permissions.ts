@@ -2,20 +2,37 @@ import type { PermissionDecision } from './types.js';
 
 export interface PendingPermission { id: string; toolName: string; input: Record<string, unknown>; title?: string; displayName?: string }
 export type PermissionResultLike = { behavior: 'allow'; updatedInput?: Record<string, unknown>; updatedPermissions?: unknown[] } | { behavior: 'deny'; message: string };
+
+// AskUserQuestion : l'outil lit ses réponses dans son propre input (`answers`,
+// keyé par le texte de la question). On les injecte via `canUseTool` →
+// `updatedInput`. À traiter AVANT tout court-circuit de mode (sinon
+// bypassPermissions auto-allow → l'outil renvoie "did not answer").
+export interface QuestionOption { label: string; description?: string; preview?: string }
+export interface QuestionSpec { question: string; header?: string; multiSelect?: boolean; options: QuestionOption[] }
+export interface PendingQuestion { id: string; questions: QuestionSpec[] }
+/** answers keyé par texte de question ; valeur = label choisi (texte libre pour "Other", joint par ", " en multiSelect). */
+export type QuestionAnswers = Record<string, string>;
+
+const ASK_TOOL = 'AskUserQuestion';
+
 export interface PermissionController {
   canUseTool: (toolName: string, input: Record<string, unknown>, options: { signal?: AbortSignal; suggestions?: unknown[]; title?: string; displayName?: string }) => Promise<PermissionResultLike>;
   resolve(id: string, decision: PermissionDecision): boolean;
+  resolveQuestion(id: string, answers: QuestionAnswers): boolean;
   abortAll(): void;
   snapshot(): PendingPermission[];
+  snapshotQuestions(): PendingQuestion[];
 }
 
 interface Entry { req: PendingPermission; resolve: (r: PermissionResultLike) => void; suggestions?: unknown[]; input: Record<string, unknown> }
+interface QEntry { req: PendingQuestion; resolve: (r: PermissionResultLike) => void; input: Record<string, unknown> }
 
 // Outils d'édition locale : auto-autorisés en mode acceptEdits.
 const EDIT_TOOLS = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit']);
 
-export function createPermissionController(broadcast: (req: PendingPermission) => void, getMode: () => string = () => ''): PermissionController {
+export function createPermissionController(broadcast: (req: PendingPermission) => void, getMode: () => string = () => '', broadcastQuestion: (req: PendingQuestion) => void = () => {}): PermissionController {
   const pending = new Map<string, Entry>();
+  const questions = new Map<string, QEntry>();
   let counter = 0;
 
   const DENY_USER: PermissionResultLike = { behavior: 'deny', message: "Refusé par l'utilisateur" };
@@ -24,6 +41,20 @@ export function createPermissionController(broadcast: (req: PendingPermission) =
   return {
     canUseTool(toolName, input, options) {
       if (options.signal?.aborted) return Promise.resolve(DENY_ABORT);
+      // AskUserQuestion : ne suit pas les modes de permission — on parque
+      // toujours et on attend les réponses de l'utilisateur (cartes cliquables).
+      if (toolName === ASK_TOOL) {
+        const id = `ask-${++counter}`;
+        const rawQuestions = Array.isArray((input as { questions?: unknown }).questions) ? (input as { questions: QuestionSpec[] }).questions : [];
+        const req: PendingQuestion = { id, questions: rawQuestions };
+        return new Promise<PermissionResultLike>((resolve) => {
+          questions.set(id, { req, resolve, input });
+          options.signal?.addEventListener('abort', () => {
+            if (questions.delete(id)) resolve(DENY_ABORT);
+          });
+          broadcastQuestion(req);
+        });
+      }
       // Le chip "mode" est autoritaire : il court-circuite la carte de permission.
       const mode = getMode();
       if (mode === 'bypassPermissions') return Promise.resolve({ behavior: 'allow', updatedInput: input });
@@ -48,12 +79,25 @@ export function createPermissionController(broadcast: (req: PendingPermission) =
       else entry.resolve(DENY_USER);
       return true;
     },
+    resolveQuestion(id, answers) {
+      const entry = questions.get(id);
+      if (!entry) return false;
+      questions.delete(id);
+      // On réinjecte les réponses dans l'input de l'outil ; il les lit dans `answers`.
+      entry.resolve({ behavior: 'allow', updatedInput: { ...entry.input, answers } });
+      return true;
+    },
     abortAll() {
       for (const [, entry] of pending) entry.resolve(DENY_ABORT);
       pending.clear();
+      for (const [, entry] of questions) entry.resolve(DENY_ABORT);
+      questions.clear();
     },
     snapshot() {
       return [...pending.values()].map((e) => e.req);
+    },
+    snapshotQuestions() {
+      return [...questions.values()].map((e) => e.req);
     },
   };
 }
