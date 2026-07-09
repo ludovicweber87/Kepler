@@ -184,14 +184,14 @@ export default function RecentSessionsWidget({
 										setMenuAnchor({ el: e.currentTarget, session });
 									}}
 									sx={{
-										p: 0.25,
+										p: 0.5,
 										opacity: 0,
 										transition: 'opacity 0.15s',
 										color: 'text.disabled',
 										'&:hover': { color: 'text.secondary' },
 									}}
 								>
-									<MoreVertRoundedIcon sx={{ fontSize: 16 }} />
+									<MoreVertRoundedIcon sx={{ fontSize: 20 }} />
 								</IconButton>
 							</Box>
 						);
