@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
@@ -15,13 +16,13 @@ import { WebglAddon } from '@xterm/addon-webgl';
 import '@xterm/xterm/css/xterm.css';
 import { useOverlayTerminal } from '@/hooks/useOverlayTerminal';
 import { getAgentWsUrl } from '@/lib/local-fetch';
-import AgentTerminalModal from '@/components/agents/AgentTerminalModal';
 
 const OVERLAY_W = 560;
 const OVERLAY_H = 340;
 
 export default function OverlayTerminal() {
 	const theme = useTheme();
+	const router = useRouter();
 	const { session, close } = useOverlayTerminal();
 	const [termNode, setTermNode] = useState<HTMLDivElement | null>(null);
 	const terminalRef = useRef<Terminal | null>(null);
@@ -36,9 +37,6 @@ export default function OverlayTerminal() {
 	const dragging = useRef(false);
 	const dragOffset = useRef({ x: 0, y: 0 });
 
-	// Expand back to full modal
-	const [expanded, setExpanded] = useState(false);
-
 	// Reset position when session changes
 	const prevSessionId = useRef(session?.sessionId);
 	if (session?.sessionId !== prevSessionId.current) {
@@ -48,13 +46,12 @@ export default function OverlayTerminal() {
 				x: 32,
 				y: typeof window !== 'undefined' ? window.innerHeight - OVERLAY_H - 32 : 400,
 			});
-			setExpanded(false);
 		}
 	}
 
 	// Terminal setup
 	useEffect(() => {
-		if (!session || !termNode || expanded) return;
+		if (!session || !termNode) return;
 
 		const terminal = new Terminal({
 			cursorBlink: true,
@@ -149,7 +146,7 @@ export default function OverlayTerminal() {
 			wsRef.current = null;
 			fitAddonRef.current = null;
 		};
-	}, [session, termNode, expanded]);
+	}, [session, termNode]);
 
 	// Drag handlers
 	const handleMouseDown = useCallback(
@@ -189,18 +186,6 @@ export default function OverlayTerminal() {
 	);
 
 	if (!session) return null;
-
-	// When expanded, show full modal and hide overlay
-	if (expanded) {
-		return (
-			<AgentTerminalModal
-				open
-				onClose={() => setExpanded(false)}
-				projectPath={session.projectPath}
-				existingSessionId={session.sessionId}
-			/>
-		);
-	}
 
 	return (
 		<Box
@@ -256,7 +241,13 @@ export default function OverlayTerminal() {
 				</Typography>
 				<IconButton
 					size="small"
-					onClick={() => setExpanded(true)}
+					onClick={() => {
+						if (session)
+							router.push(
+								`/workbench?session=${encodeURIComponent(session.sessionId)}`,
+							);
+						close();
+					}}
 					sx={{ p: 0.25, color: 'text.disabled', '&:hover': { color: 'text.primary' } }}
 				>
 					<OpenInFullRoundedIcon sx={{ fontSize: 14 }} />
