@@ -39,7 +39,7 @@ export default function Workbench() {
 	const isArchived = bucket === 'archived';
 	const chatReadOnly = !!sessionId && bucket !== null && bucket !== 'active';
 
-	const hasIssue = !!resolved?.issue_number;
+	const hasIssue = !!(resolved?.issue_owner && resolved?.issue_repo && resolved?.issue_number);
 	type TopPanel = 'files' | 'activity' | 'issue';
 	const [topPanel, setTopPanel] = useState<TopPanel>('files');
 
@@ -127,7 +127,16 @@ export default function Workbench() {
 				}}
 			>
 				{/* Chips */}
-				<Box sx={{ display: 'flex', gap: 0.75, p: 1, borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
+				<Box
+					sx={{
+						display: 'flex',
+						gap: 0.75,
+						p: 1,
+						borderBottom: 1,
+						borderColor: 'divider',
+						flexShrink: 0,
+					}}
+				>
 					<Chip
 						icon={<DescriptionRoundedIcon sx={{ fontSize: '16px !important' }} />}
 						label={t('chipFiles')}
@@ -187,13 +196,37 @@ export default function Workbench() {
 				/>
 
 				{/* Terminal empilé */}
-				<Box sx={{ height: termHeight, flexShrink: 0, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-					<Box sx={{ px: 1.5, py: 0.5, borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
-						<Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+				<Box
+					sx={{
+						height: termHeight,
+						flexShrink: 0,
+						display: 'flex',
+						flexDirection: 'column',
+						minHeight: 0,
+					}}
+				>
+					<Box
+						sx={{
+							px: 1.5,
+							py: 0.5,
+							borderBottom: 1,
+							borderColor: 'divider',
+							flexShrink: 0,
+						}}
+					>
+						<Typography
+							variant="caption"
+							sx={{ fontWeight: 600, color: 'text.secondary' }}
+						>
 							{t('terminal')}
 						</Typography>
 					</Box>
-					<ShellTerminal sessionId={sessionId} cwd={effectivePath} active ready={!!resolved} />
+					<ShellTerminal
+						sessionId={sessionId}
+						cwd={effectivePath}
+						active
+						ready={!!resolved}
+					/>
 				</Box>
 			</Box>
 		</Box>
