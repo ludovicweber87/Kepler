@@ -35,7 +35,7 @@ Le lot 1 avait laissé deux hypothèses que ce lot révise explicitement :
 
 ## Non-objectifs (hors périmètre)
 
-- Rebrancher le PiP / OverlayTerminal sur le chat (**masqué pour le chat** dans ce lot — voir §7). Follow-up.
+- Rebrancher le PiP / OverlayTerminal sur le chat. Follow-up. **Masquage concret** : le bouton PiP de `AgentTerminalModal` (aujourd'hui rendu pour tout `step === 'terminal'`, cf. l'`IconButton` avec `handlePip`) est masqué quand l'onglet actif est le chat Claude — condition ajoutée `activeTabKey !== 'claude'`. Le PiP reste disponible pour les autres onglets qui reposent encore sur tmux (Terminal).
 - Bouton « Create PR » + PR Prompt + settings (**lot 4**).
 - Rendu markdown riche avancé (tableaux complexes, mermaid…) : on réutilise `react-markdown` déjà présent, sans extension nouvelle.
 - Multi-agents / ACP (Devora reste mono-agent Claude).
@@ -61,28 +61,30 @@ useAgentChat(params: {
 }) => {
   messages: ChatMessage[];     // transcript ordonné (history + live)
   status: 'connecting' | 'idle' | 'busy' | 'error' | 'closed';
-  model: string; effort: string; mode: string;   // état courant renvoyé par stream-ready
+  model: string; effort: string; permissionMode: string;   // état courant renvoyé par stream-ready
   pendingPermissions: PendingPermission[];
   send(text: string): void;
   setModel(m: string): void;
   setEffort(e: string): void;
-  setMode(m: string): void;
+  setPermissionMode(m: string): void;
   interrupt(): void;
   resolvePermission(id: string, decision: PermissionDecision): void;
 }
 ```
 **Dépendances** : `getAgentWsUrl()` (`src/lib/local-fetch.ts`), types chat.
 **Comportement clé** :
-- Ouvre le WS, envoie `stream-init { sessionId, cwd, systemPrompt, model?, effort?, mode? }`.
-- Reçoit `stream-history` (nouveau message serveur, voir §backend) → initialise `messages`. Puis `stream-ready` → pose model/effort/mode/status. Puis les `stream-event` live sont **réduits** en `messages` (agrégation, voir §réduction).
+- Ouvre le WS, envoie `stream-init { sessionId, cwd, systemPrompt, model?, effort?, permissionMode? }`. **Le client ne gère pas le resume** : c'est le serveur qui décide de reprendre (voir §Resume). Aucun paramètre resume dans l'interface du hook.
+- Reçoit `stream-history` (nouveau message serveur, voir §backend) → **remplace** `messages` par la réduction du transcript persisté. Puis `stream-ready` → pose model/effort/permissionMode/status. Puis les `stream-event` live sont **réduits** en `messages`.
+- **Dédup par `seq`** : chaque `stream-event` porte un `seq` monotone (voir §backend). Le hook garde `lastSeq` et **ignore tout event dont `seq ≤ lastSeq`**. Cela rend le pipeline sûr face à la fenêtre de ré-attache multi-client (history + live pouvant se chevaucher) : un event déjà appliqué via l'historique n'est jamais réappliqué. Le réducteur `append` n'a donc pas besoin d'être idempotent — c'est la couche `seq` qui garantit l'exactly-once côté client.
 - Message user : ajout **optimiste** dans `messages` (le SDK ne réémet pas nos messages user — confirmé lot 1) + `stream-user-message`.
 - `stream-permission-request` → alimente `pendingPermissions` ; `resolvePermission` → `stream-permission-response`.
 - `stream-error` / `stream-closed` → `status`.
-- Reconnexion : au `enabled` re-passé à true (réouverture modal), reconnecte et rejoue `stream-history`.
+- Reconnexion : au `enabled` re-passé à true (réouverture modal), reconnecte, remet `lastSeq=0` et rejoue `stream-history`.
 
 #### `AgentChatTab` (`src/components/agents/AgentChatTab.tsx`)
 **Rôle** : compose le hook + le flux scrollable + le composer. Remplace le `<Box ref={setTermNode}>` de l'onglet `claude` dans `AgentTerminalModal`.
 **Interface** : `{ sessionId, cwd, systemPrompt, isPastSession, onFirstUserMessage?(text) }`.
+**Visibilité du tab** : `termTabs` exclut aujourd'hui le tab `claude` quand `isPastSession`. Ce lot **modifie cette logique** pour toujours inclure le tab chat (y compris pour les sessions passées), afin d'y rejouer le transcript en lecture seule. Le tab shell `terminal` reste, lui, exclu pour les sessions passées (inchangé).
 **Dépendances** : `useAgentChat`, les sous-composants ci-dessous.
 **Responsabilités** : autoscroll (sauf si l'utilisateur a scrollé vers le haut), indicateur « busy », remontée du premier message user à `AgentTerminalModal` (pour l'auto-rename côté client si conservé — voir §auto-rename).
 
@@ -119,21 +121,25 @@ Fonction pure et testée `reduceStreamEvent(messages, event): ChatMessage[]`, da
 - `tool_use` → append segment `tool` avec `status:'running'`, indexé par `id`.
 - `tool_result` → retrouve la `ChatToolCall` par `tool_use_id`, pose `result` + `status:'done'|'error'`.
 - `result` → clôt le tour (repasse `busy=false`), pas de bulle dédiée.
-- `session` → met à jour model/mode (pas de bulle).
+- `session` → met à jour model/permissionMode (pas de bulle).
 
 ### Backend (`packages/agent/`)
 
 Ajouts au manager SDK existant (`src/sdk/sdkAgent.ts`) et au handler WS (`src/terminal.ts`), **sans casser** le protocole lot 1.
 
-#### Persistance du transcript
-- Nouvelle unité `src/sdk/transcriptStore.ts` : `appendEvent(sessionId, seq, event)` et `loadTranscript(sessionId): StreamEvent[]`, via `getDb()` (raw SQL, better-sqlite3). Dégrade proprement si `getDb()` renvoie `null`.
-- Dans `runLoop`, après chaque `broadcast(stream-event)` : `transcriptStore.appendEvent(...)` (numéro de séquence monotone par session).
-- Dans `startOrAttach` : avant/à l'attache, charger `loadTranscript(sessionId)` et envoyer au client **`stream-history { events: StreamEvent[] }`** (nouveau message serveur), suivi du `stream-ready` habituel. Pour une session vivante ré-attachée, l'historique = transcript persisté (source unique de vérité).
+#### Persistance du transcript & numérotation `seq`
+- Nouvelle unité `src/sdk/transcriptStore.ts` : `appendEvent(sessionId, seq, event)`, `loadTranscript(sessionId): {seq, event}[]`, et `nextSeq(sessionId): number` (= `max(seq)+1` lu en DB, `1` si vide), via `getDb()` (raw SQL, better-sqlite3). Dégrade proprement si `getDb()` renvoie `null`.
+- **`seq` monotone par session** : au démarrage/reprise d'une session, le compteur en mémoire est **initialisé depuis `nextSeq(sessionId)`** (et non à `0`) — après redémarrage serveur + resume, la numérotation continue au-delà du `max(seq)` persisté (pas de collision ni de replay mal ordonné).
+- Dans `runLoop`, pour chaque event : incrémenter `seq`, `transcriptStore.appendEvent(sessionId, seq, event)`, puis `broadcast({ type:'stream-event', seq, ...ev })`. **Le `seq` est donc porté par chaque `stream-event`** (ajout au protocole lot 1, rétrocompatible : un client qui l'ignore n'est pas cassé).
+- Dans `startOrAttach` : charger `loadTranscript(sessionId)` et envoyer au client **`stream-history { events: {seq, event}[] }`** (nouveau message serveur), suivi du `stream-ready` habituel. L'ajout du `ws` au `clients` set et le snapshot de l'historique se font de sorte que tout event émis pendant l'attache soit soit inclus dans l'historique, soit délivré en live — la dédup `seq` côté client (voir hook) neutralise tout chevauchement. Le transcript persisté est la **source unique de vérité** (même pour une session vivante ré-attachée).
+- **Troncature** : le `content` des events `tool_result` persistés est tronqué (limite ~50 Ko) ; un event tronqué porte un marqueur `truncated:true` pour que l'UI affiche un indicateur « sortie tronquée » et ne laisse pas croire à un transcript complet.
 
-#### Resume après redémarrage / session passée
+#### Resume après redémarrage / session passée (owner = **serveur**)
 - Nouvelle colonne `claude_session_id` sur `agent_sessions`.
 - Le manager persiste `claudeSessionId` (event `session`) sur `agent_sessions` (idempotent).
-- `startOrAttach` : si la session n'est **pas** vivante en mémoire mais qu'un transcript + `claude_session_id` existent, démarrer le SDK avec `resume: claude_session_id` (la conversation Claude reprend). Le `stream-history` est renvoyé d'abord (transcript passé), puis le live reprend.
+- **Le resume est décidé côté serveur, pas côté client** : dans `startOrAttach`, si la session n'est **pas** vivante en mémoire, le manager lit `claude_session_id` en DB ; s'il existe, il démarre le SDK avec `resume: claude_session_id` (la conversation Claude reprend). Le client se contente d'envoyer un `stream-init` normal (sans champ resume). `startOrAttach` continue d'accepter `resumeClaudeSessionId` en param (compat lot 1), mais la DB prime si le param est absent.
+- Séquence à l'attache : `stream-history` (transcript persisté) d'abord, puis `stream-ready`, puis le live.
+- **Fallback si `claude_session_id` absent** (résultat jamais atteint) : pas de resume possible → nouvelle session SDK ; le transcript passé est tout de même renvoyé en `stream-history` et affiché (les nouveaux tours s'y ajoutent).
 
 #### Dérivation des logs d'activité
 - Nouvelle unité `src/sdk/activityDeriver.ts` : `deriveLogs(event): { log_type, content }[]` (fonction pure, testée) :
@@ -182,7 +188,7 @@ AgentTerminalModal (step 'terminal', onglet 'claude')
 - **Envoi pendant `busy`** : le composer est désactivé (le SDK met en file, mais on garde l'UX simple : un tour à la fois).
 - **Permissions en attente à la ré-attache** : `stream-ready.pendingPermissions` (fourni par lot 1) réhydrate les cartes.
 - **Changement d'effort mid-session** : envoyé via `stream-set-effort` (best-effort côté SDK — `applyFlagSettings`, non garanti mid-session d'après lot 1). L'UI reflète immédiatement la sélection ; la valeur s'applique de façon fiable au (re)démarrage de session. Documenté dans l'UI par un tooltip si nécessaire.
-- **Session passée (`isPastSession`)** : `readOnly=true`, transcript rejoué, composer masqué, bouton **« Reprendre »** qui relance en mode éditable (déclenche un `stream-init` avec resume).
+- **Session passée (`isPastSession`)** : `readOnly=true`, transcript rejoué via `stream-history`, composer masqué, bouton **« Reprendre »**. « Reprendre » passe `readOnly=false` et **(ré)active le WS** : le hook envoie un `stream-init` normal ; **le serveur** résout le resume depuis `claude_session_id` en DB (le client ne passe aucun champ resume). Si le resume est impossible (§Resume, fallback), une nouvelle session démarre au-dessus du transcript affiché.
 - **`getDb()` null** (DB pas encore créée) : persistance/dérivation dégradent en no-op ; le chat live fonctionne quand même.
 
 ## Code retiré
@@ -198,13 +204,13 @@ Dans `AgentTerminalModal` et le serveur, pour le path Claude uniquement (le shel
 1. **`reduceStreamEvent`** (unitaire, pur) : séquence `assistant`+`thinking`+`tool_use`+`tool_result`+`result` → `ChatMessage[]` attendu ; corrélation `tool_use_id`.
 2. **`activityDeriver.deriveLogs`** (unitaire, pur) : Edit→file_change, `git commit`→commit, result→summary.
 3. **`transcriptStore`** (intégration SQLite en mémoire/temp) : append puis load = même ordre (seq).
-4. **`useAgentChat`** (test hook, WS mocké) : stream-history initialise ; message user optimiste ; permission request→response ; busy/idle.
+4. **`useAgentChat`** (test hook, WS mocké) : stream-history initialise ; **dédup `seq`** — un event présent dans l'historique **et** re-livré en live (chevauchement) n'est appliqué qu'une fois ; message user optimiste ; permission request→response ; busy/idle.
 5. **Intégration manuelle** (checklist verify) : lancer un agent, envoyer un message, voir bulles + tool cards + un cycle de permission en mode `default` ; fermer/rouvrir le modal → transcript rejoué ; changer model/mode à chaud ; ouvrir une session passée en lecture seule puis « Reprendre ».
 6. **Non-régression** : onglets Activity/Fichiers/Terminal/Issue et le flow de lancement inchangés ; dashboard/summaries toujours alimentés (via logs dérivés).
 
 ## Risques
 
-- **Réduction des events** : le SDK émet le texte assistant par blocs ; l'agrégation en segments doit rester ordonnée et idempotente au replay. Mitigation : réducteur pur testé, replay = mêmes events que le live.
+- **Réduction des events & re-attache** : le réducteur `append` n'est **pas** idempotent (réappliquer un event de texte doublerait le contenu). L'exactly-once est garanti par la **couche `seq`** (dédup côté client + numérotation continue après restart), pas par le réducteur. Risque résiduel : un bug dans la propagation du `seq` casserait la garantie. Mitigation : réducteur pur testé + test explicite de la dédup `seq` sur une fenêtre history/live qui se chevauche.
 - **Effort mid-session** non garanti (hérité lot 1). Mitigation : UI honnête (applique au restart), pas de promesse fausse.
 - **Double source de logs** pendant la transition : s'assurer que le reporting curl est bien retiré pour ne pas doublonner avec la dérivation. Mitigation : suppression explicite (§code retiré) + test non-régression.
 - **Cohérence transcript ↔ agent_sessions** : un transcript sans `claude_session_id` (résultat non atteint) ne peut pas `resume` → fallback : nouvelle session SDK, transcript passé affiché en lecture seule au-dessus. Documenté.
