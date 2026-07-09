@@ -44,6 +44,8 @@ interface AgentFile {
 }
 import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useAgentSession } from '@/hooks/useAgentSession';
+import { useSessionActions } from '@/hooks/useSessionActions';
+import { classifySession } from '@/lib/sessionStatus';
 import { useOverlayTerminal } from '@/hooks/useOverlayTerminal';
 import { useWorktrees } from '@/hooks/useWorktrees';
 import { useSnackbar } from '@/hooks/useSnackbar';
@@ -73,8 +75,6 @@ interface AgentTerminalModalProps {
 	existingSessionId?: string;
 	/** Issue context — resolves projectPath via repo_paths */
 	issueContext?: IssueContext;
-	/** Session is from history (completed/error) — show reopen button first */
-	isPastSession?: boolean;
 	/** Launch agent in an existing worktree — skip branch/worktree creation */
 	existingWorktree?: { branch: string; worktreePath: string };
 }
@@ -134,7 +134,6 @@ export default function AgentTerminalModal({
 	agentFile,
 	existingSessionId,
 	issueContext,
-	isPastSession = false,
 	existingWorktree,
 }: AgentTerminalModalProps) {
 	const tl = useTranslations('launchModal');
@@ -198,19 +197,22 @@ export default function AgentTerminalModal({
 	const sessionId = existingSessionId ?? generatedIdRef.current ?? '';
 
 	const { session, logs, ensureSession } = useAgentSession(open ? sessionId : undefined);
+	const { stop, resume } = useSessionActions();
+	// DB status is the single source of truth for the chat's read-only state.
+	// A brand-new session (no existingSessionId) is editable; an existing one is
+	// editable only while its status is 'active'; loading defaults to read-only.
+	const sessionBucket = session ? classifySession(session) : null;
+	const isArchivedSession = sessionBucket === 'archived';
+	const chatReadOnly = !!existingSessionId && sessionBucket !== 'active';
 	const overlay = useOverlayTerminal();
 
-	// Kill the tmux session + mark it completed, then close the modal.
-	// This is the ONLY path that really ends a session (manual, user-triggered).
+	// Stop the session (manual, user-triggered). This is the ONLY active → past
+	// transition: stops SDK + tmux and sets status='completed', then closes.
 	const handleCloseSession = useCallback(async () => {
 		if (!sessionId) return;
 		setClosingSession(true);
 		try {
-			await localFetch(`/agent-sessions/${encodeURIComponent(sessionId)}/kill`, {
-				method: 'POST',
-			});
-			queryClient.invalidateQueries({ queryKey: ['sessions', 'active'] });
-			queryClient.invalidateQueries({ queryKey: ['agent-sessions', 'history'] });
+			await stop(sessionId);
 			showSnackbar(tc('sessionKilled'), 'success');
 			setConfirmCloseOpen(false);
 			onClose();
@@ -219,7 +221,7 @@ export default function AgentTerminalModal({
 		} finally {
 			setClosingSession(false);
 		}
-	}, [sessionId, queryClient, showSnackbar, tc, onClose]);
+	}, [sessionId, stop, showSnackbar, tc, onClose]);
 
 	// Effective working path: worktree path when available, else projectPath
 	// For current-branch mode, always use projectPath directly
@@ -266,10 +268,10 @@ export default function AgentTerminalModal({
 			sessionId,
 			projectPath: effectivePath,
 			projectName,
-			isPastSession,
+			isPastSession: chatReadOnly,
 		});
 		onClose();
-	}, [sessionId, effectivePath, isPastSession, overlay, onClose]);
+	}, [sessionId, effectivePath, chatReadOnly, overlay, onClose]);
 
 	// Resolve path from repo_paths when using issueContext
 	const resolveCwd = useCallback(async () => {
@@ -547,7 +549,7 @@ export default function AgentTerminalModal({
 				</>
 			),
 		});
-		if (!isPastSession) {
+		if (!chatReadOnly) {
 			items.push({
 				key: 'terminal',
 				label: (
@@ -568,7 +570,7 @@ export default function AgentTerminalModal({
 			});
 		}
 		return items;
-	}, [hasIssue, isPastSession]);
+	}, [hasIssue, chatReadOnly]);
 
 	const orderedTermTabs = useMemo(() => {
 		if (!termTabOrder) return termTabs;
@@ -852,8 +854,8 @@ export default function AgentTerminalModal({
 								'& .MuiChip-icon': { color: 'text.secondary' },
 							}}
 						/>
-						{step === 'terminal' && !isPastSession && (
-							<Tooltip title={tl('closeSession')} arrow placement="bottom">
+						{step === 'terminal' && sessionBucket === 'active' && (
+							<Tooltip title={tl('stopSession')} arrow placement="bottom">
 								<IconButton
 									size="small"
 									onClick={() => setConfirmCloseOpen(true)}
@@ -1324,12 +1326,18 @@ export default function AgentTerminalModal({
 								sessionId={sessionId}
 								cwd={effectivePath ?? null}
 								systemPrompt={chatSystemPrompt}
-								isPastSession={isPastSession}
+								readOnly={chatReadOnly}
+								archived={isArchivedSession}
 								onFirstUserMessage={(text) => {
 									if (autoNamedRef.current && !promptSentRef.current) {
 										promptSentRef.current = true;
 										submitRenameFromPrompt(text);
 									}
+								}}
+								onResume={() => {
+									// Reprendre : passe le statut DB en 'active' → la session
+									// redevient éditable (le WS se rouvre) et repart en actifs.
+									resume(sessionId).catch(() => {});
 								}}
 							/>
 						)}
@@ -1421,7 +1429,7 @@ export default function AgentTerminalModal({
 						color="error"
 						startIcon={<StopCircleRoundedIcon />}
 					>
-						{tl('closeSession')}
+						{tl('stopSession')}
 					</Button>
 				</DialogActions>
 			</Dialog>

@@ -8,13 +8,13 @@ import { alpha, useTheme } from '@mui/material/styles';
 import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
 import StopRoundedIcon from '@mui/icons-material/StopRounded';
 import { useTranslations } from 'next-intl';
-import { type ActiveSession } from '@/hooks/useActiveSessions';
+import { type AgentSession } from '@/hooks/useAgentSession';
 import DashboardWidget from './DashboardWidget';
 
 interface ActiveAgentsWidgetProps {
-	sessions: ActiveSession[];
+	sessions: AgentSession[];
 	pendingQuestions: Set<string>;
-	onSessionClick: (session: ActiveSession) => void;
+	onSessionClick: (session: AgentSession) => void;
 	onStopSession: (sessionId: string) => void;
 }
 
@@ -57,16 +57,28 @@ export default function ActiveAgentsWidget({
 					</Typography>
 				</Box>
 			) : (
-				<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1, overflowY: 'auto', '&::-webkit-scrollbar': { width: 3 }, '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 1 } }}>
+				<Box
+					sx={{
+						display: 'flex',
+						flexDirection: 'column',
+						gap: 1,
+						flex: 1,
+						overflowY: 'auto',
+						'&::-webkit-scrollbar': { width: 3 },
+						'&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 1 },
+					}}
+				>
 					{sessions.map((session) => {
-						const hasQuestion = pendingQuestions.has(session.cwd);
+						const hasQuestion = session.worktree_path
+							? pendingQuestions.has(session.worktree_path)
+							: false;
 						const dotColor = hasQuestion
 							? theme.palette.warning.main
 							: theme.palette.success.main;
 
 						return (
 							<Box
-								key={session.sessionId}
+								key={session.id}
 								onClick={() => onSessionClick(session)}
 								sx={{
 									bgcolor: 'background.default',
@@ -109,7 +121,7 @@ export default function ActiveAgentsWidget({
 											whiteSpace: 'nowrap',
 										}}
 									>
-										{session.agentName ?? 'Claude'}
+										{session.agent_name ?? session.branch ?? 'Claude'}
 									</Typography>
 									<Typography
 										sx={{
@@ -120,11 +132,11 @@ export default function ActiveAgentsWidget({
 											whiteSpace: 'nowrap',
 										}}
 									>
-										{session.projectName}
+										{session.project_name}
 										{' · '}
 										{hasQuestion
 											? t('questionPending')
-											: `${t('streamingSince')} ${timeAgoShort(session.createdAt)}`}
+											: `${t('streamingSince')} ${timeAgoShort(new Date(session.started_at).getTime())}`}
 									</Typography>
 								</Box>
 								{session.branch && (
@@ -146,7 +158,7 @@ export default function ActiveAgentsWidget({
 									size="small"
 									onClick={(e) => {
 										e.stopPropagation();
-										onStopSession(session.sessionId);
+										onStopSession(session.session_id);
 									}}
 									sx={{
 										minWidth: 0,

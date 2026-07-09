@@ -22,7 +22,13 @@
 		"deleteWorktreeOnly": "Apenas worktree",
 		"deleteWorktreeAndBranch": "Worktree + branch",
 		"worktreeDeleted": "Worktree excluído",
-		"deleteWorktreeError": "Falha ao excluir o worktree"
+		"deleteWorktreeError": "Falha ao excluir o worktree",
+		"worktreeActions": "Ações",
+		"archive": "Arquivar",
+		"delete": "Eliminar",
+		"archived": "Arquivadas",
+		"sessionArchived": "Sessão arquivada",
+		"archiveError": "Falha ao arquivar"
 	},
 	"landing": {
 		"nav": {
@@ -148,7 +154,11 @@
 		"title": "Configurações",
 		"viewsSaved": "Visualizações salvas",
 		"pathSaved": "Caminho salvo",
-		"localPath": "Caminho local"
+		"localPath": "Caminho local",
+		"createPrPrompt": "Prompt Criar PR",
+		"createPrPromptDesc": "Mensagem enviada ao agente ao clicar em «Criar PR». O agente lê-a e faz o trabalho (commit, push, abrir a PR).",
+		"createPrPromptSave": "Guardar",
+		"createPrPromptSaved": "Prompt guardado"
 	},
 	"header": {
 		"lightMode": "Modo claro",
@@ -196,7 +206,8 @@
 		"issueUrl": "URL da issue do GitHub para contexto (opcional)",
 		"closeSession": "Fechar sessao",
 		"confirmCloseTitle": "Fechar a sessao?",
-		"confirmCloseBody": "A sessao atual sera encerrada. Voce podera relanca-la mais tarde."
+		"confirmCloseBody": "A sessao atual sera encerrada. Voce podera relanca-la mais tarde.",
+		"stopSession": "Parar a sessão"
 	},
 	"agentActivity": {
 		"reportTitle": "Relatório do agente",
@@ -290,6 +301,16 @@
 		"modelSonnet": "Sonnet 5",
 		"modelHaiku": "Haiku 4.5",
 		"pending": "A pensar…",
-		"modeEdit": "Edição"
+		"modeEdit": "Edição",
+		"createPr": "Criar PR",
+		"archivedReadOnly": "Sessão arquivada — apenas leitura"
+	},
+	"archived": {
+		"title": "Sessões arquivadas",
+		"all": "Todas",
+		"empty": "Nenhuma sessão arquivada",
+		"unarchive": "Desarquivar",
+		"sessionUnarchived": "Sessão desarquivada",
+		"unarchiveError": "Falha ao desarquivar"
 	}
 }

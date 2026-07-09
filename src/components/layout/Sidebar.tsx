@@ -26,14 +26,18 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded';
+import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
+import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined';
 import Collapse from '@mui/material/Collapse';
 import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
 import Image from 'next/image';
 import { useMe } from '@/hooks/useMe';
 import { useTranslations } from 'next-intl';
 import { usePendingTodoCount } from '@/hooks/usePendingTodoCount';
-import { useActiveSessions } from '@/hooks/useActiveSessions';
 import { useAgentSessionHistory } from '@/hooks/useAgentSession';
+import { useSessionActions } from '@/hooks/useSessionActions';
+import { classifySession } from '@/lib/sessionStatus';
 import { useAgentViews } from '@/hooks/useAgentViews';
 import { useAllWorktrees } from '@/hooks/useAllWorktrees';
 import { useSnackbar } from '@/hooks/useSnackbar';
@@ -48,20 +52,18 @@ export default function Sidebar() {
 	const { me } = useMe();
 	const t = useTranslations('sidebar');
 	const pendingCount = usePendingTodoCount();
-	const { data: activeSessions = [] } = useActiveSessions();
-	const { data: pastSessions = [] } = useAgentSessionHistory();
-	// Sessions whose agent finished (DB status) — open read-only even if their tmux lingers.
-	const finishedSessionIds = useMemo(
-		() =>
-			new Set(
-				pastSessions
-					.filter((s) => s.status === 'completed' || s.status === 'error')
-					.map((s) => s.session_id),
-			),
-		[pastSessions],
-	);
+	const { data: allSessions = [] } = useAgentSessionHistory();
+	// Most recent session per worktree path (list is ordered started_at desc).
+	const sessionByWorktree = useMemo(() => {
+		const map = new Map<string, (typeof allSessions)[number]>();
+		for (const s of allSessions) {
+			if (s.worktree_path && !map.has(s.worktree_path)) map.set(s.worktree_path, s);
+		}
+		return map;
+	}, [allSessions]);
 	const { views } = useAgentViews();
 	const { byPath, deleteWorktree } = useAllWorktrees(views.map((v) => v.path));
+	const { archive, remove } = useSessionActions();
 	const { showSnackbar } = useSnackbar();
 	// Projects are all expanded by default; we only track the ones the user collapsed,
 	// so each accordion opens/closes independently.
@@ -71,11 +73,16 @@ export default function Sidebar() {
 		projectPath: string;
 		worktreePath: string;
 	} | null>(null);
+	const [actionsMenu, setActionsMenu] = useState<{
+		el: HTMLElement;
+		projectPath: string;
+		worktreePath: string;
+		sessionId: string | null;
+	} | null>(null);
 	const [modalConfig, setModalConfig] = useState<{
 		projectPath?: string;
 		existingSessionId?: string;
 		existingWorktree?: { branch: string; worktreePath: string };
-		isPastSession?: boolean;
 	} | null>(null);
 
 	const toggleProject = (path: string) => {
@@ -87,12 +94,26 @@ export default function Sidebar() {
 		});
 	};
 
+	const handleArchive = () => {
+		if (!actionsMenu?.sessionId) return;
+		const sessionId = actionsMenu.sessionId;
+		setActionsMenu(null);
+		archive(sessionId)
+			.then(() => showSnackbar(t('sessionArchived'), 'success'))
+			.catch(() => showSnackbar(t('archiveError'), 'error'));
+	};
+
 	const handleDeleteWorktree = (deleteBranch: boolean) => {
 		if (!deleteMenu) return;
 		const { projectPath, worktreePath } = deleteMenu;
 		setDeleteMenu(null);
+		// Delete worktree AND its session row → gone from every bucket.
+		const session = sessionByWorktree.get(worktreePath);
 		deleteWorktree(projectPath, worktreePath, deleteBranch)
-			.then(() => showSnackbar(t('worktreeDeleted'), 'success'))
+			.then(() => {
+				if (session) void remove(session.id).catch(() => {});
+				showSnackbar(t('worktreeDeleted'), 'success');
+			})
 			.catch((err) =>
 				showSnackbar(
 					`${t('deleteWorktreeError')}: ${err instanceof Error ? err.message : ''}`,
@@ -108,6 +129,7 @@ export default function Sidebar() {
 	];
 
 	const bottomItems = [
+		{ label: t('archived'), href: '/archived', icon: <Inventory2OutlinedIcon /> },
 		{ label: t('settings'), href: '/settings', icon: <SettingsRoundedIcon /> },
 	];
 
@@ -248,7 +270,12 @@ export default function Sidebar() {
 							</Typography>
 						)}
 						{views.map((view) => {
-							const worktrees = byPath.get(view.path) ?? [];
+							const allWorktrees = byPath.get(view.path) ?? [];
+							// Hide worktrees whose session is archived (archived → Archives page only).
+							const worktrees = allWorktrees.filter((wt) => {
+								const s = sessionByWorktree.get(wt.path);
+								return !(s && classifySession(s) === 'archived');
+							});
 							const expanded = !collapsedProjects.has(view.path);
 							return (
 								<Box key={view.path}>
@@ -316,57 +343,39 @@ export default function Sidebar() {
 												</Typography>
 											) : (
 												worktrees.map((wt) => {
-													const activeS = activeSessions.find(
-														(s) => s.cwd === wt.path,
+													// Session (DB) attached to this worktree, if any.
+													const wtSession = sessionByWorktree.get(
+														wt.path,
 													);
-													// Reuse the worktree's existing session instead of
-													// spawning a new one (avoids duplicate "recent" rows).
-													const pastForWt = pastSessions.find(
-														(s) => s.worktree_path === wt.path,
-													);
-													// Show the agent-renamed name, like "active agents".
+													const isActiveWt =
+														!!wtSession &&
+														classifySession(wtSession) === 'active';
+													// Show the agent-renamed name.
 													const displayName =
-														activeS?.agentName ??
-														pastForWt?.agent_name ??
-														wt.branch;
+														wtSession?.agent_name ?? wt.branch;
+													const sessionIdForWt =
+														wtSession?.session_id ?? null;
 													return (
 														<Box
 															key={wt.path}
 															onClick={() =>
 																setModalConfig(
-																	activeS
+																	wtSession
 																		? {
 																				projectPath:
 																					view.path,
 																				existingSessionId:
-																					activeS.sessionId,
-																				isPastSession:
-																					finishedSessionIds.has(
-																						activeS.sessionId,
-																					),
+																					wtSession.session_id,
 																			}
-																		: pastForWt
-																			? {
-																					projectPath:
-																						view.path,
-																					existingSessionId:
-																						pastForWt.session_id,
-																					isPastSession:
-																						pastForWt.status ===
-																							'completed' ||
-																						pastForWt.status ===
-																							'error',
-																				}
-																			: {
-																					projectPath:
-																						view.path,
-																					existingWorktree:
-																						{
-																							branch: wt.branch,
-																							worktreePath:
-																								wt.path,
-																						},
+																		: {
+																				projectPath:
+																					view.path,
+																				existingWorktree: {
+																					branch: wt.branch,
+																					worktreePath:
+																						wt.path,
 																				},
+																			},
 																)
 															}
 															sx={{
@@ -391,7 +400,7 @@ export default function Sidebar() {
 															<AccountTreeRoundedIcon
 																sx={{
 																	fontSize: 13,
-																	color: activeS
+																	color: isActiveWt
 																		? 'success.main'
 																		: 'text.disabled',
 																}}
@@ -403,23 +412,25 @@ export default function Sidebar() {
 																	overflow: 'hidden',
 																	textOverflow: 'ellipsis',
 																	whiteSpace: 'nowrap',
-																	color: activeS
+																	color: isActiveWt
 																		? 'text.primary'
 																		: 'text.secondary',
 																}}
 															>
 																{displayName}
 															</Typography>
-															<Tooltip title={t('deleteWorktree')}>
+															<Tooltip title={t('worktreeActions')}>
 																<IconButton
 																	className="wt-delete"
 																	size="small"
 																	onClick={(e) => {
 																		e.stopPropagation();
-																		setDeleteMenu({
+																		setActionsMenu({
 																			el: e.currentTarget,
 																			projectPath: view.path,
 																			worktreePath: wt.path,
+																			sessionId:
+																				sessionIdForWt,
 																		});
 																	}}
 																	sx={{
@@ -428,12 +439,12 @@ export default function Sidebar() {
 																		transition: 'opacity 0.15s',
 																		color: 'text.disabled',
 																		'&:hover': {
-																			color: 'error.main',
+																			color: 'primary.main',
 																		},
 																	}}
 																>
-																	<DeleteOutlineRoundedIcon
-																		sx={{ fontSize: 14 }}
+																	<MoreVertRoundedIcon
+																		sx={{ fontSize: 16 }}
 																	/>
 																</IconButton>
 															</Tooltip>
@@ -537,6 +548,38 @@ export default function Sidebar() {
 			</Drawer>
 
 			<Menu
+				anchorEl={actionsMenu?.el}
+				open={!!actionsMenu}
+				onClose={() => setActionsMenu(null)}
+				anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+				transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+			>
+				<MenuItem
+					onClick={handleArchive}
+					disabled={!actionsMenu?.sessionId}
+					sx={{ fontSize: '0.8rem', gap: 1 }}
+				>
+					<ArchiveOutlinedIcon sx={{ fontSize: 16 }} />
+					{t('archive')}
+				</MenuItem>
+				<MenuItem
+					onClick={() => {
+						if (!actionsMenu) return;
+						setDeleteMenu({
+							el: actionsMenu.el,
+							projectPath: actionsMenu.projectPath,
+							worktreePath: actionsMenu.worktreePath,
+						});
+						setActionsMenu(null);
+					}}
+					sx={{ fontSize: '0.8rem', gap: 1, color: 'error.main' }}
+				>
+					<DeleteOutlineRoundedIcon sx={{ fontSize: 16 }} />
+					{t('delete')}
+				</MenuItem>
+			</Menu>
+
+			<Menu
 				anchorEl={deleteMenu?.el}
 				open={!!deleteMenu}
 				onClose={() => setDeleteMenu(null)}
@@ -560,7 +603,6 @@ export default function Sidebar() {
 				projectPath={modalConfig?.projectPath}
 				existingSessionId={modalConfig?.existingSessionId}
 				existingWorktree={modalConfig?.existingWorktree}
-				isPastSession={modalConfig?.isPastSession}
 			/>
 		</>
 	);

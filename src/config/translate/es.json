@@ -22,7 +22,13 @@
 		"deleteWorktreeOnly": "Solo worktree",
 		"deleteWorktreeAndBranch": "Worktree + rama",
 		"worktreeDeleted": "Worktree eliminado",
-		"deleteWorktreeError": "Error al eliminar el worktree"
+		"deleteWorktreeError": "Error al eliminar el worktree",
+		"worktreeActions": "Acciones",
+		"archive": "Archivar",
+		"delete": "Eliminar",
+		"archived": "Archivadas",
+		"sessionArchived": "Sesión archivada",
+		"archiveError": "Error al archivar"
 	},
 	"landing": {
 		"nav": {
@@ -147,7 +153,11 @@
 	"settings": {
 		"title": "Ajustes",
 		"viewsSaved": "Vistas guardadas",
-		"pathSaved": "Ruta guardada"
+		"pathSaved": "Ruta guardada",
+		"createPrPrompt": "Prompt Crear PR",
+		"createPrPromptDesc": "Mensaje enviado al agente al pulsar «Crear PR». El agente lo lee y realiza el trabajo (commit, push, abrir la PR).",
+		"createPrPromptSave": "Guardar",
+		"createPrPromptSaved": "Prompt guardado"
 	},
 	"header": {
 		"lightMode": "Modo claro",
@@ -195,7 +205,8 @@
 		"issueUrl": "URL de issue de GitHub para contexto (opcional)",
 		"closeSession": "Cerrar sesion",
 		"confirmCloseTitle": "¿Cerrar la sesion?",
-		"confirmCloseBody": "La sesion actual se detendra. Podras relanzarla mas tarde."
+		"confirmCloseBody": "La sesion actual se detendra. Podras relanzarla mas tarde.",
+		"stopSession": "Detener la sesión"
 	},
 	"agentActivity": {
 		"reportTitle": "Informe del agente",
@@ -289,6 +300,16 @@
 		"modelSonnet": "Sonnet 5",
 		"modelHaiku": "Haiku 4.5",
 		"pending": "Pensando…",
-		"modeEdit": "Edición"
+		"modeEdit": "Edición",
+		"createPr": "Crear PR",
+		"archivedReadOnly": "Sesión archivada — solo lectura"
+	},
+	"archived": {
+		"title": "Sesiones archivadas",
+		"all": "Todas",
+		"empty": "Ninguna sesión archivada",
+		"unarchive": "Desarchivar",
+		"sessionUnarchived": "Sesión desarchivada",
+		"unarchiveError": "Error al desarchivar"
 	}
 }

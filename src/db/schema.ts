@@ -34,6 +34,7 @@ export const agentSessions = sqliteTable('agent_sessions', {
 	status: text().default('active'),
 	started_at: timestamp(),
 	ended_at: text(),
+	archived_at: text(),
 	report_published_at: text(),
 	issue_owner: text(),
 	issue_repo: text(),
@@ -94,6 +95,15 @@ export const tabOrders = sqliteTable('tab_orders', {
 	id: uuid(),
 	tab_group: text().notNull().unique(),
 	tab_order: text({ mode: 'json' }).$type<string[]>().default([]),
+	updated_at: timestamp(),
+});
+
+// ─── App Settings (clé/valeur globales) ─────────────────
+
+export const appSettings = sqliteTable('app_settings', {
+	id: uuid(),
+	key: text().notNull().unique(),
+	value: text().default(''),
 	updated_at: timestamp(),
 });
 

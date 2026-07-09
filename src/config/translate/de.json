@@ -22,7 +22,13 @@
 		"deleteWorktreeOnly": "Nur Worktree",
 		"deleteWorktreeAndBranch": "Worktree + Branch",
 		"worktreeDeleted": "Worktree gelöscht",
-		"deleteWorktreeError": "Löschen des Worktree fehlgeschlagen"
+		"deleteWorktreeError": "Löschen des Worktree fehlgeschlagen",
+		"worktreeActions": "Aktionen",
+		"archive": "Archivieren",
+		"delete": "Löschen",
+		"archived": "Archiviert",
+		"sessionArchived": "Sitzung archiviert",
+		"archiveError": "Archivieren fehlgeschlagen"
 	},
 	"landing": {
 		"nav": {
@@ -147,7 +153,11 @@
 	"settings": {
 		"title": "Einstellungen",
 		"viewsSaved": "Ansichten gespeichert",
-		"pathSaved": "Pfad gespeichert"
+		"pathSaved": "Pfad gespeichert",
+		"createPrPrompt": "Create-PR-Prompt",
+		"createPrPromptDesc": "Nachricht, die an den Agenten gesendet wird, wenn du auf „PR erstellen“ klickst. Der Agent liest sie und erledigt die Arbeit (Commit, Push, PR öffnen).",
+		"createPrPromptSave": "Speichern",
+		"createPrPromptSaved": "Prompt gespeichert"
 	},
 	"header": {
 		"lightMode": "Heller Modus",
@@ -195,7 +205,8 @@
 		"issueUrl": "GitHub-Issue-URL für Kontext (optional)",
 		"closeSession": "Sitzung schließen",
 		"confirmCloseTitle": "Sitzung schließen?",
-		"confirmCloseBody": "Die aktuelle Sitzung wird beendet. Du kannst sie später erneut starten."
+		"confirmCloseBody": "Die aktuelle Sitzung wird beendet. Du kannst sie später erneut starten.",
+		"stopSession": "Sitzung beenden"
 	},
 	"agentActivity": {
 		"reportTitle": "Agent-Bericht",
@@ -289,6 +300,16 @@
 		"modelSonnet": "Sonnet 5",
 		"modelHaiku": "Haiku 4.5",
 		"pending": "Denkt nach…",
-		"modeEdit": "Bearbeiten"
+		"modeEdit": "Bearbeiten",
+		"createPr": "PR erstellen",
+		"archivedReadOnly": "Archivierte Sitzung — schreibgeschützt"
+	},
+	"archived": {
+		"title": "Archivierte Sitzungen",
+		"all": "Alle",
+		"empty": "Keine archivierte Sitzung",
+		"unarchive": "Wiederherstellen",
+		"sessionUnarchived": "Sitzung wiederhergestellt",
+		"unarchiveError": "Wiederherstellen fehlgeschlagen"
 	}
 }
