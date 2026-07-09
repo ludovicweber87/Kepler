@@ -1,8 +1,10 @@
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import Database from 'better-sqlite3';
 import { createSdkAgentManager, type StreamSocket, type QueryFn } from './sdkAgent.js';
 import * as transcript from './transcriptStore.js';
+import { __setDbForTests, __resetDbForTests } from '../db.js';
 
 // DB en mémoire injectée dans transcriptStore pour isoler les tests de persistance
 // (seq/appendEvent/loadTranscript) de la vraie DB SQLite de l'app.
@@ -173,4 +175,50 @@ test('stream-history est envoyé avant stream-ready, à la création comme à la
   assert.equal(b.messages[1].attached, true);
 
   mgr.stop('sess-history');
+});
+
+test('Task 4 : persistClaudeSessionId et writeActivityLog écrivent dans la DB injectée (:memory:)', async () => {
+  // Les helpers internes de sdkAgent (persistClaudeSessionId/readClaudeSessionId/writeActivityLog)
+  // appellent getDb() directement (../db.js), pas transcript.__setDbForTests. On injecte donc
+  // aussi la DB de test via le hook de db.js, scoppé à ce seul test pour ne pas affecter les
+  // tests lot 1 (qui n'attendent aucune DB).
+  const sessionRowId = randomUUID();
+  memDb
+    .prepare('INSERT INTO agent_sessions (id, session_id, claude_session_id) VALUES (?, ?, NULL)')
+    .run(sessionRowId, 'sess-db');
+  __setDbForTests(memDb);
+  try {
+    const queryFn = ((_p: unknown) => {
+      async function* gen() {
+        yield { type: 'system', subtype: 'init', session_id: 'claude-db-1', model: 'm', permissionMode: 'acceptEdits', cwd: '/tmp', tools: [] };
+        yield {
+          type: 'assistant',
+          session_id: 'claude-db-1',
+          parent_tool_use_id: null,
+          message: { role: 'assistant', content: [{ type: 'tool_use', id: 'tu-1', name: 'Edit', input: { file_path: '/tmp/foo.ts' } }] },
+        };
+        yield { type: 'result', subtype: 'success', is_error: false, result: 'ok', session_id: 'claude-db-1', num_turns: 1, usage: {}, total_cost_usd: 0 };
+      }
+      const q = gen() as AsyncGenerator<unknown> & Record<string, unknown>;
+      q.setModel = async () => {}; q.setPermissionMode = async () => {}; q.interrupt = async () => {};
+      return q;
+    }) as unknown as QueryFn;
+    const mgr = createSdkAgentManager({ queryFn });
+    const ws = fakeSocket();
+    mgr.startOrAttach('sess-db', ws, { cwd: '/tmp' });
+    await new Promise((r) => setTimeout(r, 30));
+
+    const sessionRow = memDb
+      .prepare('SELECT claude_session_id AS c FROM agent_sessions WHERE session_id = ?')
+      .get('sess-db') as { c: string | null } | undefined;
+    assert.equal(sessionRow?.c, 'claude-db-1');
+
+    const logRow = memDb
+      .prepare("SELECT content FROM agent_activity_logs WHERE agent_session_id = ? AND log_type = 'file_change'")
+      .get(sessionRowId) as { content: string } | undefined;
+    assert.ok(logRow, 'un log file_change doit être écrit dans la DB injectée');
+    assert.equal(logRow?.content, '/tmp/foo.ts');
+  } finally {
+    __resetDbForTests();
+  }
 });
