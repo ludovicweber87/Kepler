@@ -122,7 +122,7 @@ export default function AgentChatTab({
 				</Box>
 			) : (
 				<ChatComposer
-					disabled={busy}
+					disabled={chat.status !== 'idle'}
 					busy={busy}
 					model={chat.model}
 					effort={chat.effort}
