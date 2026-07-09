@@ -1,6 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createPermissionController, type PendingPermission } from './permissions.js';
+import {
+  createPermissionController,
+  type PendingPermission,
+  type PendingQuestion,
+} from './permissions.js';
 
 test('canUseTool broadcast une requête et attend la résolution', async () => {
   const sent: PendingPermission[] = [];
@@ -75,4 +79,46 @@ test('AbortSignal déjà avorté → deny immédiat sans broadcast', async () =>
   const res = await ctrl.canUseTool('Write', {}, { signal: ac.signal });
   assert.equal(res.behavior, 'deny');
   assert.equal(sent.length, 0);
+});
+
+test('AskUserQuestion parque même en bypassPermissions et injecte les réponses', async () => {
+  const perms: PendingPermission[] = [];
+  const asked: PendingQuestion[] = [];
+  const ctrl = createPermissionController(
+    (r) => perms.push(r),
+    () => 'bypassPermissions',
+    (r) => asked.push(r),
+  );
+  const input = { questions: [{ question: 'Couleur ?', options: [{ label: 'Rouge' }, { label: 'Bleu' }] }] };
+  const p = ctrl.canUseTool('AskUserQuestion', input, {});
+  // Ne suit pas le mode : broadcast question, pas de permission, snapshot dédié.
+  assert.equal(perms.length, 0);
+  assert.equal(asked.length, 1);
+  assert.deepEqual(asked[0].questions[0].options.map((o) => o.label), ['Rouge', 'Bleu']);
+  assert.deepEqual(ctrl.snapshotQuestions().map((q) => q.id), [asked[0].id]);
+  const ok = ctrl.resolveQuestion(asked[0].id, { 'Couleur ?': 'Rouge' });
+  assert.equal(ok, true);
+  assert.deepEqual(await p, {
+    behavior: 'allow',
+    updatedInput: { ...input, answers: { 'Couleur ?': 'Rouge' } },
+  });
+  assert.equal(ctrl.snapshotQuestions().length, 0);
+});
+
+test('resolveQuestion sur un id inconnu → false', () => {
+  const ctrl = createPermissionController(() => {});
+  assert.equal(ctrl.resolveQuestion('ask-999', {}), false);
+});
+
+test('abortAll deny aussi les questions en attente', async () => {
+  const asked: PendingQuestion[] = [];
+  const ctrl = createPermissionController(
+    () => {},
+    () => '',
+    (r) => asked.push(r),
+  );
+  const p = ctrl.canUseTool('AskUserQuestion', { questions: [] }, {});
+  ctrl.abortAll();
+  assert.equal((await p).behavior, 'deny');
+  assert.equal(ctrl.snapshotQuestions().length, 0);
 });

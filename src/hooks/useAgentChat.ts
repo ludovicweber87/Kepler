@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { getAgentWsUrl } from '@/lib/local-fetch';
 import { reduceStreamEvent, userMessage } from '@/lib/chatReducer';
-import type { ChatMessage, PendingPermission, PermissionDecision, StreamEventWire } from '@/types';
+import type {
+	ChatMessage,
+	PendingPermission,
+	PendingQuestion,
+	PermissionDecision,
+	QuestionAnswers,
+	StreamEventWire,
+} from '@/types';
 
 interface Params {
 	sessionId: string;
@@ -25,6 +32,7 @@ export function useAgentChat(p: Params) {
 	const [effort, setEffortState] = useState(p.effort ?? '');
 	const [permissionMode, setPermState] = useState(p.permissionMode ?? '');
 	const [pendingPermissions, setPending] = useState<PendingPermission[]>([]);
+	const [pendingQuestions, setQuestions] = useState<PendingQuestion[]>([]);
 	const wsRef = useRef<WebSocket | null>(null);
 	const lastSeqRef = useRef(0);
 	const [, force] = useReducer((x) => x + 1, 0);
@@ -77,6 +85,7 @@ export function useAgentChat(p: Params) {
 					setEffortState(String(msg.effort ?? ''));
 					setPermState(String(msg.permissionMode ?? ''));
 					setPending((msg.pendingPermissions as PendingPermission[]) ?? []);
+					setQuestions((msg.pendingQuestions as PendingQuestion[]) ?? []);
 					setStatus(msg.busy ? 'busy' : 'idle');
 					break;
 				case 'stream-event':
@@ -90,6 +99,9 @@ export function useAgentChat(p: Params) {
 					break;
 				case 'stream-permission-request':
 					setPending((prev) => [...prev, msg as unknown as PendingPermission]);
+					break;
+				case 'stream-question-request':
+					setQuestions((prev) => [...prev, msg as unknown as PendingQuestion]);
 					break;
 				case 'stream-error':
 					setStatus('error');
@@ -163,6 +175,14 @@ export function useAgentChat(p: Params) {
 		},
 		[sendCtl],
 	);
+	const resolveQuestion = useCallback(
+		(id: string, answers: QuestionAnswers) => {
+			setQuestions((prev) => prev.filter((x) => x.id !== id));
+			setStatus('busy');
+			sendCtl({ type: 'stream-question-response', id, answers });
+		},
+		[sendCtl],
+	);
 
 	return {
 		messages,
@@ -171,12 +191,14 @@ export function useAgentChat(p: Params) {
 		effort,
 		permissionMode,
 		pendingPermissions,
+		pendingQuestions,
 		send,
 		setModel,
 		setEffort,
 		setPermissionMode,
 		interrupt,
 		resolvePermission,
+		resolveQuestion,
 		reconnect,
 	};
 }

@@ -302,7 +302,15 @@
 		"pending": "Pensando…",
 		"modeEdit": "Edición",
 		"createPr": "Crear PR",
-		"archivedReadOnly": "Sesión archivada — solo lectura"
+		"archivedReadOnly": "Sesión archivada — solo lectura",
+		"questionProgress": "Pregunta {current}/{total}",
+		"questionMultiHint": "Se permiten varias opciones",
+		"questionOther": "Otro…",
+		"questionOtherPlaceholder": "Tu respuesta…",
+		"questionSkip": "Omitir",
+		"questionBack": "Atrás",
+		"questionNext": "Siguiente",
+		"questionSubmit": "Enviar"
 	},
 	"archived": {
 		"title": "Sesiones archivadas",

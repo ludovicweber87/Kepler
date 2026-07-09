@@ -329,6 +329,27 @@ export interface PendingPermission {
 	displayName?: string;
 }
 
+export interface QuestionOption {
+	label: string;
+	description?: string;
+	preview?: string;
+}
+
+export interface QuestionSpec {
+	question: string;
+	header?: string;
+	multiSelect?: boolean;
+	options: QuestionOption[];
+}
+
+export interface PendingQuestion {
+	id: string;
+	questions: QuestionSpec[];
+}
+
+/** answers keyé par texte de question ; valeur = label choisi (ou texte libre "Other", joint par ", " en multiSelect). */
+export type QuestionAnswers = Record<string, string>;
+
 /** Event tel qu'il arrive sur le fil WS (data selon l'`event`). */
 export interface StreamEventWire {
 	seq: number;

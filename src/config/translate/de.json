@@ -302,7 +302,15 @@
 		"pending": "Denkt nach…",
 		"modeEdit": "Bearbeiten",
 		"createPr": "PR erstellen",
-		"archivedReadOnly": "Archivierte Sitzung — schreibgeschützt"
+		"archivedReadOnly": "Archivierte Sitzung — schreibgeschützt",
+		"questionProgress": "Frage {current}/{total}",
+		"questionMultiHint": "Mehrfachauswahl möglich",
+		"questionOther": "Andere…",
+		"questionOtherPlaceholder": "Deine Antwort…",
+		"questionSkip": "Überspringen",
+		"questionBack": "Zurück",
+		"questionNext": "Weiter",
+		"questionSubmit": "Bestätigen"
 	},
 	"archived": {
 		"title": "Archivierte Sitzungen",

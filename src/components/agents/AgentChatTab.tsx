@@ -12,6 +12,7 @@ import { useAppSetting } from '@/hooks/useAppSetting';
 import { CREATE_PR_PROMPT_KEY, DEFAULT_CREATE_PR_PROMPT } from '@/lib/prompts';
 import ChatBubble from './chat/ChatBubble';
 import ChatPermissionCard from './chat/ChatPermissionCard';
+import ChatQuestionCard from './chat/ChatQuestionCard';
 import ChatComposer from './chat/ChatComposer';
 import ChatPending from './chat/ChatPending';
 
@@ -62,7 +63,7 @@ export default function AgentChatTab({
 		if (!el) return;
 		const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
 		if (nearBottom) el.scrollTop = el.scrollHeight;
-	}, [chat.messages, chat.pendingPermissions]);
+	}, [chat.messages, chat.pendingPermissions, chat.pendingQuestions]);
 
 	const { valueOrDefault: createPrPrompt } = useAppSetting(
 		CREATE_PR_PROMPT_KEY,
@@ -80,7 +81,11 @@ export default function AgentChatTab({
 	const busy = chat.status === 'busy';
 	const lastRole = chat.messages[chat.messages.length - 1]?.role;
 	// Indicateur immédiat tant que l'agent n'a pas commencé à répondre au tour courant.
-	const showPending = busy && chat.pendingPermissions.length === 0 && lastRole !== 'assistant';
+	const showPending =
+		busy &&
+		chat.pendingPermissions.length === 0 &&
+		chat.pendingQuestions.length === 0 &&
+		lastRole !== 'assistant';
 	// "Create PR" : l'agent a fini de répondre et il y a eu au moins un échange.
 	const canCreatePr = chat.status === 'idle' && chat.messages.length > 0;
 	return (
@@ -112,6 +117,9 @@ export default function AgentChatTab({
 				))}
 				{chat.pendingPermissions.map((p) => (
 					<ChatPermissionCard key={p.id} perm={p} onDecide={chat.resolvePermission} />
+				))}
+				{chat.pendingQuestions.map((q) => (
+					<ChatQuestionCard key={q.id} question={q} onSubmit={chat.resolveQuestion} />
 				))}
 				{showPending && <ChatPending />}
 			</Box>
