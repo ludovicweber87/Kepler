@@ -25,6 +25,7 @@ interface SessionState {
   claudeSessionId: string | null;
   model: string; effort: string; permissionMode: string;
   busy: boolean;
+  closed: boolean;
 }
 
 function cleanEnv(): Record<string, string> {
@@ -67,9 +68,9 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
           broadcast(s, { type: 'stream-event', ...ev });
         }
       }
-      broadcast(s, { type: 'stream-closed', reason: 'generator-ended' });
+      if (!s.closed) broadcast(s, { type: 'stream-closed', reason: 'generator-ended' });
     } catch (err) {
-      broadcast(s, { type: 'stream-error', message: err instanceof Error ? err.message : String(err), fatal: true });
+      if (!s.closed) broadcast(s, { type: 'stream-error', message: err instanceof Error ? err.message : String(err), fatal: true });
     } finally {
       s.perms.abortAll();
       sessions.delete(sessionId);
@@ -95,6 +96,7 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
         claudeSessionId: null,
         model: params.model ?? '', effort: params.effort ?? '', permissionMode: params.permissionMode ?? 'acceptEdits',
         busy: false,
+        closed: false,
       };
       const options: Record<string, unknown> = {
         cwd: params.cwd,
@@ -124,26 +126,26 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
       const s = sessions.get(sessionId);
       if (!s) return;
       s.model = model ?? '';
-      void s.q.setModel?.(model);
+      void s.q.setModel?.(model)?.catch(() => {});
     },
     setEffort(sessionId: string, effort: string) {
       const s = sessions.get(sessionId);
       if (!s) return;
       s.effort = effort;
       // Pas de q.setEffort ; on tente applyFlagSettings (à valider en intégration).
-      void s.q.applyFlagSettings?.({ effort });
+      void s.q.applyFlagSettings?.({ effort })?.catch(() => {});
     },
     setPermissionMode(sessionId: string, mode: string) {
       const s = sessions.get(sessionId);
       if (!s) return;
       s.permissionMode = mode;
-      void s.q.setPermissionMode?.(mode);
+      void s.q.setPermissionMode?.(mode)?.catch(() => {});
     },
     interrupt(sessionId: string) {
       const s = sessions.get(sessionId);
       if (!s) return;
       s.perms.abortAll();
-      void s.q.interrupt?.();
+      void s.q.interrupt?.()?.catch(() => {});
     },
     resolvePermission(sessionId: string, id: string, decision: PermissionDecision) {
       sessions.get(sessionId)?.perms.resolve(id, decision);
@@ -154,9 +156,10 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
     stop(sessionId: string) {
       const s = sessions.get(sessionId);
       if (!s) return;
+      s.closed = true;
       s.perms.abortAll();
       s.queue.close();
-      void s.q.return?.();
+      void s.q.return?.()?.catch(() => {});
       broadcast(s, { type: 'stream-closed', reason: 'stopped' });
       sessions.delete(sessionId);
     },

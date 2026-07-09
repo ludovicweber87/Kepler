@@ -90,3 +90,27 @@ test('setModel / interrupt délèguent à Query', async () => {
   assert.equal(calls.interrupt, 1);
   mgr.stop('sess-3');
 });
+
+test('env passé au SDK: spread de process.env sans les clés sensibles', async () => {
+  process.env.ANTHROPIC_API_KEY = 'sk-should-be-stripped';
+  process.env.CLAUDECODE = '1';
+  process.env.CLAUDE_CODE_ENTRYPOINT = 'cli';
+  let captured: Record<string, unknown> | undefined;
+  const queryFn = ((params: { options?: { env?: Record<string, unknown> } }) => {
+    captured = params.options?.env;
+    async function* gen() { await new Promise(() => {}); yield 0 as unknown; }
+    const q = gen() as AsyncGenerator<unknown> & Record<string, unknown>;
+    q.interrupt = async () => {}; q.setModel = async () => {}; q.setPermissionMode = async () => {};
+    return q;
+  }) as unknown as QueryFn;
+  const mgr = createSdkAgentManager({ queryFn });
+  mgr.startOrAttach('sess-env', fakeSocket(), { cwd: '/tmp' });
+  await new Promise((r) => setTimeout(r, 5));
+  assert.ok(captured, 'options.env doit être passé');
+  assert.equal(captured.ANTHROPIC_API_KEY, undefined);
+  assert.equal(captured.CLAUDECODE, undefined);
+  assert.equal(captured.CLAUDE_CODE_ENTRYPOINT, undefined);
+  assert.ok('PATH' in captured, 'PATH doit survivre (spread de process.env)');
+  mgr.stop('sess-env');
+  delete process.env.ANTHROPIC_API_KEY; delete process.env.CLAUDECODE; delete process.env.CLAUDE_CODE_ENTRYPOINT;
+});
