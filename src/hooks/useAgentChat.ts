@@ -110,10 +110,14 @@ export function useAgentChat(p: Params) {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [p.enabled, p.cwd, p.readOnly, p.sessionId, reconnectNonce]);
 
-	const sendCtl = (obj: Record<string, unknown>) => {
-		const ws = wsRef.current;
-		if (ws && ws.readyState === 1) ws.send(JSON.stringify({ ...obj, sessionId: p.sessionId }));
-	};
+	const sendCtl = useCallback(
+		(obj: Record<string, unknown>) => {
+			const ws = wsRef.current;
+			if (ws && ws.readyState === 1)
+				ws.send(JSON.stringify({ ...obj, sessionId: p.sessionId }));
+		},
+		[p.sessionId],
+	);
 
 	const send = useCallback(
 		(text: string) => {
@@ -122,44 +126,39 @@ export function useAgentChat(p: Params) {
 			setMessages((prev) => [...prev, userMessage(t)]);
 			setStatus('busy');
 			sendCtl({ type: 'stream-user-message', text: t });
-			// eslint-disable-next-line react-hooks/exhaustive-deps
 		},
-		[p.sessionId],
+		[sendCtl],
 	);
 
 	const setModel = useCallback(
 		(m: string) => {
 			setModelState(m);
 			sendCtl({ type: 'stream-set-model', model: m });
-			// eslint-disable-next-line react-hooks/exhaustive-deps
 		},
-		[p.sessionId],
+		[sendCtl],
 	);
 	const setEffort = useCallback(
 		(e: string) => {
 			setEffortState(e);
 			sendCtl({ type: 'stream-set-effort', effort: e });
-			// eslint-disable-next-line react-hooks/exhaustive-deps
 		},
-		[p.sessionId],
+		[sendCtl],
 	);
 	const setPermissionMode = useCallback(
 		(m: string) => {
 			setPermState(m);
 			sendCtl({ type: 'stream-set-mode', permissionMode: m });
-			// eslint-disable-next-line react-hooks/exhaustive-deps
 		},
-		[p.sessionId],
+		[sendCtl],
 	);
-	const interrupt = useCallback(() => sendCtl({ type: 'stream-interrupt' }), [p.sessionId]);
+	const interrupt = useCallback(() => sendCtl({ type: 'stream-interrupt' }), [sendCtl]);
 	const reconnect = useCallback(() => setReconnectNonce((n) => n + 1), []);
 	const resolvePermission = useCallback(
 		(id: string, decision: PermissionDecision) => {
 			setPending((prev) => prev.filter((x) => x.id !== id));
 			sendCtl({ type: 'stream-permission-response', id, decision });
-			// eslint-disable-next-line react-hooks/exhaustive-deps
 		},
-		[p.sessionId],
+		[sendCtl],
 	);
 
 	return {

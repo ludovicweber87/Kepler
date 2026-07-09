@@ -15,7 +15,15 @@ export function reduceStreamEvent(messages: ChatMessage[], wire: StreamEventWire
 			...m,
 			segments: m.segments.map((s) =>
 				s.kind === 'tool' && s.call.id === toolUseId
-					? { kind: 'tool', call: { ...s.call, result: data.content, truncated: Boolean(data.truncated), status: 'done' } }
+					? {
+							kind: 'tool',
+							call: {
+								...s.call,
+								result: data.content,
+								truncated: Boolean(data.truncated),
+								status: 'done',
+							},
+						}
 					: s,
 			),
 		}));
@@ -25,7 +33,12 @@ export function reduceStreamEvent(messages: ChatMessage[], wire: StreamEventWire
 	if (event === 'thinking') segment = { kind: 'thinking', text: String(data.text ?? '') };
 	else if (event === 'assistant') segment = { kind: 'text', text: String(data.text ?? '') };
 	else {
-		const call: ChatToolCall = { id: String(data.id ?? ''), name: String(data.name ?? ''), input: data.input, status: 'running' };
+		const call: ChatToolCall = {
+			id: String(data.id ?? ''),
+			name: String(data.name ?? ''),
+			input: data.input,
+			status: 'running',
+		};
 		segment = { kind: 'tool', call };
 	}
 
