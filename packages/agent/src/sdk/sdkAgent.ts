@@ -33,6 +33,8 @@ function cleanEnv(): Record<string, string> {
   delete env.ANTHROPIC_API_KEY;
   delete env.CLAUDECODE;
   delete env.CLAUDE_CODE_ENTRYPOINT;
+  delete env.ANTHROPIC_AUTH_TOKEN;
+  delete env.ANTHROPIC_BASE_URL;
   return env;
 }
 

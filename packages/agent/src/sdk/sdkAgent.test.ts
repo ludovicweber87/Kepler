@@ -95,6 +95,8 @@ test('env passé au SDK: spread de process.env sans les clés sensibles', async 
   process.env.ANTHROPIC_API_KEY = 'sk-should-be-stripped';
   process.env.CLAUDECODE = '1';
   process.env.CLAUDE_CODE_ENTRYPOINT = 'cli';
+  process.env.ANTHROPIC_AUTH_TOKEN = 'tok-should-be-stripped';
+  process.env.ANTHROPIC_BASE_URL = 'https://proxy.example';
   let captured: Record<string, unknown> | undefined;
   const queryFn = ((params: { options?: { env?: Record<string, unknown> } }) => {
     captured = params.options?.env;
@@ -110,7 +112,9 @@ test('env passé au SDK: spread de process.env sans les clés sensibles', async 
   assert.equal(captured.ANTHROPIC_API_KEY, undefined);
   assert.equal(captured.CLAUDECODE, undefined);
   assert.equal(captured.CLAUDE_CODE_ENTRYPOINT, undefined);
+  assert.equal(captured.ANTHROPIC_AUTH_TOKEN, undefined);
+  assert.equal(captured.ANTHROPIC_BASE_URL, undefined);
   assert.ok('PATH' in captured, 'PATH doit survivre (spread de process.env)');
   mgr.stop('sess-env');
-  delete process.env.ANTHROPIC_API_KEY; delete process.env.CLAUDECODE; delete process.env.CLAUDE_CODE_ENTRYPOINT;
+  delete process.env.ANTHROPIC_API_KEY; delete process.env.CLAUDECODE; delete process.env.CLAUDE_CODE_ENTRYPOINT; delete process.env.ANTHROPIC_AUTH_TOKEN; delete process.env.ANTHROPIC_BASE_URL;
 });
