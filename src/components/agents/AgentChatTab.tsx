@@ -53,7 +53,7 @@ export default function AgentChatTab({
 		readOnly,
 		model: initialModel ?? 'opus',
 		effort: initialEffort ?? 'high',
-		permissionMode: initialMode ?? 'acceptEdits',
+		permissionMode: initialMode ?? 'bypassPermissions',
 	});
 
 	const scrollRef = useRef<HTMLDivElement>(null);

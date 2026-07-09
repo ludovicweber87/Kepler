@@ -138,6 +138,23 @@ test('env passé au SDK: spread de process.env sans les clés sensibles', async 
   delete process.env.ANTHROPIC_API_KEY; delete process.env.CLAUDECODE; delete process.env.CLAUDE_CODE_ENTRYPOINT; delete process.env.ANTHROPIC_AUTH_TOKEN; delete process.env.ANTHROPIC_BASE_URL;
 });
 
+test('défaut: mode bypassPermissions + allowDangerouslySkipPermissions passés au SDK', async () => {
+  let opts: Record<string, unknown> | undefined;
+  const queryFn = ((params: { options?: Record<string, unknown> }) => {
+    opts = params.options;
+    async function* gen() { await new Promise(() => {}); yield 0 as unknown; }
+    const q = gen() as AsyncGenerator<unknown> & Record<string, unknown>;
+    q.interrupt = async () => {}; q.setModel = async () => {}; q.setPermissionMode = async () => {};
+    return q;
+  }) as unknown as QueryFn;
+  const mgr = createSdkAgentManager({ queryFn });
+  mgr.startOrAttach('sess-bypass', fakeSocket(), { cwd: '/tmp' });
+  await new Promise((r) => setTimeout(r, 5));
+  assert.equal(opts?.permissionMode, 'bypassPermissions');
+  assert.equal(opts?.allowDangerouslySkipPermissions, true);
+  mgr.stop('sess-bypass');
+});
+
 test('les stream-event portent un seq croissant et sont persistés dans le transcript', async () => {
   const { queryFn } = fakeQueryFactory();
   const mgr = createSdkAgentManager({ queryFn });

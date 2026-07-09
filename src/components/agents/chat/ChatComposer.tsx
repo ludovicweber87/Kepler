@@ -13,6 +13,7 @@ import ArrowDropDownRoundedIcon from '@mui/icons-material/ArrowDropDownRounded';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import BoltRoundedIcon from '@mui/icons-material/BoltRounded';
 import { alpha, keyframes, type Theme } from '@mui/material/styles';
 import { useTranslations } from 'next-intl';
 
@@ -28,6 +29,7 @@ const EFFORTS = [
 	{ value: 'max', key: 'effortMax' },
 ] as const;
 const MODES = [
+	{ value: 'bypassPermissions', key: 'modeBypass' },
 	{ value: 'plan', key: 'modePlan' },
 	{ value: 'acceptEdits', key: 'modeEdit' },
 ] as const;
@@ -204,7 +206,9 @@ export default function ChatComposer({
 						sx={{ ...controlSx, color: isPlan ? 'primary.main' : 'text.secondary' }}
 						onClick={() => onMode(next(MODES, permissionMode))}
 					>
-						{isPlan ? (
+						{permissionMode === 'bypassPermissions' ? (
+							<BoltRoundedIcon sx={{ fontSize: 15 }} />
+						) : isPlan ? (
 							<MapOutlinedIcon sx={{ fontSize: 15 }} />
 						) : (
 							<EditOutlinedIcon sx={{ fontSize: 15 }} />

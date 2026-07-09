@@ -317,7 +317,7 @@
 		"effortMax": "Max",
 		"modePlan": "Plan",
 		"modeAcceptEdits": "Accept edits",
-		"modeBypass": "Bypass",
+		"modeBypass": "Auto (sans confirmation)",
 		"modelOpus": "Opus 4.8",
 		"modelSonnet": "Sonnet 5",
 		"modelHaiku": "Haiku 4.5",

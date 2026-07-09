@@ -149,7 +149,7 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
         perms: createPermissionController((req: PendingPermission) => broadcast(s, { type: 'stream-permission-request', ...req }), () => s.permissionMode),
         clients: new Set([ws]),
         claudeSessionId: null,
-        model: params.model ?? '', effort: params.effort ?? '', permissionMode: params.permissionMode ?? 'acceptEdits',
+        model: params.model ?? '', effort: params.effort ?? '', permissionMode: params.permissionMode ?? 'bypassPermissions',
         busy: false,
         closed: false,
         seq: transcript.nextSeq(sessionId),
@@ -161,6 +161,9 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
         pathToClaudeCodeExecutable: findClaude(),
         env: cleanEnv(),
         permissionMode: s.permissionMode,
+        // Requis par le SDK pour autoriser le mode 'bypassPermissions' (défaut :
+        // l'agent n'invite jamais à confirmer), au démarrage comme via le chip.
+        allowDangerouslySkipPermissions: true,
         canUseTool: s.perms.canUseTool,
       };
       if (params.model) options.model = params.model;
