@@ -1,6 +1,23 @@
-import { test } from 'node:test';
+import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
+import Database from 'better-sqlite3';
 import { createSdkAgentManager, type StreamSocket, type QueryFn } from './sdkAgent.js';
+import * as transcript from './transcriptStore.js';
+
+// DB en mémoire injectée dans transcriptStore pour isoler les tests de persistance
+// (seq/appendEvent/loadTranscript) de la vraie DB SQLite de l'app.
+let memDb: Database.Database;
+beforeEach(() => {
+  memDb = new Database(':memory:');
+  memDb.exec(`CREATE TABLE agent_chat_messages (
+    id TEXT PRIMARY KEY, agent_session_id TEXT NOT NULL, seq INTEGER NOT NULL,
+    role TEXT NOT NULL, event_type TEXT NOT NULL, content TEXT, created_at TEXT);`);
+  memDb.exec(`CREATE TABLE agent_sessions (
+    id TEXT PRIMARY KEY, session_id TEXT NOT NULL, claude_session_id TEXT);`);
+  memDb.exec(`CREATE TABLE agent_activity_logs (
+    id TEXT PRIMARY KEY, agent_session_id TEXT NOT NULL, content TEXT, log_type TEXT, created_at TEXT);`);
+  transcript.__setDbForTests(memDb);
+});
 
 // Socket espion.
 function fakeSocket() {
@@ -117,4 +134,43 @@ test('env passé au SDK: spread de process.env sans les clés sensibles', async 
   assert.ok('PATH' in captured, 'PATH doit survivre (spread de process.env)');
   mgr.stop('sess-env');
   delete process.env.ANTHROPIC_API_KEY; delete process.env.CLAUDECODE; delete process.env.CLAUDE_CODE_ENTRYPOINT; delete process.env.ANTHROPIC_AUTH_TOKEN; delete process.env.ANTHROPIC_BASE_URL;
+});
+
+test('les stream-event portent un seq croissant et sont persistés dans le transcript', async () => {
+  const { queryFn } = fakeQueryFactory();
+  const mgr = createSdkAgentManager({ queryFn });
+  const ws = fakeSocket();
+  mgr.startOrAttach('sess-seq', ws, { cwd: '/tmp' });
+  await new Promise((r) => setTimeout(r, 30));
+
+  const streamEvents = ws.messages.filter((m) => m.type === 'stream-event');
+  const seqs = streamEvents.map((m) => m.seq as number);
+  assert.deepEqual(seqs, [1, 2, 3]);
+
+  const persisted = transcript.loadTranscript('sess-seq');
+  assert.deepEqual(persisted.map((p) => p.seq), [1, 2, 3]);
+  assert.deepEqual(persisted.map((p) => p.event.event), ['session', 'assistant', 'result']);
+});
+
+test('stream-history est envoyé avant stream-ready, à la création comme à la ré-attache', async () => {
+  const queryFn = ((_p: unknown) => {
+    async function* gen() { await new Promise(() => {}); yield 0 as unknown; }
+    const q = gen() as AsyncGenerator<unknown> & Record<string, unknown>;
+    q.interrupt = async () => {}; q.setModel = async () => {}; q.setPermissionMode = async () => {};
+    return q;
+  }) as unknown as QueryFn;
+  const mgr = createSdkAgentManager({ queryFn });
+
+  const a = fakeSocket();
+  mgr.startOrAttach('sess-history', a, { cwd: '/tmp' });
+  const aTypes = a.messages.map((m) => m.type);
+  assert.deepEqual(aTypes.slice(0, 2), ['stream-history', 'stream-ready']);
+
+  const b = fakeSocket();
+  mgr.startOrAttach('sess-history', b, { cwd: '/tmp' });
+  const bTypes = b.messages.map((m) => m.type);
+  assert.deepEqual(bTypes, ['stream-history', 'stream-ready']);
+  assert.equal(b.messages[1].attached, true);
+
+  mgr.stop('sess-history');
 });
