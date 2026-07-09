@@ -9,8 +9,11 @@ import {
 	sendError,
 	getToken,
 	findClaude,
+	findTmux,
 } from '../helpers.js';
 import { getDb } from '../db.js';
+
+const TMUX = findTmux();
 
 // ── Types ──
 
@@ -202,6 +205,34 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 				} catch {
 					// branch may not exist
 				}
+			}
+
+			// Clean up any agent sessions bound to this worktree: kill their tmux
+			// sessions and purge their DB records + logs. Failures here must not
+			// fail the worktree removal itself.
+			try {
+				const db = getDb();
+				if (db) {
+					const rows = db
+						.prepare('SELECT id, session_id FROM agent_sessions WHERE worktree_path = ?')
+						.all(worktreePath) as { id: string; session_id: string }[];
+					for (const s of rows) {
+						try {
+							execSync(`${TMUX} kill-session -t ${s.session_id}-shell`, { stdio: 'ignore' });
+						} catch {
+							// shell may not exist
+						}
+						try {
+							execSync(`${TMUX} kill-session -t ${s.session_id}`, { stdio: 'ignore' });
+						} catch {
+							// session may be dead
+						}
+						db.prepare('DELETE FROM agent_activity_logs WHERE agent_session_id = ?').run(s.id);
+					}
+					db.prepare('DELETE FROM agent_sessions WHERE worktree_path = ?').run(worktreePath);
+				}
+			} catch {
+				// session cleanup is best-effort
 			}
 
 			sendJson(res, { success: true });

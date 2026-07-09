@@ -58,6 +58,10 @@ export function useAllWorktrees(paths: string[]) {
 			throw err;
 		} finally {
 			queryClient.invalidateQueries({ queryKey: ['git-worktrees', cwd] });
+			// The server also removes any agent session bound to this worktree,
+			// so refresh the Dashboard's active + past sessions.
+			queryClient.invalidateQueries({ queryKey: ['sessions', 'active'] });
+			queryClient.invalidateQueries({ queryKey: ['agent-sessions', 'history'] });
 		}
 	};
 
