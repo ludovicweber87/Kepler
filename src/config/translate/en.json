@@ -214,6 +214,7 @@
 		"back": "Back",
 		"next": "Next",
 		"sessionKilled": "Session stopped",
+		"confirmActionBody": "This action stops the session (SDK + tmux). Continue?",
 		"sessionDeleted": "Session deleted",
 		"agentOffline": "Local agent not connected — run `npm run dev:agent` to enable local features (terminal, git, agents).",
 		"soon": "Soon",

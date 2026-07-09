@@ -214,6 +214,7 @@
 		"back": "Retour",
 		"next": "Suivant",
 		"sessionKilled": "Session arrêtée",
+		"confirmActionBody": "Cette action arrête la session (SDK + tmux). Continuer ?",
 		"sessionDeleted": "Session supprimée",
 		"agentOffline": "Agent local non connecté — lancez `npm run dev:agent` pour activer les fonctionnalités locales (terminal, git, agents).",
 		"soon": "Bientôt",

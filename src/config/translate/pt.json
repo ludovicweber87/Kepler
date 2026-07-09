@@ -193,6 +193,7 @@
 		"back": "Voltar",
 		"next": "Seguinte",
 		"sessionKilled": "Sessão parada",
+		"confirmActionBody": "Esta ação encerra a sessão (SDK + tmux). Continuar?",
 		"sessionDeleted": "Sessão eliminada",
 		"agentOffline": "Agente local não conectado — execute `npm run dev:agent` para ativar funcionalidades locais (terminal, git, agentes).",
 		"soon": "Em breve",

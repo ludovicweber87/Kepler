@@ -1,17 +1,34 @@
 'use client';
 
 import { useState, useRef, useCallback, useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
+import Button from '@mui/material/Button';
+import { alpha } from '@mui/material/styles';
 import TerminalRoundedIcon from '@mui/icons-material/TerminalRounded';
 import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
 import TimelineRoundedIcon from '@mui/icons-material/TimelineRounded';
 import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
+import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
+import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
+import StopCircleRoundedIcon from '@mui/icons-material/StopCircleRounded';
+import PictureInPictureAltRoundedIcon from '@mui/icons-material/PictureInPictureAltRounded';
 import { useTranslations } from 'next-intl';
 import { useAgentSessionHistory, useAgentSession } from '@/hooks/useAgentSession';
 import { useSessionActions } from '@/hooks/useSessionActions';
+import { useOverlayTerminal } from '@/hooks/useOverlayTerminal';
+import { useSnackbar } from '@/hooks/useSnackbar';
+import { apiFetch } from '@/lib/api-fetch';
 import { classifySession } from '@/lib/sessionStatus';
 import { resolveEffectivePath } from '@/lib/effectivePath';
 import AgentChatTab from '@/components/agents/AgentChatTab';
@@ -22,12 +39,21 @@ import ShellTerminal from '@/components/agents/ShellTerminal';
 
 export default function Workbench() {
 	const t = useTranslations('workbench');
+	const tc = useTranslations('common');
 	const searchParams = useSearchParams();
+	const router = useRouter();
 	const sessionId = searchParams.get('session') ?? undefined;
 
 	const { data: allSessions = [] } = useAgentSessionHistory();
 	const { session, logs } = useAgentSession(sessionId);
-	const { resume } = useSessionActions();
+	const { stop, resume } = useSessionActions();
+	const queryClient = useQueryClient();
+	const overlay = useOverlayTerminal();
+	const { showSnackbar } = useSnackbar();
+
+	const [confirmClose, setConfirmClose] = useState(false);
+	const [closing, setClosing] = useState(false);
+	const firstPromptSent = useRef(false);
 
 	// Fallback : la session peut deja etre dans l'historique avant que useAgentSession resolve.
 	const resolved = useMemo(
@@ -75,6 +101,60 @@ export default function Workbench() {
 		[resolved],
 	);
 
+	const branch = resolved?.branch ?? null;
+	const repoLabel =
+		resolved?.project_name ?? resolved?.project_path?.split('/').filter(Boolean).pop() ?? '';
+	const isAutoNamed = !!branch && branch.startsWith('wip-');
+
+	const submitRenameFromPrompt = useCallback(
+		(promptText: string) => {
+			apiFetch('/api/agent-sessions/rename-from-prompt', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ sessionId, prompt: promptText }),
+			})
+				.then((res) => (res.ok ? res.json() : null))
+				.then((data) => {
+					if (data?.branch) {
+						if (resolved?.project_path)
+							queryClient.invalidateQueries({
+								queryKey: ['git-worktrees', resolved.project_path],
+							});
+						queryClient.invalidateQueries({ queryKey: ['sessions', 'active'] });
+						queryClient.invalidateQueries({ queryKey: ['agent-sessions', 'history'] });
+					}
+				})
+				.catch(() => {});
+		},
+		[sessionId, resolved?.project_path, queryClient],
+	);
+
+	const handlePip = useCallback(() => {
+		if (!sessionId || !effectivePath) return;
+		const projectName = effectivePath.split('/').filter(Boolean).pop() ?? 'unknown';
+		overlay.open({
+			sessionId,
+			projectPath: effectivePath,
+			projectName,
+			isPastSession: chatReadOnly,
+		});
+	}, [sessionId, effectivePath, chatReadOnly, overlay]);
+
+	const handleStop = useCallback(async () => {
+		if (!sessionId) return;
+		setClosing(true);
+		try {
+			await stop(sessionId);
+			showSnackbar(tc('sessionKilled'), 'success');
+			setConfirmClose(false);
+			router.push('/workbench');
+		} catch {
+			showSnackbar(tc('error'), 'error');
+		} finally {
+			setClosing(false);
+		}
+	}, [sessionId, stop, showSnackbar, tc, router]);
+
 	if (!sessionId) {
 		return (
 			<Box
@@ -101,134 +181,245 @@ export default function Workbench() {
 	}
 
 	return (
-		<Box sx={{ height: '100%', display: 'flex', minHeight: 0 }}>
-			{/* Gauche : conversation 75% */}
-			<Box sx={{ flex: '0 0 75%', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-				<AgentChatTab
-					sessionId={sessionId}
-					cwd={effectivePath}
-					readOnly={chatReadOnly}
-					archived={isArchived}
-					onResume={() => {
-						resume(sessionId).catch(() => {});
-					}}
-				/>
-			</Box>
-			{/* Droite : sidebar (Task 4) */}
+		<Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+			{/* Header session */}
 			<Box
 				sx={{
-					flex: 1,
-					minWidth: 0,
-					borderLeft: 1,
-					borderColor: 'divider',
 					display: 'flex',
-					flexDirection: 'column',
-					minHeight: 0,
+					alignItems: 'center',
+					gap: 1,
+					px: 2,
+					py: 1,
+					borderBottom: 1,
+					borderColor: 'divider',
+					flexShrink: 0,
 				}}
 			>
-				{/* Chips */}
-				<Box
-					sx={{
-						display: 'flex',
-						gap: 0.75,
-						p: 1,
-						borderBottom: 1,
-						borderColor: 'divider',
-						flexShrink: 0,
-					}}
-				>
+				<Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+					{resolved?.agent_name ??
+						(bucket === 'active' ? t('activeSession') : t('newSession'))}
+				</Typography>
+				{branch && (
 					<Chip
-						icon={<DescriptionRoundedIcon sx={{ fontSize: '16px !important' }} />}
-						label={t('chipFiles')}
+						icon={<AccountTreeRoundedIcon sx={{ fontSize: '14px !important' }} />}
+						label={branch}
 						size="small"
-						color={topPanel === 'files' ? 'primary' : 'default'}
-						variant={topPanel === 'files' ? 'filled' : 'outlined'}
-						onClick={() => setTopPanel('files')}
+						sx={{
+							height: 22,
+							fontSize: '0.65rem',
+							bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
+							color: 'primary.main',
+							fontWeight: 600,
+							'& .MuiChip-icon': { color: 'primary.main' },
+						}}
 					/>
-					<Chip
-						icon={<TimelineRoundedIcon sx={{ fontSize: '16px !important' }} />}
-						label={t('chipActivity')}
-						size="small"
-						color={topPanel === 'activity' ? 'primary' : 'default'}
-						variant={topPanel === 'activity' ? 'filled' : 'outlined'}
-						onClick={() => setTopPanel('activity')}
-					/>
-					{hasIssue && (
-						<Chip
-							icon={<BugReportRoundedIcon sx={{ fontSize: '16px !important' }} />}
-							label={t('chipIssue')}
-							size="small"
-							color={topPanel === 'issue' ? 'primary' : 'default'}
-							variant={topPanel === 'issue' ? 'filled' : 'outlined'}
-							onClick={() => setTopPanel('issue')}
-						/>
-					)}
-				</Box>
-
-				{/* Panneau haut */}
-				<Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-					{topPanel === 'files' && (
-						<AgentDiffTab
-							projectPath={resolved?.worktree_path ?? resolved?.project_path ?? null}
-							branch={resolved?.branch ?? null}
-						/>
-					)}
-					{topPanel === 'activity' && <AgentActivityTab session={resolved} logs={logs} />}
-					{topPanel === 'issue' && hasIssue && (
-						<AgentIssueTab
-							owner={resolved!.issue_owner!}
-							repo={resolved!.issue_repo!}
-							issueNumber={resolved!.issue_number!}
-						/>
-					)}
-				</Box>
-
-				{/* Handle de resize */}
-				<Box
-					onMouseDown={startResize}
+				)}
+				<Box sx={{ flex: 1 }} />
+				<Chip
+					icon={<FolderOpenRoundedIcon sx={{ fontSize: '14px !important' }} />}
+					label={repoLabel}
+					size="small"
 					sx={{
-						height: 6,
-						flexShrink: 0,
-						cursor: 'row-resize',
-						bgcolor: 'divider',
-						'&:hover': { bgcolor: 'primary.main' },
+						height: 24,
+						fontSize: '0.7rem',
+						bgcolor: (theme) => alpha(theme.palette.text.primary, 0.05),
 					}}
 				/>
+				{bucket === 'active' && (
+					<Tooltip title={t('stopSession')} arrow>
+						<IconButton
+							size="small"
+							onClick={() => setConfirmClose(true)}
+							sx={{ color: 'text.disabled', '&:hover': { color: 'error.main' } }}
+						>
+							<StopCircleRoundedIcon sx={{ fontSize: 18 }} />
+						</IconButton>
+					</Tooltip>
+				)}
+				<IconButton
+					size="small"
+					onClick={handlePip}
+					sx={{ color: 'text.disabled', '&:hover': { color: 'primary.main' } }}
+				>
+					<PictureInPictureAltRoundedIcon sx={{ fontSize: 18 }} />
+				</IconButton>
+			</Box>
 
-				{/* Terminal empilé */}
+			{/* Split gauche/droite */}
+			<Box sx={{ flex: 1, display: 'flex', minHeight: 0 }}>
+				{/* Gauche : conversation 75% */}
+				<Box
+					sx={{ flex: '0 0 75%', minWidth: 0, display: 'flex', flexDirection: 'column' }}
+				>
+					<AgentChatTab
+						sessionId={sessionId}
+						cwd={effectivePath}
+						readOnly={chatReadOnly}
+						archived={isArchived}
+						onResume={() => {
+							resume(sessionId).catch(() => {});
+						}}
+						onFirstUserMessage={(text) => {
+							if (isAutoNamed && !firstPromptSent.current) {
+								firstPromptSent.current = true;
+								submitRenameFromPrompt(text);
+							}
+						}}
+					/>
+				</Box>
+				{/* Droite : sidebar (Task 4) */}
 				<Box
 					sx={{
-						height: termHeight,
-						flexShrink: 0,
+						flex: 1,
+						minWidth: 0,
+						borderLeft: 1,
+						borderColor: 'divider',
 						display: 'flex',
 						flexDirection: 'column',
 						minHeight: 0,
 					}}
 				>
+					{/* Chips */}
 					<Box
 						sx={{
-							px: 1.5,
-							py: 0.5,
+							display: 'flex',
+							gap: 0.75,
+							p: 1,
 							borderBottom: 1,
 							borderColor: 'divider',
 							flexShrink: 0,
 						}}
 					>
-						<Typography
-							variant="caption"
-							sx={{ fontWeight: 600, color: 'text.secondary' }}
-						>
-							{t('terminal')}
-						</Typography>
+						<Chip
+							icon={<DescriptionRoundedIcon sx={{ fontSize: '16px !important' }} />}
+							label={t('chipFiles')}
+							size="small"
+							color={topPanel === 'files' ? 'primary' : 'default'}
+							variant={topPanel === 'files' ? 'filled' : 'outlined'}
+							onClick={() => setTopPanel('files')}
+						/>
+						<Chip
+							icon={<TimelineRoundedIcon sx={{ fontSize: '16px !important' }} />}
+							label={t('chipActivity')}
+							size="small"
+							color={topPanel === 'activity' ? 'primary' : 'default'}
+							variant={topPanel === 'activity' ? 'filled' : 'outlined'}
+							onClick={() => setTopPanel('activity')}
+						/>
+						{hasIssue && (
+							<Chip
+								icon={<BugReportRoundedIcon sx={{ fontSize: '16px !important' }} />}
+								label={t('chipIssue')}
+								size="small"
+								color={topPanel === 'issue' ? 'primary' : 'default'}
+								variant={topPanel === 'issue' ? 'filled' : 'outlined'}
+								onClick={() => setTopPanel('issue')}
+							/>
+						)}
 					</Box>
-					<ShellTerminal
-						sessionId={sessionId}
-						cwd={effectivePath}
-						active
-						ready={!!resolved}
+
+					{/* Panneau haut */}
+					<Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+						{topPanel === 'files' && (
+							<AgentDiffTab
+								projectPath={
+									resolved?.worktree_path ?? resolved?.project_path ?? null
+								}
+								branch={resolved?.branch ?? null}
+							/>
+						)}
+						{topPanel === 'activity' && (
+							<AgentActivityTab session={resolved} logs={logs} />
+						)}
+						{topPanel === 'issue' && hasIssue && (
+							<AgentIssueTab
+								owner={resolved!.issue_owner!}
+								repo={resolved!.issue_repo!}
+								issueNumber={resolved!.issue_number!}
+							/>
+						)}
+					</Box>
+
+					{/* Handle de resize */}
+					<Box
+						onMouseDown={startResize}
+						sx={{
+							height: 6,
+							flexShrink: 0,
+							cursor: 'row-resize',
+							bgcolor: 'divider',
+							'&:hover': { bgcolor: 'primary.main' },
+						}}
 					/>
+
+					{/* Terminal empilé */}
+					<Box
+						sx={{
+							height: termHeight,
+							flexShrink: 0,
+							display: 'flex',
+							flexDirection: 'column',
+							minHeight: 0,
+						}}
+					>
+						<Box
+							sx={{
+								px: 1.5,
+								py: 0.5,
+								borderBottom: 1,
+								borderColor: 'divider',
+								flexShrink: 0,
+							}}
+						>
+							<Typography
+								variant="caption"
+								sx={{ fontWeight: 600, color: 'text.secondary' }}
+							>
+								{t('terminal')}
+							</Typography>
+						</Box>
+						<ShellTerminal
+							sessionId={sessionId}
+							cwd={effectivePath}
+							active
+							ready={!!resolved}
+						/>
+					</Box>
 				</Box>
 			</Box>
+
+			{/* Confirm stop */}
+			<Dialog
+				open={confirmClose}
+				onClose={() => !closing && setConfirmClose(false)}
+				maxWidth="xs"
+				fullWidth
+			>
+				<DialogTitle sx={{ fontWeight: 600 }}>{t('stopSession')}</DialogTitle>
+				<DialogContent>
+					<DialogContentText sx={{ fontSize: '0.85rem' }}>
+						{tc('confirmActionBody')}
+					</DialogContentText>
+				</DialogContent>
+				<DialogActions sx={{ px: 3, pb: 2 }}>
+					<Button
+						onClick={() => setConfirmClose(false)}
+						disabled={closing}
+						sx={{ color: 'text.secondary' }}
+					>
+						{tc('cancel')}
+					</Button>
+					<Button
+						onClick={handleStop}
+						disabled={closing}
+						variant="contained"
+						color="error"
+						startIcon={<StopCircleRoundedIcon />}
+					>
+						{t('stopSession')}
+					</Button>
+				</DialogActions>
+			</Dialog>
 		</Box>
 	);
 }
