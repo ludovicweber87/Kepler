@@ -192,7 +192,10 @@
 		"branchDesc": "Ein isolierter Worktree wird in .worktrees/ fur diese Sitzung erstellt.",
 		"launch": "Starten",
 		"creating": "Erstellen...",
-		"issueUrl": "GitHub-Issue-URL für Kontext (optional)"
+		"issueUrl": "GitHub-Issue-URL für Kontext (optional)",
+		"closeSession": "Sitzung schließen",
+		"confirmCloseTitle": "Sitzung schließen?",
+		"confirmCloseBody": "Die aktuelle Sitzung wird beendet. Du kannst sie später erneut starten."
 	},
 	"agentActivity": {
 		"reportTitle": "Agent-Bericht",

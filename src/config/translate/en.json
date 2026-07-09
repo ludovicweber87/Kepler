@@ -214,7 +214,10 @@
 		"branchDesc": "An isolated worktree will be created in .worktrees/ for this session.",
 		"launch": "Launch",
 		"creating": "Creating...",
-		"issueUrl": "GitHub issue URL for context (optional)"
+		"issueUrl": "GitHub issue URL for context (optional)",
+		"closeSession": "Close session",
+		"confirmCloseTitle": "Close session?",
+		"confirmCloseBody": "The current session will be stopped. You can relaunch it later."
 	},
 	"agentActivity": {
 		"reportTitle": "Agent report",

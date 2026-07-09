@@ -4,6 +4,9 @@ import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
@@ -29,6 +32,7 @@ import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
+import StopCircleRoundedIcon from '@mui/icons-material/StopCircleRounded';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebglAddon } from '@xterm/addon-webgl';
@@ -43,6 +47,7 @@ import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useAgentSession } from '@/hooks/useAgentSession';
 import { useOverlayTerminal } from '@/hooks/useOverlayTerminal';
 import { useWorktrees } from '@/hooks/useWorktrees';
+import { useSnackbar } from '@/hooks/useSnackbar';
 import { useTranslations } from 'next-intl';
 import { localFetch, getAgentWsUrl } from '@/lib/local-fetch';
 import { apiFetch } from '@/lib/api-fetch';
@@ -250,6 +255,11 @@ export default function AgentTerminalModal({
 	// Worktree management
 	const { createWorktree, isCreating } = useWorktrees(projectPath ?? undefined);
 	const queryClient = useQueryClient();
+	const { showSnackbar } = useSnackbar();
+
+	// Manual session close (the only real termination — agents never auto-close)
+	const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
+	const [closingSession, setClosingSession] = useState(false);
 
 	const generatedIdRef = useRef<string | null>(null);
 	if (open && !existingSessionId && !generatedIdRef.current) {
@@ -262,6 +272,27 @@ export default function AgentTerminalModal({
 
 	const { session, logs, ensureSession } = useAgentSession(open ? sessionId : undefined);
 	const overlay = useOverlayTerminal();
+
+	// Kill the tmux session + mark it completed, then close the modal.
+	// This is the ONLY path that really ends a session (manual, user-triggered).
+	const handleCloseSession = useCallback(async () => {
+		if (!sessionId) return;
+		setClosingSession(true);
+		try {
+			await localFetch(`/agent-sessions/${encodeURIComponent(sessionId)}/kill`, {
+				method: 'POST',
+			});
+			queryClient.invalidateQueries({ queryKey: ['sessions', 'active'] });
+			queryClient.invalidateQueries({ queryKey: ['agent-sessions', 'history'] });
+			showSnackbar(tc('sessionKilled'), 'success');
+			setConfirmCloseOpen(false);
+			onClose();
+		} catch {
+			showSnackbar(tc('error'), 'error');
+		} finally {
+			setClosingSession(false);
+		}
+	}, [sessionId, queryClient, showSnackbar, tc, onClose]);
 
 	// Effective working path: worktree path when available, else projectPath
 	// For current-branch mode, always use projectPath directly
@@ -1144,6 +1175,20 @@ export default function AgentTerminalModal({
 								'& .MuiChip-icon': { color: 'text.secondary' },
 							}}
 						/>
+						{step === 'terminal' && !isPastSession && (
+							<Tooltip title={tl('closeSession')} arrow placement="bottom">
+								<IconButton
+									size="small"
+									onClick={() => setConfirmCloseOpen(true)}
+									sx={{
+										color: 'text.disabled',
+										'&:hover': { color: 'error.main' },
+									}}
+								>
+									<StopCircleRoundedIcon sx={{ fontSize: 18 }} />
+								</IconButton>
+							</Tooltip>
+						)}
 						{step === 'terminal' && (
 							<IconButton
 								size="small"
@@ -1156,9 +1201,15 @@ export default function AgentTerminalModal({
 								<PictureInPictureAltRoundedIcon sx={{ fontSize: 18 }} />
 							</IconButton>
 						)}
-						<IconButton size="small" onClick={onClose} sx={{ color: 'text.secondary' }}>
-							<CloseRoundedIcon fontSize="small" />
-						</IconButton>
+						<Tooltip title={tc('close')} arrow placement="bottom">
+							<IconButton
+								size="small"
+								onClick={onClose}
+								sx={{ color: 'text.secondary' }}
+							>
+								<CloseRoundedIcon fontSize="small" />
+							</IconButton>
+						</Tooltip>
 					</Box>
 				</DialogTitle>
 
@@ -1717,6 +1768,37 @@ export default function AgentTerminalModal({
 						)}
 					</>
 				)}
+			</Dialog>
+			<Dialog
+				open={confirmCloseOpen}
+				onClose={() => !closingSession && setConfirmCloseOpen(false)}
+				maxWidth="xs"
+				fullWidth
+			>
+				<DialogTitle sx={{ fontWeight: 600 }}>{tl('confirmCloseTitle')}</DialogTitle>
+				<DialogContent>
+					<DialogContentText sx={{ fontSize: '0.85rem' }}>
+						{tl('confirmCloseBody')}
+					</DialogContentText>
+				</DialogContent>
+				<DialogActions sx={{ px: 3, pb: 2 }}>
+					<Button
+						onClick={() => setConfirmCloseOpen(false)}
+						disabled={closingSession}
+						sx={{ color: 'text.secondary' }}
+					>
+						{tc('cancel')}
+					</Button>
+					<Button
+						onClick={handleCloseSession}
+						disabled={closingSession}
+						variant="contained"
+						color="error"
+						startIcon={<StopCircleRoundedIcon />}
+					>
+						{tl('closeSession')}
+					</Button>
+				</DialogActions>
 			</Dialog>
 		</>
 	);

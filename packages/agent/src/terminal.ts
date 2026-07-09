@@ -6,7 +6,6 @@ import { writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { findTmux, findClaude } from './helpers.js';
-import { getDb } from './db.js';
 import { createSdkAgentManager } from './sdk/sdkAgent.js';
 
 // Manager de sessions Agent SDK, partagé par toutes les connexions WS.
@@ -207,21 +206,6 @@ export function listTmuxSessions(): string[] {
 	}
 }
 
-async function isSessionCompleted(sessionId: string): Promise<boolean> {
-	try {
-		const db = getDb();
-		if (!db) return false;
-		const row = db
-			.prepare(
-				"SELECT status FROM agent_sessions WHERE session_id = ? AND status IN ('completed', 'error') LIMIT 1",
-			)
-			.get(sessionId);
-		return !!row;
-	} catch {
-		return false;
-	}
-}
-
 function createTmuxSession(sessionId: string, cwd: string): void {
 	execSync(`${TMUX} new-session -d -s ${sessionId} -x 120 -y 40 -c ${JSON.stringify(cwd)}`, {
 		stdio: 'ignore',
@@ -337,21 +321,12 @@ export function startTerminalServer(httpServer: HttpServer) {
 					try {
 						const attachId = msg.sessionId;
 						const existed = tmuxSessionExists(msg.sessionId);
-						const isShellSession = msg.sessionId.endsWith('-shell');
 
 						if (!existed) {
-							if (!isShellSession) {
-								const completed = await isSessionCompleted(msg.sessionId);
-								if (completed) {
-									ws.send(
-										JSON.stringify({
-											type: 'init-error',
-											reason: 'session_completed',
-										}),
-									);
-									return;
-								}
-							}
+							// A session marked completed/error in the DB is only an
+							// informational badge — it must NOT block reopening. The
+							// tmux session is recreated so the user can resume work.
+							// Closing a session for real is a manual action (kill).
 							createTmuxSession(msg.sessionId, msg.cwd);
 							// New session + a system prompt → launch Claude server-side,
 							// before the client attaches (no timing race).
@@ -366,7 +341,9 @@ export function startTerminalServer(httpServer: HttpServer) {
 							JSON.stringify({
 								type: 'init-ack',
 								resumed: existed,
-								...(attachId !== msg.sessionId ? { actualSessionId: attachId } : {}),
+								...(attachId !== msg.sessionId
+									? { actualSessionId: attachId }
+									: {}),
 							}),
 						);
 
