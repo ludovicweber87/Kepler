@@ -80,7 +80,7 @@ export default function AgentChatTab({
 					severity="error"
 					sx={{ m: 1 }}
 					action={
-						<Button color="inherit" size="small" onClick={() => setReadOnly((r) => r)}>
+						<Button color="inherit" size="small" onClick={() => chat.reconnect()}>
 							{t('reconnect')}
 						</Button>
 					}

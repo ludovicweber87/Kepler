@@ -94,6 +94,18 @@ test('send ajoute une bulle user optimiste + envoie stream-user-message', async 
 	expect(um).toMatchObject({ text: 'go' });
 });
 
+test('reconnect() ferme la connexion existante et en ouvre une nouvelle', async () => {
+	const { result } = renderHook(() => useAgentChat(params));
+	act(() => MockWS.last._open());
+	const firstWs = MockWS.last;
+	act(() => result.current.reconnect());
+	expect(firstWs.readyState).toBe(3); // fermée par le teardown de l'effet
+	expect(MockWS.last).not.toBe(firstWs);
+	act(() => MockWS.last._open());
+	const init = MockWS.last.sent.map((s) => JSON.parse(s)).find((m) => m.type === 'stream-init');
+	expect(init).toMatchObject({ sessionId: 's1', cwd: '/tmp' });
+});
+
 test('permission request puis resolve', async () => {
 	const { result } = renderHook(() => useAgentChat(params));
 	act(() => {

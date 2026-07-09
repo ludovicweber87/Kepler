@@ -28,6 +28,7 @@ export function useAgentChat(p: Params) {
 	const wsRef = useRef<WebSocket | null>(null);
 	const lastSeqRef = useRef(0);
 	const [, force] = useReducer((x) => x + 1, 0);
+	const [reconnectNonce, setReconnectNonce] = useState(0);
 
 	const applyWire = useCallback((wire: StreamEventWire) => {
 		if (wire.seq <= lastSeqRef.current) return; // dédup exactly-once
@@ -107,7 +108,7 @@ export function useAgentChat(p: Params) {
 			wsRef.current = null;
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [p.enabled, p.cwd, p.readOnly, p.sessionId]);
+	}, [p.enabled, p.cwd, p.readOnly, p.sessionId, reconnectNonce]);
 
 	const sendCtl = (obj: Record<string, unknown>) => {
 		const ws = wsRef.current;
@@ -151,6 +152,7 @@ export function useAgentChat(p: Params) {
 		[p.sessionId],
 	);
 	const interrupt = useCallback(() => sendCtl({ type: 'stream-interrupt' }), [p.sessionId]);
+	const reconnect = useCallback(() => setReconnectNonce((n) => n + 1), []);
 	const resolvePermission = useCallback(
 		(id: string, decision: PermissionDecision) => {
 			setPending((prev) => prev.filter((x) => x.id !== id));
@@ -173,5 +175,6 @@ export function useAgentChat(p: Params) {
 		setPermissionMode,
 		interrupt,
 		resolvePermission,
+		reconnect,
 	};
 }
