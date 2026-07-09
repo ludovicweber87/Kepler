@@ -17,9 +17,14 @@ const server = spawn('npx', ['tsx', 'src/index.ts'], {
   cwd: new URL('..', import.meta.url).pathname,
   env: { ...process.env, DEVORA_AGENT_PORT: String(PORT) },
   stdio: 'inherit',
+  detached: true,
 });
-const done = (code) => { server.kill('SIGTERM'); process.exit(code); };
-process.on('exit', () => server.kill('SIGTERM'));
+const killServer = () => {
+  if (!server.pid) return;
+  try { process.kill(-server.pid, 'SIGTERM'); } catch { /* already gone */ }
+};
+const done = (code) => { killServer(); process.exit(code); };
+process.on('exit', killServer);
 await new Promise((r) => setTimeout(r, 1500));
 
 const ws = new WebSocket(`ws://localhost:${PORT}`);
