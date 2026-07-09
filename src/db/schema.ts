@@ -39,6 +39,7 @@ export const agentSessions = sqliteTable('agent_sessions', {
 	issue_repo: text(),
 	issue_number: integer(),
 	issue_title: text(),
+	claude_session_id: text(),
 });
 
 // ─── Agent Activity Logs ─────────────────────────────────
@@ -48,6 +49,18 @@ export const agentActivityLogs = sqliteTable('agent_activity_logs', {
 	agent_session_id: text().notNull(),
 	content: text(),
 	log_type: text().default('info'),
+	created_at: timestamp(),
+});
+
+// ─── Agent Chat Messages (transcript SDK) ────────────────
+
+export const agentChatMessages = sqliteTable('agent_chat_messages', {
+	id: uuid(),
+	agent_session_id: text().notNull(),
+	seq: integer().notNull(),
+	role: text().notNull(),
+	event_type: text().notNull(),
+	content: text({ mode: 'json' }),
 	created_at: timestamp(),
 });
 
