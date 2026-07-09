@@ -7,6 +7,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { findTmux, findClaude } from './helpers.js';
 import { getDb } from './db.js';
+import { createSdkAgentManager } from './sdk/sdkAgent.js';
+
+// Manager de sessions Agent SDK, partagé par toutes les connexions WS.
+const sdkAgent = createSdkAgentManager();
 
 const TMUX = findTmux();
 
@@ -37,7 +41,64 @@ interface ListSessionsMessage {
 	type: 'list-sessions';
 }
 
-type ClientMessage = InitMessage | InputMessage | ResizeMessage | ListSessionsMessage;
+interface StreamInitMessage {
+	type: 'stream-init';
+	sessionId: string;
+	cwd: string;
+	systemPrompt?: string;
+	model?: string;
+	effort?: string;
+	permissionMode?: string;
+	resumeClaudeSessionId?: string;
+}
+interface StreamUserMessage {
+	type: 'stream-user-message';
+	sessionId: string;
+	text: string;
+}
+interface StreamSetModelMessage {
+	type: 'stream-set-model';
+	sessionId: string;
+	model?: string;
+}
+interface StreamSetEffortMessage {
+	type: 'stream-set-effort';
+	sessionId: string;
+	effort: string;
+}
+interface StreamSetModeMessage {
+	type: 'stream-set-mode';
+	sessionId: string;
+	permissionMode: string;
+}
+interface StreamInterruptMessage {
+	type: 'stream-interrupt';
+	sessionId: string;
+}
+interface StreamStopMessage {
+	type: 'stream-stop';
+	sessionId: string;
+}
+interface StreamPermissionResponseMessage {
+	type: 'stream-permission-response';
+	sessionId: string;
+	id: string;
+	decision: 'allow-once' | 'allow-always' | 'reject';
+}
+
+type ClientMessage =
+	| InitMessage
+	| InputMessage
+	| ResizeMessage
+	| ListSessionsMessage
+	| StreamInitMessage
+	| StreamUserMessage
+	| StreamSetModelMessage
+	| StreamSetEffortMessage
+	| StreamSetModeMessage
+	| StreamInterruptMessage
+	| StreamStopMessage
+	| StreamPermissionResponseMessage;
 
 // Track last PTY output per session (sessionId → timestamp)
 const sessionOutputTimestamps = new Map<string, number>();
@@ -214,6 +275,7 @@ export function startTerminalServer(httpServer: HttpServer) {
 	wss.on('connection', (ws: WebSocket) => {
 		let pty: IPty | null = null;
 		let initReady: Promise<void> | null = null;
+		let streamSessionId: string | null = null;
 
 		ws.on('message', async (raw: Buffer | string) => {
 			let msg: ClientMessage;
@@ -226,6 +288,47 @@ export function startTerminalServer(httpServer: HttpServer) {
 			if (msg.type === 'list-sessions') {
 				const sessions = listTmuxSessions();
 				ws.send(JSON.stringify({ type: 'sessions', sessions }));
+				return;
+			}
+
+			if (msg.type === 'stream-init') {
+				streamSessionId = msg.sessionId;
+				sdkAgent.startOrAttach(msg.sessionId, ws, {
+					cwd: msg.cwd,
+					systemPrompt: msg.systemPrompt,
+					model: msg.model,
+					effort: msg.effort,
+					permissionMode: msg.permissionMode,
+					resumeClaudeSessionId: msg.resumeClaudeSessionId,
+				});
+				return;
+			}
+			if (msg.type === 'stream-user-message') {
+				sdkAgent.sendUserMessage(msg.sessionId, msg.text);
+				return;
+			}
+			if (msg.type === 'stream-set-model') {
+				sdkAgent.setModel(msg.sessionId, msg.model);
+				return;
+			}
+			if (msg.type === 'stream-set-effort') {
+				sdkAgent.setEffort(msg.sessionId, msg.effort);
+				return;
+			}
+			if (msg.type === 'stream-set-mode') {
+				sdkAgent.setPermissionMode(msg.sessionId, msg.permissionMode);
+				return;
+			}
+			if (msg.type === 'stream-interrupt') {
+				sdkAgent.interrupt(msg.sessionId);
+				return;
+			}
+			if (msg.type === 'stream-stop') {
+				sdkAgent.stop(msg.sessionId);
+				return;
+			}
+			if (msg.type === 'stream-permission-response') {
+				sdkAgent.resolvePermission(msg.sessionId, msg.id, msg.decision);
 				return;
 			}
 
@@ -310,6 +413,10 @@ export function startTerminalServer(httpServer: HttpServer) {
 		});
 
 		ws.on('close', () => {
+			if (streamSessionId) {
+				sdkAgent.detach(streamSessionId, ws);
+				streamSessionId = null;
+			}
 			if (pty) {
 				pty.kill();
 				pty = null;
