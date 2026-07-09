@@ -288,6 +288,8 @@
 		"modeBypass": "Bypass",
 		"modelOpus": "Opus 4.8",
 		"modelSonnet": "Sonnet 5",
-		"modelHaiku": "Haiku 4.5"
+		"modelHaiku": "Haiku 4.5",
+		"pending": "A pensar…",
+		"modeEdit": "Edição"
 	}
 }

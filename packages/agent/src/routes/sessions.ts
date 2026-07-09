@@ -2,7 +2,7 @@ import { IncomingMessage, ServerResponse } from 'node:http';
 import { execSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { readBody, sendJson, sendError, findTmux, findClaude } from '../helpers.js';
-import { getActiveSessions } from '../terminal.js';
+import { getActiveSessions, sdkAgent } from '../terminal.js';
 import { getDb } from '../db.js';
 
 const TMUX = findTmux();
@@ -143,6 +143,8 @@ export async function handleSessionRoutes(
 		const sessionId = decodeURIComponent(killMatch[1]);
 
 		try {
+			// Arrête la session SDK (chat modal) si présente en mémoire.
+			sdkAgent.stop(sessionId);
 			try {
 				execSync(`${TMUX} kill-session -t ${sessionId}-shell`, { stdio: 'ignore' });
 			} catch {

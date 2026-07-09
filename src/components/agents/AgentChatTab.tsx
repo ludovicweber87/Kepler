@@ -10,6 +10,7 @@ import { useAgentChat } from '@/hooks/useAgentChat';
 import ChatBubble from './chat/ChatBubble';
 import ChatPermissionCard from './chat/ChatPermissionCard';
 import ChatComposer from './chat/ChatComposer';
+import ChatPending from './chat/ChatPending';
 
 interface Props {
 	sessionId: string;
@@ -65,6 +66,9 @@ export default function AgentChatTab({
 	};
 
 	const busy = chat.status === 'busy';
+	const lastRole = chat.messages[chat.messages.length - 1]?.role;
+	// Indicateur immédiat tant que l'agent n'a pas commencé à répondre au tour courant.
+	const showPending = busy && chat.pendingPermissions.length === 0 && lastRole !== 'assistant';
 	return (
 		<Box
 			sx={{
@@ -95,6 +99,7 @@ export default function AgentChatTab({
 				{chat.pendingPermissions.map((p) => (
 					<ChatPermissionCard key={p.id} perm={p} onDecide={chat.resolvePermission} />
 				))}
+				{showPending && <ChatPending />}
 			</Box>
 			{readOnly ? (
 				<Box

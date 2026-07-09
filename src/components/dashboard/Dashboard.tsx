@@ -86,6 +86,15 @@ export default function Dashboard() {
 				matchesRepo(s.project_name, s.project_path, selectedRepo),
 			);
 		}
+		// Dédoublonne par worktree : plusieurs ouvertures d'un même worktree créent
+		// plusieurs lignes DB. On garde la plus récente (liste déjà triée desc).
+		const seen = new Set<string>();
+		result = result.filter((s) => {
+			const key = s.worktree_path ?? s.branch ?? s.session_id;
+			if (seen.has(key)) return false;
+			seen.add(key);
+			return true;
+		});
 		return result.slice(0, 8);
 	}, [pastSessions, activeSessionIds, selectedRepo]);
 

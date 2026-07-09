@@ -319,6 +319,16 @@ export default function Sidebar() {
 													const activeS = activeSessions.find(
 														(s) => s.cwd === wt.path,
 													);
+													// Reuse the worktree's existing session instead of
+													// spawning a new one (avoids duplicate "recent" rows).
+													const pastForWt = pastSessions.find(
+														(s) => s.worktree_path === wt.path,
+													);
+													// Show the agent-renamed name, like "active agents".
+													const displayName =
+														activeS?.agentName ??
+														pastForWt?.agent_name ??
+														wt.branch;
 													return (
 														<Box
 															key={wt.path}
@@ -335,15 +345,28 @@ export default function Sidebar() {
 																						activeS.sessionId,
 																					),
 																			}
-																		: {
-																				projectPath:
-																					view.path,
-																				existingWorktree: {
-																					branch: wt.branch,
-																					worktreePath:
-																						wt.path,
+																		: pastForWt
+																			? {
+																					projectPath:
+																						view.path,
+																					existingSessionId:
+																						pastForWt.session_id,
+																					isPastSession:
+																						pastForWt.status ===
+																							'completed' ||
+																						pastForWt.status ===
+																							'error',
+																				}
+																			: {
+																					projectPath:
+																						view.path,
+																					existingWorktree:
+																						{
+																							branch: wt.branch,
+																							worktreePath:
+																								wt.path,
+																						},
 																				},
-																			},
 																)
 															}
 															sx={{
@@ -385,7 +408,7 @@ export default function Sidebar() {
 																		: 'text.secondary',
 																}}
 															>
-																{wt.branch}
+																{displayName}
 															</Typography>
 															<Tooltip title={t('deleteWorktree')}>
 																<IconButton
