@@ -9,7 +9,7 @@ import { findTmux, findClaude } from './helpers.js';
 import { createSdkAgentManager } from './sdk/sdkAgent.js';
 
 // Manager de sessions Agent SDK, partagé par toutes les connexions WS.
-const sdkAgent = createSdkAgentManager();
+export const sdkAgent = createSdkAgentManager();
 
 const TMUX = findTmux();
 
@@ -146,13 +146,14 @@ export interface SessionMeta {
 const ACTIVE_THRESHOLD = 30_000;
 
 export function getActiveSessions(): SessionMeta[] {
+	let tmuxMetas: SessionMeta[] = [];
 	try {
 		const out = execSync(
 			`${TMUX} list-sessions -F "#{session_name}|#{session_created}|#{pane_current_path}|#{session_activity}|#{pane_current_command}"`,
 			{ encoding: 'utf-8', stdio: ['pipe', 'pipe', 'ignore'] },
 		);
 		const now = Date.now();
-		return out
+		tmuxMetas = out
 			.trim()
 			.split('\n')
 			.filter((line) => {
@@ -178,8 +179,26 @@ export function getActiveSessions(): SessionMeta[] {
 				};
 			});
 	} catch {
-		return [];
+		tmuxMetas = [];
 	}
+
+	// Fusionne les sessions SDK (chat modal) : elles n'ont pas de tmux et seraient
+	// sinon classées "passées" alors qu'elles sont ouvertes.
+	const now = Date.now();
+	const tmuxIds = new Set(tmuxMetas.map((m) => m.sessionId));
+	const sdkMetas: SessionMeta[] = sdkAgent
+		.listActive()
+		.filter((x) => !tmuxIds.has(x.sessionId))
+		.map((x) => ({
+			sessionId: x.sessionId,
+			cwd: x.cwd || '',
+			createdAt: x.createdAt,
+			lastActivity: now,
+			lastOutput: x.busy ? now : 0,
+			command: 'claude',
+			hasRecentOutput: x.busy,
+		}));
+	return [...tmuxMetas, ...sdkMetas];
 }
 
 function tmuxSessionExists(sessionId: string): boolean {

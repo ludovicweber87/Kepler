@@ -151,7 +151,10 @@ export function useAgentChat(p: Params) {
 		},
 		[sendCtl],
 	);
-	const interrupt = useCallback(() => sendCtl({ type: 'stream-interrupt' }), [sendCtl]);
+	const interrupt = useCallback(() => {
+		setStatus('idle'); // réactive le composer sans attendre le round-trip serveur
+		sendCtl({ type: 'stream-interrupt' });
+	}, [sendCtl]);
 	const reconnect = useCallback(() => setReconnectNonce((n) => n + 1), []);
 	const resolvePermission = useCallback(
 		(id: string, decision: PermissionDecision) => {

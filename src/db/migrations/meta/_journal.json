@@ -22,6 +22,20 @@
       "when": 1783585892554,
       "tag": "0002_sticky_nightcrawler",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1783598793138,
+      "tag": "0003_complex_maria_hill",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1783599595375,
+      "tag": "0004_concerned_human_fly",
+      "breakpoints": true
     }
   ]
 }

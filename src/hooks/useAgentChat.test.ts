@@ -106,6 +106,19 @@ test('reconnect() ferme la connexion existante et en ouvre une nouvelle', async 
 	expect(init).toMatchObject({ sessionId: 's1', cwd: '/tmp' });
 });
 
+test('interrupt() repasse en idle immédiatement + envoie stream-interrupt', async () => {
+	const { result } = renderHook(() => useAgentChat(params));
+	act(() => MockWS.last._open());
+	act(() => result.current.send('go')); // status -> busy
+	expect(result.current.status).toBe('busy');
+	act(() => result.current.interrupt());
+	expect(result.current.status).toBe('idle');
+	const stop = MockWS.last.sent
+		.map((s) => JSON.parse(s))
+		.find((m) => m.type === 'stream-interrupt');
+	expect(stop).toMatchObject({ sessionId: 's1' });
+});
+
 test('permission request puis resolve', async () => {
 	const { result } = renderHook(() => useAgentChat(params));
 	act(() => {

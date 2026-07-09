@@ -22,7 +22,13 @@
 		"deleteWorktreeOnly": "Worktree seulement",
 		"deleteWorktreeAndBranch": "Worktree + branche",
 		"worktreeDeleted": "Worktree supprimé",
-		"deleteWorktreeError": "Échec de la suppression du worktree"
+		"deleteWorktreeError": "Échec de la suppression du worktree",
+		"worktreeActions": "Actions",
+		"archive": "Archiver",
+		"delete": "Supprimer",
+		"archived": "Archivées",
+		"sessionArchived": "Session archivée",
+		"archiveError": "Échec de l’archivage"
 	},
 	"landing": {
 		"nav": {
@@ -169,7 +175,11 @@
 		"repoName": "Nom du depot (ex. owner/repo)",
 		"pathValid": "Chemin valide",
 		"pathNotSet": "Non configure",
-		"localPath": "Chemin local"
+		"localPath": "Chemin local",
+		"createPrPrompt": "Prompt Create PR",
+		"createPrPromptDesc": "Message envoyé à l’agent quand tu cliques sur « Create PR ». L’agent le lit et exécute le travail (commit, push, ouverture de la PR).",
+		"createPrPromptSave": "Enregistrer",
+		"createPrPromptSaved": "Prompt enregistré"
 	},
 	"header": {
 		"lightMode": "Mode clair",
@@ -217,7 +227,8 @@
 		"issueUrl": "URL d'issue GitHub pour le contexte (optionnel)",
 		"closeSession": "Fermer la session",
 		"confirmCloseTitle": "Fermer la session ?",
-		"confirmCloseBody": "La session en cours sera arretee. Tu pourras la relancer plus tard."
+		"confirmCloseBody": "La session en cours sera arretee. Tu pourras la relancer plus tard.",
+		"stopSession": "Arrêter la session"
 	},
 	"agentActivity": {
 		"reportTitle": "Rapport agent",
@@ -309,6 +320,18 @@
 		"modeBypass": "Bypass",
 		"modelOpus": "Opus 4.8",
 		"modelSonnet": "Sonnet 5",
-		"modelHaiku": "Haiku 4.5"
+		"modelHaiku": "Haiku 4.5",
+		"pending": "Réflexion en cours…",
+		"modeEdit": "Édition",
+		"createPr": "Create PR",
+		"archivedReadOnly": "Session archivée — lecture seule"
+	},
+	"archived": {
+		"title": "Sessions archivées",
+		"all": "Toutes",
+		"empty": "Aucune session archivée",
+		"unarchive": "Désarchiver",
+		"sessionUnarchived": "Session désarchivée",
+		"unarchiveError": "Échec du désarchivage"
 	}
 }

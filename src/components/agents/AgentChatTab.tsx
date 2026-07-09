@@ -1,40 +1,48 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
 import Typography from '@mui/material/Typography';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
+import CallMergeRoundedIcon from '@mui/icons-material/CallMergeRounded';
 import { useTranslations } from 'next-intl';
 import { useAgentChat } from '@/hooks/useAgentChat';
+import { useAppSetting } from '@/hooks/useAppSetting';
+import { CREATE_PR_PROMPT_KEY, DEFAULT_CREATE_PR_PROMPT } from '@/lib/prompts';
 import ChatBubble from './chat/ChatBubble';
 import ChatPermissionCard from './chat/ChatPermissionCard';
 import ChatComposer from './chat/ChatComposer';
+import ChatPending from './chat/ChatPending';
 
 interface Props {
 	sessionId: string;
 	cwd: string | null;
 	systemPrompt?: string;
-	isPastSession?: boolean;
+	/** Controlled by the parent from the session's DB status. */
+	readOnly?: boolean;
+	/** Archived sessions are read-only with no "Reprendre" (resume) affordance. */
+	archived?: boolean;
 	initialModel?: string;
 	initialEffort?: string;
 	initialMode?: string;
 	onFirstUserMessage?: (text: string) => void;
+	onResume?: () => void;
 }
 
 export default function AgentChatTab({
 	sessionId,
 	cwd,
 	systemPrompt,
-	isPastSession,
+	readOnly = false,
+	archived = false,
 	initialModel,
 	initialEffort,
 	initialMode,
 	onFirstUserMessage,
+	onResume,
 }: Props) {
 	const t = useTranslations('agentChat');
-	// Past session: read-only until user hits "Reprendre".
-	const [readOnly, setReadOnly] = useState(!!isPastSession);
 	const firstSent = useRef(false);
 
 	const chat = useAgentChat({
@@ -56,6 +64,11 @@ export default function AgentChatTab({
 		if (nearBottom) el.scrollTop = el.scrollHeight;
 	}, [chat.messages, chat.pendingPermissions]);
 
+	const { valueOrDefault: createPrPrompt } = useAppSetting(
+		CREATE_PR_PROMPT_KEY,
+		DEFAULT_CREATE_PR_PROMPT,
+	);
+
 	const handleSend = (text: string) => {
 		if (!firstSent.current) {
 			firstSent.current = true;
@@ -65,6 +78,11 @@ export default function AgentChatTab({
 	};
 
 	const busy = chat.status === 'busy';
+	const lastRole = chat.messages[chat.messages.length - 1]?.role;
+	// Indicateur immédiat tant que l'agent n'a pas commencé à répondre au tour courant.
+	const showPending = busy && chat.pendingPermissions.length === 0 && lastRole !== 'assistant';
+	// "Create PR" : l'agent a fini de répondre et il y a eu au moins un échange.
+	const canCreatePr = chat.status === 'idle' && chat.messages.length > 0;
 	return (
 		<Box
 			sx={{
@@ -95,6 +113,7 @@ export default function AgentChatTab({
 				{chat.pendingPermissions.map((p) => (
 					<ChatPermissionCard key={p.id} perm={p} onDecide={chat.resolvePermission} />
 				))}
+				{showPending && <ChatPending />}
 			</Box>
 			{readOnly ? (
 				<Box
@@ -108,31 +127,55 @@ export default function AgentChatTab({
 					}}
 				>
 					<Typography variant="caption" sx={{ color: 'text.secondary', flex: 1 }}>
-						{t('readOnly')}
+						{archived ? t('archivedReadOnly') : t('readOnly')}
 					</Typography>
-					<Button
-						size="small"
-						variant="contained"
-						startIcon={<PlayArrowRoundedIcon />}
-						onClick={() => setReadOnly(false)}
-						sx={{ textTransform: 'none' }}
-					>
-						{t('resume')}
-					</Button>
+					{!archived && (
+						<Button
+							size="small"
+							variant="contained"
+							startIcon={<PlayArrowRoundedIcon />}
+							onClick={() => onResume?.()}
+							sx={{ textTransform: 'none' }}
+						>
+							{t('resume')}
+						</Button>
+					)}
 				</Box>
 			) : (
-				<ChatComposer
-					disabled={chat.status !== 'idle'}
-					busy={busy}
-					model={chat.model}
-					effort={chat.effort}
-					permissionMode={chat.permissionMode}
-					onSend={handleSend}
-					onStop={chat.interrupt}
-					onModel={chat.setModel}
-					onEffort={chat.setEffort}
-					onMode={chat.setPermissionMode}
-				/>
+				<>
+					{canCreatePr && (
+						<Box
+							sx={{
+								px: 1.5,
+								pt: 1,
+								display: 'flex',
+								justifyContent: 'flex-end',
+							}}
+						>
+							<Button
+								size="small"
+								variant="outlined"
+								startIcon={<CallMergeRoundedIcon sx={{ fontSize: 16 }} />}
+								onClick={() => chat.send(createPrPrompt)}
+								sx={{ textTransform: 'none', borderRadius: 999 }}
+							>
+								{t('createPr')}
+							</Button>
+						</Box>
+					)}
+					<ChatComposer
+						disabled={chat.status !== 'idle'}
+						busy={busy}
+						model={chat.model}
+						effort={chat.effort}
+						permissionMode={chat.permissionMode}
+						onSend={handleSend}
+						onStop={chat.interrupt}
+						onModel={chat.setModel}
+						onEffort={chat.setEffort}
+						onMode={chat.setPermissionMode}
+					/>
+				</>
 			)}
 		</Box>
 	);

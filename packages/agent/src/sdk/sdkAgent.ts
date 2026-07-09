@@ -31,7 +31,11 @@ interface SessionState {
   busy: boolean;
   closed: boolean;
   seq: number;
+  cwd: string;
+  createdAt: number;
 }
+
+export interface ActiveSdkSession { sessionId: string; cwd: string; createdAt: number; busy: boolean }
 
 function cleanEnv(): Record<string, string> {
   const env = { ...process.env } as Record<string, string>;
@@ -123,6 +127,13 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
   return {
     has(sessionId: string) { return sessions.has(sessionId); },
 
+    // Sessions SDK vivantes (chat modal) — pas de tmux, invisibles sinon dans "actifs".
+    listActive(): ActiveSdkSession[] {
+      return [...sessions.entries()].map(([sessionId, s]) => ({
+        sessionId, cwd: s.cwd, createdAt: s.createdAt, busy: s.busy,
+      }));
+    },
+
     startOrAttach(sessionId: string, ws: StreamSocket, params: StartParams) {
       const existing = sessions.get(sessionId);
       if (existing) {
@@ -135,13 +146,15 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
       const s: SessionState = {
         q: undefined as unknown as QueryLike,
         queue,
-        perms: createPermissionController((req: PendingPermission) => broadcast(s, { type: 'stream-permission-request', ...req })),
+        perms: createPermissionController((req: PendingPermission) => broadcast(s, { type: 'stream-permission-request', ...req }), () => s.permissionMode),
         clients: new Set([ws]),
         claudeSessionId: null,
         model: params.model ?? '', effort: params.effort ?? '', permissionMode: params.permissionMode ?? 'acceptEdits',
         busy: false,
         closed: false,
         seq: transcript.nextSeq(sessionId),
+        cwd: params.cwd,
+        createdAt: Date.now(),
       };
       const options: Record<string, unknown> = {
         cwd: params.cwd,
@@ -179,8 +192,10 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
       const s = sessions.get(sessionId);
       if (!s) return;
       s.effort = effort;
-      // Pas de q.setEffort ; on tente applyFlagSettings (à valider en intégration).
-      void s.q.applyFlagSettings?.({ effort })?.catch(() => {});
+      // Pas de setter dédié : la clé Settings est `effortLevel` (low|medium|high|xhigh).
+      // 'max' n'existe pas côté live (uniquement à l'init via Options.effort) → clamp xhigh.
+      const effortLevel = effort === 'max' ? 'xhigh' : effort;
+      void s.q.applyFlagSettings?.({ effortLevel })?.catch(() => {});
     },
     setPermissionMode(sessionId: string, mode: string) {
       const s = sessions.get(sessionId);
@@ -192,7 +207,11 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
       const s = sessions.get(sessionId);
       if (!s) return;
       s.perms.abortAll();
+      s.busy = false;
       void s.q.interrupt?.()?.catch(() => {});
+      // Le SDK n'émet pas toujours de `result` après une interruption ; on notifie
+      // explicitement pour que le composer repasse en idle (reprise possible).
+      broadcast(s, { type: 'stream-event', seq: s.seq++, event: 'result', data: { interrupted: true } });
     },
     resolvePermission(sessionId: string, id: string, decision: PermissionDecision) {
       sessions.get(sessionId)?.perms.resolve(id, decision);

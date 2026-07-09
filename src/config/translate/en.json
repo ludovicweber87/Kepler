@@ -22,7 +22,13 @@
 		"deleteWorktreeOnly": "Worktree only",
 		"deleteWorktreeAndBranch": "Worktree + branch",
 		"worktreeDeleted": "Worktree deleted",
-		"deleteWorktreeError": "Failed to delete worktree"
+		"deleteWorktreeError": "Failed to delete worktree",
+		"worktreeActions": "Actions",
+		"archive": "Archive",
+		"delete": "Delete",
+		"archived": "Archived",
+		"sessionArchived": "Session archived",
+		"archiveError": "Failed to archive"
 	},
 	"landing": {
 		"nav": {
@@ -169,7 +175,11 @@
 		"repoName": "Repository name (e.g. owner/repo)",
 		"pathValid": "Valid path",
 		"pathNotSet": "Not configured",
-		"localPath": "Local path"
+		"localPath": "Local path",
+		"createPrPrompt": "Create PR prompt",
+		"createPrPromptDesc": "Message sent to the agent when you click “Create PR”. The agent reads it and does the work (commit, push, open the PR).",
+		"createPrPromptSave": "Save",
+		"createPrPromptSaved": "Prompt saved"
 	},
 	"header": {
 		"lightMode": "Light mode",
@@ -217,7 +227,8 @@
 		"issueUrl": "GitHub issue URL for context (optional)",
 		"closeSession": "Close session",
 		"confirmCloseTitle": "Close session?",
-		"confirmCloseBody": "The current session will be stopped. You can relaunch it later."
+		"confirmCloseBody": "The current session will be stopped. You can relaunch it later.",
+		"stopSession": "Stop session"
 	},
 	"agentActivity": {
 		"reportTitle": "Agent report",
@@ -309,6 +320,18 @@
 		"modeBypass": "Bypass",
 		"modelOpus": "Opus 4.8",
 		"modelSonnet": "Sonnet 5",
-		"modelHaiku": "Haiku 4.5"
+		"modelHaiku": "Haiku 4.5",
+		"pending": "Thinking…",
+		"modeEdit": "Edit",
+		"createPr": "Create PR",
+		"archivedReadOnly": "Archived session — read only"
+	},
+	"archived": {
+		"title": "Archived sessions",
+		"all": "All",
+		"empty": "No archived session",
+		"unarchive": "Unarchive",
+		"sessionUnarchived": "Session unarchived",
+		"unarchiveError": "Failed to unarchive"
 	}
 }

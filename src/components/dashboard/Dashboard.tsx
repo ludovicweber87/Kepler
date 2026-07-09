@@ -5,13 +5,12 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
-import { useQueryClient } from '@tanstack/react-query';
-import { useActiveSessions, type ActiveSession } from '@/hooks/useActiveSessions';
 import { useAgentSessionHistory, type AgentSession } from '@/hooks/useAgentSession';
+import { useSessionActions } from '@/hooks/useSessionActions';
 import { useAgentSummaries, type AgentSummary } from '@/hooks/useRecentLogs';
 import { usePendingQuestions } from '@/hooks/usePendingQuestions';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
-import { localFetch } from '@/lib/local-fetch';
+import { classifySession } from '@/lib/sessionStatus';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 
@@ -23,10 +22,6 @@ import AllReportsDialog from './AllReportsDialog';
 const AgentTerminalModal = dynamic(() => import('@/components/agents/AgentTerminalModal'), {
 	ssr: false,
 });
-
-type SelectedItem =
-	| { type: 'active'; session: ActiveSession }
-	| { type: 'past'; session: AgentSession };
 
 function repoShortName(fullName: string): string {
 	const parts = fullName.split('/');
@@ -42,52 +37,46 @@ function matchesRepo(projectName: string, projectPath: string, repo: string): bo
 
 export default function Dashboard() {
 	const t = useTranslations('dashboard');
-	const queryClient = useQueryClient();
 
 	const [repoTab, setRepoTab] = useState(0);
-	const [selected, setSelected] = useState<SelectedItem | null>(null);
+	const [selected, setSelected] = useState<AgentSession | null>(null);
 	const [showAllReports, setShowAllReports] = useState(false);
 
-	// Data hooks
-	const { data: sessions = [] } = useActiveSessions();
-	const { data: pastSessions = [] } = useAgentSessionHistory();
+	// Data hooks — DB history is the single source of truth for buckets.
+	const { data: allSessions = [] } = useAgentSessionHistory();
 	const { data: summaries = [], isLoading: summariesLoading } = useAgentSummaries();
 	const pendingQuestions = usePendingQuestions();
 	const { repoPaths } = useRepoPaths();
+	const { stop } = useSessionActions();
 	const repos = useMemo(() => repoPaths.map((r) => r.repo_full_name), [repoPaths]);
 
 	// Selected repo for filtering (null = all)
 	const selectedRepo = repoTab === 0 ? null : (repos[repoTab - 1] ?? null);
 
-	// Filtered sessions (exclude active from past, filter by repo)
-	const activeSessionIds = useMemo(() => new Set(sessions.map((s) => s.sessionId)), [sessions]);
-
-	// Sessions whose agent has finished (DB status), even if their tmux still lingers.
-	// Opening one of these must be read-only — never relaunch/reconnect a finished agent.
-	const finishedSessionIds = useMemo(
-		() =>
-			new Set(
-				pastSessions
-					.filter((s) => s.status === 'completed' || s.status === 'error')
-					.map((s) => s.session_id),
-			),
-		[pastSessions],
+	const matchRepo = useCallback(
+		(s: AgentSession) =>
+			!selectedRepo || matchesRepo(s.project_name ?? '', s.project_path ?? '', selectedRepo),
+		[selectedRepo],
 	);
 
-	const filteredActiveSessions = useMemo(() => {
-		if (!selectedRepo) return sessions;
-		return sessions.filter((s) => matchesRepo(s.projectName, s.cwd, selectedRepo));
-	}, [sessions, selectedRepo]);
+	const filteredActiveSessions = useMemo(
+		() => allSessions.filter((s) => classifySession(s) === 'active').filter(matchRepo),
+		[allSessions, matchRepo],
+	);
 
 	const filteredPastSessions = useMemo(() => {
-		let result = pastSessions.filter((s) => !activeSessionIds.has(s.session_id));
-		if (selectedRepo) {
-			result = result.filter((s) =>
-				matchesRepo(s.project_name, s.project_path, selectedRepo),
-			);
-		}
+		let result = allSessions.filter((s) => classifySession(s) === 'past').filter(matchRepo);
+		// Dédoublonne par worktree : plusieurs ouvertures d'un même worktree créent
+		// plusieurs lignes DB. On garde la plus récente (liste déjà triée desc).
+		const seen = new Set<string>();
+		result = result.filter((s) => {
+			const key = s.worktree_path ?? s.branch ?? s.session_id;
+			if (seen.has(key)) return false;
+			seen.add(key);
+			return true;
+		});
 		return result.slice(0, 8);
-	}, [pastSessions, activeSessionIds, selectedRepo]);
+	}, [allSessions, matchRepo]);
 
 	// Filtered summaries
 	const filteredSummaries = useMemo(() => {
@@ -100,52 +89,23 @@ export default function Dashboard() {
 		return result.slice(0, 10);
 	}, [summaries, selectedRepo]);
 
-	// Handlers
-	const handleKillSession = useCallback(
-		async (sessionId: string) => {
-			try {
-				await localFetch(`/agent-sessions/${encodeURIComponent(sessionId)}/kill`, {
-					method: 'POST',
-				});
-				queryClient.invalidateQueries({ queryKey: ['sessions', 'active'] });
-				queryClient.invalidateQueries({ queryKey: ['agent-sessions', 'history'] });
-			} catch {
-				// ignore
-			}
-		},
-		[queryClient],
-	);
-
+	// Handlers — the modal derives editable/read-only from the session's DB status.
 	const handleSummaryClick = useCallback(
 		(summary: AgentSummary) => {
-			const match = pastSessions.find((s) => s.session_id === summary.session_id);
-			if (match) setSelected({ type: 'past', session: match });
+			const match = allSessions.find((s) => s.session_id === summary.session_id);
+			if (match) setSelected(match);
 		},
-		[pastSessions],
+		[allSessions],
 	);
-
-	const handlePastSessionClick = useCallback((session: AgentSession) => {
-		setSelected({ type: 'past', session });
-	}, []);
 
 	// Modal props
 	const modalOpen = !!selected;
-	const modalProps =
-		selected?.type === 'active'
-			? {
-					projectPath: selected.session.cwd,
-					existingSessionId: selected.session.sessionId,
-					// A finished agent (DB completed/error) opens read-only even if its
-					// tmux is still alive — clicking it must not relaunch/reconnect.
-					isPastSession: finishedSessionIds.has(selected.session.sessionId),
-				}
-			: selected?.type === 'past'
-				? {
-						projectPath: selected.session.project_path || undefined,
-						existingSessionId: selected.session.session_id,
-						isPastSession: true,
-					}
-				: {};
+	const modalProps = selected
+		? {
+				projectPath: selected.project_path || selected.worktree_path || undefined,
+				existingSessionId: selected.session_id,
+			}
+		: {};
 
 	return (
 		<>
@@ -218,14 +178,14 @@ export default function Dashboard() {
 						<ActiveAgentsWidget
 							sessions={filteredActiveSessions}
 							pendingQuestions={pendingQuestions}
-							onSessionClick={(s) => setSelected({ type: 'active', session: s })}
-							onStopSession={handleKillSession}
+							onSessionClick={(s) => setSelected(s)}
+							onStopSession={(sessionId) => stop(sessionId)}
 						/>
 					</Box>
 					<Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
 						<RecentSessionsWidget
 							sessions={filteredPastSessions}
-							onSessionClick={handlePastSessionClick}
+							onSessionClick={(s) => setSelected(s)}
 						/>
 					</Box>
 				</Box>

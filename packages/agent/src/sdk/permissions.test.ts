@@ -12,7 +12,7 @@ test('canUseTool broadcast une requête et attend la résolution', async () => {
   assert.deepEqual(ctrl.snapshot().map((s) => s.id), [sent[0].id]);
   const ok = ctrl.resolve(sent[0].id, 'allow-once');
   assert.equal(ok, true);
-  assert.deepEqual(await p, { behavior: 'allow' });
+  assert.deepEqual(await p, { behavior: 'allow', updatedInput: { path: 'a.txt' } });
   assert.equal(ctrl.snapshot().length, 0);
 });
 
@@ -20,9 +20,27 @@ test('allow-always renvoie les suggestions comme updatedPermissions', async () =
   const sent: PendingPermission[] = [];
   const ctrl = createPermissionController((r) => sent.push(r));
   const suggestions = [{ toolName: 'Write' }];
-  const p = ctrl.canUseTool('Write', {}, { suggestions });
+  const p = ctrl.canUseTool('Write', { path: 'b.txt' }, { suggestions });
   ctrl.resolve(sent[0].id, 'allow-always');
-  assert.deepEqual(await p, { behavior: 'allow', updatedPermissions: suggestions });
+  assert.deepEqual(await p, { behavior: 'allow', updatedInput: { path: 'b.txt' }, updatedPermissions: suggestions });
+});
+
+test('mode bypassPermissions → auto-allow sans broadcast', async () => {
+  const sent: PendingPermission[] = [];
+  const ctrl = createPermissionController((r) => sent.push(r), () => 'bypassPermissions');
+  const res = await ctrl.canUseTool('Bash', { cmd: 'ls' }, {});
+  assert.deepEqual(res, { behavior: 'allow', updatedInput: { cmd: 'ls' } });
+  assert.equal(sent.length, 0);
+});
+
+test('mode acceptEdits → auto-allow les éditions, prompt pour Bash', async () => {
+  const sent: PendingPermission[] = [];
+  const ctrl = createPermissionController((r) => sent.push(r), () => 'acceptEdits');
+  const edit = await ctrl.canUseTool('Write', { path: 'a.txt' }, {});
+  assert.deepEqual(edit, { behavior: 'allow', updatedInput: { path: 'a.txt' } });
+  assert.equal(sent.length, 0);
+  void ctrl.canUseTool('Bash', { cmd: 'ls' }, {});
+  assert.equal(sent.length, 1);
 });
 
 test('reject renvoie un deny', async () => {

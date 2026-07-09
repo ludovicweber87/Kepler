@@ -13,6 +13,7 @@ export interface AgentSession {
 	status: 'active' | 'completed' | 'error';
 	started_at: string;
 	ended_at: string | null;
+	archived_at: string | null;
 	report_published_at: string | null;
 	issue_owner: string | null;
 	issue_repo: string | null;
@@ -157,7 +158,7 @@ export function useAgentSession(sessionId: string | undefined) {
 	return { session, logs, ensureSession, addLog, updateStatus };
 }
 
-/** Fetch all sessions for history view */
+/** Fetch all sessions for history view (single source of truth for buckets). */
 export function useAgentSessionHistory() {
 	return useQuery({
 		queryKey: ['agent-sessions', 'history'],
@@ -166,5 +167,6 @@ export function useAgentSessionHistory() {
 			if (!res.ok) throw new Error('Failed to fetch session history');
 			return (await res.json()) as AgentSession[];
 		},
+		refetchInterval: 5_000,
 	});
 }
