@@ -192,7 +192,10 @@
 		"branchDesc": "Se creara un worktree aislado en .worktrees/ para esta sesion.",
 		"launch": "Lanzar",
 		"creating": "Creando...",
-		"issueUrl": "URL de issue de GitHub para contexto (opcional)"
+		"issueUrl": "URL de issue de GitHub para contexto (opcional)",
+		"closeSession": "Cerrar sesion",
+		"confirmCloseTitle": "¿Cerrar la sesion?",
+		"confirmCloseBody": "La sesion actual se detendra. Podras relanzarla mas tarde."
 	},
 	"agentActivity": {
 		"reportTitle": "Informe del agente",

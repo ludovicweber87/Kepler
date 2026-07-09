@@ -1,8 +1,12 @@
 'use client';
 
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
@@ -28,6 +32,7 @@ import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
+import StopCircleRoundedIcon from '@mui/icons-material/StopCircleRounded';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebglAddon } from '@xterm/addon-webgl';
@@ -42,6 +47,7 @@ import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useAgentSession } from '@/hooks/useAgentSession';
 import { useOverlayTerminal } from '@/hooks/useOverlayTerminal';
 import { useWorktrees } from '@/hooks/useWorktrees';
+import { useSnackbar } from '@/hooks/useSnackbar';
 import { useTranslations } from 'next-intl';
 import { localFetch, getAgentWsUrl } from '@/lib/local-fetch';
 import { apiFetch } from '@/lib/api-fetch';
@@ -224,6 +230,11 @@ export default function AgentTerminalModal({
 	const streamTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const readyRef = useRef(false);
 	const claudeLaunchedRef = useRef(false);
+	// First-prompt capture → auto-rename the `wip-` branch from the user's demand.
+	// Only armed when the branch was auto-generated (user left the name blank).
+	const autoNamedRef = useRef(false);
+	const promptBufferRef = useRef('');
+	const promptSentRef = useRef(false);
 	// Ref tracking effectivePath so the shell effect reads the latest value
 	// without re-triggering when session loads async
 	const effectivePathRef = useRef<string | null | undefined>(undefined);
@@ -243,6 +254,12 @@ export default function AgentTerminalModal({
 
 	// Worktree management
 	const { createWorktree, isCreating } = useWorktrees(projectPath ?? undefined);
+	const queryClient = useQueryClient();
+	const { showSnackbar } = useSnackbar();
+
+	// Manual session close (the only real termination — agents never auto-close)
+	const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
+	const [closingSession, setClosingSession] = useState(false);
 
 	const generatedIdRef = useRef<string | null>(null);
 	if (open && !existingSessionId && !generatedIdRef.current) {
@@ -255,6 +272,27 @@ export default function AgentTerminalModal({
 
 	const { session, logs, ensureSession } = useAgentSession(open ? sessionId : undefined);
 	const overlay = useOverlayTerminal();
+
+	// Kill the tmux session + mark it completed, then close the modal.
+	// This is the ONLY path that really ends a session (manual, user-triggered).
+	const handleCloseSession = useCallback(async () => {
+		if (!sessionId) return;
+		setClosingSession(true);
+		try {
+			await localFetch(`/agent-sessions/${encodeURIComponent(sessionId)}/kill`, {
+				method: 'POST',
+			});
+			queryClient.invalidateQueries({ queryKey: ['sessions', 'active'] });
+			queryClient.invalidateQueries({ queryKey: ['agent-sessions', 'history'] });
+			showSnackbar(tc('sessionKilled'), 'success');
+			setConfirmCloseOpen(false);
+			onClose();
+		} catch {
+			showSnackbar(tc('error'), 'error');
+		} finally {
+			setClosingSession(false);
+		}
+	}, [sessionId, queryClient, showSnackbar, tc, onClose]);
 
 	// Effective working path: worktree path when available, else projectPath
 	// For current-branch mode, always use projectPath directly
@@ -417,8 +455,13 @@ export default function AgentTerminalModal({
 
 	const handleLaunch = useCallback(async () => {
 		if (!projectPath) return;
-		// Name is optional — fall back to an auto-generated `wip-` name (renamed later by the server)
-		const name = branchInput.trim() || randomWorktreeName();
+		// Name is optional — fall back to an auto-generated `wip-` name (renamed later
+		// from the user's first prompt). Arm the capture only when auto-named.
+		const trimmedName = branchInput.trim();
+		const name = trimmedName || randomWorktreeName();
+		autoNamedRef.current = !trimmedName;
+		promptBufferRef.current = '';
+		promptSentRef.current = false;
 		setWorktreeError(null);
 
 		try {
@@ -456,6 +499,64 @@ export default function AgentTerminalModal({
 		issueContext,
 		ensureSession,
 	]);
+
+	// Ask the server to rename the `wip-` branch/session from the user's first demand,
+	// then refresh the sidebar (worktrees) + dashboard (sessions) so the name shows up.
+	const submitRenameFromPrompt = useCallback(
+		(promptText: string) => {
+			apiFetch('/api/agent-sessions/rename-from-prompt', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ sessionId, prompt: promptText }),
+			})
+				.then((res) => (res.ok ? res.json() : null))
+				.then((data) => {
+					if (data?.branch) {
+						if (projectPath)
+							queryClient.invalidateQueries({
+								queryKey: ['git-worktrees', projectPath],
+							});
+						queryClient.invalidateQueries({ queryKey: ['sessions', 'active'] });
+						queryClient.invalidateQueries({ queryKey: ['agent-sessions', 'history'] });
+					}
+				})
+				.catch(() => {
+					/* rename is best-effort */
+				});
+		},
+		[sessionId, projectPath, queryClient],
+	);
+
+	// Accumulate terminal keystrokes into the first submitted line, ignoring ANSI
+	// escape sequences and short dialog keypresses. Fires the rename exactly once.
+	const captureFirstPrompt = useCallback(
+		(raw: string) => {
+			const chunk = raw
+				.replace(/\x1b\[[0-9;?]*[ -/]*[@-~]/g, '') // CSI (arrows, paste markers…)
+				.replace(/\x1bO[A-Za-z]/g, '') // SS3 (arrows in app-cursor mode)
+				.replace(/\x1b./g, '') // any other 2-byte ESC sequence
+				.replace(/\x1b/g, ''); // lone ESC
+			for (const ch of chunk) {
+				if (ch === '\r' || ch === '\n') {
+					const line = promptBufferRef.current.trim();
+					if (line.length >= 10) {
+						promptSentRef.current = true;
+						submitRenameFromPrompt(line);
+						return;
+					}
+					promptBufferRef.current = '';
+					continue;
+				}
+				if (ch === '\x7f' || ch === '\b') {
+					promptBufferRef.current = promptBufferRef.current.slice(0, -1);
+					continue;
+				}
+				if (ch.charCodeAt(0) < 0x20) continue;
+				promptBufferRef.current += ch;
+			}
+		},
+		[submitRenameFromPrompt],
+	);
 
 	// Handle selecting a project from repo_paths (selection only, navigation via Next)
 	const handleSelectProject = useCallback((localPath: string) => {
@@ -732,6 +833,10 @@ export default function AgentTerminalModal({
 			if (ws.readyState === WebSocket.OPEN) {
 				ws.send(JSON.stringify({ type: 'input', data }));
 			}
+			// Capture the first real demand to auto-rename an auto-generated branch.
+			if (autoNamedRef.current && !promptSentRef.current) {
+				captureFirstPrompt(data);
+			}
 		});
 
 		const handleWheel = (e: WheelEvent) => {
@@ -790,6 +895,7 @@ export default function AgentTerminalModal({
 		terminalEnabled,
 		existingSessionId,
 		waitingForSession,
+		captureFirstPrompt,
 	]);
 
 	// Plain shell terminal — lazy init, uses worktree path via ref (avoids re-init on session load)
@@ -1069,6 +1175,20 @@ export default function AgentTerminalModal({
 								'& .MuiChip-icon': { color: 'text.secondary' },
 							}}
 						/>
+						{step === 'terminal' && !isPastSession && (
+							<Tooltip title={tl('closeSession')} arrow placement="bottom">
+								<IconButton
+									size="small"
+									onClick={() => setConfirmCloseOpen(true)}
+									sx={{
+										color: 'text.disabled',
+										'&:hover': { color: 'error.main' },
+									}}
+								>
+									<StopCircleRoundedIcon sx={{ fontSize: 18 }} />
+								</IconButton>
+							</Tooltip>
+						)}
 						{step === 'terminal' && (
 							<IconButton
 								size="small"
@@ -1081,9 +1201,15 @@ export default function AgentTerminalModal({
 								<PictureInPictureAltRoundedIcon sx={{ fontSize: 18 }} />
 							</IconButton>
 						)}
-						<IconButton size="small" onClick={onClose} sx={{ color: 'text.secondary' }}>
-							<CloseRoundedIcon fontSize="small" />
-						</IconButton>
+						<Tooltip title={tc('close')} arrow placement="bottom">
+							<IconButton
+								size="small"
+								onClick={onClose}
+								sx={{ color: 'text.secondary' }}
+							>
+								<CloseRoundedIcon fontSize="small" />
+							</IconButton>
+						</Tooltip>
 					</Box>
 				</DialogTitle>
 
@@ -1642,6 +1768,37 @@ export default function AgentTerminalModal({
 						)}
 					</>
 				)}
+			</Dialog>
+			<Dialog
+				open={confirmCloseOpen}
+				onClose={() => !closingSession && setConfirmCloseOpen(false)}
+				maxWidth="xs"
+				fullWidth
+			>
+				<DialogTitle sx={{ fontWeight: 600 }}>{tl('confirmCloseTitle')}</DialogTitle>
+				<DialogContent>
+					<DialogContentText sx={{ fontSize: '0.85rem' }}>
+						{tl('confirmCloseBody')}
+					</DialogContentText>
+				</DialogContent>
+				<DialogActions sx={{ px: 3, pb: 2 }}>
+					<Button
+						onClick={() => setConfirmCloseOpen(false)}
+						disabled={closingSession}
+						sx={{ color: 'text.secondary' }}
+					>
+						{tc('cancel')}
+					</Button>
+					<Button
+						onClick={handleCloseSession}
+						disabled={closingSession}
+						variant="contained"
+						color="error"
+						startIcon={<StopCircleRoundedIcon />}
+					>
+						{tl('closeSession')}
+					</Button>
+				</DialogActions>
 			</Dialog>
 		</>
 	);
