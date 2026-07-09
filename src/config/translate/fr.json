@@ -5,7 +5,6 @@
 		"launch": "Lancer Devora"
 	},
 	"sidebar": {
-		"dashboard": "Tableau de bord",
 		"workbench": "Workbench",
 		"issues": "Issues",
 		"prs": "PRs",
@@ -62,45 +61,6 @@
 				"details": "Gere tes listes de taches par repo, parcours les branches git avec l'historique des commits, configure les presets d'agents et les skills. Tout ce dont ton equipe a besoin sans quitter le dashboard."
 			}
 		}
-	},
-	"dashboard": {
-		"title": "Dashboard",
-		"filterToday": "Aujourd'hui",
-		"filter7d": "7j",
-		"filter30d": "30j",
-		"kpiAgents": "Agents actifs",
-		"kpiIssues": "Issues ouvertes",
-		"kpiPrs": "PRs en attente",
-		"kpiTodos": "Todos",
-		"activeAgentsTitle": "Agents actifs",
-		"running": "{count, plural, one {# en cours} other {# en cours}}",
-		"noActiveAgents": "Aucun agent actif",
-		"streamingSince": "en cours depuis",
-		"questionPending": "question en attente",
-		"todosTitle": "Todos",
-		"pending": "{count, plural, one {# en attente} other {# en attente}}",
-		"noTodos": "Tout est fait !",
-		"viewAll": "Voir tout →",
-		"recentSessions": "Sessions recentes",
-		"noSessions": "Aucune session recente",
-		"allRepos": "Tous",
-		"showAll": "Voir tout →",
-		"allReportsTitle": "Tous les rapports",
-		"allReportsAll": "Tous",
-		"allReportsSearch": "Rechercher dans les rapports...",
-		"summariesTitle": "Derniers rapports",
-		"noSummaries": "Aucun rapport pour l'instant",
-		"sessionError": "Session terminee avec erreur",
-		"noReport": "Aucun rapport disponible",
-		"viewSession": "Voir la session",
-		"time": {
-			"justNow": "a l'instant",
-			"minutesAgo": "il y a {mins}m",
-			"hoursAgo": "il y a {hours}h",
-			"daysAgo": "il y a {days}j"
-		},
-		"activeAgents": "{count, plural, one {# agent actif} other {# agents actifs}}",
-		"pendingTodos": "{count, plural, one {# tache en attente} other {# taches en attente}}"
 	},
 	"workbench": {
 		"emptyTitle": "Aucune session sélectionnée",

@@ -5,7 +5,6 @@
 		"launch": "Iniciar Devora"
 	},
 	"sidebar": {
-		"dashboard": "Dashboard",
 		"workbench": "Workbench",
 		"issues": "Issues",
 		"prs": "PRs",
@@ -62,45 +61,6 @@
 				"details": "Gerencie listas de tarefas por repo, navegue pelas branches do git com histórico de commits, configure presets de agentes e skills. Tudo o que sua equipe precisa sem sair do dashboard."
 			}
 		}
-	},
-	"dashboard": {
-		"title": "Dashboard",
-		"filterToday": "Hoje",
-		"filter7d": "7d",
-		"filter30d": "30d",
-		"kpiAgents": "Agentes ativos",
-		"kpiIssues": "Issues abertas",
-		"kpiPrs": "PRs pendentes",
-		"kpiTodos": "Tarefas",
-		"activeAgentsTitle": "Agentes ativos",
-		"running": "{count, plural, one {# em execucao} other {# em execucao}}",
-		"noActiveAgents": "Nenhum agente ativo",
-		"streamingSince": "em execucao ha",
-		"questionPending": "pergunta pendente",
-		"todosTitle": "Tarefas",
-		"pending": "{count, plural, one {# pendente} other {# pendentes}}",
-		"noTodos": "Tudo feito!",
-		"viewAll": "Ver tudo →",
-		"recentSessions": "Sessoes recentes",
-		"noSessions": "Nenhuma sessao recente",
-		"allRepos": "Todos",
-		"showAll": "Ver tudo →",
-		"allReportsTitle": "Todos os relatorios",
-		"allReportsAll": "Todos",
-		"allReportsSearch": "Buscar relatorios...",
-		"summariesTitle": "Ultimos relatorios",
-		"noSummaries": "Nenhum relatorio ainda",
-		"sessionError": "Sessao encerrada com erro",
-		"noReport": "Nenhum relatorio disponivel",
-		"viewSession": "Ver sessao",
-		"time": {
-			"justNow": "agora mesmo",
-			"minutesAgo": "{mins}m atras",
-			"hoursAgo": "{hours}h atras",
-			"daysAgo": "{days}d atras"
-		},
-		"activeAgents": "{count, plural, one {# agente ativo} other {# agentes ativos}}",
-		"pendingTodos": "{count, plural, one {# tarefa pendente} other {# tarefas pendentes}}"
 	},
 	"workbench": {
 		"emptyTitle": "Nenhuma sessão selecionada",
