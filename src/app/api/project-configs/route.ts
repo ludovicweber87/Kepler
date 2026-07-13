@@ -34,6 +34,7 @@ export async function PUT(req: NextRequest) {
 			status_columns,
 			views,
 			owner_type,
+			connected,
 		} = body;
 
 		// Upsert by org + project_number
@@ -59,6 +60,7 @@ export async function PUT(req: NextRequest) {
 			status_columns,
 			views,
 			owner_type,
+			connected: connected ?? false,
 		};
 
 		if (existing) {

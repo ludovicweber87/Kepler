@@ -130,6 +130,7 @@ function ProjectSection({
 				statusColumns: fetched.statusColumns ?? [],
 				views: fetched.views,
 				ownerType,
+				connected: savedConfig?.connected ?? false,
 			});
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Failed to load views');
@@ -166,6 +167,7 @@ function ProjectSection({
 			statusColumns: viewsData?.statusColumns ?? savedConfig?.statusColumns ?? [],
 			views: viewsData?.views ?? savedConfig?.views ?? [],
 			ownerType,
+			connected: savedConfig?.connected ?? false,
 		});
 		onToast(
 			next.has(viewName)

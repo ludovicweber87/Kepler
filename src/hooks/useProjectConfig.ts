@@ -17,6 +17,7 @@ interface ProjectConfigRow {
 	status_columns: string[];
 	views: ProjectV2View[];
 	owner_type: 'organization' | 'user' | null;
+	connected: boolean | null;
 }
 
 function rowToConfig(row: ProjectConfigRow): ProjectV2Config {
@@ -31,6 +32,7 @@ function rowToConfig(row: ProjectConfigRow): ProjectV2Config {
 		statusColumns: row.status_columns ?? [],
 		views: row.views ?? [],
 		ownerType: row.owner_type ?? undefined,
+		connected: row.connected ?? false,
 	};
 }
 
@@ -46,6 +48,7 @@ function configToRow(config: ProjectV2Config) {
 		status_columns: config.statusColumns,
 		views: config.views as unknown as Record<string, unknown>[],
 		owner_type: config.ownerType ?? null,
+		connected: config.connected,
 	};
 }
 

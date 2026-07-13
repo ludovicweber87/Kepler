@@ -130,6 +130,7 @@ export interface ProjectV2Config {
 	statusColumns: string[];
 	views: ProjectV2View[]; // all available views (cached from GitHub)
 	ownerType?: 'organization' | 'user'; // owner type for GraphQL queries
+	connected: boolean; // board agrégé au Kanban unifié
 }
 
 // Timeline event types
