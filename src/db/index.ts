@@ -17,8 +17,13 @@ sqlite.pragma('journal_mode = WAL');
 
 export const db = drizzle(sqlite, { schema });
 
-// Run migrations on first import
-// Run migrations on first import
-migrate(db, { migrationsFolder: join(process.cwd(), 'src', 'db', 'migrations') });
+// Run migrations at runtime only — NEVER during `next build`.
+// `next build` imports this module while collecting page data, which would run
+// migrations against whatever DB is on disk. Plain CREATE TABLE statements crash
+// when that build-time DB is stale/desynced (migration records lagging behind
+// tables that already exist), breaking the build. Migrations belong to runtime.
+if (process.env.NEXT_PHASE !== 'phase-production-build') {
+	migrate(db, { migrationsFolder: join(process.cwd(), 'src', 'db', 'migrations') });
+}
 
 export { schema };
