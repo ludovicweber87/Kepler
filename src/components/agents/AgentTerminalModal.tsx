@@ -286,8 +286,11 @@ export default function AgentTerminalModal({
 	const composeSystemPrompt = useCallback((): string | undefined => {
 		const base = agentFile ? agentFile.content : '';
 		const issueBlock = issueCtxRef.current ? `\n\n${issueCtxRef.current}` : '';
-		return (base + issueBlock).trim() || undefined;
-	}, [agentFile]);
+		const sourceIssueBlock = issueContext
+			? `\n\n## Contexte\nCette session a été ouverte depuis l'issue GitHub ${issueContext.owner}/${issueContext.repo}#${issueContext.issueNumber}${issueContext.issueTitle ? ` : « ${issueContext.issueTitle} »` : ''}.\nAvant d'agir, lis cette issue pour comprendre le contexte — par exemple : \`gh issue view ${issueContext.issueNumber} --repo ${issueContext.owner}/${issueContext.repo} --comments\`.`
+			: '';
+		return (base + issueBlock + sourceIssueBlock).trim() || undefined;
+	}, [agentFile, issueContext]);
 
 	const handleLaunch = useCallback(async () => {
 		if (!projectPath) return;
