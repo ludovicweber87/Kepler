@@ -19,7 +19,6 @@ import Link from 'next/link';
 import KanbanColumn from './KanbanColumn';
 import CreateBranchModal from './CreateBranchModal';
 import IssueDetail from '@/components/dashboard/IssueDetail';
-import DraggableTabs from '@/components/shared/DraggableTabs';
 import { useProjectConfig } from '@/hooks/useProjectConfig';
 import { useProjectBoards } from '@/hooks/useProjectBoards';
 import { useQueryClient } from '@tanstack/react-query';
@@ -28,6 +27,7 @@ import { completeIssueTodos } from '@/hooks/useTodos';
 import { useTranslations } from 'next-intl';
 import { useTheme } from '@mui/material/styles';
 import { GitHubIssue } from '@/types';
+import type { BoardIssue } from '@/lib/boardMerge';
 
 const COLUMN_WIDTH = 300;
 
@@ -47,20 +47,13 @@ function buildColumns(issues: GitHubIssue[], statusColumns: string[]): [string, 
 export default function IssuesList() {
 	const theme = useTheme();
 	const t = useTranslations('issues');
-	const {
-		configs,
-		configsLoading,
-		selectedViewMappings,
-		reorderViews,
-		saveConfig,
-		getConfigForRepo,
-	} = useProjectConfig();
+	const { configs, configsLoading, saveConfig } = useProjectConfig();
 
-	// Only fetch boards for projects that actually contribute selected views to the board
-	const boardConfigs = configs.filter((c) => c.selectedViews.length > 0);
+	// Only fetch boards for projects connected to the unified Kanban board
+	const boardConfigs = configs.filter((c) => c.connected);
 
-	// Board data (SQLite cache-backed): issues per view + raw response per config + last fetch time
-	const { issuesByView, perConfig, error, isLoading, refresh, fetchedAt } =
+	// Board data (SQLite cache-backed): merged issues + union status columns + raw response per config
+	const { issues, statusColumns, perConfig, error, isLoading, refresh, fetchedAt } =
 		useProjectBoards(boardConfigs);
 	const [refreshing, setRefreshing] = useState(false);
 
@@ -95,7 +88,6 @@ export default function IssuesList() {
 		}
 	}, [perConfig, saveConfig]);
 
-	const [activeTab, setActiveTab] = useState(0);
 	const [search, setSearch] = useState('');
 	const mutation = useUpdateIssueStatus();
 	const todoQc = useQueryClient();
@@ -115,61 +107,34 @@ export default function IssuesList() {
 		if (owner && repo) setDetailIssue({ owner, repo, number: String(issue.number) });
 	}, []);
 
-	const hasViews = selectedViewMappings.length > 0;
-
-	const tabs = hasViews ? selectedViewMappings.map((m) => m.viewName) : [];
-	const safeTab = activeTab >= tabs.length ? 0 : activeTab;
-
-	const filteredIssues = useMemo(() => {
-		const viewName = selectedViewMappings[safeTab]?.viewName;
-		return viewName ? (issuesByView.get(viewName) ?? []) : [];
-	}, [issuesByView, selectedViewMappings, safeTab]);
-
 	const searchedIssues = useMemo(() => {
 		const q = search.trim().toLowerCase();
-		if (!q) return filteredIssues;
-		return filteredIssues.filter(
+		if (!q) return issues;
+		return issues.filter(
 			(i) =>
 				i.title.toLowerCase().includes(q) ||
 				String(i.number).includes(q) ||
 				`#${i.number}`.includes(q),
 		);
-	}, [filteredIssues, search]);
-
-	// Resolve statusColumns for the active tab's owning project
-	const activeStatusColumns = useMemo(() => {
-		if (!hasViews) return [];
-		const activeView = selectedViewMappings[safeTab]?.viewName;
-		if (!activeView) return [];
-		const owningConfig = configs.find((c) => c.selectedViews.includes(activeView));
-		return owningConfig?.statusColumns ?? [];
-	}, [configs, selectedViewMappings, safeTab, hasViews]);
+	}, [issues, search]);
 
 	const columns = useMemo(
-		() => buildColumns(searchedIssues, activeStatusColumns),
-		[searchedIssues, activeStatusColumns],
+		() => buildColumns(searchedIssues, statusColumns),
+		[searchedIssues, statusColumns],
 	);
 
 	const handleStatusChange = useCallback(
 		(issue: GitHubIssue, newStatus: string) => {
-			const issueRepo = issue.repo_full_name;
-			const issueConfig = issueRepo ? getConfigForRepo(issueRepo) : configs[0];
-			if (!issueConfig) return;
-
+			const cfg = (issue as BoardIssue).__config;
+			if (!cfg) return;
 			mutation.mutate({
 				issueNodeId: issue.node_id,
 				newStatus,
-				org: issueConfig.org,
-				projectNumber: issueConfig.projectNumber,
-				ownerType: issueConfig.ownerType,
+				org: cfg.org,
+				projectNumber: cfg.projectNumber,
+				ownerType: cfg.ownerType,
 			});
-
-			// Open branch modal when moving to "In Progress"
-			if (newStatus.includes('In Progress')) {
-				setBranchModalIssue(issue);
-			}
-
-			// Auto-check linked todos when moving to QA
+			if (newStatus.includes('In Progress')) setBranchModalIssue(issue);
 			if (newStatus.toLowerCase().includes('qa')) {
 				const repo = issue.repo_full_name;
 				if (repo && issue.number) {
@@ -179,7 +144,7 @@ export default function IssuesList() {
 				}
 			}
 		},
-		[configs, getConfigForRepo, mutation, todoQc],
+		[mutation, todoQc],
 	);
 
 	if (isLoading || configsLoading) {
@@ -299,11 +264,11 @@ export default function IssuesList() {
 							})}
 						</Typography>
 					)}
-					<Tooltip title={hasViews ? t('refresh') : t('refreshNeedsViews')}>
+					<Tooltip title={t('refresh')}>
 						<span>
 							<IconButton
 								onClick={handleRefresh}
-								disabled={refreshing || !hasViews}
+								disabled={refreshing}
 								sx={{
 									color: 'text.secondary',
 									animation: refreshing ? 'spin 1s linear infinite' : 'none',
@@ -316,20 +281,8 @@ export default function IssuesList() {
 				</Box>
 			</Box>
 
-			{hasViews && (
-				<Box sx={{ flexShrink: 0 }}>
-					<DraggableTabs
-						tabs={tabs}
-						activeTab={safeTab}
-						onTabChange={(idx) => setActiveTab(idx)}
-						onReorder={reorderViews}
-						counts={tabs.map((name) => issuesByView.get(name)?.length ?? 0)}
-					/>
-				</Box>
-			)}
-
-			{filteredIssues.length === 0 ? (
-				!hasViews ? (
+			{searchedIssues.length === 0 ? (
+				boardConfigs.length === 0 ? (
 					<Box sx={{ textAlign: 'center', py: 8 }}>
 						<Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
 							{t('noViewsSelected')}
@@ -368,12 +321,12 @@ export default function IssuesList() {
 						'&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 3 },
 					}}
 				>
-					{columns.map(([colName, issues]) => (
+					{columns.map(([colName, colIssues]) => (
 						<KanbanColumn
 							key={colName}
 							columnName={colName}
-							issues={issues}
-							allColumns={activeStatusColumns}
+							issues={colIssues}
+							allColumns={statusColumns}
 							onStatusChange={handleStatusChange}
 							onCardClick={openDetail}
 						/>
