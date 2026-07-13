@@ -36,6 +36,7 @@ function updateDashboardIssues(
 
 interface BoardData {
 	boardIssuesByView?: Record<string, GitHubIssue[]>;
+	boardIssues?: GitHubIssue[];
 	[k: string]: unknown;
 }
 
@@ -43,14 +44,23 @@ function updateBoardIssues(
 	old: BoardData | undefined,
 	params: UpdateStatusParams,
 ): BoardData | undefined {
-	if (!old?.boardIssuesByView) return old;
-	const next: Record<string, GitHubIssue[]> = {};
-	for (const [view, issues] of Object.entries(old.boardIssuesByView)) {
-		next[view] = issues.map((issue) =>
+	if (!old) return old;
+	const patchList = (list: GitHubIssue[]) =>
+		list.map((issue) =>
 			issue.node_id === params.issueNodeId ? withStatus(issue, params.newStatus) : issue,
 		);
+	const next: BoardData = { ...old };
+	if (old.boardIssuesByView) {
+		const byView: Record<string, GitHubIssue[]> = {};
+		for (const [view, issues] of Object.entries(old.boardIssuesByView)) {
+			byView[view] = patchList(issues);
+		}
+		next.boardIssuesByView = byView;
 	}
-	return { ...old, boardIssuesByView: next };
+	if (Array.isArray(old.boardIssues)) {
+		next.boardIssues = patchList(old.boardIssues);
+	}
+	return next;
 }
 
 export function useUpdateIssueStatus() {
