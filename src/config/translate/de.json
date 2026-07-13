@@ -14,6 +14,7 @@
 		"skills": "Skills",
 		"todos": "Aufgaben",
 		"settings": "Einstellungen",
+		"repoSettings": "Repo-Einstellungen",
 		"signOut": "Abmelden",
 		"launchAgent": "Agent starten",
 		"projects": "Projekte",
@@ -294,5 +295,24 @@
 		"unarchive": "Wiederherstellen",
 		"sessionUnarchived": "Sitzung wiederhergestellt",
 		"unarchiveError": "Wiederherstellen fehlgeschlagen"
+	},
+	"repoSettings": {
+		"title": "Repo-Einstellungen",
+		"createPrPrompt": "Create-PR-Prompt",
+		"createPrPromptDesc": "Nachricht, die an den Agenten gesendet wird, wenn du auf „Create PR“ klickst.",
+		"filesToCopy": "Zu kopierende Dateien",
+		"filesToCopyDesc": "Devora kopiert diese Dateien automatisch in jeden neuen Worktree (ein Pfad pro Zeile).",
+		"setupScript": "Setup-Skript",
+		"setupScriptDesc": "Läuft, wenn ein Worktree erstellt wird (z. B. pnpm install).",
+		"archiveScript": "Archivierungs-Skript",
+		"archiveScriptDesc": "Läuft, bevor ein Worktree archiviert wird.",
+		"runScripts": "Run-Skripte",
+		"runScriptsDesc": "Shortcuts, um deinen Dev-Server, deine Tests usw. zu starten.",
+		"addRunScript": "Hinzufügen",
+		"runScriptName": "Name",
+		"runScriptCommand": "Befehl",
+		"save": "Speichern",
+		"saved": "Gespeichert",
+		"shareHint": "Mit deinem Team teilen? Erstelle eine .devora/settings.toml-Datei."
 	}
 }

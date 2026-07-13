@@ -8,8 +8,7 @@ import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import CallMergeRoundedIcon from '@mui/icons-material/CallMergeRounded';
 import { useTranslations } from 'next-intl';
 import { useAgentChat } from '@/hooks/useAgentChat';
-import { useAppSetting } from '@/hooks/useAppSetting';
-import { CREATE_PR_PROMPT_KEY, DEFAULT_CREATE_PR_PROMPT } from '@/lib/prompts';
+import { DEFAULT_CREATE_PR_PROMPT } from '@/lib/prompts';
 import ChatBubble from './chat/ChatBubble';
 import ChatPermissionCard from './chat/ChatPermissionCard';
 import ChatQuestionCard from './chat/ChatQuestionCard';
@@ -27,6 +26,7 @@ interface Props {
 	initialModel?: string;
 	initialEffort?: string;
 	initialMode?: string;
+	createPrPrompt?: string;
 	onFirstUserMessage?: (text: string) => void;
 	onResume?: () => void;
 }
@@ -40,6 +40,7 @@ export default function AgentChatTab({
 	initialModel,
 	initialEffort,
 	initialMode,
+	createPrPrompt,
 	onFirstUserMessage,
 	onResume,
 }: Props) {
@@ -65,10 +66,7 @@ export default function AgentChatTab({
 		if (nearBottom) el.scrollTop = el.scrollHeight;
 	}, [chat.messages, chat.pendingPermissions, chat.pendingQuestions]);
 
-	const { valueOrDefault: createPrPrompt } = useAppSetting(
-		CREATE_PR_PROMPT_KEY,
-		DEFAULT_CREATE_PR_PROMPT,
-	);
+	const prPrompt = createPrPrompt || DEFAULT_CREATE_PR_PROMPT;
 
 	const handleSend = (text: string) => {
 		if (!firstSent.current) {
@@ -164,7 +162,7 @@ export default function AgentChatTab({
 								size="small"
 								variant="outlined"
 								startIcon={<CallMergeRoundedIcon sx={{ fontSize: 16 }} />}
-								onClick={() => chat.send(createPrPrompt)}
+								onClick={() => chat.send(prPrompt)}
 								sx={{ textTransform: 'none', borderRadius: 999 }}
 							>
 								{t('createPr')}

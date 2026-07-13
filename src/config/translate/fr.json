@@ -14,6 +14,7 @@
 		"skills": "Skills",
 		"todos": "Taches",
 		"settings": "Parametres",
+		"repoSettings": "Reglages du repo",
 		"signOut": "Se deconnecter",
 		"launchAgent": "Lancer un agent",
 		"projects": "Projets",
@@ -316,5 +317,24 @@
 		"unarchive": "Désarchiver",
 		"sessionUnarchived": "Session désarchivée",
 		"unarchiveError": "Échec du désarchivage"
+	},
+	"repoSettings": {
+		"title": "Réglages du repo",
+		"createPrPrompt": "Prompt Create PR",
+		"createPrPromptDesc": "Message envoyé à l'agent quand tu cliques « Create PR ».",
+		"filesToCopy": "Fichiers à copier",
+		"filesToCopyDesc": "Devora copiera automatiquement ces fichiers dans chaque nouveau worktree (un chemin par ligne).",
+		"setupScript": "Setup script",
+		"setupScriptDesc": "Tourne quand un worktree est créé (ex. pnpm install).",
+		"archiveScript": "Archive script",
+		"archiveScriptDesc": "Tourne avant l'archivage d'un worktree.",
+		"runScripts": "Run scripts",
+		"runScriptsDesc": "Raccourcis pour lancer ton dev server, tes tests, etc.",
+		"addRunScript": "Ajouter",
+		"runScriptName": "Nom",
+		"runScriptCommand": "Commande",
+		"save": "Enregistrer",
+		"saved": "Enregistré",
+		"shareHint": "Partager avec ton équipe ? Crée un fichier .devora/settings.toml."
 	}
 }

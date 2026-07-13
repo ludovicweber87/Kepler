@@ -31,11 +31,14 @@ import { useSnackbar } from '@/hooks/useSnackbar';
 import { apiFetch } from '@/lib/api-fetch';
 import { classifySession } from '@/lib/sessionStatus';
 import { resolveEffectivePath } from '@/lib/effectivePath';
+import { resolveRepoFullName } from '@/lib/resolveRepoFullName';
+import { useRepoPaths } from '@/hooks/useRepoPaths';
+import { useRepoSettings } from '@/hooks/useRepoSettings';
 import AgentChatTab from '@/components/agents/AgentChatTab';
 import AgentDiffTab from '@/components/agents/AgentDiffTab';
 import AgentActivityTab from '@/components/agents/AgentActivityTab';
 import AgentIssueTab from '@/components/agents/AgentIssueTab';
-import ShellTerminal from '@/components/agents/ShellTerminal';
+import ShellTerminal, { type ShellTerminalHandle } from '@/components/agents/ShellTerminal';
 
 export default function Workbench() {
 	const t = useTranslations('workbench');
@@ -54,12 +57,20 @@ export default function Workbench() {
 	const [confirmClose, setConfirmClose] = useState(false);
 	const [closing, setClosing] = useState(false);
 	const firstPromptSent = useRef(false);
+	const shellRef = useRef<ShellTerminalHandle>(null);
 
 	// Fallback : la session peut deja etre dans l'historique avant que useAgentSession resolve.
 	const resolved = useMemo(
 		() => session ?? allSessions.find((s) => s.session_id === sessionId) ?? null,
 		[session, allSessions, sessionId],
 	);
+
+	const { repoPaths } = useRepoPaths();
+	const repoFullName = useMemo(
+		() => resolveRepoFullName(resolved, repoPaths),
+		[resolved, repoPaths],
+	);
+	const { settings: repoSettings } = useRepoSettings(repoFullName);
 
 	const bucket = resolved ? classifySession(resolved) : null;
 	const isArchived = bucket === 'archived';
@@ -257,6 +268,7 @@ export default function Workbench() {
 						systemPrompt={resolved?.system_prompt ?? undefined}
 						readOnly={chatReadOnly}
 						archived={isArchived}
+						createPrPrompt={repoSettings.create_pr_prompt}
 						onResume={() => {
 							resume(sessionId).catch(() => {});
 						}}
@@ -365,6 +377,8 @@ export default function Workbench() {
 					>
 						<Box
 							sx={{
+								display: 'flex',
+								alignItems: 'center',
 								px: 1.5,
 								py: 0.5,
 								borderBottom: 1,
@@ -378,8 +392,28 @@ export default function Workbench() {
 							>
 								{t('terminal')}
 							</Typography>
+							{repoSettings.run_scripts.length > 0 && (
+								<Box
+									sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', ml: 'auto' }}
+								>
+									{repoSettings.run_scripts
+										.filter((rs) => rs.command.trim())
+										.map((rs) => (
+											<Chip
+												key={rs.id}
+												label={rs.name || rs.command}
+												size="small"
+												onClick={() =>
+													shellRef.current?.runCommand(rs.command)
+												}
+												sx={{ cursor: 'pointer' }}
+											/>
+										))}
+								</Box>
+							)}
 						</Box>
 						<ShellTerminal
+							ref={shellRef}
 							sessionId={sessionId}
 							cwd={effectivePath}
 							active

@@ -309,6 +309,20 @@ export default function Sidebar() {
 												}}
 											/>
 										</ListItemButton>
+										<Tooltip title={t('repoSettings')}>
+											<IconButton
+												size="small"
+												onClick={() =>
+													router.push(
+														'/settings/repo/' +
+															view.repoFullName.split('/').map(encodeURIComponent).join('/'),
+													)
+												}
+												sx={{ color: 'text.disabled', '&:hover': { color: 'primary.main' } }}
+											>
+												<SettingsRoundedIcon sx={{ fontSize: 16 }} />
+											</IconButton>
+										</Tooltip>
 										<Tooltip title={t('launchAgent')}>
 											<IconButton
 												size="small"

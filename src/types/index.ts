@@ -357,3 +357,19 @@ export interface StreamEventWire {
 	event: 'session' | 'thinking' | 'assistant' | 'tool_use' | 'tool_result' | 'result';
 	data: Record<string, unknown>;
 }
+
+// ─── Repo Settings ──────────────────────────────────────────
+export interface RunScript {
+	id: string;
+	name: string;
+	command: string;
+}
+
+export interface RepoSettings {
+	repo_full_name: string;
+	create_pr_prompt: string;
+	files_to_copy: string;
+	setup_script: string;
+	archive_script: string;
+	run_scripts: RunScript[];
+}

@@ -109,6 +109,25 @@ export const appSettings = sqliteTable('app_settings', {
 	updated_at: timestamp(),
 });
 
+// ─── Repo Settings ───────────────────────────────────────
+
+export interface RunScriptRow {
+	id: string;
+	name: string;
+	command: string;
+}
+
+export const repoSettings = sqliteTable('repo_settings', {
+	id: uuid(),
+	repo_full_name: text().notNull().unique(),
+	create_pr_prompt: text().default(''),
+	files_to_copy: text().default(''),
+	setup_script: text().default(''),
+	archive_script: text().default(''),
+	run_scripts: text({ mode: 'json' }).$type<RunScriptRow[]>().default([]),
+	updated_at: timestamp(),
+});
+
 // ─── Project Boards (SQLite cache of the GitHub Project V2 board) ──
 
 export const projectBoards = sqliteTable(
