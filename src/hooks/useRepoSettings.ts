@@ -34,7 +34,8 @@ export function useRepoSettings(repoFullName: string | null) {
 	const mutation = useMutation({
 		mutationFn: async (patch: Partial<RepoSettings>) => {
 			if (!repoFullName) throw new Error('no repo');
-			const next = { ...settings, ...patch, repo_full_name: repoFullName };
+			const current = qc.getQueryData<RepoSettings>(key) ?? settings;
+			const next = { ...current, ...patch, repo_full_name: repoFullName };
 			const res = await apiFetch('/api/repo-settings', {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },

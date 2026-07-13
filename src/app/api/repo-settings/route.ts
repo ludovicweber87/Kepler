@@ -23,8 +23,17 @@ export async function GET(req: NextRequest) {
 	const repo = req.nextUrl.searchParams.get('repo');
 	if (!repo) return NextResponse.json({ error: 'repo required' }, { status: 400 });
 
-	const row = db.select().from(repoSettings).where(eq(repoSettings.repo_full_name, repo)).get();
-	return NextResponse.json(row ?? defaults(repo));
+	try {
+		const row = db
+			.select()
+			.from(repoSettings)
+			.where(eq(repoSettings.repo_full_name, repo))
+			.get();
+		return NextResponse.json(row ?? defaults(repo));
+	} catch (err) {
+		const message = err instanceof Error ? err.message : 'Unknown error';
+		return NextResponse.json({ error: message }, { status: 500 });
+	}
 }
 
 // PUT /api/repo-settings { repo_full_name, create_pr_prompt, files_to_copy, setup_script, archive_script, run_scripts }
