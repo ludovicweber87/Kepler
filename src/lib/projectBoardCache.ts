@@ -9,6 +9,7 @@ export interface ProjectBoardPayload {
 	viewRepoMappings: ViewRepoMapping[];
 	statusColumns: string[];
 	boardIssuesByView: Record<string, GitHubIssue[]>;
+	boardIssues: GitHubIssue[];
 	error?: string;
 }
 
@@ -70,5 +71,19 @@ export function patchSnapshotStatus(
 			};
 		});
 	}
+
+	if (Array.isArray(snap.payload.boardIssues)) {
+		snap.payload.boardIssues = snap.payload.boardIssues.map((issue) => {
+			if (issue.node_id !== issueNodeId) return issue;
+			changed = true;
+			return {
+				...issue,
+				project_columns: issue.project_columns?.length
+					? issue.project_columns.map((c) => ({ ...c, column: newStatus }))
+					: [{ project: '', column: newStatus }],
+			};
+		});
+	}
+
 	if (changed) writeSnapshot(org, projectNumber, snap.payload);
 }

@@ -9,6 +9,7 @@ import {
 import { mapViewsToRepos, matchViewItems, knownFieldsFromItems } from '@/lib/projectViews';
 import { requireAuth, isAuthError } from '@/lib/auth-utils';
 import { readSnapshot, writeSnapshot, type ProjectBoardPayload } from '@/lib/projectBoardCache';
+import { buildBoardIssues } from '@/lib/boardMerge';
 import type { GitHubIssue } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -80,6 +81,11 @@ export async function GET(request: NextRequest) {
 				);
 			}
 
+			const allMine = projectData.items
+				.filter((it) => it.assignees.some((a) => a.login.toLowerCase() === viewer))
+				.map((it) => projectItemToIssue(it, projectData.title));
+			const boardIssues = buildBoardIssues(allMine);
+
 			const payload: ProjectBoardPayload = {
 				project: {
 					id: projectData.id,
@@ -90,6 +96,7 @@ export async function GET(request: NextRequest) {
 				viewRepoMappings,
 				statusColumns: projectData.statusColumns,
 				boardIssuesByView,
+				boardIssues,
 			};
 			const fetchedAt = writeSnapshot(org, num, payload);
 			return NextResponse.json({ ...payload, fetchedAt });
@@ -102,6 +109,7 @@ export async function GET(request: NextRequest) {
 				viewRepoMappings: [],
 				statusColumns: [],
 				boardIssuesByView: {},
+				boardIssues: [],
 				fetchedAt: null,
 				error: fetchErr instanceof Error ? fetchErr.message : 'fetch_failed',
 			});
