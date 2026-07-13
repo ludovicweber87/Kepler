@@ -1,5 +1,6 @@
 import { useQueries, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-fetch';
+import { mergeConnectedBoards } from '@/lib/boardMerge';
 import type { GitHubIssue, ProjectV2Config, ProjectV2View, ViewRepoMapping } from '@/types';
 
 interface ProjectBoardResponse {
@@ -7,6 +8,7 @@ interface ProjectBoardResponse {
 	viewRepoMappings?: ViewRepoMapping[];
 	statusColumns?: string[];
 	boardIssuesByView?: Record<string, GitHubIssue[]>;
+	boardIssues?: GitHubIssue[];
 	fetchedAt?: string | null;
 	error?: string;
 }
@@ -49,8 +51,21 @@ export function useProjectBoards(configs: ProjectV2Config[]) {
 				const f = r.data.fetchedAt;
 				if (f && (!fetchedAt || f < fetchedAt)) fetchedAt = f;
 			});
+			const merged = mergeConnectedBoards(
+				perConfig.map((p) => ({
+					config: {
+						org: p.config.org,
+						projectNumber: p.config.projectNumber,
+						ownerType: p.config.ownerType,
+						statusColumns: p.data.statusColumns ?? [],
+					},
+					boardIssues: p.data.boardIssues ?? [],
+				})),
+			);
 			return {
 				issuesByView,
+				issues: merged.issues,
+				statusColumns: merged.statusColumns,
 				perConfig,
 				fetchedAt,
 				isLoading: results.length > 0 && results.some((r) => r.isLoading),

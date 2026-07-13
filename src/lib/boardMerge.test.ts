@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildBoardIssues } from './boardMerge';
+import { buildBoardIssues, mergeConnectedBoards } from './boardMerge';
 import type { GitHubIssue } from '@/types';
 
 function issue(node_id: string, state: 'open' | 'closed'): GitHubIssue {
@@ -22,5 +22,27 @@ describe('buildBoardIssues', () => {
 	});
 	it('liste vide → vide', () => {
 		expect(buildBoardIssues([])).toEqual([]);
+	});
+});
+
+describe('mergeConnectedBoards', () => {
+	const mk = (node: string, col: string): GitHubIssue =>
+		({ ...issue(node, 'open'), project_columns: [{ project: 'p', column: col }] }) as GitHubIssue;
+
+	it('union des statusColumns dans l’ordre des configs, dédupliquée', () => {
+		const { statusColumns } = mergeConnectedBoards([
+			{ config: { org: 'o', projectNumber: 1, statusColumns: ['Todo', 'Done'] }, boardIssues: [] },
+			{ config: { org: 'o', projectNumber: 2, statusColumns: ['Todo', 'QA'] }, boardIssues: [] },
+		]);
+		expect(statusColumns).toEqual(['Todo', 'Done', 'QA']);
+	});
+
+	it('tague chaque issue avec sa config et dédup cross-board par node_id', () => {
+		const { issues } = mergeConnectedBoards([
+			{ config: { org: 'o', projectNumber: 1, statusColumns: [] }, boardIssues: [mk('a', 'Todo')] },
+			{ config: { org: 'o', projectNumber: 2, statusColumns: [] }, boardIssues: [mk('a', 'Todo'), mk('b', 'QA')] },
+		]);
+		expect(issues.map((i) => i.node_id).sort()).toEqual(['a', 'b']);
+		expect(issues.find((i) => i.node_id === 'a')!.__config.projectNumber).toBe(1);
 	});
 });
