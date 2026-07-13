@@ -25,21 +25,26 @@ En complément : exécuter le **`archive_script`** avant l'archivage d'une sessi
 
 ## Architecture
 
-### 1. Statut `provisioning` — `src/hooks/useAgentSession.ts` + `src/lib/sessionStatus.ts`
+### 1. Statut `provisioning` — plumbing complet (type + hook + route)
 
-- `AgentSession.status` : ajouter `'provisioning'` à l'union (`'active' | 'completed' | 'error' | 'provisioning'`). Pas de migration (colonne `text`).
-- `classifySession` : `provisioning` ne doit PAS être traité comme `past`. Le Workbench court-circuite sur `provisioning` **avant** d'appeler `classifySession` (cf. §3), donc `classifySession` peut mapper `provisioning` → `active`-like ou rester inchangé ; à trancher au plan (le plus sûr : le Workbench teste `status === 'provisioning'` en premier ; vérifier qu'aucun autre consommateur de `classifySession` ne casse sur un statut inconnu — il renvoie déjà `past` pour tout non-`active`, ce qui est inoffensif tant que le Workbench court-circuite).
+⚠️ **Aujourd'hui rien ne permet de créer une session `provisioning`** : `POST /api/agent-sessions` (`route.ts:144-159`) **hardcode `status:'active'`** et ne lit pas de `status` du body ; `ensureSessionMutation` (`useAgentSession.ts:66-95`) n'a pas de param `status` ni ne l'envoie ; l'union `AgentSession['status']` (`useAgentSession.ts:13`) n'a pas `'provisioning'`. Il faut donc :
+- `AgentSession.status` : union `'active' | 'completed' | 'error' | 'provisioning'`.
+- `ensureSessionMutation` : ajouter un param optionnel `status?: string` et l'inclure dans le body POST.
+- `POST /api/agent-sessions/route.ts` : lire `status` du body, l'utiliser dans l'insert (défaut `'active'` si absent) ; la branche « existing » reste inchangée.
+- `classifySession` : `provisioning` reste non-`active` → mappé `past`. **Le Workbench DOIT court-circuiter sur `status === 'provisioning'` AVANT d'appeler `classifySession`** (exigence dure, cf. §4). Les autres consommateurs (`useSessionManager`, Sidebar) verront une session `provisioning` comme `past` — acceptable (elle n'apparaît pas en « active » tant que non prête), à confirmer qu'elle ne pollue pas une liste visible.
 
 ### 2. Endpoint agent SSE — `POST /git/provision` (`packages/agent/src/routes/git.ts`, dispatché par `handleGitRoutes`)
 
 Body : `{ cwd, branch, sessionId, mode: 'worktree' | 'current-branch', issue?: { owner, repo, number }, filesToCopy: string, setupScript: string }`.
 Utilise `startSSE`/`sendSSE` (helpers existants). Émet des events `{ step, status: 'running' | 'done' | 'error', message? }` puis un event final. Séquence :
 
-1. **read-issue** (si `issue`) : `gh issue view <number> --repo <owner>/<repo> --comments` → `claude --print` (résumé/analyse) → **append** le résumé au `system_prompt` de la session en DB (`getDb`, UPDATE `agent_sessions`). Events running→done.
+1. **read-issue** (si `issue`) : **récupérer l'issue + commentaires via l'API REST GitHub avec le Bearer token de la requête** (réutiliser le pattern existant `getToken(req)` + `fetch` de `git.ts:69-85` `postGitHubComment` — PAS de `gh` CLI, absent de l'agent et auth différente) → `claude --print` (résumé/analyse) → **append** le résumé au `system_prompt` de la session en DB (`getDb`, UPDATE `agent_sessions`). Events running→done. Si le fetch GitHub ou claude échoue → **sauter proprement** l'étape (event done avec note, ne pas bloquer la création).
 2. **worktree** (si `mode==='worktree'`) : `git worktree add …` (logique déplacée depuis le POST `/git/worktrees` actuel). En cas de retry, si le worktree existe déjà → considérer done (idempotent).
 3. **copy-files** (si `mode==='worktree'`) : copie `filesToCopy` (une ligne par chemin ; fallback `.env*` si vide) + symlink `node_modules`.
 4. **setup** (si `mode==='worktree'` et `setupScript` non vide) : exécute `setupScript` dans le worktree (timeout large). Erreur → event error, mais worktree déjà créé (voir §Erreurs).
 5. **done** : event final `{ step:'done', worktreePath }`. L'agent met la session en DB : `status='active'`, `worktree_path=<path>`.
+
+> Note (intentionnel) : `worktree_path` n'est écrit en DB **qu'au `done`** — donc pendant tout le provisioning, le worktree (même déjà créé sur disque à l'étape 2) **n'apparaît pas** dans la liste PROJETS du Sidebar (keyée sur `worktree_path`). On évite ainsi d'exposer un worktree à moitié provisionné.
 
 Erreur à une étape → event `{ step, status:'error', message }` + session `status='error'`. (Le worktree partiellement créé reste ; Réessayer reprend, idempotent.)
 
@@ -54,8 +59,8 @@ Les 3 chemins de lancement (`handleLaunch` worktree, `handleLaunchCurrentBranch`
 
 ### 4. Workbench — écran de progression — `Workbench.tsx` + `CreationProgress.tsx`
 
-- Si `resolved.status === 'provisioning'` → rendre **`<CreationProgress session={resolved} repoSettings={repoSettings} />`** au lieu de la conversation.
-- **`src/components/workbench/CreationProgress.tsx`** (`"use client"`) : **liste à puces centrée**, jolie (Framer Motion), une puce par étape (label i18n) avec état loader / ✓ / ✗. Ouvre le stream `POST /git/provision` (fetch + `ReadableStream`, parsing SSE comme le fait le client pour `/chat`) via `getAgentUrl()`, en passant `filesToCopy`/`setupScript` (de `repoSettings`), `cwd` (project_path), `branch`, `mode`, `issue` (depuis les issue fields de la session).
+- **Court-circuit obligatoire** : tout en haut du rendu « session sélectionnée », `if (resolved?.status === 'provisioning') return <CreationProgress .../>;` — **AVANT** le calcul `bucket = classifySession(resolved)` / `chatReadOnly` (`Workbench.tsx:75-77`). Sinon une session neuve s'affiche en read-only « session terminée » (bug silencieux). → **test d'acceptation nommé** : « une session `provisioning` rend l'écran de progression, jamais le chat read-only ».
+- **`src/components/workbench/CreationProgress.tsx`** (`"use client"`) : **liste à puces centrée**, jolie (Framer Motion), une puce par étape (label i18n) avec état loader / ✓ / ✗. Ouvre le stream via **`localFetch('/git/provision', { method:'POST', body })`** (attache le Bearer automatiquement) puis lit `res.body.getReader()` + parse les lignes `data:` (⚠️ **premier consommateur SSE-over-fetch du repo** — le vrai streaming existant est WebSocket `useAgentChat` ; le `/chat` SSE agent est dead code — prévoir un petit parseur SSE + abort au démontage). Passe `filesToCopy`/`setupScript` (de `repoSettings`), `cwd` (project_path), `branch`, `mode`, `issue` (issue fields de la session). Utiliser `getAgentBaseUrl()` (nom réel) si besoin de l'URL directe.
 - Les steps affichés dépendent du `mode` (current-branch → juste read-issue).
 - Sur event `done` → `queryClient.invalidateQueries(['agent-session', sessionId])` → la session repasse `active` → le Workbench bascule sur la conversation (avec `system_prompt` enrichi).
 - Sur event `error` → puce ✗ + message + bouton **Réessayer** (relance le stream). 
@@ -64,7 +69,7 @@ Les 3 chemins de lancement (`handleLaunch` worktree, `handleLaunchCurrentBranch`
 ### 5. Archive script — `Sidebar.tsx` (handleArchive) + agent `POST /git/run-script`
 
 - Nouvel endpoint agent `POST /git/run-script` : `{ cwd, script }` → exécute `script` dans `cwd` (worktree), retourne succès/erreur (pas besoin de SSE ici — court, ou SSE optionnel).
-- `handleArchive` (sidebar) : résoudre `repo_settings.archive_script` du repo de la session ; s'il est non vide → appeler `/git/run-script` avec le worktree path **avant** `archive(sessionId)`. Non bloquant si échec (snackbar warning), puis archiver.
+- `handleArchive` (`Sidebar.tsx:98-105`) n'a en scope que `actionsMenu.sessionId` + `actionsMenu.projectPath`/`worktreePath` (pas d'objet session complet). Plumbing à ajouter : importer `useRepoPaths`, `useRepoSettings`, `resolveRepoFullName` dans `Sidebar.tsx` ; résoudre le repo via `actionsMenu.projectPath` (branche `project_path` de `resolveRepoFullName`, sans issue fields) → `archive_script`. S'il est non vide → `POST /git/run-script` avec le worktree path **avant** `archive(sessionId)`. Non bloquant si échec (snackbar warning), puis archiver.
 
 ### 6. Résolution des settings
 
