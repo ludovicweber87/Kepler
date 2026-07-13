@@ -41,7 +41,11 @@ interface AgentActivityTabProps {
 	isStreaming?: boolean;
 }
 
-function buildReport(session: AgentSession, logs: AgentActivityLog[], labels: { reportTitle: string; branch: string }): string {
+function buildReport(
+	session: AgentSession,
+	logs: AgentActivityLog[],
+	labels: { reportTitle: string; branch: string },
+): string {
 	const lines: string[] = [];
 	lines.push(`## 🤖 ${labels.reportTitle}`);
 	lines.push('');
@@ -81,6 +85,9 @@ export default function AgentActivityTab({
 	const [published, setPublished] = useState(false);
 	const qc = useQueryClient();
 	const { showSnackbar } = useSnackbar();
+	// Activity ne montre qu'un récap des actions de l'agent : les summary (récap de
+	// fin de tour) et les error. Jamais les logs d'outils bruts (info/file_change/commit).
+	const visibleLogs = logs.filter((l) => l.log_type === 'summary' || l.log_type === 'error');
 	// Derive issue context from session DB fields
 	const hasIssue = !!(session?.issue_owner && session?.issue_repo && session?.issue_number);
 	const alreadyPublished = !!session?.report_published_at;
@@ -160,7 +167,7 @@ export default function AgentActivityTab({
 						issueNumber: session.issue_number,
 						newStatus: '🕮 Review',
 					}),
-				}).catch(() => { });
+				}).catch(() => {});
 			}
 
 			setPublished(true);
@@ -183,11 +190,29 @@ export default function AgentActivityTab({
 
 			// Refetch the issue to show the new comment immediately
 			if (hasIssue) {
-				qc.invalidateQueries({ queryKey: ['github', 'issue', session.issue_owner, session.issue_repo, session.issue_number] });
-				qc.invalidateQueries({ queryKey: ['github', 'issue-timeline', session.issue_owner, session.issue_repo, session.issue_number] });
+				qc.invalidateQueries({
+					queryKey: [
+						'github',
+						'issue',
+						session.issue_owner,
+						session.issue_repo,
+						session.issue_number,
+					],
+				});
+				qc.invalidateQueries({
+					queryKey: [
+						'github',
+						'issue-timeline',
+						session.issue_owner,
+						session.issue_repo,
+						session.issue_number,
+					],
+				});
 			}
 
-			showSnackbar(t('reportPublishedFor', { name: session.issue_title ?? session.project_name }));
+			showSnackbar(
+				t('reportPublishedFor', { name: session.issue_title ?? session.project_name }),
+			);
 		} catch {
 			showSnackbar(t('publishError'), 'error');
 		} finally {
@@ -220,7 +245,14 @@ export default function AgentActivityTab({
 				: 'text.disabled';
 
 	return (
-		<Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: 'background.default' }}>
+		<Box
+			sx={{
+				display: 'flex',
+				flexDirection: 'column',
+				height: '100%',
+				bgcolor: 'background.default',
+			}}
+		>
 			{/* Header */}
 			<Box
 				sx={{
@@ -280,7 +312,7 @@ export default function AgentActivityTab({
 
 			{/* Timeline */}
 			<Box sx={{ flex: 1, overflowX: 'hidden', overflowY: 'auto', py: 1 }}>
-				{logs.length === 0 && !isStreaming ? (
+				{visibleLogs.length === 0 && !isStreaming ? (
 					<Box
 						sx={{
 							display: 'flex',
@@ -306,7 +338,7 @@ export default function AgentActivityTab({
 							}}
 						/>
 
-						{logs.map((log) => {
+						{visibleLogs.map((log) => {
 							const color = LOG_TYPE_COLORS[log.log_type];
 							return (
 								<Box
@@ -405,11 +437,17 @@ export default function AgentActivityTab({
 									sx={{ display: 'flex', alignItems: 'center', gap: 0.75, pl: 1 }}
 								>
 									<SmartToyRoundedIcon
-										sx={(theme) => ({ fontSize: 13, color: alpha(theme.palette.primary.main, 0.6) })}
+										sx={(theme) => ({
+											fontSize: 13,
+											color: alpha(theme.palette.primary.main, 0.6),
+										})}
 									/>
 									<Typography
 										variant="caption"
-										sx={(theme) => ({ color: alpha(theme.palette.primary.main, 0.6), fontSize: '0.72rem' })}
+										sx={(theme) => ({
+											color: alpha(theme.palette.primary.main, 0.6),
+											fontSize: '0.72rem',
+										})}
 									>
 										{t('inProgress')}
 									</Typography>
@@ -451,7 +489,10 @@ export default function AgentActivityTab({
 							textTransform: 'none',
 							fontWeight: 600,
 							fontSize: '0.78rem',
-							bgcolor: published || alreadyPublished ? theme.palette.success.main : theme.palette.primary.main,
+							bgcolor:
+								published || alreadyPublished
+									? theme.palette.success.main
+									: theme.palette.primary.main,
 							'&:hover': {
 								bgcolor:
 									published || alreadyPublished
@@ -460,7 +501,10 @@ export default function AgentActivityTab({
 							},
 							'&.Mui-disabled':
 								published || alreadyPublished
-									? { bgcolor: alpha(theme.palette.success.main, 0.7), color: theme.palette.text.primary }
+									? {
+											bgcolor: alpha(theme.palette.success.main, 0.7),
+											color: theme.palette.text.primary,
+										}
 									: undefined,
 						})}
 					>
