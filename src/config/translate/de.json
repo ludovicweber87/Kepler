@@ -29,7 +29,8 @@
 		"delete": "Löschen",
 		"archived": "Archiviert",
 		"sessionArchived": "Sitzung archiviert",
-		"archiveError": "Archivieren fehlgeschlagen"
+		"archiveError": "Archivieren fehlgeschlagen",
+		"archiveScriptFailed": "Archivierungsskript fehlgeschlagen, trotzdem archiviert"
 	},
 	"landing": {
 		"nav": {

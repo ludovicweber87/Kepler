@@ -29,7 +29,8 @@
 		"delete": "Eliminar",
 		"archived": "Arquivadas",
 		"sessionArchived": "Sessão arquivada",
-		"archiveError": "Falha ao arquivar"
+		"archiveError": "Falha ao arquivar",
+		"archiveScriptFailed": "Falha no script de arquivamento, arquivado mesmo assim"
 	},
 	"landing": {
 		"nav": {

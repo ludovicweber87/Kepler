@@ -29,7 +29,8 @@
 		"delete": "Delete",
 		"archived": "Archived",
 		"sessionArchived": "Session archived",
-		"archiveError": "Failed to archive"
+		"archiveError": "Failed to archive",
+		"archiveScriptFailed": "Archive script failed, archiving anyway"
 	},
 	"landing": {
 		"nav": {

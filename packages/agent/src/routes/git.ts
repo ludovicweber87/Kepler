@@ -640,19 +640,25 @@ Issue title: "${issueTitle}"`;
 						}).trim();
 						if (summary && db) {
 							const row = db
-								.prepare('SELECT system_prompt FROM agent_sessions WHERE session_id = ?')
+								.prepare(
+									'SELECT system_prompt FROM agent_sessions WHERE session_id = ?',
+								)
 								.get(body.sessionId) as { system_prompt?: string } | undefined;
-							const nextPrompt = `${row?.system_prompt ?? ''}\n\n## Contexte de l'issue (résumé)\n${summary}`.trim();
-							db.prepare('UPDATE agent_sessions SET system_prompt = ? WHERE session_id = ?').run(
-								nextPrompt,
-								body.sessionId,
-							);
+							const nextPrompt =
+								`${row?.system_prompt ?? ''}\n\n## Contexte de l'issue (résumé)\n${summary}`.trim();
+							db.prepare(
+								'UPDATE agent_sessions SET system_prompt = ? WHERE session_id = ?',
+							).run(nextPrompt, body.sessionId);
 						}
 					}
 					sendSSE(res, 'step', { step: 'read-issue', status: 'done' });
 				} catch {
 					// non bloquant : on saute proprement
-					sendSSE(res, 'step', { step: 'read-issue', status: 'done', message: 'skipped' });
+					sendSSE(res, 'step', {
+						step: 'read-issue',
+						status: 'done',
+						message: 'skipped',
+					});
 				}
 			}
 
@@ -697,7 +703,9 @@ Issue title: "${issueTitle}"`;
 				try {
 					const files = parseFilesToCopy(body.filesToCopy);
 					const list =
-						files.length > 0 ? files : readdirSync(body.cwd).filter((f) => f.startsWith('.env'));
+						files.length > 0
+							? files
+							: readdirSync(body.cwd).filter((f) => f.startsWith('.env'));
 					for (const file of list) {
 						const src = join(body.cwd, file);
 						if (existsSync(src)) copyFileSync(src, join(worktreePath, file));
@@ -736,6 +744,19 @@ Issue title: "${issueTitle}"`;
 			res.end();
 		} catch (err) {
 			return fail('worktree', err instanceof Error ? err.message : 'provision failed');
+		}
+		return;
+	}
+
+	// POST /git/run-script — exécute une commande dans un cwd (ex. archive_script)
+	if (path === '/git/run-script' && method === 'POST') {
+		try {
+			const { cwd, script } = await readBody<{ cwd: string; script: string }>(req);
+			if (!cwd || !script?.trim()) return sendJson(res, { ok: true });
+			execSync(script, { cwd, encoding: 'utf-8', timeout: 120000 });
+			sendJson(res, { ok: true });
+		} catch (err) {
+			sendError(res, err instanceof Error ? err.message : 'run-script failed');
 		}
 		return;
 	}
