@@ -65,7 +65,7 @@
 	"workbench": {
 		"emptyTitle": "Keine Sitzung ausgewählt",
 		"emptyDesc": "Wähle eine Sitzung in der Seitenleiste aus oder starte einen neuen Worktree aus einem Projekt.",
-		"chipFiles": "Dateien",
+		"chipFiles": "Changes",
 		"chipActivity": "Activity",
 		"chipIssue": "Issue",
 		"terminal": "Terminal",

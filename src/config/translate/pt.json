@@ -65,7 +65,7 @@
 	"workbench": {
 		"emptyTitle": "Nenhuma sessão selecionada",
 		"emptyDesc": "Selecione uma sessão na barra lateral ou inicie um novo worktree a partir de um projeto.",
-		"chipFiles": "Arquivos",
+		"chipFiles": "Changes",
 		"chipActivity": "Activity",
 		"chipIssue": "Issue",
 		"terminal": "Terminal",
