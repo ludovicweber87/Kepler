@@ -105,21 +105,31 @@ SessionState** et **`runLoop` est gardé par un check d'identité**.
 
 `relocate(sessionId, newCwd)` :
 1. `s = sessions.get(sessionId)` ; si absent → `return false`.
-2. Construire un **nouveau** `s2: SessionState` qui **réutilise par référence** : `s.clients`
-   (même `Set` → aucune reconnexion), `s.claudeSessionId`, `s.model`, `s.effort`,
-   `s.permissionMode`, `s.seq`, et `s.perms`. `systemPrompt` relu en DB (`agent_sessions.system_prompt`).
-   `s2.cwd = newCwd`, nouvelle `queue`, nouvelle `query()` (`cwd=newCwd`, `resume=claudeSessionId`
-   si présent, mêmes model/effort/permissionMode/systemPrompt).
+2. Construire un **nouveau** `s2: SessionState`. Réutiliser **par référence** : `s.clients`
+   (même `Set` → aucune reconnexion). Copier **par valeur** : `claudeSessionId`, `model`, `effort`,
+   `permissionMode`, `seq`. **Créer un `perms` NEUF lié à `s2`** (relecture R4 —
+   `createPermissionController` avec les mêmes closures que `startOrAttach` mais capturant `s2` :
+   `() => s2.permissionMode`, `broadcast(s2, …)`). **Ne PAS réutiliser `s.perms`** : ses closures
+   sont figées sur l'ancien `s`, donc `setPermissionMode` ne serait jamais honoré et l'`abortAll()`
+   de l'ancien `runLoop` viserait le contrôleur relocalisé. `systemPrompt` relu en DB
+   (`agent_sessions.system_prompt`). `s2.cwd = newCwd`, nouvelle `queue`, nouvelle `query()`
+   (`cwd=newCwd`, `resume=claudeSessionId` si présent, mêmes model/effort/permissionMode/systemPrompt).
 3. `sessions.set(sessionId, s2)` **avant** de fermer l'ancienne query (l'identité en map est déjà `s2`).
 4. Fermer l'ancienne query : `void s.q.return?.()` (best-effort, non awaité) + `s.queue.close()`.
    L'ancien `runLoop` sort alors de sa boucle.
 5. `void runLoop(sessionId, s2)`. `return true`.
 
-**Garde-fou dans `runLoop`** (modif sdkAgent.ts) : encadrer le broadcast `stream-closed` **et** le
-`sessions.delete` par un check d'identité `sessions.get(sessionId) === s`. L'ancien `runLoop`, voyant
-que la map pointe désormais sur `s2 ≠ s`, **ne diffuse pas `stream-closed`** et **ne supprime pas** la
-session. (Alternative équivalente : un jeton `epoch` par session.) Ce garde-fou est **le cœur** de la
-correction R1 et doit être implémenté avec `relocate`.
+**Garde-fou dans `runLoop`** (modif sdkAgent.ts) : encadrer **tous les événements terminaux et effets
+de teardown** par un check d'identité `const isCurrent = sessions.get(sessionId) === s` :
+- sortie de `for await` → `stream-closed` (ligne 92) **uniquement si `isCurrent`** ;
+- `catch` → `stream-error` fatal (ligne 94) **uniquement si `isCurrent`** (relecture R5) ;
+- `finally` → `s.perms.abortAll()` **et** `sessions.delete(sessionId)` (lignes 96-97) **uniquement si
+  `isCurrent`** (sinon on aborterait/supprimerait la session relocalisée).
+
+L'ancien `runLoop`, voyant que la map pointe désormais sur `s2 ≠ s`, **n'émet aucun événement
+terminal** et **ne touche ni à `perms` ni à la map**. (Alternative équivalente : un jeton `epoch` par
+session.) Ce garde-fou est **le cœur** de la correction R1 et doit être implémenté avec `relocate`.
+Combiné au `perms` neuf de `s2` (étape 2, R4), l'ancien contrôleur n'est de toute façon plus partagé.
 
 Note d'atomicité : `s.q.return?.()` n'attend pas la sortie effective du sous-process `claude`
 (déjà le cas de `stop()`). Sur POSIX/macOS, `git worktree move` d'un dossier qui est le `cwd` d'un
