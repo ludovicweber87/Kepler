@@ -141,7 +141,7 @@ export default function AgentTerminalModal({
 	const projectPath = projectPathProp ?? resolvedPath;
 
 	// Worktree management
-	const { createWorktree, isCreating } = useWorktrees(projectPath ?? undefined);
+	const { isCreating } = useWorktrees(projectPath ?? undefined);
 
 	const generatedIdRef = useRef<string | null>(null);
 	const redirectedRef = useRef(false);
@@ -292,10 +292,6 @@ export default function AgentTerminalModal({
 		setWorktreeError(null);
 
 		try {
-			const result = await createWorktree(name);
-			setWorktreePath(result.worktreePath);
-
-			// Ensure DB session with worktree info
 			const projectName = projectPath.split('/').filter(Boolean).pop() ?? 'unknown';
 			ensureSession({
 				sessionId,
@@ -304,27 +300,25 @@ export default function AgentTerminalModal({
 				agentName:
 					agentFile?.name ?? (issueContext ? `#${issueContext.issueNumber}` : null),
 				branch: name,
-				worktreePath: result.worktreePath,
+				worktreePath: null,
+				status: 'provisioning',
 				issueOwner: issueContext?.owner ?? null,
 				issueRepo: issueContext?.repo ?? null,
 				issueNumber: issueContext?.issueNumber ?? null,
 				issueTitle: issueContext?.issueTitle ?? null,
 				systemPrompt: composeSystemPrompt(),
 			});
-
 			goToWorkbench(sessionId);
 		} catch (err) {
-			setWorktreeError(
-				err instanceof Error ? err.message : 'Erreur lors de la création du worktree',
-			);
+			setWorktreeError(err instanceof Error ? err.message : 'Erreur au lancement');
 		}
 	}, [
 		branchInput,
 		projectPath,
-		createWorktree,
 		sessionId,
 		agentFile,
 		issueContext,
+		composeSystemPrompt,
 		ensureSession,
 		goToWorkbench,
 	]);
