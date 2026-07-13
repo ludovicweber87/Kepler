@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import Box from '@mui/material/Box';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
@@ -15,17 +15,28 @@ interface ShellTerminalProps {
 	ready?: boolean;
 }
 
-export default function ShellTerminal({
-	sessionId,
-	cwd,
-	active,
-	ready = true,
-}: ShellTerminalProps) {
+export interface ShellTerminalHandle {
+	runCommand: (cmd: string) => void;
+}
+
+const ShellTerminal = forwardRef<ShellTerminalHandle, ShellTerminalProps>(function ShellTerminal(
+	{ sessionId, cwd, active, ready = true },
+	ref,
+) {
 	const [node, setNode] = useState<HTMLDivElement | null>(null);
 	const terminalRef = useRef<Terminal | null>(null);
 	const wsRef = useRef<WebSocket | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
 	const initialized = useRef(false);
+
+	useImperativeHandle(ref, () => ({
+		runCommand: (cmd: string) => {
+			const ws = wsRef.current;
+			if (ws && ws.readyState === WebSocket.OPEN) {
+				ws.send(JSON.stringify({ type: 'input', data: cmd + '\r' }));
+			}
+		},
+	}));
 
 	// Init une seule fois quand tout est prêt et le panneau visible.
 	useEffect(() => {
@@ -193,4 +204,8 @@ export default function ShellTerminal({
 			<Box ref={setNode} sx={{ flex: 1, display: 'flex' }} />
 		</Box>
 	);
-}
+});
+
+ShellTerminal.displayName = 'ShellTerminal';
+
+export default ShellTerminal;

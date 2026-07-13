@@ -38,7 +38,7 @@ import AgentChatTab from '@/components/agents/AgentChatTab';
 import AgentDiffTab from '@/components/agents/AgentDiffTab';
 import AgentActivityTab from '@/components/agents/AgentActivityTab';
 import AgentIssueTab from '@/components/agents/AgentIssueTab';
-import ShellTerminal from '@/components/agents/ShellTerminal';
+import ShellTerminal, { type ShellTerminalHandle } from '@/components/agents/ShellTerminal';
 
 export default function Workbench() {
 	const t = useTranslations('workbench');
@@ -57,6 +57,7 @@ export default function Workbench() {
 	const [confirmClose, setConfirmClose] = useState(false);
 	const [closing, setClosing] = useState(false);
 	const firstPromptSent = useRef(false);
+	const shellRef = useRef<ShellTerminalHandle>(null);
 
 	// Fallback : la session peut deja etre dans l'historique avant que useAgentSession resolve.
 	const resolved = useMemo(
@@ -376,6 +377,8 @@ export default function Workbench() {
 					>
 						<Box
 							sx={{
+								display: 'flex',
+								alignItems: 'center',
 								px: 1.5,
 								py: 0.5,
 								borderBottom: 1,
@@ -389,8 +392,28 @@ export default function Workbench() {
 							>
 								{t('terminal')}
 							</Typography>
+							{repoSettings.run_scripts.length > 0 && (
+								<Box
+									sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', ml: 'auto' }}
+								>
+									{repoSettings.run_scripts
+										.filter((rs) => rs.command.trim())
+										.map((rs) => (
+											<Chip
+												key={rs.id}
+												label={rs.name || rs.command}
+												size="small"
+												onClick={() =>
+													shellRef.current?.runCommand(rs.command)
+												}
+												sx={{ cursor: 'pointer' }}
+											/>
+										))}
+								</Box>
+							)}
 						</Box>
 						<ShellTerminal
+							ref={shellRef}
 							sessionId={sessionId}
 							cwd={effectivePath}
 							active
