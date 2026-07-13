@@ -31,6 +31,9 @@ import { useSnackbar } from '@/hooks/useSnackbar';
 import { apiFetch } from '@/lib/api-fetch';
 import { classifySession } from '@/lib/sessionStatus';
 import { resolveEffectivePath } from '@/lib/effectivePath';
+import { resolveRepoFullName } from '@/lib/resolveRepoFullName';
+import { useRepoPaths } from '@/hooks/useRepoPaths';
+import { useRepoSettings } from '@/hooks/useRepoSettings';
 import AgentChatTab from '@/components/agents/AgentChatTab';
 import AgentDiffTab from '@/components/agents/AgentDiffTab';
 import AgentActivityTab from '@/components/agents/AgentActivityTab';
@@ -60,6 +63,13 @@ export default function Workbench() {
 		() => session ?? allSessions.find((s) => s.session_id === sessionId) ?? null,
 		[session, allSessions, sessionId],
 	);
+
+	const { repoPaths } = useRepoPaths();
+	const repoFullName = useMemo(
+		() => resolveRepoFullName(resolved, repoPaths),
+		[resolved, repoPaths],
+	);
+	const { settings: repoSettings } = useRepoSettings(repoFullName);
 
 	const bucket = resolved ? classifySession(resolved) : null;
 	const isArchived = bucket === 'archived';
@@ -257,6 +267,7 @@ export default function Workbench() {
 						systemPrompt={resolved?.system_prompt ?? undefined}
 						readOnly={chatReadOnly}
 						archived={isArchived}
+						createPrPrompt={repoSettings.create_pr_prompt}
 						onResume={() => {
 							resume(sessionId).catch(() => {});
 						}}

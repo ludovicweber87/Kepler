@@ -40,9 +40,6 @@ import { useProjectConfig } from '@/hooks/useProjectConfig';
 import { useTranslations } from 'next-intl';
 import { localFetch } from '@/lib/local-fetch';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
-import { useAppSetting } from '@/hooks/useAppSetting';
-import { CREATE_PR_PROMPT_KEY, DEFAULT_CREATE_PR_PROMPT } from '@/lib/prompts';
-import CallMergeRoundedIcon from '@mui/icons-material/CallMergeRounded';
 import { useAgentStatus } from '@/hooks/useAgentStatus';
 
 interface OrgProject {
@@ -481,62 +478,6 @@ function AddRepoCard({
 	);
 }
 
-function CreatePrPromptSection({ onSaved }: { onSaved: (msg: string) => void }) {
-	const t = useTranslations('settings');
-	const { valueOrDefault, save, isSaving } = useAppSetting(
-		CREATE_PR_PROMPT_KEY,
-		DEFAULT_CREATE_PR_PROMPT,
-	);
-	// `draft` holds edits; when null the field mirrors the persisted value.
-	const [draft, setDraft] = useState<string | null>(null);
-	const current = draft ?? valueOrDefault;
-
-	const handleSave = () => {
-		save(current)
-			.then(() => {
-				setDraft(null);
-				onSaved(t('createPrPromptSaved'));
-			})
-			.catch(() => {});
-	};
-
-	return (
-		<Box sx={{ mb: 5 }}>
-			<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-				<CallMergeRoundedIcon sx={{ color: 'text.secondary', fontSize: 22 }} />
-				<Typography variant="h6" sx={{ fontWeight: 600 }}>
-					{t('createPrPrompt')}
-				</Typography>
-			</Box>
-			<Typography variant="body2" color="text.secondary" sx={{ mb: 2, ml: 4.5 }}>
-				{t('createPrPromptDesc')}
-			</Typography>
-			<Box sx={{ ml: 4.5, maxWidth: 720 }}>
-				<TextField
-					fullWidth
-					multiline
-					minRows={3}
-					value={current}
-					onChange={(e) => setDraft(e.target.value)}
-					placeholder={DEFAULT_CREATE_PR_PROMPT}
-					size="small"
-				/>
-				<Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1.5 }}>
-					<Button
-						variant="contained"
-						size="small"
-						onClick={handleSave}
-						disabled={isSaving || draft === null}
-						sx={{ textTransform: 'none' }}
-					>
-						{t('createPrPromptSave')}
-					</Button>
-				</Box>
-			</Box>
-		</Box>
-	);
-}
-
 export default function SettingsPanel() {
 	const theme = useTheme();
 	const t = useTranslations('settings');
@@ -680,9 +621,6 @@ export default function SettingsPanel() {
 			>
 				{t('title')}
 			</Typography>
-
-			{/* Section: Create PR prompt */}
-			<CreatePrPromptSection onSaved={showToast} />
 
 			{/* Section: Repo Local Paths */}
 			<Box sx={{ mb: 5 }}>
