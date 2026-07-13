@@ -27,12 +27,12 @@ export default function CreationProgress({
 	const t = useTranslations('creationProgress');
 	const qc = useQueryClient();
 	const started = useRef(false);
+	const abortRef = useRef<AbortController | null>(null);
 	const [steps, setSteps] = useState<Record<string, StepStatus>>({});
 	const [error, setError] = useState<{ step: string; message?: string } | null>(null);
 
 	const hasIssue = !!(session.issue_owner && session.issue_repo && session.issue_number);
-	const mode: 'worktree' | 'current-branch' =
-		session.worktree_path === null && session.branch ? 'worktree' : 'worktree'; // provisioning ne concerne que la création worktree ; current-branch est géré à part
+	const mode = 'worktree' as const; // provisioning ne concerne que la création worktree ; current-branch est géré à part
 	// Étapes affichées (ordre)
 	const stepKeys = [
 		...(hasIssue ? ['read-issue'] : []),
@@ -50,7 +50,9 @@ export default function CreationProgress({
 	const run = useCallback(async () => {
 		setError(null);
 		setSteps({});
+		abortRef.current?.abort();
 		const controller = new AbortController();
+		abortRef.current = controller;
 		try {
 			const res = await localFetch('/git/provision', {
 				method: 'POST',
@@ -72,7 +74,11 @@ export default function CreationProgress({
 				}),
 				signal: controller.signal,
 			});
-			const reader = res.body!.getReader();
+			if (!res.ok || !res.body) {
+				setError({ step: 'worktree', message: `HTTP ${res.status}` });
+				return;
+			}
+			const reader = res.body.getReader();
 			const decoder = new TextDecoder();
 			let buf = '';
 			for (;;) {
@@ -99,6 +105,7 @@ export default function CreationProgress({
 				}
 			}
 		} catch (e) {
+			if (e instanceof DOMException && e.name === 'AbortError') return;
 			setError({ step: 'worktree', message: e instanceof Error ? e.message : 'error' });
 		}
 	}, [session, repoSettings, hasIssue, mode, qc]);
@@ -107,6 +114,7 @@ export default function CreationProgress({
 		if (started.current) return;
 		started.current = true;
 		run();
+		return () => abortRef.current?.abort();
 	}, [run]);
 
 	const iconFor = (st: StepStatus | undefined) => {
