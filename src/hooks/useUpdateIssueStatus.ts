@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { DashboardData, GitHubIssue } from '@/types';
 import { apiFetch } from '@/lib/api-fetch';
+import { useSnackbar } from '@/hooks/useSnackbar';
 
 interface UpdateStatusParams {
 	issueNodeId: string;
@@ -57,6 +58,7 @@ function updateBoardIssues(
 
 export function useUpdateIssueStatus() {
 	const queryClient = useQueryClient();
+	const { showSnackbar } = useSnackbar();
 
 	return useMutation({
 		mutationFn: async (params: UpdateStatusParams) => {
@@ -93,13 +95,14 @@ export function useUpdateIssueStatus() {
 
 			return { previousDashboard, previousBoard, boardKey };
 		},
-		onError: (_err, _params, context) => {
+		onError: (err, _params, context) => {
 			for (const [key, data] of context?.previousDashboard ?? []) {
 				queryClient.setQueryData(key, data);
 			}
 			if (context?.boardKey && context.previousBoard !== undefined) {
 				queryClient.setQueryData(context.boardKey, context.previousBoard);
 			}
+			showSnackbar(err instanceof Error ? err.message : 'Failed to update status', 'error');
 		},
 		onSettled: () => {
 			// Only invalidate the (assigned-issues) dashboard; the board stays cache-backed
