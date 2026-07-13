@@ -57,6 +57,11 @@ sidebar — de façon fiable et sans casser la session en cours.
   portent le cwd du worktree.
 - `sendUserMessage` fait `sessions.get(sessionId)` → **no-op silencieux** si la session est
   absente (fenêtre de recréation) → nécessité de bufferiser pendant le rename.
+- `runLoop` (sdkAgent.ts 74-99) fait `sessions.delete(sessionId)` **inconditionnellement** dans son
+  `finally` et diffuse `stream-closed` en sortie de boucle si `!s.closed` → toute recréation
+  réutilisant le même objet/clé serait supprimée par l'ancien `runLoop` (→ garde-fou d'identité obligatoire).
+- `AgentChatTab` passe `enabled: true` en dur ; `p.cwd` de `useAgentChat` résout **de façon async**
+  (null → path) → l'effet WS doit se (re)lancer à l'**apparition** du cwd, pas à chaque changement de valeur.
 
 ## Design
 
@@ -90,16 +95,31 @@ model/effort/permissionMode. Les recréer « from init » régresserait le modè
 nouveau `cwd` **en réutilisant l'état mémoire de la session** et **en conservant le même `Set`
 de clients WS** (aucun `stream-closed`, aucune reconnexion front, aucun `setMessages([])`).
 
+**Contrainte critique (relecture R1)** : `runLoop` (sdkAgent.ts 74-99) fait, dans son `finally`,
+`sessions.delete(sessionId)` **inconditionnellement**, et diffuse `stream-closed` en sortie de
+`for await` si `!s.closed` (ligne 92). Si `relocate` **réutilisait le même objet `s`** et la même
+clé, l'ancien `runLoop` (dont la query vient d'être fermée) exécuterait son `finally` **après** la
+reconstruction et **supprimerait la session reconstruite** (→ `sendUserMessage` no-op, prompt perdu)
+tout en diffusant `stream-closed` (→ flash). C'est pourquoi `relocate` **crée un nouvel objet
+SessionState** et **`runLoop` est gardé par un check d'identité**.
+
 `relocate(sessionId, newCwd)` :
 1. `s = sessions.get(sessionId)` ; si absent → `return false`.
-2. Capturer depuis `s` : `model`, `effort`, `permissionMode`, `clients`, `claudeSessionId`, `queue` courante.
-   Récupérer `systemPrompt` depuis la DB (`agent_sessions.system_prompt`).
-3. Fermer l'ancienne query **sans broadcast** : `void s.q.return?.()` (best-effort, non awaité) +
-   `s.queue.close()`. **Ne pas** `sessions.delete` ni `broadcast(stream-closed)`.
-4. Recréer une nouvelle `queue`, une nouvelle `query()` avec `cwd = newCwd`, `resume = claudeSessionId`
-   si présent, et **les mêmes** model/effort/permissionMode/systemPrompt. Réaffecter `s.q`, `s.queue`,
-   `s.cwd = newCwd`, conserver `s.clients`. Relancer `runLoop`.
-5. `return true`.
+2. Construire un **nouveau** `s2: SessionState` qui **réutilise par référence** : `s.clients`
+   (même `Set` → aucune reconnexion), `s.claudeSessionId`, `s.model`, `s.effort`,
+   `s.permissionMode`, `s.seq`, et `s.perms`. `systemPrompt` relu en DB (`agent_sessions.system_prompt`).
+   `s2.cwd = newCwd`, nouvelle `queue`, nouvelle `query()` (`cwd=newCwd`, `resume=claudeSessionId`
+   si présent, mêmes model/effort/permissionMode/systemPrompt).
+3. `sessions.set(sessionId, s2)` **avant** de fermer l'ancienne query (l'identité en map est déjà `s2`).
+4. Fermer l'ancienne query : `void s.q.return?.()` (best-effort, non awaité) + `s.queue.close()`.
+   L'ancien `runLoop` sort alors de sa boucle.
+5. `void runLoop(sessionId, s2)`. `return true`.
+
+**Garde-fou dans `runLoop`** (modif sdkAgent.ts) : encadrer le broadcast `stream-closed` **et** le
+`sessions.delete` par un check d'identité `sessions.get(sessionId) === s`. L'ancien `runLoop`, voyant
+que la map pointe désormais sur `s2 ≠ s`, **ne diffuse pas `stream-closed`** et **ne supprime pas** la
+session. (Alternative équivalente : un jeton `epoch` par session.) Ce garde-fou est **le cœur** de la
+correction R1 et doit être implémenté avec `relocate`.
 
 Note d'atomicité : `s.q.return?.()` n'attend pas la sortie effective du sous-process `claude`
 (déjà le cas de `stop()`). Sur POSIX/macOS, `git worktree move` d'un dossier qui est le `cwd` d'un
@@ -117,13 +137,17 @@ git + DB uniquement ; la recréation SDK est faite par l'appelant via `relocate`
    (types : `feat|fix|docs|refactor|test|chore|perf`), timeout ~30 s. Normaliser via
    `toKarmaKebab()` (repris de `autoRenameBranch.ts`). Échec/vide/identique → retourner `null`
    (dégradation gracieuse : garder `wip-`).
-3. Calculer `newPath = <project_path>/.worktrees/<karma>` (**`project_path` lu en DB**, pas de
-   strip fragile). Résolution de collision : incrémenter `-2`, `-3`, … tant que **le dossier
-   existe** (`fs.existsSync`) **OU** que **la branche existe** (`git branch --list <karma>` non vide).
+3. **Résoudre le nom sans collision AVANT tout move** (`resolveKarmaName`, pure/testable) :
+   partir de `<karma>` et incrémenter `-2`, `-3`, … tant que **le dossier
+   `<project_path>/.worktrees/<name>` existe** (`fs.existsSync`) **OU** que **la branche existe**
+   (`git branch --list <name>` non vide). Résultat : `finalName` + `newPath` définitifs.
+   (`project_path` lu en DB, pas de strip fragile.)
 4. Kill des tmux liés : `tmux kill-session -t <sessionId>` **et** `-t <sessionId>-shell`
    (le `ShellTerminal` tourne au cwd du worktree — cf. git.ts qui gère ces deux sessions).
-5. `git worktree move <old> <new>` puis `git -C <new> branch -m <karma>`.
-   Si `branch -m` échoue (branche déjà prise malgré le check) → repasser à l'étape 3 (suffixe suivant).
+5. `git worktree move <old> <newPath>` puis `git -C <newPath> branch -m <finalName>`.
+   Le nom ayant été résolu sans collision à l'étape 3, `branch -m` ne devrait pas échouer ; s'il
+   échoue malgré tout, le retry **repart du path courant** (`git worktree move <newPath> <newPath-N>`),
+   **jamais** de `<old>` (déjà déplacé). En dernier recours (échec persistant) → `catch` → `null`.
 6. Update DB : `worktree_path = newPath`, `branch = karma` pour cette session.
 7. Retourner `{ branch: karma, worktreePath: newPath, cwd: newPath }`.
 
@@ -164,12 +188,15 @@ on 'stream-user-message':
 - **`stream-renamed`** (`useAgentChat`) : à réception → invalider React Query
   (`['git-worktrees', projectPath]`, `['sessions', 'active']`, `['agent-sessions', …]`) pour que
   `Workbench` recalcule `effectivePath` (repо/diff/terminal suivent le nouveau path).
-- **Ne pas reconnecter le WS sur changement de `cwd` (#4)** : aujourd'hui l'effet WS de
-  `useAgentChat` dépend de `p.cwd` (ligne 123) et fait `setMessages([])` (ligne 53). Comme
-  `relocate` garde la même connexion WS, un changement de `p.cwd` post-rename ne doit **pas**
-  fermer/reset le chat. Correctif : retirer `p.cwd` des deps de l'effet et capturer le `cwd`
-  initial via `useRef` (utilisé seulement au `stream-init`). L'effet ne re-déclenche alors que
-  sur `sessionId`/`enabled`/`readOnly`.
+- **Reconnecter sur *disponibilité* du cwd, pas sur sa *valeur* (#4 / relecture R2)** : l'effet WS
+  de `useAgentChat` (1) **doit** se lancer quand `p.cwd` passe de `null` à un path (résolution async
+  via React Query — sinon `stream-init` n'est **jamais** envoyé), mais (2) ne doit **pas** se
+  relancer quand `p.cwd` change de valeur (post-rename), car `relocate` garde la connexion WS et
+  l'effet fait `setMessages([])` (ligne 53). Correctif : faire dépendre l'effet de la **disponibilité**
+  `const cwdReady = !!p.cwd` (deps : `[p.enabled, cwdReady, p.readOnly, p.sessionId, reconnectNonce]`),
+  et lire la **valeur** courante de `p.cwd` via un `useRef` mis à jour à chaque render (utilisé au
+  moment d'envoyer `stream-init`). Ainsi : `null → path` reconnecte (cwdReady false→true) ;
+  `pathA → pathB` ne reconnecte pas (cwdReady reste true).
 - **Sidebar** (`Sidebar.tsx`, #3) : `displayName` = **`wt.branch`** (nom Karma) en priorité
   pour une entrée worktree ; `agent_name` (persona/titre) déplacé en `Tooltip`.
 - **Feedback UX (#3 relecture)** : pendant le rename (~≤30 s, `claude --print` bloquant), afficher
@@ -220,11 +247,11 @@ Ajouter les events stream dans les types partagés (`packages/agent/src/sdk/type
 **Serveur agent** (`packages/agent/src/`)
 - `sdk/renameWorktree.ts` — **nouveau** (génération nom + résolution collision + move + branch -m + DB + kill tmux). Extraire les parties pures (`toKarmaKebab`, `resolveKarmaName`, `computeNewPath`) pour les tester.
 - `terminal.ts` — hook `stream-user-message` (détection 1er message, flag `renaming`, buffer `pendingWhileRenaming`, orchestration + broadcast `stream-renamed`).
-- `sdk/sdkAgent.ts` — **nouvelle** méthode `relocate(sessionId, newCwd)` (recrée la query au nouveau cwd, conserve clients/params, pas de `stream-closed`) ; getter interne des params si besoin.
+- `sdk/sdkAgent.ts` — **nouvelle** méthode `relocate(sessionId, newCwd)` (crée un nouveau `SessionState`, réutilise clients/params, swap dans la map) **+ garde-fou d'identité dans `runLoop`** (`sessions.get(sessionId) === s`) autour du `stream-closed` et du `sessions.delete`.
 - `sdk/types` (+ front) — events `stream-renamed` (+ `stream-renaming-start` optionnel).
 
 **App Next** (`src/`)
-- `hooks/useAgentChat.ts` — gérer `stream-renamed` (invalidations) ; **retirer `p.cwd` des deps** de l'effet WS et capturer le cwd initial via `useRef` (évite reset des messages).
+- `hooks/useAgentChat.ts` — gérer `stream-renamed` (invalidations) ; faire dépendre l'effet WS de `cwdReady = !!p.cwd` (pas de la valeur) et lire `p.cwd` courant via `useRef` au `stream-init` (connecte à l'apparition du cwd, ne reconnecte pas sur changement de valeur → évite reset des messages).
 - `components/workbench/Workbench.tsx` — retirer `submitRenameFromPrompt` + `onFirstUserMessage`.
 - `components/agents/AgentChatTab.tsx` — retirer la prop `onFirstUserMessage`.
 - `components/layout/Sidebar.tsx` — `displayName` = `wt.branch` prioritaire, `agent_name` en tooltip.
