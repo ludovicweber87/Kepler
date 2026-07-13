@@ -5,7 +5,7 @@
 		"launch": "Launch Devora"
 	},
 	"sidebar": {
-		"dashboard": "Dashboard",
+		"workbench": "Workbench",
 		"issues": "Issues",
 		"prs": "PRs",
 		"workspace": "Workspace",
@@ -62,44 +62,16 @@
 			}
 		}
 	},
-	"dashboard": {
-		"title": "Dashboard",
-		"filterToday": "Today",
-		"filter7d": "7d",
-		"filter30d": "30d",
-		"kpiAgents": "Active agents",
-		"kpiIssues": "Open issues",
-		"kpiPrs": "Pending PRs",
-		"kpiTodos": "Todos",
-		"activeAgentsTitle": "Active agents",
-		"running": "{count, plural, one {# running} other {# running}}",
-		"noActiveAgents": "No active agents",
-		"streamingSince": "streaming for",
-		"questionPending": "question pending",
-		"todosTitle": "Todos",
-		"pending": "{count, plural, one {# pending} other {# pending}}",
-		"noTodos": "All done!",
-		"viewAll": "View all →",
-		"recentSessions": "Recent sessions",
-		"noSessions": "No recent sessions",
-		"allRepos": "All",
-		"showAll": "Show all →",
-		"allReportsTitle": "All reports",
-		"allReportsAll": "All",
-		"allReportsSearch": "Search reports...",
-		"summariesTitle": "Latest reports",
-		"noSummaries": "No reports yet",
-		"sessionError": "Session ended with error",
-		"noReport": "No report available",
-		"viewSession": "View session",
-		"time": {
-			"justNow": "just now",
-			"minutesAgo": "{mins}m ago",
-			"hoursAgo": "{hours}h ago",
-			"daysAgo": "{days}d ago"
-		},
-		"activeAgents": "{count, plural, one {# active agent} other {# active agents}}",
-		"pendingTodos": "{count, plural, one {# pending task} other {# pending tasks}}"
+	"workbench": {
+		"emptyTitle": "No session selected",
+		"emptyDesc": "Select a session in the sidebar or launch a new worktree from a project.",
+		"chipFiles": "Files",
+		"chipActivity": "Activity",
+		"chipIssue": "Issue",
+		"terminal": "Terminal",
+		"newSession": "New session",
+		"activeSession": "Active session",
+		"stopSession": "Stop session"
 	},
 	"issues": {
 		"title": "Issues",
@@ -203,6 +175,7 @@
 		"back": "Back",
 		"next": "Next",
 		"sessionKilled": "Session stopped",
+		"confirmActionBody": "This action stops the session (SDK + tmux). Continue?",
 		"sessionDeleted": "Session deleted",
 		"agentOffline": "Local agent not connected — run `npm run dev:agent` to enable local features (terminal, git, agents).",
 		"soon": "Soon",

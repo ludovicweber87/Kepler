@@ -5,7 +5,7 @@
 		"launch": "Lanzar Devora"
 	},
 	"sidebar": {
-		"dashboard": "Panel",
+		"workbench": "Workbench",
 		"issues": "Issues",
 		"prs": "PRs",
 		"workspace": "Espacio de trabajo",
@@ -62,44 +62,16 @@
 			}
 		}
 	},
-	"dashboard": {
-		"title": "Dashboard",
-		"filterToday": "Hoy",
-		"filter7d": "7d",
-		"filter30d": "30d",
-		"kpiAgents": "Agentes activos",
-		"kpiIssues": "Issues abiertas",
-		"kpiPrs": "PRs pendientes",
-		"kpiTodos": "Tareas",
-		"activeAgentsTitle": "Agentes activos",
-		"running": "{count, plural, one {# en ejecucion} other {# en ejecucion}}",
-		"noActiveAgents": "Sin agentes activos",
-		"streamingSince": "en ejecucion desde",
-		"questionPending": "pregunta pendiente",
-		"todosTitle": "Tareas",
-		"pending": "{count, plural, one {# pendiente} other {# pendientes}}",
-		"noTodos": "Todo listo!",
-		"viewAll": "Ver todo →",
-		"recentSessions": "Sesiones recientes",
-		"noSessions": "Sin sesiones recientes",
-		"allRepos": "Todos",
-		"showAll": "Ver todo →",
-		"allReportsTitle": "Todos los informes",
-		"allReportsAll": "Todos",
-		"allReportsSearch": "Buscar informes...",
-		"summariesTitle": "Ultimos informes",
-		"noSummaries": "Aun no hay informes",
-		"sessionError": "La sesion termino con error",
-		"noReport": "Sin informe disponible",
-		"viewSession": "Ver sesion",
-		"time": {
-			"justNow": "ahora mismo",
-			"minutesAgo": "hace {mins}m",
-			"hoursAgo": "hace {hours}h",
-			"daysAgo": "hace {days}d"
-		},
-		"activeAgents": "{count, plural, one {# agente activo} other {# agentes activos}}",
-		"pendingTodos": "{count, plural, one {# tarea pendiente} other {# tareas pendientes}}"
+	"workbench": {
+		"emptyTitle": "Ninguna sesión seleccionada",
+		"emptyDesc": "Selecciona una sesión en la barra lateral o lanza un nuevo worktree desde un proyecto.",
+		"chipFiles": "Archivos",
+		"chipActivity": "Actividad",
+		"chipIssue": "Issue",
+		"terminal": "Terminal",
+		"newSession": "Nueva sesión",
+		"activeSession": "Sesión activa",
+		"stopSession": "Detener la sesión"
 	},
 	"issues": {
 		"title": "Issues",
@@ -181,6 +153,7 @@
 		"back": "Atrás",
 		"next": "Siguiente",
 		"sessionKilled": "Sesión detenida",
+		"confirmActionBody": "Esta acción detiene la sesión (SDK + tmux). ¿Continuar?",
 		"sessionDeleted": "Sesión eliminada",
 		"agentOffline": "Agente local no conectado — ejecute `npm run dev:agent` para habilitar funciones locales (terminal, git, agentes).",
 		"soon": "Próximamente",

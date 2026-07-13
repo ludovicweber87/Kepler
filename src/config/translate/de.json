@@ -5,7 +5,7 @@
 		"launch": "Devora starten"
 	},
 	"sidebar": {
-		"dashboard": "Dashboard",
+		"workbench": "Workbench",
 		"issues": "Issues",
 		"prs": "PRs",
 		"workspace": "Arbeitsbereich",
@@ -62,44 +62,16 @@
 			}
 		}
 	},
-	"dashboard": {
-		"title": "Dashboard",
-		"filterToday": "Heute",
-		"filter7d": "7T",
-		"filter30d": "30T",
-		"kpiAgents": "Aktive Agents",
-		"kpiIssues": "Offene Issues",
-		"kpiPrs": "Ausstehende PRs",
-		"kpiTodos": "Aufgaben",
-		"activeAgentsTitle": "Aktive Agents",
-		"running": "{count, plural, one {# laufend} other {# laufend}}",
-		"noActiveAgents": "Keine aktiven Agents",
-		"streamingSince": "laeuft seit",
-		"questionPending": "Frage ausstehend",
-		"todosTitle": "Aufgaben",
-		"pending": "{count, plural, one {# ausstehend} other {# ausstehend}}",
-		"noTodos": "Alles erledigt!",
-		"viewAll": "Alle anzeigen →",
-		"recentSessions": "Letzte Sitzungen",
-		"noSessions": "Keine aktuellen Sitzungen",
-		"allRepos": "Alle",
-		"showAll": "Alle anzeigen →",
-		"allReportsTitle": "Alle Berichte",
-		"allReportsAll": "Alle",
-		"allReportsSearch": "Berichte durchsuchen...",
-		"summariesTitle": "Letzte Berichte",
-		"noSummaries": "Noch keine Berichte",
-		"sessionError": "Sitzung mit Fehler beendet",
-		"noReport": "Kein Bericht verfuegbar",
-		"viewSession": "Sitzung anzeigen",
-		"time": {
-			"justNow": "gerade eben",
-			"minutesAgo": "vor {mins} Min.",
-			"hoursAgo": "vor {hours} Std.",
-			"daysAgo": "vor {days} T."
-		},
-		"activeAgents": "{count, plural, one {# aktiver Agent} other {# aktive Agents}}",
-		"pendingTodos": "{count, plural, one {# ausstehende Aufgabe} other {# ausstehende Aufgaben}}"
+	"workbench": {
+		"emptyTitle": "Keine Sitzung ausgewählt",
+		"emptyDesc": "Wähle eine Sitzung in der Seitenleiste aus oder starte einen neuen Worktree aus einem Projekt.",
+		"chipFiles": "Dateien",
+		"chipActivity": "Activity",
+		"chipIssue": "Issue",
+		"terminal": "Terminal",
+		"newSession": "Neue Sitzung",
+		"activeSession": "Aktive Sitzung",
+		"stopSession": "Sitzung beenden"
 	},
 	"issues": {
 		"title": "Issues",
@@ -181,6 +153,7 @@
 		"back": "Zurück",
 		"next": "Weiter",
 		"sessionKilled": "Sitzung gestoppt",
+		"confirmActionBody": "Diese Aktion beendet die Sitzung (SDK + tmux). Fortfahren?",
 		"sessionDeleted": "Sitzung gelöscht",
 		"agentOffline": "Lokaler Agent nicht verbunden — führen Sie `npm run dev:agent` aus, um lokale Funktionen (Terminal, Git, Agenten) zu aktivieren.",
 		"soon": "Bald",

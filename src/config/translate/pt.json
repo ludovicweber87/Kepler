@@ -5,7 +5,7 @@
 		"launch": "Iniciar Devora"
 	},
 	"sidebar": {
-		"dashboard": "Dashboard",
+		"workbench": "Workbench",
 		"issues": "Issues",
 		"prs": "PRs",
 		"workspace": "Workspace",
@@ -62,44 +62,16 @@
 			}
 		}
 	},
-	"dashboard": {
-		"title": "Dashboard",
-		"filterToday": "Hoje",
-		"filter7d": "7d",
-		"filter30d": "30d",
-		"kpiAgents": "Agentes ativos",
-		"kpiIssues": "Issues abertas",
-		"kpiPrs": "PRs pendentes",
-		"kpiTodos": "Tarefas",
-		"activeAgentsTitle": "Agentes ativos",
-		"running": "{count, plural, one {# em execucao} other {# em execucao}}",
-		"noActiveAgents": "Nenhum agente ativo",
-		"streamingSince": "em execucao ha",
-		"questionPending": "pergunta pendente",
-		"todosTitle": "Tarefas",
-		"pending": "{count, plural, one {# pendente} other {# pendentes}}",
-		"noTodos": "Tudo feito!",
-		"viewAll": "Ver tudo →",
-		"recentSessions": "Sessoes recentes",
-		"noSessions": "Nenhuma sessao recente",
-		"allRepos": "Todos",
-		"showAll": "Ver tudo →",
-		"allReportsTitle": "Todos os relatorios",
-		"allReportsAll": "Todos",
-		"allReportsSearch": "Buscar relatorios...",
-		"summariesTitle": "Ultimos relatorios",
-		"noSummaries": "Nenhum relatorio ainda",
-		"sessionError": "Sessao encerrada com erro",
-		"noReport": "Nenhum relatorio disponivel",
-		"viewSession": "Ver sessao",
-		"time": {
-			"justNow": "agora mesmo",
-			"minutesAgo": "{mins}m atras",
-			"hoursAgo": "{hours}h atras",
-			"daysAgo": "{days}d atras"
-		},
-		"activeAgents": "{count, plural, one {# agente ativo} other {# agentes ativos}}",
-		"pendingTodos": "{count, plural, one {# tarefa pendente} other {# tarefas pendentes}}"
+	"workbench": {
+		"emptyTitle": "Nenhuma sessão selecionada",
+		"emptyDesc": "Selecione uma sessão na barra lateral ou inicie um novo worktree a partir de um projeto.",
+		"chipFiles": "Arquivos",
+		"chipActivity": "Activity",
+		"chipIssue": "Issue",
+		"terminal": "Terminal",
+		"newSession": "Nova sessão",
+		"activeSession": "Sessão ativa",
+		"stopSession": "Parar a sessão"
 	},
 	"issues": {
 		"title": "Issues",
@@ -182,6 +154,7 @@
 		"back": "Voltar",
 		"next": "Seguinte",
 		"sessionKilled": "Sessão parada",
+		"confirmActionBody": "Esta ação encerra a sessão (SDK + tmux). Continuar?",
 		"sessionDeleted": "Sessão eliminada",
 		"agentOffline": "Agente local não conectado — execute `npm run dev:agent` para ativar funcionalidades locais (terminal, git, agentes).",
 		"soon": "Em breve",

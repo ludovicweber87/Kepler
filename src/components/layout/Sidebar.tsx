@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -49,6 +49,7 @@ export const SIDEBAR_WIDTH = 220;
 export default function Sidebar() {
 	const theme = useTheme();
 	const pathname = usePathname();
+	const router = useRouter();
 	const { me } = useMe();
 	const t = useTranslations('sidebar');
 	const pendingCount = usePendingTodoCount();
@@ -122,7 +123,7 @@ export default function Sidebar() {
 			);
 	};
 	const mainItems = [
-		{ label: t('dashboard'), href: '/dashboard', icon: <DashboardRoundedIcon /> },
+		{ label: t('workbench'), href: '/workbench', icon: <DashboardRoundedIcon /> },
 		{ label: t('issues'), href: '/issues', icon: <BugReportRoundedIcon /> },
 		{ label: t('prs'), href: '/prs', icon: <MergeTypeRoundedIcon /> },
 		{ label: t('todos'), href: '/todos', icon: <ChecklistRoundedIcon />, badge: pendingCount },
@@ -359,24 +360,18 @@ export default function Sidebar() {
 														<Box
 															key={wt.path}
 															onClick={() =>
-																setModalConfig(
-																	wtSession
-																		? {
-																				projectPath:
-																					view.path,
-																				existingSessionId:
-																					wtSession.session_id,
-																			}
-																		: {
-																				projectPath:
-																					view.path,
-																				existingWorktree: {
-																					branch: wt.branch,
-																					worktreePath:
-																						wt.path,
-																				},
+																wtSession
+																	? router.push(
+																			`/workbench?session=${encodeURIComponent(wtSession.session_id)}`,
+																		)
+																	: setModalConfig({
+																			projectPath: view.path,
+																			existingWorktree: {
+																				branch: wt.branch,
+																				worktreePath:
+																					wt.path,
 																			},
-																)
+																		})
 															}
 															sx={{
 																display: 'flex',

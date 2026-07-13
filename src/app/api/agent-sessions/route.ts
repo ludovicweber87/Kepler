@@ -31,9 +31,7 @@ export async function GET(req: NextRequest) {
 		const conditions = [];
 		if (status) {
 			if (status === 'completed') {
-				conditions.push(
-					inArray(agentSessions.status, ['completed', 'error']),
-				);
+				conditions.push(inArray(agentSessions.status, ['completed', 'error']));
 			} else {
 				conditions.push(eq(agentSessions.status, status));
 			}
@@ -115,6 +113,7 @@ export async function POST(req: NextRequest) {
 			issue_repo,
 			issue_number,
 			issue_title,
+			system_prompt,
 		} = body;
 
 		// Check if already exists
@@ -156,6 +155,7 @@ export async function POST(req: NextRequest) {
 				issue_repo: issue_repo ?? null,
 				issue_number: issue_number ?? null,
 				issue_title: issue_title ?? null,
+				system_prompt: system_prompt ?? null,
 			})
 			.returning()
 			.all();
@@ -185,12 +185,7 @@ export async function PATCH(req: NextRequest) {
 			return NextResponse.json({ error: 'id or session_id required' }, { status: 400 });
 		}
 
-		const [row] = db
-			.update(agentSessions)
-			.set(updates)
-			.where(whereClause)
-			.returning()
-			.all();
+		const [row] = db.update(agentSessions).set(updates).where(whereClause).returning().all();
 
 		return NextResponse.json(row ?? null);
 	} catch (err) {
@@ -212,19 +207,13 @@ export async function DELETE(req: NextRequest) {
 		}
 
 		// Delete logs first, then session
-		const session = db
-			.select()
-			.from(agentSessions)
-			.where(eq(agentSessions.id, id))
-			.get();
+		const session = db.select().from(agentSessions).where(eq(agentSessions.id, id)).get();
 
 		if (session) {
 			db.delete(agentActivityLogs)
 				.where(eq(agentActivityLogs.agent_session_id, session.id))
 				.run();
-			db.delete(agentSessions)
-				.where(eq(agentSessions.id, id))
-				.run();
+			db.delete(agentSessions).where(eq(agentSessions.id, id)).run();
 		}
 
 		return NextResponse.json({ ok: true });
