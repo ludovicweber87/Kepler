@@ -87,10 +87,10 @@ Namespace `creationProgress` (5 locales) : labels des étapes (`readIssue`, `wor
 
 ## Risques / points à vérifier pendant le plan
 
-1. **SSE-over-fetch côté client** : `EventSource` ne supporte pas POST+body → utiliser `fetch` + `ReadableStream` + parsing des lignes `data:` (modéliser sur le client `/chat`). Gérer la fermeture/abort au démontage.
+1. **SSE-over-fetch côté client** : `EventSource` ne supporte pas POST+body → `localFetch('/git/provision', {POST})` puis `res.body.getReader()` + parsing des lignes `data:`. **Premier consommateur SSE-over-fetch du repo** (pas de précédent client — le streaming existant est WebSocket `useAgentChat`). Gérer l'abort au démontage.
 2. **Statut `provisioning` vs `classifySession`** : le Workbench doit court-circuiter AVANT `classifySession` ; vérifier les autres consommateurs (`useSessionManager`, RightSidebar/Sidebar buckets, dashboard) — une session `provisioning` tomberait en `past` : acceptable (elle n'apparaît pas encore en « active ») mais à confirmer qu'elle ne pollue pas une liste.
 3. **Anti-double-provision** : le Workbench peut remonter (navigation, refetch) → ne pas lancer 2 streams concurrents ; idempotence de `git worktree add` (retry après échec partiel).
-4. **`gh` + `claude` sur l'agent** : le read-issue dépend de `gh issue view` (token via env/gh) et `claude --print` (déjà utilisé par `generate-branch-name`). Fallback si `gh` échoue : sauter l'étape read-issue proprement (ne pas bloquer la création).
+4. **read-issue** : fetch issue+commentaires via **API REST GitHub + Bearer `getToken(req)`** (pattern `postGitHubComment`, PAS `gh`) puis `claude --print` (déjà utilisé par `generate-branch-name`). Fallback si fetch/claude échoue → sauter l'étape proprement (ne pas bloquer la création).
 5. **`existingWorktree`/current-branch** : ne pas déclencher les étapes worktree/copy/setup ; provisioning réduit (ou absent pour existingWorktree).
 6. **Persistance `system_prompt`** : l'agent append le résumé — s'assurer que le Workbench relit la session (invalidation) pour passer le `system_prompt` enrichi à `AgentChatTab` au 1er `stream-init`.
 7. **Retrait de `createWorktree` du modal** : vérifier que plus rien d'autre ne dépend du worktree créé synchroniquement avant navigation (le shell/diff/chat du Workbench doivent attendre `status==='active'`).
