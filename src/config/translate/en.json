@@ -74,6 +74,16 @@
 		"activeSession": "Active session",
 		"stopSession": "Stop session"
 	},
+	"creationProgress": {
+		"title": "Preparing the workspace",
+		"readIssue": "Agent reading the issue",
+		"worktree": "Creating the worktree",
+		"copyFiles": "Copying files",
+		"setup": "Setup script",
+		"ready": "Ready",
+		"failed": "Failed — {step}",
+		"retry": "Retry"
+	},
 	"issues": {
 		"title": "Issues",
 		"searchPlaceholder": "Search #id or title...",

@@ -39,6 +39,7 @@ import AgentDiffTab from '@/components/agents/AgentDiffTab';
 import AgentActivityTab from '@/components/agents/AgentActivityTab';
 import AgentIssueTab from '@/components/agents/AgentIssueTab';
 import ShellTerminal, { type ShellTerminalHandle } from '@/components/agents/ShellTerminal';
+import CreationProgress from '@/components/workbench/CreationProgress';
 
 export default function Workbench() {
 	const t = useTranslations('workbench');
@@ -189,6 +190,10 @@ export default function Workbench() {
 				</Typography>
 			</Box>
 		);
+	}
+
+	if (resolved?.status === 'provisioning') {
+		return <CreationProgress session={resolved} repoSettings={repoSettings} />;
 	}
 
 	return (

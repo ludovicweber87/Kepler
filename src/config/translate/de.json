@@ -74,6 +74,16 @@
 		"activeSession": "Aktive Sitzung",
 		"stopSession": "Sitzung beenden"
 	},
+	"creationProgress": {
+		"title": "Arbeitsbereich wird vorbereitet",
+		"readIssue": "Agent liest das Issue",
+		"worktree": "Worktree wird erstellt",
+		"copyFiles": "Dateien werden kopiert",
+		"setup": "Setup-Skript",
+		"ready": "Bereit",
+		"failed": "Fehlgeschlagen — {step}",
+		"retry": "Erneut versuchen"
+	},
 	"issues": {
 		"title": "Issues",
 		"searchPlaceholder": "#ID oder Titel suchen...",
