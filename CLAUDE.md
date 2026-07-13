@@ -30,7 +30,16 @@ Développeur frontend senior / expert :
 
 ## Projet
 
-Dashboard de développement personnel pour gérer issues GitHub, PRs, todos, worktrees, et agents Claude depuis une interface unifiée.
+App locale de développement personnel pour piloter issues GitHub, PRs, todos, worktrees Git et **agents Claude (SDK)** depuis une interface unifiée. **Mono-utilisateur, tourne en local** : l'auth passe par la session `gh` CLI, la donnée par un SQLite local, et les opérations Git/terminal/chat par un serveur agent Node autonome (port 4001).
+
+### Architecture en 2 process
+
+| Process | Rôle |
+| ------- | ---- |
+| **App Next.js** (`src/`, port 4000) | UI + API routes (GitHub proxy, CRUD SQLite) |
+| **Serveur agent** (`packages/agent/`, port 4001) | Git/worktrees, terminal (node-pty + tmux via WebSocket), chat **Agent SDK**, picker fichier. Tape dans le **même** SQLite. |
+
+En dev, `scripts/dev-auto-port.mjs` lance les deux via `concurrently` et injecte `DEVORA_DB_PATH` pour partager la DB.
 
 ### Stack technique
 
@@ -39,71 +48,76 @@ Dashboard de développement personnel pour gérer issues GitHub, PRs, todos, wor
 | Framework       | Next.js 16.1 + React 19.2 + TypeScript 5              |
 | Design system   | MUI 7.3 (Material UI) + Emotion 11                    |
 | Data fetching   | TanStack React Query 5                                |
-| Auth            | NextAuth 5 (beta) — GitHub OAuth                      |
+| Auth            | Session **`gh` CLI** (token), fallback `GITHUB_TOKEN` — pas de NextAuth, pas de login |
 | Backend         | SQLite local (better-sqlite3) + Drizzle ORM           |
-| Intégrations    | GitHub API (REST + GraphQL), Claude CLI (stream-json) |
+| Agents / Chat   | **@anthropic-ai/claude-agent-sdk** (streaming via WebSocket) |
+| Intégrations    | GitHub API (REST + GraphQL) via proxy Next            |
 | i18n            | next-intl 4.8 (5 locales : en, fr, es, de, pt)       |
 | Graphiques      | Recharts 3                                            |
 | Terminal        | xterm.js 6 + node-pty 1.1 + WebSocket (ws, port 4001)|
 | Animations      | Framer Motion 12                                      |
 | Markdown        | react-markdown 10 + rehype-raw + remark-gfm           |
 | Font            | Poppins (Google Fonts)                                |
-| Linting         | ESLint 9 + Prettier 3                                 |
+| Linting / Tests | ESLint 9 + Prettier 3 · Vitest + @testing-library     |
 
 ### Structure du projet
 
 ```
 src/
 ├── app/
-│   ├── layout.tsx              # Root : i18n, AuthProvider, QueryProvider, ThemeRegistry
-│   ├── page.tsx                # Redirect → /dashboard
+│   ├── layout.tsx              # Root : NextIntlClientProvider → QueryProvider → ThemeRegistry
+│   ├── page.tsx                # Redirect → /workbench
 │   ├── not-found.tsx           # Page 404
-│   ├── login/
-│   │   ├── layout.tsx          # Layout minimal (ThemeRegistry seul)
-│   │   └── page.tsx            # Login GitHub OAuth + marketing
-│   ├── (app)/                  # Route group authentifié (AppShell)
-│   │   ├── layout.tsx          # Wraps dans AppShell (Sidebar + Header + RightSidebar)
-│   │   ├── dashboard/          # Hub central : sessions actives, summaries, todos
+│   ├── instrumentation.ts      # (no-op — le serveur terminal vit dans packages/agent)
+│   ├── (app)/                  # Route group (layout = AppShell). Pas de garde auth au niveau route.
+│   │   ├── layout.tsx          # Wrappe dans AppShell (Sidebar + Header + OverlayTerminal)
+│   │   ├── workbench/          # 🏠 Page principale : conversation agent + fichiers + terminal
+│   │   ├── dashboard/          # Redirect → /workbench (compat)
 │   │   ├── issues/             # Kanban issues GitHub (Project V2 views)
 │   │   ├── prs/                # Liste PRs par repo avec CI status
 │   │   ├── todos/              # Todo manager par repo
-│   │   ├── agents/             # Gestion agents Claude (.md files) + terminal
-│   │   ├── skills/             # Éditeur de skills (.md files)
-│   │   ├── workspace/          # Gestion worktrees Git
 │   │   ├── settings/           # Config GitHub Project V2 + repo paths
+│   │   ├── archived/           # Sessions agents archivées (read-only)
 │   │   └── task/[owner]/[repo]/[number]/  # Détail issue (comments, timeline, agent launcher)
-│   └── api/                    # Route handlers (30 endpoints)
-│       ├── auth/[...nextauth]/ # NextAuth GitHub OAuth
-│       ├── github/             # REST + GraphQL proxy (issues, PRs, projects, images)
-│       ├── chat/               # Claude CLI streaming (SSE)
-│       ├── agent-builder/      # Génération prompts agents (SSE)
-│       ├── sessions/           # Sessions tmux actives
-│       ├── agent-sessions/     # Logs activité agents + kill + auto-summary
-│       ├── filesystem/         # CRUD fichiers agents/skills + directory picker
-│       └── git/                # Branches, worktrees, diff, push, repo-name
-├── components/                 # 30 composants organisés par feature
-│   ├── layout/                 # AppShell, Sidebar, Header, RightSidebar, OverlayTerminal, AppLoadingSplash
-│   ├── dashboard/              # Dashboard, IssueCard, IssueDetail, IssueTimelineModal
-│   ├── issues/                 # IssuesList (Kanban), KanbanColumn, CreateBranchModal
+│   └── api/                    # Route handlers Next (GitHub proxy + CRUD SQLite)
+│       ├── github/             # REST + GraphQL proxy (issues, PRs, projects, image-proxy)
+│       ├── me/                 # Utilisateur gh CLI courant (UI)
+│       ├── agent-sessions/     # CRUD sessions + logs + rename-from-prompt
+│       ├── todos/              # CRUD todos (+ complete-issue)
+│       ├── project-configs/    # Config Project V2
+│       ├── repo-paths/         # Mapping repo → path local
+│       ├── settings/           # app_settings key/value
+│       └── tab-orders/         # Ordre des tabs persisté
+├── components/                 # UI organisée par feature
+│   ├── layout/                 # AppShell, Sidebar, Header, OverlayTerminal, AppLoadingSplash
+│   ├── workbench/              # Workbench (page principale)
+│   ├── agents/                 # AgentTerminalModal (création), ShellTerminal, AgentChatTab,
+│   │   │                       # AgentActivityTab, AgentDiffTab, AgentIssueTab
+│   │   └── chat/               # ChatBubble, ChatComposer, ChatThinking, ChatToolCard,
+│   │                           # ChatPermissionCard, ChatQuestionCard, ChatPending
+│   ├── dashboard/              # (résiduel) IssueCard, IssueDetail, IssueTimelineModal
+│   ├── issues/                 # IssuesList (Kanban), KanbanColumn, CreateBranchModal, IssueCard
 │   ├── prs/                    # PullRequestsList
-│   ├── agents/                 # AgentsList, AgentTerminalModal, AgentEditorDialog, AgentFormDialog
-│   │                           # AgentActivityTab, AgentDiffTab, AgentIssueTab, AgentBuilderDialog
 │   ├── todos/                  # TodoList
-│   ├── skills/                 # SkillsList, SkillEditorDialog
-│   ├── workspace/              # WorkspaceView, BranchDetail
 │   ├── settings/               # SettingsPanel
-│   └── shared/                 # DraggableTabs, SessionCard
-├── hooks/                      # 20 custom hooks (React Query + SQLite/Drizzle)
+│   ├── workspace/              # BranchDetail
+│   ├── shared/                 # DraggableTabs, SessionCard
+│   └── (root)                  # QueryProvider, ThemeRegistry, LocaleSwitcher
+├── hooks/                      # ~24 custom hooks (React Query + agent + contexts)
 ├── db/                         # SQLite : index.ts (client + migrations), schema.ts (Drizzle), migrations/
-├── lib/                        # services (github, auth-utils, api-fetch, local-fetch, locale, projectViews)
+├── lib/                        # services (github, auth-utils, api-fetch, local-fetch, chatReducer, prompts, ...)
 ├── theme/                      # MUI theme (dark + light mode)
 ├── types/                      # Types centralisés (index.ts)
-├── config/
-│   └── translate/              # Fichiers i18n (en.json, fr.json, es.json, de.json, pt.json)
-├── i18n/
-│   └── request.ts             # Config next-intl (locale detection cookie)
-├── middleware.ts               # Auth middleware (NextAuth, protège routes /app/*)
-└── instrumentation.ts          # Démarrage WebSocket terminal server (port 4001)
+├── config/translate/           # i18n (en/fr/es/de/pt .json)
+└── i18n/request.ts             # Config next-intl (locale via cookie)
+
+packages/agent/src/             # Serveur agent Node (port 4001, http natif + ws)
+├── index.ts                    # Serveur HTTP, dispatch par préfixe de path, CORS localhost
+├── terminal.ts                 # WebSocket : PTY brut (tmux) + stream chat SDK
+├── db.ts                       # getDb() — même SQLite, SQL brut, ne joue pas les migrations
+├── routes/                     # git.ts, sessions.ts, chat.ts (CLI, ~mort), filesystem.ts
+└── sdk/                        # sdkAgent, transcriptStore, activityDeriver, mapMessage,
+                                # permissions, promptQueue, types
 ```
 
 ---
@@ -115,66 +129,77 @@ src/
 ```
 RootLayout (server)
 └── NextIntlClientProvider
-    └── AuthProvider (NextAuth SessionProvider)
-        └── QueryProvider (React Query + SnackbarProvider)
-            └── ThemeRegistry (MUI + ColorModeProvider)
-                └── AppShell (client)
-                    ├── Sidebar (220px, navigation + badges)
-                    ├── Header (64px, theme toggle, agents panel)
-                    ├── Main content (flex-grow)
-                    ├── RightSidebar (400px, resizable, worktrees + sessions)
-                    └── OverlayTerminal (floating, draggable xterm.js)
+    └── QueryProvider (React Query + SnackbarProvider)
+        └── ThemeRegistry (MUI + ColorModeProvider)
+            └── AppShell (client, contexts OverlayTerminal)
+                ├── Sidebar (220px : navigation + section PROJETS avec worktrees/sessions par repo)
+                ├── Header (64px : theme toggle, statut agent, compteur sessions)
+                ├── Main content (flex-grow — la page, ex. Workbench)
+                └── OverlayTerminal (flottant, draggable, xterm.js → :4001)
 ```
+
+> ⚠️ Il n'y a **pas** de `RightSidebar`. La liste worktrees/sessions par projet vit dans le **Sidebar gauche** (section PROJETS). Cliquer une session ouvre le Workbench (`/workbench?session=<id>`).
+
+### La page Workbench (`/workbench`)
+
+Page de travail plein écran (remplace l'ancien Dashboard) :
+
+- **75 % gauche** : la conversation agent (`AgentChatTab`).
+- **~25 % droite** : chips `Fichiers` / `Activity` / `Issue` (basculent le panneau haut : `AgentDiffTab` / `AgentActivityTab` / `AgentIssueTab`) + **`ShellTerminal`** empilé en bas, avec resize vertical.
+- Session affichée portée par le search param `?session=<id>` (source de vérité, résolue via `useAgentSession` / `useSessionManager`). Sans param → empty-state.
+- Header : nom session, chip branche, chip repo, Stop (si active), PiP.
+
+`AgentTerminalModal` ne rend **plus** de terminal : il ne fait que les steps de création/attache (projet → mode → branche) puis **redirige** vers `/workbench?session=<id>`.
 
 ### Authentification
 
-- **NextAuth 5 (beta)** avec GitHub OAuth provider
-- **Middleware** (`src/middleware.ts`) : protège toutes les routes sauf `/login`, `/api/auth/*`, `/api/agent-sessions/log`
-- Routes API non-auth → 401 JSON ; routes pages non-auth → redirect `/login?callbackUrl=...`
-- Token GitHub propagé via `requireAuth()` dans les API routes
-- `api-fetch.ts` : wrapper client qui détecte 401 et trigger logout global
+- **Pas de NextAuth, pas de page de login, pas de middleware.** App locale mono-utilisateur.
+- Le token GitHub vient de la **session `gh` CLI** (`gh auth token`), avec fallback `GITHUB_TOKEN` (injecté par le wrapper CLI `devora`). Voir `src/lib/auth-utils.ts`.
+- `requireAuth()` (API routes) renvoie le contexte `{ userId, login, accessToken }` ou une `401 gh_not_authenticated` (message : lance `gh auth login`).
+- `getCurrentUser()` alimente `/api/me` (login/avatar pour l'UI).
+- `api-fetch.ts` : wrapper client qui détecte 401 et déclenche un logout global.
 
 ### Data Flow
 
 ```
 Composant client ("use client")
-  → Custom hook (useGitHub, useTodos, etc.)
-    → React Query (useQuery / useMutation)
-      → apiFetch("/api/...") — wrapper avec gestion 401
-        → API route Next.js (server-side, requireAuth())
-          → lib/github.ts (GitHub API) ou db/index.ts (SQLite/Drizzle)
+  → Custom hook (useGitHub, useTodos, useAgentChat, ...)
+    → React Query (useQuery / useMutation) ou WebSocket (chat)
+      → apiFetch("/api/...")  → API Next (requireAuth) → lib/github.ts | db/index.ts
+      → localFetch("/git|/sessions|...")  → serveur agent :4001 (Bearer token local)
+      → getAgentWsUrl()  → WebSocket :4001 (terminal PTY + stream chat SDK)
 ```
+
+`src/lib/local-fetch.ts` : `localFetch()` appelle le serveur agent (`NEXT_PUBLIC_AGENT_URL`, défaut `:4001`), throw `AgentOfflineError` si injoignable, fallback API Next pour `/agent-sessions/*` en dev. `getAgentWsUrl()` = URL WS de l'agent.
 
 ### React Query
 
-- **staleTime** : 5 minutes par défaut
-- **refetchOnWindowFocus** : false
-- **Mutations optimistes** : `onMutate` + `queryClient.setQueryData()` + rollback `onError`
-- **Invalidation** : `queryClient.invalidateQueries()` dans `onSettled`
-- **Polling** : `refetchInterval` pour données temps réel (sessions 5s, logs 10s, recent-logs 15s, todos 30s, worktrees 30s)
+- **staleTime** : 5 minutes par défaut · **refetchOnWindowFocus** : false
+- **Mutations optimistes** : `onMutate` + `setQueryData()` + rollback `onError`
+- **Invalidation** : `invalidateQueries()` dans `onSettled`
+- **Polling** : `refetchInterval` temps réel (sessions ~5s, session unique 10s, todos 30s, worktrees 30s)
 
 ### State Management
 
 | Type de données                    | Mécanisme                                      |
 | ---------------------------------- | ---------------------------------------------- |
 | GitHub (issues, PRs, projects)     | React Query ← `/api/github/*` ← GitHub API     |
-| Todos, sessions, config            | React Query ← SQLite/Drizzle (mutations optimistes) |
-| Agents/Skills files                | React Query ← `/api/filesystem/*` ← FS local   |
+| Todos, sessions, config, settings  | React Query ← `/api/*` ← SQLite/Drizzle        |
+| Git/worktrees, sessions tmux       | React Query ← `localFetch` ← serveur agent     |
+| Chat agent (SDK)                   | WebSocket ← serveur agent (transcript SQLite serveur-authoritatif) |
 | UI state (tabs, dialogs, toggles)  | `useState` local                               |
-| Sidebar droit                      | `RightSidebarContext` (React Context)          |
 | Terminal overlay                   | `OverlayTerminalContext` (React Context)       |
 | Color mode                         | `ColorModeContext` (React Context + localStorage)|
 | Snackbars                          | `SnackbarContext` (React Context)              |
-| Tab order                          | SQLite (`tabOrders` table)                     |
+| Tab order                          | SQLite (`tab_orders`)                          |
 
 ### Context Providers
 
 | Context                  | Fichier                     | Rôle                                              |
 | ------------------------ | --------------------------- | ------------------------------------------------- |
-| `RightSidebarContext`    | `useRightSidebar.ts`        | open/close, width, toggle                         |
-| `OverlayTerminalContext` | `useOverlayTerminal.ts`     | State terminal flottant (sessionId, visible, size) |
+| `OverlayTerminalContext` | `useOverlayTerminal.tsx`    | State terminal flottant (sessionId, visible, size) |
 | `ColorModeContext`       | `useColorMode.tsx`          | Dark/light toggle, persisté localStorage          |
-| `SnackbarContext`        | `useSnackbar.tsx`           | showSnackbar(title, severity), notifications      |
+| `SnackbarContext`        | `useSnackbar.tsx`           | showSnackbar(title, severity)                     |
 
 ---
 
@@ -182,261 +207,122 @@ Composant client ("use client")
 
 ### GitHub API (`src/lib/github.ts`)
 
-**REST API** (Bearer token, API version 2022-11-28) :
-- `fetchUserLogin()` / `fetchUserRepos()` — profil et repos
-- `fetchAssignedIssues()` / `fetchIssuesByFilter('assigned'|'created')` — issues avec pagination per_page=100
-- `fetchIssue()` / `fetchIssueComments()` / `fetchIssueTimeline()` — détail issue
-- `updateIssue()` / `createIssueComment()` / `updateIssueComment()` / `deleteIssueComment()`
-- `createPullRequest()` (détecte PR existante) / `fetchRepoPullRequests()` / `fetchCheckRunsForRef()`
-- `fetchSpecificIssues(refs)` — batch fetch par owner/repo/number
+**REST** (Bearer token, version 2022-11-28) : profil/repos, issues (`fetchIssuesByFilter`, `fetchIssue`, comments, timeline, update), PRs (`createPullRequest`, `fetchRepoPullRequests`, `fetchCheckRunsForRef`, merge), `fetchSpecificIssues(refs)`.
+**GraphQL** (Project V2) : `fetchProjectColumns()` (batch/pagination), mutations status via `updateProjectV2ItemFieldValue`.
 
-**GraphQL API** (Project V2) :
-- `fetchProjectColumns()` — batch queries avec pagination de 50, colonnes status par issue node_id
-- Mutations status : `updateProjectV2ItemFieldValue`
+### Chat agent (Agent SDK)
 
-### Claude CLI
+Le chat est **SDK-based** (le spawn CLI `packages/agent/src/routes/chat.ts` est du code ~mort). Flux :
 
-- Spawn `claude` CLI avec `--output-format stream-json`
-- Streaming SSE via `/api/chat` (POST)
-- Support `--resume sessionId` pour continuer une conversation
-- Events parsés : `session_id`, `type` (assistant/tool_use/tool_result/result), content
-- `/api/agent-builder` : génère des prompts agents via Claude avec system prompt, supporte itération
+```
+useAgentChat.ts  ──WebSocket──▶  terminal.ts (stream-*)  ──▶  sdk/sdkAgent.ts
+   (stream-init: sessionId, cwd, systemPrompt, model, effort, permissionMode)   └─ query() @anthropic-ai/claude-agent-sdk
+   ◀── stream-history / stream-ready / stream-event / stream-permission-request / stream-question-request
+```
 
-### Terminal & Sessions tmux
+- `sdk/sdkAgent.ts` : une session SDK par `sessionId`, multiplexe les clients WS, gère queue/permissions/transcript.
+- `sdk/transcriptStore.ts` : persiste les events dans `agent_chat_messages` (replay à la reconnexion).
+- `sdk/mapMessage.ts` → `StreamEvent` ; `sdk/activityDeriver.ts` → logs d'activité ; `sdk/permissions.ts` → `canUseTool` + AskUserQuestion ; `sdk/promptQueue.ts` → input streaming.
+- Rendu : `AgentChatTab.tsx` + `components/agents/chat/*` ; réduction via `src/lib/chatReducer.ts` (`reduceStreamEvent`). Le prompt système (persona d'agent + contexte d'issue) est **persisté** en DB (`agent_sessions.system_prompt`) à la création et rejoué par le Workbench.
 
-- **WebSocket server** sur port 4001 (initialisé dans `instrumentation.ts`)
-- Sessions tmux gérées via **node-pty**
-- Messages WebSocket : `init`, `input`, `resize`, `list-sessions`
-- `getActiveSessions()` : liste sessions avec metadata (cwd, createdAt, lastActivity, lastOutput, hasRecentOutput)
-- Session dedup : `findSessionByCwd()` — refuse de créer si déjà active
-- Vérification DB : refuse de créer tmux si session marquée completed en base
-- Frontend : **xterm.js** dans `AgentTerminalModal` (modal 1400×90vh) + `OverlayTerminal` (flottant, draggable)
+### Terminal & Sessions (serveur agent :4001)
+
+- Serveur HTTP natif (`packages/agent/src/index.ts`), dispatch par préfixe : `/git/*`, `/sessions` + `/agent-sessions/*`, `/chat`, `/filesystem/*`, `/health`.
+- **WebSocket** (`terminal.ts`) : deux protocoles sur un même socket — PTY brut (`init`/`input`/`resize`/`list-sessions`, via node-pty + `tmux attach-session`) **et** stream chat SDK (`stream-*`).
+- `routes/git.ts` : worktrees (CRUD), branches, `current-branch`, diff, push, `branch` (crée worktree + commente l'issue), `generate-branch-name` (via `claude --print`).
+- `routes/sessions.ts` : `GET /sessions` (merge tmux + SDK + DB), `kill`, `auto-summary` (rapport FR via `claude --print`).
+- `routes/filesystem.ts` : `GET /filesystem/pick-directory` (picker macOS `osascript`).
 
 ### Base de données (SQLite + Drizzle)
 
-> Migration Supabase → SQLite **terminée** : l'app Next.js (`src/`) **et** le serveur agent (`packages/agent/`) tapent tous deux dans le même fichier SQLite. Plus aucune dépendance Supabase.
-
-- **Fichier DB** : `data/devora.db` (racine projet, gitignored, créé au runtime)
-- **ORM** : Drizzle (`drizzle-orm/better-sqlite3`), schéma dans `src/db/schema.ts`
-- **Setup app Next** : `src/db/index.ts` — instancie `better-sqlite3`, active WAL, exporte `db` + `schema`, joue les migrations à l'import (`migrate()` depuis `src/db/migrations/`)
-- **Accès depuis l'agent** : `packages/agent/src/db.ts` — `getDb()` ouvre le **même** fichier en `{ fileMustExist: true }` (SQL brut via `better-sqlite3`, pas de Drizzle), **ne joue pas** les migrations (l'app Next en reste propriétaire)
-- **Chemin partagé** : env var `DEVORA_DB_PATH` (injectée par `scripts/dev-auto-port.mjs`) + fallback ; nécessaire car les 2 process ont des `cwd` différents. WAL gère la concurrence
-- IDs : `text` + `crypto.randomUUID()` ; timestamps : `text` défaut `datetime('now')` ; JSON : `text({ mode: 'json' })` typé
-- ⚠️ Plus de colonne `user_id` ni de RLS (app mono-utilisateur locale)
+- **Fichier** : `data/devora.db` (racine, gitignored, créé au runtime). WAL activé.
+- **App Next** : `src/db/index.ts` — better-sqlite3 + Drizzle, joue les migrations à l'import (`src/db/migrations/`).
+- **Serveur agent** : `packages/agent/src/db.ts` — `getDb()` ouvre le **même** fichier (`fileMustExist: true`), SQL brut, **ne joue pas** les migrations.
+- **Chemin partagé** : `DEVORA_DB_PATH` (injecté par `scripts/dev-auto-port.mjs`) + fallback.
+- IDs `text` + `randomUUID()` ; timestamps `text` défaut `datetime('now')` ; JSON `text({ mode: 'json' })`. Pas de `user_id`/RLS (mono-utilisateur).
 
 **Tables** (`src/db/schema.ts`) :
 
-| Table                  | Colonnes clés                                                                                          | Usage                     |
-| ---------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------- |
-| `todos`                | id, repo_full_name, title, description, done, sort_order, issue_number, issue_repo, created_at         | Todos par repo            |
-| `agentSessions`        | id, session_id (unique), project_path, project_name, branch, worktree_path, agent_name, status, issue_* | Sessions agents           |
-| `agentActivityLogs`    | id, agent_session_id, content, log_type, created_at                                                    | Logs activité agents      |
-| `repoPaths`            | id, repo_full_name (unique), local_path                                                                | Mapping repo → path local |
-| `projectConfigs`       | id, org, project_number, selected_views, active_view, view_order, view_repo_mappings, status_columns, views (json) | Config Project V2 |
-| `tabOrders`            | id, tab_group (unique), tab_order (json), updated_at                                                   | Ordre des tabs persisté   |
+| Table                | Colonnes clés                                                                                          |
+| -------------------- | ----------------------------------------------------------------------------------------------------- |
+| `todos`              | id, repo_full_name, title, description, done, sort_order, issue_number, issue_repo, created_at         |
+| `agentSessions`      | id, session_id (unique), project_path/name, branch, worktree_path, agent_name, status, started/ended/archived_at, report_published_at, issue_*, **claude_session_id**, **system_prompt** |
+| `agentActivityLogs`  | id, agent_session_id, content, log_type, created_at                                                    |
+| `agentChatMessages`  | id, agent_session_id, seq, role, event_type, content (json), created_at — transcript SDK               |
+| `repoPaths`          | id, repo_full_name (unique), local_path                                                                |
+| `projectConfigs`     | id, org, project_number, project_title, selected_views, active_view, view_order, view_repo_mappings, status_columns, views, owner_type |
+| `projectBoards`      | id, org, project_number, payload (json), fetched_at — cache board Project V2                           |
+| `tabOrders`          | id, tab_group (unique), tab_order (json), updated_at                                                   |
+| `appSettings`        | id, key (unique), value, updated_at                                                                    |
 
 ---
 
-## API Routes (30 endpoints)
+## API Routes
 
-### Auth
-| Méthode | Route                        | Description                           |
-| ------- | ---------------------------- | ------------------------------------- |
-| GET/POST| `/api/auth/[...nextauth]`    | NextAuth handlers (GitHub OAuth)      |
+### Next.js (`src/app/api`)
+
+| Méthode | Route | Description |
+| ------- | ----- | ----------- |
+| GET/POST | `/api/github` | Dashboard data ; batch fetch issues |
+| GET | `/api/github/issue` | Issue + commentaires |
+| PATCH | `/api/github/issue/update` | Update title/body |
+| POST/PATCH/DELETE | `/api/github/issue/comment` | CRUD commentaire |
+| GET | `/api/github/issue/timeline` | Timeline events |
+| POST | `/api/github/issue/create-pr` | Créer PR depuis issue |
+| POST | `/api/github/issue/move-status` | Déplacer issue (Project V2) |
+| PATCH | `/api/github/issues` | Update status (GraphQL) |
+| GET | `/api/github/projects` | Données Project V2 |
+| GET | `/api/github/prs` · POST `/api/github/prs/merge` | PRs par repos · merge |
+| GET | `/api/github/image-proxy` | Proxy avatars |
+| GET | `/api/me` | Utilisateur gh CLI courant |
+| GET/POST/PATCH/DELETE | `/api/agent-sessions` | CRUD sessions |
+| POST | `/api/agent-sessions/log` · GET/POST `/api/agent-sessions/logs` | Logs activité |
+| POST | `/api/agent-sessions/rename-from-prompt` | Auto-nommage branche/session |
+| GET/PUT/DELETE | `/api/project-configs` · `/api/repo-paths` | Config Project V2 · mapping repos |
+| GET/PUT | `/api/settings` · `/api/tab-orders` | app_settings · ordre tabs |
+| GET/POST/PATCH/DELETE | `/api/todos` · POST `/api/todos/complete-issue` | Todos CRUD |
+
+### Serveur agent (`packages/agent`, :4001)
+
+- **Git** : `GET/POST/DELETE /git/worktrees`, `GET /git/branches`, `/git/branches/log`, `POST /git/branch`, `GET /git/current-branch`, `/git/diff`, `POST /git/push`, `GET /git/repo-name`, `POST /git/generate-branch-name`
+- **Sessions** : `GET /sessions`, `POST /agent-sessions/:id/kill`, `POST /agent-sessions/:id/auto-summary`
+- **Filesystem** : `GET /filesystem/pick-directory`
+- **Chat** : `POST /chat` (spawn CLI — ~mort, le vrai chat est en WebSocket SDK)
+- **WebSocket** : PTY (`init`/`input`/`resize`/`list-sessions`) + stream chat (`stream-*`)
+
+---
+
+## Hooks (`src/hooks`)
 
 ### GitHub
-| Méthode | Route                              | Description                                            |
-| ------- | ---------------------------------- | ------------------------------------------------------ |
-| GET     | `/api/github`                      | Dashboard data : user, repos, issues enrichies Project V2 |
-| POST    | `/api/github`                      | Batch fetch issues spécifiques avec colonnes           |
-| GET     | `/api/github/issue`                | Issue unique + commentaires (query: owner, repo, number)|
-| PATCH   | `/api/github/issue/update`         | Update title/body issue                                |
-| POST    | `/api/github/issue/comment`        | Créer commentaire                                      |
-| PATCH   | `/api/github/issue/comment`        | Modifier commentaire                                   |
-| DELETE  | `/api/github/issue/comment`        | Supprimer commentaire                                  |
-| GET     | `/api/github/issue/timeline`       | Timeline events d'une issue                            |
-| POST    | `/api/github/issue/create-pr`      | Créer PR depuis issue                                  |
-| PATCH   | `/api/github/issue/move-status`    | Déplacer issue dans colonnes Project V2                |
-| PATCH   | `/api/github/issues`               | Mettre à jour status issue (GraphQL)                   |
-| GET     | `/api/github/prs`                  | PRs par repos (query: repos=owner/repo,...)            |
-| POST    | `/api/github/prs/merge`            | Merger une PR                                          |
-| GET     | `/api/github/projects`             | Données Project V2 (views, items, status columns)      |
-| GET     | `/api/github/image-proxy`          | Proxy avatars GitHub (auth)                            |
-
-### Chat & Agents
-| Méthode | Route                              | Description                                  |
-| ------- | ---------------------------------- | -------------------------------------------- |
-| POST    | `/api/chat`                        | Claude CLI streaming (SSE, JSON-lines)       |
-| POST    | `/api/agent-builder`               | Génération prompt agent via Claude (SSE)     |
-
-### Sessions & Activity
-| Méthode | Route                                        | Description                                   |
-| ------- | -------------------------------------------- | --------------------------------------------- |
-| GET     | `/api/sessions`                              | Liste sessions tmux actives                   |
-| POST    | `/api/agent-sessions/log`                    | Log activité agent (non-auth, backfill DB)    |
-| POST    | `/api/agent-sessions/[sessionId]/kill`       | Kill session tmux + mark completed            |
-| GET     | `/api/agent-sessions/[sessionId]/auto-summary`| Auto-génération summary                      |
-
-### Git & Worktrees
-| Méthode | Route                              | Description                                    |
-| ------- | ---------------------------------- | ---------------------------------------------- |
-| POST    | `/api/git/branch`                  | Créer worktree + branche depuis issue          |
-| GET     | `/api/git/branches`                | Lister branches avec commit history            |
-| GET     | `/api/git/branches/log`            | Git log pour une branche                       |
-| GET     | `/api/git/diff`                    | Git diff                                       |
-| POST    | `/api/git/push`                    | Git push                                       |
-| GET     | `/api/git/worktrees`               | Lister worktrees (excl. main)                  |
-| POST    | `/api/git/worktrees`               | Créer worktree + branche                       |
-| DELETE  | `/api/git/worktrees`               | Supprimer worktree (optionnel: + branche)      |
-| GET     | `/api/git/repo-name`               | Nom du repo                                    |
-| GET     | `/api/git/generate-branch-name`    | Générer nom de branche                         |
-
-### Filesystem
-| Méthode    | Route                            | Description                          |
-| ---------- | -------------------------------- | ------------------------------------ |
-| GET/PUT/DEL| `/api/filesystem/agents`         | CRUD fichiers agents (.md)           |
-| GET/PUT/DEL| `/api/filesystem/skills`         | CRUD fichiers skills (.md)           |
-| GET        | `/api/filesystem/pick-directory` | Directory picker                     |
-
----
-
-## Composants (30 fichiers)
-
-### Layout (`src/components/layout/`)
-
-| Composant            | Description                                                                |
-| -------------------- | -------------------------------------------------------------------------- |
-| `AppShell.tsx`       | Root layout client, gère RightSidebar/OverlayTerminal contexts, splash    |
-| `Sidebar.tsx`        | Drawer 220px, navigation, badge todos, avatar user, logout                |
-| `Header.tsx`         | AppBar 64px, theme toggle, agents panel toggle, session counter           |
-| `RightSidebar.tsx`   | Drawer 400px resizable, worktrees par agent view, sessions actives/passées|
-| `OverlayTerminal.tsx`| Terminal flottant draggable/expandable, xterm.js, WebSocket port 4001     |
-| `AppLoadingSplash.tsx`| Splash animé pendant init session                                        |
-
-### Dashboard (`src/components/dashboard/`)
-
-| Composant               | Description                                                      |
-| ------------------------ | ---------------------------------------------------------------- |
-| `Dashboard.tsx`          | Hub central : sessions actives/passées, SummaryTimeline          |
-| `IssueCard.tsx`          | Card issue : title, repo, labels, status, assignee, lien détail |
-| `IssueDetail.tsx`        | Issue complète : markdown editable, commentaires, timeline, agent|
-| `IssueTimelineModal.tsx` | Modal timeline historique issue                                  |
-
-### Agents (`src/components/agents/`)
-
-| Composant                | Description                                                             |
-| ------------------------ | ----------------------------------------------------------------------- |
-| `AgentsList.tsx`         | Grille agents avec preview markdown, edit/delete/launch                 |
-| `AgentTerminalModal.tsx` | Modal 1400×90vh : Step 1 (branche) → Step 2 (terminal, activity, diff, shell, issue)|
-| `AgentEditorDialog.tsx`  | Éditeur contenu prompt agent                                           |
-| `AgentFormDialog.tsx`    | Formulaire création preset (name, description, prompt, icon, color)     |
-| `AgentActivityTab.tsx`   | Logs activité avec timeline, bouton publish-to-GitHub                   |
-| `AgentDiffTab.tsx`       | Viewer diff Git side-by-side avec stats additions/deletions             |
-| `AgentIssueTab.tsx`      | Viewer issue compact dans modal agent                                   |
-| `AgentBuilderDialog.tsx` | Wizard 4 étapes : task type → tech stack → conventions → preview        |
-
-### Issues (`src/components/issues/`)
-
-| Composant              | Description                                                    |
-| ---------------------- | -------------------------------------------------------------- |
-| `IssuesList.tsx`       | Kanban board GitHub issues par colonnes Project V2, recherche  |
-| `KanbanColumn.tsx`     | Colonne kanban 300px avec header count                         |
-| `CreateBranchModal.tsx`| Modal création branche Git au passage "In Progress"            |
-
-### Autres features
-
-| Composant               | Dossier      | Description                                                   |
-| ------------------------ | ------------ | ------------------------------------------------------------- |
-| `PullRequestsList.tsx`   | `prs/`       | Liste PRs, couleur âge, checks CI, merge avec confirmation    |
-| `TodoList.tsx`           | `todos/`     | Tabs accordion, checkbox, édition inline, suggestions issues  |
-| `SkillsList.tsx`         | `skills/`    | Grille skills .md                                             |
-| `SkillEditorDialog.tsx`  | `skills/`    | Éditeur contenu skill                                         |
-| `WorkspaceView.tsx`      | `workspace/` | Worktrees/branches actifs                                     |
-| `BranchDetail.tsx`       | `workspace/` | Détail branche                                                |
-| `SettingsPanel.tsx`      | `settings/`  | Config Project V2 + repo paths                                |
-
-### Shared (`src/components/shared/`)
-
-| Composant          | Description                                                          |
-| ------------------ | -------------------------------------------------------------------- |
-| `DraggableTabs.tsx`| Tabs drag-and-drop générique, badges count, couleur configurable     |
-| `SessionCard.tsx`  | Card session/worktree réutilisable : status badges, animations, context menu |
-
-### Providers (root `src/components/`)
-
-| Composant          | Description                                               |
-| ------------------ | --------------------------------------------------------- |
-| `AuthProvider.tsx`  | NextAuth SessionProvider wrapper                          |
-| `QueryProvider.tsx` | React Query client init (staleTime 5min) + SnackbarProvider|
-| `ThemeRegistry.tsx` | MUI ThemeProvider + ColorModeProvider                     |
-| `LocaleSwitcher.tsx`| Sélecteur langue (5 locales) via next-intl                |
-
----
-
-## Hooks (20 fichiers)
-
-### Données GitHub
-
-| Hook                    | Fichier                  | Description                                                    |
-| ----------------------- | ------------------------ | -------------------------------------------------------------- |
-| `useGitHub`             | `useGitHub.ts`           | Dashboard data (user, repos, issues enrichies Project V2)      |
-| `useIssue`              | (dans useGitHub)         | Issue unique + commentaires                                    |
-| `useIssueTimeline`      | (dans useGitHub)         | Timeline events issue                                          |
-| `usePullRequests`       | `usePullRequests.ts`     | PRs par repos + mutation merge (squash support)                |
-| `useUpdateIssueStatus`  | `useUpdateIssueStatus.ts`| Mutation status issue GraphQL, optimistic update               |
-| `useProjectConfig`      | `useProjectConfig.ts`    | CRUD config Project V2, syncViews(), viewRepoMappings          |
+`useGitHub` (dashboard/issue/timeline), `usePullRequests` (+ merge), `useUpdateIssueStatus`, `useProjectConfig`, `useProjectBoards`, `useMe` (user gh, `isAuthenticated`).
 
 ### Agents & Sessions
+`useAgentChat` (**WebSocket chat SDK**), `useAgentSession` (CRUD 1 session), `useSessionManager` (agrège actives + passées), `useActiveSessions` (tmux+SDK), `useSessionActions` (stop/resume/archive/…), `useAgentViews`, `useAgentStatus` (ping `/health`).
 
-| Hook                     | Fichier                     | Description                                                  |
-| ------------------------ | --------------------------- | ------------------------------------------------------------ |
-| `useAgentSession`        | `useAgentSession.ts`        | Session unique : ensureSession, addLog, updateStatus, polling 10s|
-| `useSessionManager`      | `useSessionManager.ts`      | Agrège actives (tmux 5s) + past (DB), kill/delete/getForPath |
-| `useActiveSessions`      | `useActiveSessions.ts`      | Sessions tmux actives, polling 5s                            |
-| `useAgentFiles`          | `useAgentFiles.ts`          | CRUD agents .md via `/api/filesystem/agents`                 |
-| `useSkillFiles`          | `useSkillFiles.ts`          | CRUD skills .md via `/api/filesystem/skills`                 |
-| `useAgentViews`          | `useAgentViews.ts`          | Agent views (label, path, repo), reordering, addView()       |
-| `useRecentLogs`          | `useRecentLogs.ts`          | Summaries agents agrégés, parsing logs, polling 15s          |
+### Todos & Git
+`useTodos`, `useDashboardTodos`, `usePendingTodoCount`, `useWorktrees`, `useAllWorktrees`, `useBranches`, `useRepoPaths`.
 
-### Todos
+### UI / divers
+`useTabOrder`, `useAppSetting`, et les 3 hooks-context : `useOverlayTerminal.tsx`, `useColorMode.tsx`, `useSnackbar.tsx`.
 
-| Hook                  | Fichier                | Description                                                 |
-| --------------------- | ---------------------- | ----------------------------------------------------------- |
-| `useTodos`            | `useTodos.ts`          | CRUD complet par repo, mutations optimistes, lien issues    |
-| `usePendingTodoCount` | `usePendingTodoCount.ts`| Count non-faits, polling 30s                               |
-
-### Git & Worktrees
-
-| Hook            | Fichier            | Description                                              |
-| --------------- | ------------------ | -------------------------------------------------------- |
-| `useWorktrees`  | `useWorktrees.ts`  | List/create/delete worktrees, cwd-specific, staleTime 30s|
-| `useBranches`   | `useBranches.ts`   | Branches + metadata (lastCommitDate, author, isCurrent)  |
-| `useRepoPaths`  | `useRepoPaths.ts`  | Map repo_full_name ↔ local_path (SQLite), getLocalPath()  |
-
-### UI State
-
-| Hook               | Fichier              | Description                                           |
-| ------------------ | -------------------- | ----------------------------------------------------- |
-| `useTabOrder`      | `useTabOrder.ts`     | Persistance ordre tabs en SQLite, applyOrder()        |
-| `useRightSidebar`  | `useRightSidebar.ts` | Context RightSidebar (open, toggle, width)            |
-| `useSnackbar`      | `useSnackbar.tsx`    | Context Provider snackbars, showSnackbar()            |
-| `useColorMode`     | `useColorMode.tsx`   | Context dark/light, persisté localStorage             |
-| `useOverlayTerminal`| `useOverlayTerminal.ts`| State terminal flottant                             |
+> ⚠️ N'existent **plus** : `useRightSidebar`, `useRecentLogs`, `usePendingQuestions`, `useAgentFiles`, `useSkillFiles`.
 
 ---
 
-## Services (`src/lib/`)
+## Services (`src/lib`)
 
-| Fichier              | Description                                                              |
-| -------------------- | ------------------------------------------------------------------------ |
-| `github.ts` (24 KB)  | REST + GraphQL GitHub : fetch user/repos/issues/PRs/projects, mutations  |
-| `auth-utils.ts`      | `getAuthContext()`, `requireAuth()` — NextAuth session parsing           |
-| `api-fetch.ts`       | `apiFetch()` — wrapper fetch avec détection 401 → logout                |
-| `local-fetch.ts`     | `localFetch()` — appelle le serveur agent (:4001), fallback API Next en dev, WS url helpers |
-| `projectViews.ts`    | `parseViewFilter()`, `mapViewsToRepos()` — helpers Project V2           |
-| `locale.ts`          | Server action `setLocale()` — persistance cookie                        |
-
-> Le WebSocket/terminal server vit désormais dans `packages/agent/` (serveur `devora-agent` autonome sur le port 4001), plus dans `src/lib/`. Il accède au SQLite partagé via `packages/agent/src/db.ts`.
+| Fichier | Description |
+| ------- | ----------- |
+| `github.ts` | REST + GraphQL GitHub |
+| `auth-utils.ts` | `requireAuth()`, `getAuthContext()`, `getCurrentUser()` — token via gh CLI/`GITHUB_TOKEN` |
+| `api-fetch.ts` | `apiFetch()` — wrapper Next API, gestion 401 → logout |
+| `local-fetch.ts` | `localFetch()` / `getAgentWsUrl()` — serveur agent :4001, `AgentOfflineError` |
+| `chatReducer.ts` | `reduceStreamEvent()` — events SDK → `ChatMessage[]` |
+| `sessionStatus.ts` | `classifySession()` → `active` / `past` / `archived` |
+| `prompts.ts` | prompts par défaut (ex. create-PR) |
+| `projectViews.ts` | helpers Project V2 |
+| `locale.ts` | server action `setLocale()` (cookie) |
 
 ---
 
@@ -444,70 +330,32 @@ Composant client ("use client")
 
 ### Palette dark mode (défaut)
 
-| Rôle               | Couleur            |
-| ------------------ | ------------------ |
-| Primary            | `#7C5CFF` (violet) |
-| Secondary          | `#00D4FF` (cyan)   |
-| Background default | `#1A1A1A`          |
-| Background paper   | `#222222`          |
-| Text primary       | `#FFFFFF`          |
-| Text secondary     | `#B3B3B3`          |
-| Divider            | `#3A3A3A`          |
-| Success            | `#22C55E`          |
-| Error              | `#EF4444`          |
-| Warning            | `#F59E0B`          |
+| Rôle | Couleur | Rôle | Couleur |
+| ---- | ------- | ---- | ------- |
+| Primary | `#7C5CFF` | Success | `#22C55E` |
+| Secondary | `#00D4FF` | Error | `#EF4444` |
+| Background default | `#1A1A1A` | Warning | `#F59E0B` |
+| Background paper | `#222222` | Text primary | `#FFFFFF` |
+| Divider | `#3A3A3A` | Text secondary | `#B3B3B3` |
 
 ### Palette light mode
 
-| Rôle               | Couleur            |
-| ------------------ | ------------------ |
-| Primary            | `#8B7EC8`          |
-| Secondary          | `#7A9E8E`          |
-| Background default | `#F5F1EB`          |
-| Background paper   | `#FDFBF8`          |
+Primary `#8B7EC8` · Secondary `#7A9E8E` · Background default `#F5F1EB` · paper `#FDFBF8`.
 
 ### Conventions UI
 
-- Font : Poppins, fontSize base 12px, custom h4/h5/h6
-- Cards : borders subtiles, hover transform, borderRadius 10px
-- Chips : fontWeight/fontSize custom
+- Font Poppins, fontSize base 12px, custom h4/h5/h6
+- Cards : borders subtiles, hover transform, borderRadius 10px ; default borderRadius 8px
 - Tabs : no textTransform, minHeight 40px
-- Dialogs, Drawers, AppBar : overrides custom dans theme
-- Animations : Framer Motion pour transitions, CSS keyframes pour entrées
-- Default borderRadius : 8px
+- Animations : Framer Motion (transitions) + CSS keyframes (entrées)
 
 ---
 
-## i18n (Internationalisation)
+## i18n
 
-- **Lib** : next-intl 4.8 avec `NextIntlClientProvider`
-- **Locales** : `en`, `fr`, `es`, `de`, `pt` (détection cookie, fallback `en`)
-- **Fichiers** : `src/config/translate/{locale}.json`
-- **Persistance** : server action `setLocale()` → cookie
-- **Clés principales** : `sidebar`, `landing`, `dashboard`, `issues`, `prs`, `agents`, `skills`, `todos`, `workspace`, `settings`, `header`, `common`, `agentBuilder`, `agentForm`, `agentActivity`, `agentDiff`, `agentIssue`, `sessionCard`, `issueDetail`
-- **Plurals** : support ICU (`{count, plural, one {# agent} other {# agents}}`)
-
----
-
-## Types principaux (`src/types/index.ts`)
-
-```typescript
-// GitHub
-GitHubRepo, GitHubLabel, GitHubIssue, GitHubComment, GitHubPullRequest
-GitHubTimelineEvent, DashboardData, DashboardStats, CheckRun, ProjectColumn
-
-// Project V2
-ProjectV2Config, ProjectV2Data, ProjectV2View, ProjectV2Item
-ViewRepoMapping, ViewIssueRef, StatusFieldInfo
-
-// Agents
-AgentPreset { id, name, description, prompt_template, icon, color, created_at }
-AgentSession { id, session_id, project_path, project_name, branch, agent_name, status }
-AgentActivityLog { id, agent_session_id, content, log_type, branch, status, created_at }
-
-// Todos
-Todo { id, repo_full_name, title, description, done, sort_order, issueNumber?, issueRepo? }
-```
+- **next-intl 4.8**, `NextIntlClientProvider`, locales `en/fr/es/de/pt` (cookie, fallback `en`), fichiers `src/config/translate/{locale}.json`, persistance via `setLocale()`.
+- **Namespaces** : `onboarding`, `sidebar`, `landing`, `workbench`, `issues`, `todos`, `prs`, `settings`, `header`, `common`, `launchModal`, `agentActivity`, `agentDiff`, `agentIssue`, `agentChat`, `workspace`, `sessionCard`, `issueDetail`, `archived`.
+- Plurals ICU (`{count, plural, one {# agent} other {# agents}}`).
 
 ---
 
@@ -515,42 +363,36 @@ Todo { id, repo_full_name, title, description, done, sort_order, issueNumber?, i
 
 ### Git
 
-- **Ne jamais commiter sans accord explicite** de Ludovic
-- Workflow : feature branches + PR
-- Nommer les branches : `feat/`, `fix/`, `refactor/`
+- **Ne jamais commiter/push sans accord explicite** de Ludovic
+- Workflow : feature branches + PR · branches `feat/`, `fix/`, `refactor/`
 
 ### Code
 
-- Respecter les patterns existants avant d'en introduire de nouveaux
-- Pas de sur-ingénierie : faire simple, faire propre
-- Pas de commentaires inutiles, pas de docstrings sur du code évident
+- Respecter les patterns existants avant d'en introduire de nouveaux ; faire simple, faire propre
+- Pas de commentaires/docstrings inutiles
 - `"use client"` sur tous les composants interactifs
-- Types centralisés dans `src/types/index.ts`
-- Path alias : `@/*` → `./src/*`
-- **Jamais de texte en dur** dans les composants — toujours utiliser `next-intl` (`useTranslations`) pour tous les labels, messages, boutons, etc. Les traductions sont dans `src/config/translate/`
+- Types centralisés dans `src/types/index.ts` · path alias `@/*` → `./src/*`
+- **Jamais de texte en dur** dans les composants — toujours `next-intl` (`useTranslations`), traductions dans `src/config/translate/`
+- Tests : convention du repo = **logique pure uniquement** (Vitest, `*.test.ts` sur lib/hooks) ; l'UI se vérifie par `lint` + `tsc --noEmit` + `build` + run manuel
 
 ### Naming
 
-- Composants : PascalCase, organisés par feature
-- Hooks : `use*` prefix
-- Types : PascalCase
-- API routes : kebab-case
-- Fichiers composants : PascalCase (ex: `AgentTerminalModal.tsx`)
+Composants PascalCase (par feature) · hooks `use*` · types PascalCase · routes API kebab-case.
 
-### IDE
+### IDE & dev
 
-- Ludovic utilise **Cursor** comme IDE principal
-- Port de dev : **4000**
+- Ludovic utilise **Cursor**. Port dev Next : **4000** ; serveur agent : **4001**.
+- `npm run dev` lance les deux (Next + agent) via `concurrently`.
 
-### Env vars requises
+### Env vars
 
-> Plus aucune variable Supabase. La DB SQLite est locale (`data/devora.db`, créée au runtime). Noms vérifiés dans le code (`src/auth.ts`, `src/lib/*`).
+> Pas de variable Supabase ni NextAuth. Auth = session `gh` CLI locale.
 
-- `AUTH_SECRET` — Secret NextAuth (lu automatiquement par authjs). Générer : `openssl rand -base64 33`
-- `GITHUB_CLIENT_ID` — GitHub OAuth App ID
-- `GITHUB_CLIENT_SECRET` — GitHub OAuth App Secret
-- `GITHUB_TOKEN` — Token GitHub (REST + GraphQL, fallback)
-- `ALLOWED_GITHUB_USERS` — (optionnel) whitelist de logins séparés par virgule
-- `NEXT_PUBLIC_APP_URL` — (optionnel) URL publique de l'app
-- `NEXT_PUBLIC_AGENT_URL` — (optionnel) URL du serveur agent, défaut `http://localhost:4001`
-- `DEVORA_DB_PATH` — (optionnel) chemin absolu de la DB, injecté auto par `scripts/dev-auto-port.mjs` pour que l'app Next et l'agent partagent le même fichier
+- `GITHUB_TOKEN` — (optionnel) token GitHub ; sinon lu depuis la session `gh` CLI
+- `ANTHROPIC_API_KEY` / `ANTHROPIC_AUTH_TOKEN` / `ANTHROPIC_BASE_URL` — pour l'Agent SDK / le CLI `claude`
+- `CLAUDE_BIN` — (optionnel) chemin du binaire `claude`
+- `NEXT_PUBLIC_AGENT_URL` — URL serveur agent (défaut `http://localhost:4001`)
+- `DEVORA_AGENT_PORT` — port serveur agent (défaut 4001)
+- `DEVORA_DB_PATH` — chemin absolu de la DB partagée (injecté auto en dev)
+- `DEVORA_ORIGIN` — (optionnel) origine autorisée CORS côté agent
+```
