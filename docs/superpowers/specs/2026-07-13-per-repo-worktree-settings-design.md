@@ -61,7 +61,7 @@ Type `RepoSettings` ajouté à `src/types/index.ts`.
 ### 4. Page — `src/app/(app)/settings/repo/[...repo]/page.tsx` + `RepoSettingsPanel`
 
 - **Route catch-all `[...repo]`** (et non `[owner]/[repo]`) : `repo_full_name` n'est pas toujours `owner/repo` — pour un repo ajouté manuellement dont le remote git n'a pas pu être résolu, c'est un simple nom de dossier **sans `/`** (cf. `useAgentViews.repoFullName` ← `repo_paths.repo_full_name`). Le catch-all capture 1 **ou** 2+ segments et les rejoint.
-- `page.tsx` (server) : `const repoFullName = decodeURIComponent((await params).repo.join('/'));` puis rend `<RepoSettingsPanel repoFullName={repoFullName} />` (client). Fonctionne pour `owner/repo` (2 segments) comme `myrepo` (1 segment).
+- `page.tsx` (server) : `const repoFullName = (await params).repo.join('/');` puis rend `<RepoSettingsPanel repoFullName={repoFullName} />` (client). Next.js décode déjà chaque segment catch-all — pas de `decodeURIComponent` supplémentaire. Fonctionne pour `owner/repo` (2 segments) comme `myrepo` (1 segment).
 - **`src/components/settings/RepoSettingsPanel.tsx`** — sections (design soigné, cohérent avec `SettingsPanel`) :
   - **Create PR prompt** : textarea + save. Placeholder = `DEFAULT_CREATE_PR_PROMPT`.
   - **Files to copy** : textarea (une ligne par chemin) + description « Devora copiera automatiquement ces fichiers dans chaque nouveau worktree. »
@@ -115,9 +115,9 @@ Namespace `repoSettings` (5 locales) : titres/descriptions des sections, labels 
 
 ## Risques / points à vérifier pendant le plan
 
-1. **Résolution `repoFullName` d'une session** : couvrir les 2 cas (issue → `issue_owner/issue_repo` ; sinon reverse-lookup `repoPaths` par `project_path`), **match insensible à la casse d'entrée** (obligatoire, pas « si pertinent »). Si non résolu → fallback `DEFAULT_CREATE_PR_PROMPT` et pas de run-scripts.
+1. **Résolution `repoFullName` d'une session** : couvrir les 2 cas (issue → `issue_owner/issue_repo` ; sinon reverse-lookup `repoPaths` par `project_path`), **match insensible à la casse d'entrée** (obligatoire, pas « si pertinent »). ⚠️ `project_path` est **nullable** (schema) et `resolved` peut être null → guarder avant `.toLowerCase()`. Si non résolu → fallback `DEFAULT_CREATE_PR_PROMPT` et pas de run-scripts.
 2. **`ShellTerminal.runCommand`** : le composant passe en `forwardRef` ; vérifier que ses conscommateurs actuels (Workbench) ne cassent pas (ref optionnel). Envoi `cmd + "\r"` seulement si `ws.readyState === OPEN`.
-3. **Route `[owner]/[repo]`** : `repo` peut contenir des caractères encodés ; décoder `params`. Le group `(app)` protège déjà via AppShell.
+3. **Route catch-all `[...repo]`** : `await params`, join des segments ; Next décode déjà chaque segment. Le group `(app)` protège déjà via AppShell.
 4. **`useAgentViews.repoFullName`** peut être un simple nom de dossier sans `/` (repo ajouté manuellement, remote git non résolu). Résolu par la **route catch-all `[...repo]`** (§4) : pas besoin de masquer le ⚙️. `repo_settings` est keyé par ce `repo_full_name` tel quel (cohérent entre sidebar, page et Workbench, tous issus de `repo_paths`).
 5. **Retrait Create PR global** : vérifier qu'aucun autre consommateur de `CREATE_PR_PROMPT_KEY` ne subsiste (grep) avant de retirer l'UI globale.
 6. **run_scripts JSON** : typer `text({ mode: 'json' })` et gérer la génération d'`id` (crypto.randomUUID côté client à l'ajout).
