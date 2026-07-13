@@ -20,7 +20,7 @@ export interface BoardConfigTag {
 }
 
 export interface BoardIssue extends GitHubIssue {
-	__config: BoardConfigTag;
+	__config?: BoardConfigTag;
 }
 
 /**
@@ -29,7 +29,10 @@ export interface BoardIssue extends GitHubIssue {
  * keeping the first occurrence (and its config tag).
  */
 export function mergeConnectedBoards(
-	perConfig: { config: BoardConfigTag & { statusColumns: string[] }; boardIssues: GitHubIssue[] }[],
+	perConfig: {
+		config: BoardConfigTag & { statusColumns: string[] };
+		boardIssues: GitHubIssue[];
+	}[],
 ): { issues: BoardIssue[]; statusColumns: string[] } {
 	const seen = new Set<string>();
 	const issues: BoardIssue[] = [];

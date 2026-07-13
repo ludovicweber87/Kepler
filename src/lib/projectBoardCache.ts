@@ -8,7 +8,6 @@ export interface ProjectBoardPayload {
 	views: ProjectV2View[];
 	viewRepoMappings: ViewRepoMapping[];
 	statusColumns: string[];
-	boardIssuesByView: Record<string, GitHubIssue[]>;
 	boardIssues: GitHubIssue[];
 	error?: string;
 }
@@ -55,23 +54,9 @@ export function patchSnapshotStatus(
 	newStatus: string,
 ): void {
 	const snap = readSnapshot(org, projectNumber);
-	if (!snap?.payload?.boardIssuesByView) return;
+	if (!snap?.payload?.boardIssues) return;
 
-	const map = snap.payload.boardIssuesByView;
 	let changed = false;
-	for (const view of Object.keys(map)) {
-		map[view] = map[view].map((issue) => {
-			if (issue.node_id !== issueNodeId) return issue;
-			changed = true;
-			return {
-				...issue,
-				project_columns: issue.project_columns?.length
-					? issue.project_columns.map((c) => ({ ...c, column: newStatus }))
-					: [{ project: '', column: newStatus }],
-			};
-		});
-	}
-
 	if (Array.isArray(snap.payload.boardIssues)) {
 		snap.payload.boardIssues = snap.payload.boardIssues.map((issue) => {
 			if (issue.node_id !== issueNodeId) return issue;

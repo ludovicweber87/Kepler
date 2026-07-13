@@ -122,79 +122,6 @@ export function useProjectConfig() {
 		);
 	}, [queryClient]);
 
-	const setActiveView = useCallback(
-		(viewName: string | null) => {
-			// Find which config contains this view
-			const target =
-				configs.find((c) => c.selectedViews.includes(viewName ?? '')) ?? configs[0];
-			if (!target) return;
-			saveMutation.mutate({ ...target, activeView: viewName });
-		},
-		[configs, saveMutation],
-	);
-
-	const reorderViews = useCallback(
-		(orderedNames: string[]) => {
-			// Reorder affects all configs — distribute view names back to their owning configs
-			for (const c of configs) {
-				const relevant = orderedNames.filter((n) => c.selectedViews.includes(n));
-				if (relevant.length > 0) {
-					saveMutation.mutate({ ...c, viewOrder: relevant });
-				}
-			}
-		},
-		[configs, saveMutation],
-	);
-
-	const getViewRepos = useCallback(
-		(viewName: string): string[] | undefined => {
-			for (const c of configs) {
-				const mapping = c.viewRepoMappings.find(
-					(m: ViewRepoMapping) => m.viewName === viewName,
-				);
-				if (mapping) return mapping.repos;
-			}
-			return undefined;
-		},
-		[configs],
-	);
-
-	// Aggregate selectedViewMappings from all configs
-	const selectedViewMappings = (() => {
-		const all: ViewRepoMapping[] = [];
-		const allOrders: string[] = [];
-
-		for (const c of configs) {
-			const selected = c.viewRepoMappings.filter((m: ViewRepoMapping) =>
-				c.selectedViews.includes(m.viewName),
-			);
-			all.push(...selected);
-			if (c.viewOrder?.length) {
-				allOrders.push(...c.viewOrder);
-			}
-		}
-
-		if (allOrders.length === 0) return all;
-
-		const byName = new Map(all.map((m) => [m.viewName, m]));
-		const ordered = allOrders.filter((n) => byName.has(n)).map((n) => byName.get(n)!);
-		for (const m of all) {
-			if (!allOrders.includes(m.viewName)) ordered.push(m);
-		}
-		return ordered;
-	})();
-
-	/** Find the config that owns a repo (for status mutations) */
-	const getConfigForRepo = useCallback(
-		(repoFullName: string): ProjectV2Config | undefined => {
-			const lower = repoFullName.toLowerCase();
-			return configs.find((c) =>
-				c.viewRepoMappings.some((m) => m.repos.some((r) => r.toLowerCase() === lower)),
-			);
-		},
-		[configs],
-	);
-
 	return {
 		config,
 		configs,
@@ -202,10 +129,5 @@ export function useProjectConfig() {
 		saveConfig,
 		removeConfig,
 		clearConfig,
-		setActiveView,
-		reorderViews,
-		getViewRepos,
-		selectedViewMappings,
-		getConfigForRepo,
 	};
 }
