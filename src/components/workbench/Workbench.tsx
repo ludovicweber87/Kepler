@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
+import CircularProgress from '@mui/material/CircularProgress';
 import Chip from '@mui/material/Chip';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
@@ -71,7 +72,8 @@ export default function Workbench() {
 		() => resolveRepoFullName(resolved, repoPaths),
 		[resolved, repoPaths],
 	);
-	const { settings: repoSettings } = useRepoSettings(repoFullName);
+	const { settings: repoSettings, isLoading: repoSettingsLoading } =
+		useRepoSettings(repoFullName);
 
 	const bucket = resolved ? classifySession(resolved) : null;
 	const isArchived = bucket === 'archived';
@@ -192,7 +194,25 @@ export default function Workbench() {
 		);
 	}
 
-	if (resolved?.status === 'provisioning') {
+	if (
+		resolved &&
+		(resolved.status === 'provisioning' ||
+			(resolved.status === 'error' && !resolved.worktree_path))
+	) {
+		if (repoSettingsLoading) {
+			return (
+				<Box
+					sx={{
+						height: '100%',
+						display: 'flex',
+						alignItems: 'center',
+						justifyContent: 'center',
+					}}
+				>
+					<CircularProgress />
+				</Box>
+			);
+		}
 		return <CreationProgress session={resolved} repoSettings={repoSettings} />;
 	}
 

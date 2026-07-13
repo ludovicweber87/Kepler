@@ -26,7 +26,6 @@ export default function CreationProgress({
 }) {
 	const t = useTranslations('creationProgress');
 	const qc = useQueryClient();
-	const started = useRef(false);
 	const abortRef = useRef<AbortController | null>(null);
 	const [steps, setSteps] = useState<Record<string, StepStatus>>({});
 	const [error, setError] = useState<{ step: string; message?: string } | null>(null);
@@ -111,11 +110,10 @@ export default function CreationProgress({
 	}, [session, repoSettings, hasIssue, mode, qc]);
 
 	useEffect(() => {
-		if (started.current) return;
-		started.current = true;
 		run();
 		return () => abortRef.current?.abort();
-	}, [run]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	const iconFor = (st: StepStatus | undefined) => {
 		if (st === 'done') return <CheckCircleRoundedIcon color="success" fontSize="small" />;
@@ -158,14 +156,7 @@ export default function CreationProgress({
 							{t('failed', { step: label[error.step] ?? error.step })}
 							{error.message ? ` — ${error.message}` : ''}
 						</Typography>
-						<Button
-							variant="outlined"
-							size="small"
-							onClick={() => {
-								started.current = true;
-								run();
-							}}
-						>
+						<Button variant="outlined" size="small" onClick={() => run()}>
 							{t('retry')}
 						</Button>
 					</Box>
