@@ -88,6 +88,7 @@ export const projectConfigs = sqliteTable('project_configs', {
 	status_columns: text({ mode: 'json' }).$type<string[]>().default([]),
 	views: text({ mode: 'json' }).$type<Record<string, unknown>[]>().default([]),
 	owner_type: text(),
+	connected: integer({ mode: 'boolean' }).default(false),
 });
 
 // ─── Tab Orders ──────────────────────────────────────────

@@ -6,10 +6,10 @@ import {
 	fetchUserLogin,
 	projectItemToIssue,
 } from '@/lib/github';
-import { mapViewsToRepos, matchViewItems, knownFieldsFromItems } from '@/lib/projectViews';
+import { mapViewsToRepos } from '@/lib/projectViews';
 import { requireAuth, isAuthError } from '@/lib/auth-utils';
 import { readSnapshot, writeSnapshot, type ProjectBoardPayload } from '@/lib/projectBoardCache';
-import type { GitHubIssue } from '@/types';
+import { buildBoardIssues } from '@/lib/boardMerge';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,19 +66,13 @@ export async function GET(request: NextRequest) {
 			}
 			const viewRepoMappings = mapViewsToRepos(projectData.views, projectData.items);
 
-			// Per view: items matching the filter AND assigned to the logged-in user, mapped
-			// to the GitHubIssue shape (issues + PRs) — the board renders straight from this.
+			// Assigned-to-viewer items, mapped to the GitHubIssue shape (issues + PRs) —
+			// the board renders straight from this.
 			const viewer = (await fetchUserLogin(auth.accessToken)).toLowerCase();
-			const knownFields = knownFieldsFromItems(projectData.items);
-			const boardIssuesByView: Record<string, GitHubIssue[]> = {};
-			for (const view of projectData.views) {
-				const mine = matchViewItems(view, projectData.items, knownFields).filter((it) =>
-					it.assignees.some((a) => a.login.toLowerCase() === viewer),
-				);
-				boardIssuesByView[view.name] = mine.map((it) =>
-					projectItemToIssue(it, projectData.title),
-				);
-			}
+			const allMine = projectData.items
+				.filter((it) => it.assignees.some((a) => a.login.toLowerCase() === viewer))
+				.map((it) => projectItemToIssue(it, projectData.title));
+			const boardIssues = buildBoardIssues(allMine);
 
 			const payload: ProjectBoardPayload = {
 				project: {
@@ -89,7 +83,7 @@ export async function GET(request: NextRequest) {
 				views: projectData.views,
 				viewRepoMappings,
 				statusColumns: projectData.statusColumns,
-				boardIssuesByView,
+				boardIssues,
 			};
 			const fetchedAt = writeSnapshot(org, num, payload);
 			return NextResponse.json({ ...payload, fetchedAt });
@@ -101,7 +95,7 @@ export async function GET(request: NextRequest) {
 				views: [],
 				viewRepoMappings: [],
 				statusColumns: [],
-				boardIssuesByView: {},
+				boardIssues: [],
 				fetchedAt: null,
 				error: fetchErr instanceof Error ? fetchErr.message : 'fetch_failed',
 			});

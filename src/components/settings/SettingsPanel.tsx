@@ -8,7 +8,7 @@ import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
-import Checkbox from '@mui/material/Checkbox';
+import Switch from '@mui/material/Switch';
 import Chip from '@mui/material/Chip';
 import Skeleton from '@mui/material/Skeleton';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -30,7 +30,6 @@ import { alpha, useTheme } from '@mui/material/styles';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
-import ViewColumnRoundedIcon from '@mui/icons-material/ViewColumnRounded';
 import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
@@ -73,7 +72,6 @@ function ProjectSection({
 	savedConfig,
 	configsLoaded,
 	onSave,
-	onToast,
 }: {
 	project: OrgProject;
 	org: string;
@@ -81,7 +79,6 @@ function ProjectSection({
 	savedConfig: ProjectV2Config | undefined;
 	configsLoaded: boolean;
 	onSave: (config: ProjectV2Config) => void;
-	onToast: (msg: string) => void;
 }) {
 	const t = useTranslations('settings');
 	const [viewsData, setViewsData] = useState<ProjectViewsData | null>(() => {
@@ -103,7 +100,28 @@ function ProjectSection({
 	const [error, setError] = useState<string | null>(null);
 	const [hasFetched, setHasFetched] = useState(!!savedConfig?.views?.length);
 
-	const selectedViews = new Set(savedConfig?.selectedViews ?? []);
+	const connected = savedConfig?.connected ?? false;
+
+	const baseConfigFor = (proj: OrgProject): ProjectV2Config => ({
+		org,
+		projectNumber: proj.number,
+		projectTitle: proj.title,
+		selectedViews: [],
+		activeView: null,
+		viewOrder: [],
+		viewRepoMappings: [],
+		statusColumns: [],
+		views: [],
+		ownerType,
+		connected: false,
+	});
+
+	const handleToggleConnected = (next: boolean) => {
+		onSave({
+			...(savedConfig ?? baseConfigFor(project)),
+			connected: next,
+		});
+	};
 
 	const fetchViews = useCallback(async () => {
 		setLoading(true);
@@ -130,6 +148,7 @@ function ProjectSection({
 				statusColumns: fetched.statusColumns ?? [],
 				views: fetched.views,
 				ownerType,
+				connected: savedConfig?.connected ?? false,
 			});
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Failed to load views');
@@ -145,34 +164,6 @@ function ProjectSection({
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [configsLoaded]);
-
-	const toggleView = (viewName: string) => {
-		const next = new Set(selectedViews);
-		if (next.has(viewName)) {
-			next.delete(viewName);
-		} else {
-			next.add(viewName);
-		}
-		const views = Array.from(next);
-
-		onSave({
-			org,
-			projectNumber: project.number,
-			projectTitle: project.title,
-			selectedViews: views,
-			activeView: views[0] ?? null,
-			viewOrder: views,
-			viewRepoMappings: viewsData?.viewRepoMappings ?? savedConfig?.viewRepoMappings ?? [],
-			statusColumns: viewsData?.statusColumns ?? savedConfig?.statusColumns ?? [],
-			views: viewsData?.views ?? savedConfig?.views ?? [],
-			ownerType,
-		});
-		onToast(
-			next.has(viewName)
-				? t('viewEnabled', { name: viewName })
-				: t('viewDisabled', { name: viewName }),
-		);
-	};
 
 	const displayViews = viewsData?.views ?? savedConfig?.views ?? [];
 
@@ -246,63 +237,25 @@ function ProjectSection({
 					</Box>
 				)}
 
-				{displayViews.length > 0 &&
-					displayViews.map((view, index) => {
-						const isSelected = selectedViews.has(view.name);
-						return (
-							<Box
-								key={view.id}
-								onClick={() => toggleView(view.name)}
-								sx={{
-									display: 'flex',
-									alignItems: 'center',
-									gap: 1.5,
-									py: 1,
-									px: 2,
-									cursor: 'pointer',
-									borderTop: index > 0 ? 1 : 0,
-									borderColor: 'divider',
-									transition: 'background-color 0.15s',
-									'&:hover': {
-										bgcolor: (th) => alpha(th.palette.primary.main, 0.04),
-									},
-								}}
-							>
-								<Checkbox
-									size="small"
-									checked={isSelected}
-									sx={{
-										p: 0.25,
-										color: (th) => alpha(th.palette.text.disabled, 0.3),
-										'&.Mui-checked': { color: 'primary.main' },
-									}}
-								/>
-								<ViewColumnRoundedIcon
-									sx={{
-										fontSize: 18,
-										color: isSelected ? 'primary.main' : 'text.secondary',
-									}}
-								/>
-								<Typography
-									variant="body2"
-									sx={{
-										fontWeight: 500,
-										color: isSelected ? 'primary.main' : 'text.primary',
-										flex: 1,
-										minWidth: 0,
-									}}
-								>
-									{view.name}
-								</Typography>
-							</Box>
-						);
-					})}
-
-				{!loading && hasFetched && displayViews.length === 0 && !error && (
-					<Typography variant="body2" color="text.secondary" sx={{ px: 2, py: 1 }}>
-						{t('noViewsFound')}
+				<Box
+					sx={{
+						display: 'flex',
+						alignItems: 'center',
+						justifyContent: 'space-between',
+						gap: 1.5,
+						px: 2,
+						py: 1.5,
+					}}
+				>
+					<Typography variant="body2" sx={{ fontWeight: 500 }}>
+						{t('connectBoard')}
 					</Typography>
-				)}
+					<Switch
+						size="small"
+						checked={connected}
+						onChange={(e) => handleToggleConnected(e.target.checked)}
+					/>
+				</Box>
 			</AccordionDetails>
 		</Accordion>
 	);
@@ -708,7 +661,7 @@ export default function SettingsPanel() {
 		}
 	};
 
-	const totalConfigured = configs.filter((c) => c.selectedViews.length > 0).length;
+	const totalConfigured = configs.filter((c) => c.connected).length;
 
 	const allProjects = orgProjects;
 
@@ -821,7 +774,6 @@ export default function SettingsPanel() {
 									savedConfig={findSavedConfig(o.org, p.number)}
 									configsLoaded={!configsLoading}
 									onSave={saveConfig}
-									onToast={showToast}
 								/>
 							)),
 						)}

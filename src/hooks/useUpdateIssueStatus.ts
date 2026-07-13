@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { DashboardData, GitHubIssue } from '@/types';
 import { apiFetch } from '@/lib/api-fetch';
+import { useSnackbar } from '@/hooks/useSnackbar';
 
 interface UpdateStatusParams {
 	issueNodeId: string;
@@ -35,7 +36,7 @@ function updateDashboardIssues(
 }
 
 interface BoardData {
-	boardIssuesByView?: Record<string, GitHubIssue[]>;
+	boardIssues?: GitHubIssue[];
 	[k: string]: unknown;
 }
 
@@ -43,18 +44,21 @@ function updateBoardIssues(
 	old: BoardData | undefined,
 	params: UpdateStatusParams,
 ): BoardData | undefined {
-	if (!old?.boardIssuesByView) return old;
-	const next: Record<string, GitHubIssue[]> = {};
-	for (const [view, issues] of Object.entries(old.boardIssuesByView)) {
-		next[view] = issues.map((issue) =>
+	if (!old) return old;
+	const patchList = (list: GitHubIssue[]) =>
+		list.map((issue) =>
 			issue.node_id === params.issueNodeId ? withStatus(issue, params.newStatus) : issue,
 		);
+	const next: BoardData = { ...old };
+	if (Array.isArray(old.boardIssues)) {
+		next.boardIssues = patchList(old.boardIssues);
 	}
-	return { ...old, boardIssuesByView: next };
+	return next;
 }
 
 export function useUpdateIssueStatus() {
 	const queryClient = useQueryClient();
+	const { showSnackbar } = useSnackbar();
 
 	return useMutation({
 		mutationFn: async (params: UpdateStatusParams) => {
@@ -91,13 +95,14 @@ export function useUpdateIssueStatus() {
 
 			return { previousDashboard, previousBoard, boardKey };
 		},
-		onError: (_err, _params, context) => {
+		onError: (err, _params, context) => {
 			for (const [key, data] of context?.previousDashboard ?? []) {
 				queryClient.setQueryData(key, data);
 			}
 			if (context?.boardKey && context.previousBoard !== undefined) {
 				queryClient.setQueryData(context.boardKey, context.previousBoard);
 			}
+			showSnackbar(err instanceof Error ? err.message : 'Failed to update status', 'error');
 		},
 		onSettled: () => {
 			// Only invalidate the (assigned-issues) dashboard; the board stays cache-backed

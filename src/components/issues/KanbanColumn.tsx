@@ -87,7 +87,7 @@ export default function KanbanColumn({
 			>
 				{issues.map((issue) => (
 					<IssueCard
-						key={issue.id}
+						key={issue.node_id}
 						issue={issue}
 						currentColumn={columnName}
 						columns={allColumns}

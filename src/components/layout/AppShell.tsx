@@ -41,7 +41,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 	}
 
 	const hasRepos = repoPaths.length > 0;
-	const hasProjects = configs.some((c) => c.selectedViews.length > 0);
+	const hasProjects = configs.some((c) => c.connected);
 	const showOnboarding = !skipOnboarding && !onboardingDone;
 
 	if (showOnboarding) {
