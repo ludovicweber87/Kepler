@@ -15,7 +15,6 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Collapse from '@mui/material/Collapse';
 import { alpha, useTheme } from '@mui/material/styles';
-import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import MergeTypeRoundedIcon from '@mui/icons-material/MergeTypeRounded';
@@ -408,7 +407,7 @@ export default function PullRequestsList() {
 	const theme = useTheme();
 	const t = useTranslations('prs');
 	const tc = useTranslations('common');
-	const { views, addView, reorderViews } = useAgentViews();
+	const { views, reorderViews } = useAgentViews();
 	const allRepos = useMemo(() => views.map((v) => v.repoFullName), [views]);
 	const { data: allPrs, isLoading, refetch, isFetching } = usePullRequests(allRepos);
 	const mergeMutation = useMergePR();
@@ -475,22 +474,6 @@ export default function PullRequestsList() {
 					<Typography variant="body2" color="text.disabled" sx={{ mb: 2 }}>
 						{t('addRepoFirst')}
 					</Typography>
-					<Button
-						variant="outlined"
-						startIcon={<AddRoundedIcon />}
-						onClick={() => addView()}
-						sx={(theme) => ({
-							borderColor: theme.palette.success.main,
-							color: theme.palette.success.main,
-							textTransform: 'none',
-							'&:hover': {
-								borderColor: theme.palette.success.main,
-								bgcolor: alpha(theme.palette.success.main, 0.08),
-							},
-						})}
-					>
-						{t('addProject')}
-					</Button>
 				</Box>
 			</Box>
 		);
@@ -516,7 +499,11 @@ export default function PullRequestsList() {
 						size="small"
 						onClick={() => refetch()}
 						disabled={isFetching}
-						sx={{ ml: 'auto', color: 'text.disabled', '&:hover': { color: 'success.main' } }}
+						sx={{
+							ml: 'auto',
+							color: 'text.disabled',
+							'&:hover': { color: 'success.main' },
+						}}
 					>
 						{isFetching ? (
 							<CircularProgress size={16} sx={{ color: 'text.disabled' }} />
@@ -536,17 +523,6 @@ export default function PullRequestsList() {
 					reorderViews(newOrder);
 				}}
 				color={theme.palette.success.main}
-				trailing={
-					<Tooltip title={t('addProject')}>
-						<IconButton
-							size="small"
-							onClick={() => addView()}
-							sx={{ color: 'text.disabled', '&:hover': { color: 'success.main' } }}
-						>
-							<AddRoundedIcon fontSize="small" />
-						</IconButton>
-					</Tooltip>
-				}
 			/>
 
 			{/* Loading */}

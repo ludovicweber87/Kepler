@@ -202,7 +202,8 @@
 		"closeSession": "Close session",
 		"confirmCloseTitle": "Close session?",
 		"confirmCloseBody": "The current session will be stopped. You can relaunch it later.",
-		"stopSession": "Stop session"
+		"stopSession": "Stop session",
+		"configurePathFirst": "Configure the local folder for {repo} in Settings first"
 	},
 	"agentActivity": {
 		"reportTitle": "Agent report",

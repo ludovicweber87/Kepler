@@ -29,6 +29,7 @@ interface AgentFile {
 	content: string;
 }
 import { useRepoPaths } from '@/hooks/useRepoPaths';
+import { useSnackbar } from '@/hooks/useSnackbar';
 import { useAgentSession } from '@/hooks/useAgentSession';
 import { useWorktrees } from '@/hooks/useWorktrees';
 import { useTranslations } from 'next-intl';
@@ -133,9 +134,9 @@ export default function AgentTerminalModal({
 	const [launchMode, setLaunchMode] = useState<'worktree' | 'current-branch' | null>(null);
 
 	// Path resolution for issue context
-	const { repoPaths, getLocalPath, savePath } = useRepoPaths();
+	const { repoPaths, getLocalPath } = useRepoPaths();
+	const { showSnackbar } = useSnackbar();
 	const [resolvedPath, setResolvedPath] = useState<string | null>(null);
-	const [, setPicking] = useState(false);
 
 	const projectPath = projectPathProp ?? resolvedPath;
 
@@ -167,8 +168,10 @@ export default function AgentTerminalModal({
 		[router, onClose],
 	);
 
-	// Resolve path from repo_paths when using issueContext
-	const resolveCwd = useCallback(async () => {
+	// Resolve path from repo_paths when using issueContext. The local folder is
+	// configured ONLY in Settings — never via a picker here. If the repo has no
+	// configured path, guide the user to Settings instead of popping a picker.
+	const resolveCwd = useCallback(() => {
 		if (!issueContext) return;
 		const repoFullName = `${issueContext.owner}/${issueContext.repo}`;
 		const saved = getLocalPath(repoFullName);
@@ -176,22 +179,10 @@ export default function AgentTerminalModal({
 			setResolvedPath(saved);
 			return;
 		}
-		setPicking(true);
-		try {
-			const res = await localFetch('/filesystem/pick-directory');
-			const { path } = await res.json();
-			if (path) {
-				savePath(repoFullName, path);
-				setResolvedPath(path);
-			} else {
-				onClose();
-			}
-		} catch {
-			onClose();
-		} finally {
-			setPicking(false);
-		}
-	}, [issueContext, getLocalPath, savePath, onClose]);
+		showSnackbar(tl('configurePathFirst', { repo: repoFullName }), 'warning');
+		router.push('/settings');
+		onClose();
+	}, [issueContext, getLocalPath, showSnackbar, tl, router, onClose]);
 
 	useEffect(() => {
 		if (open && issueContext && !resolvedPath) {

@@ -181,7 +181,8 @@
 		"closeSession": "Fechar sessao",
 		"confirmCloseTitle": "Fechar a sessao?",
 		"confirmCloseBody": "A sessao atual sera encerrada. Voce podera relanca-la mais tarde.",
-		"stopSession": "Parar a sessão"
+		"stopSession": "Parar a sessão",
+		"configurePathFirst": "Configure primeiro a pasta local de {repo} nas Configurações"
 	},
 	"agentActivity": {
 		"reportTitle": "Relatório do agente",

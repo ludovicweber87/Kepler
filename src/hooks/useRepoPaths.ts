@@ -110,8 +110,10 @@ export function useRepoPaths() {
 	);
 
 	const getLocalPath = useCallback(
-		(repoFullName: string): string | undefined =>
-			repoPaths.find((r) => r.repo_full_name === repoFullName)?.local_path,
+		(repoFullName: string): string | undefined => {
+			const lower = repoFullName.toLowerCase();
+			return repoPaths.find((r) => r.repo_full_name.toLowerCase() === lower)?.local_path;
+		},
 		[repoPaths],
 	);
 
