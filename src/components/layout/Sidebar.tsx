@@ -115,11 +115,12 @@ export default function Sidebar() {
 				const settings = rs.ok ? await rs.json() : null;
 				const script = settings?.archive_script?.trim();
 				if (script && worktreePath) {
-					await localFetch('/git/run-script', {
+					const runRes = await localFetch('/git/run-script', {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify({ cwd: worktreePath, script }),
 					});
+					if (!runRes.ok) throw new Error('archive script failed');
 				}
 			} catch {
 				showSnackbar(t('archiveScriptFailed'), 'warning');
