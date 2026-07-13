@@ -14,6 +14,7 @@
 		"skills": "Skills",
 		"todos": "Tasks",
 		"settings": "Settings",
+		"repoSettings": "Repo settings",
 		"signOut": "Sign out",
 		"launchAgent": "Launch Agent",
 		"projects": "Projects",
@@ -316,5 +317,24 @@
 		"unarchive": "Unarchive",
 		"sessionUnarchived": "Session unarchived",
 		"unarchiveError": "Failed to unarchive"
+	},
+	"repoSettings": {
+		"title": "Repo settings",
+		"createPrPrompt": "Create PR prompt",
+		"createPrPromptDesc": "Message sent to the agent when you click \"Create PR\".",
+		"filesToCopy": "Files to copy",
+		"filesToCopyDesc": "Devora will automatically copy these files into every new worktree (one path per line).",
+		"setupScript": "Setup script",
+		"setupScriptDesc": "Runs when a worktree is created (e.g. pnpm install).",
+		"archiveScript": "Archive script",
+		"archiveScriptDesc": "Runs before a worktree is archived.",
+		"runScripts": "Run scripts",
+		"runScriptsDesc": "Shortcuts to launch your dev server, tests, etc.",
+		"addRunScript": "Add",
+		"runScriptName": "Name",
+		"runScriptCommand": "Command",
+		"save": "Save",
+		"saved": "Saved",
+		"shareHint": "Share with your team? Create a .devora/settings.toml file."
 	}
 }
