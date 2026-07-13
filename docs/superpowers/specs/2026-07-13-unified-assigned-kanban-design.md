@@ -67,7 +67,8 @@ Le passage de `boardIssuesByView` → `boardIssues` casse deux patchs qui dépen
 ### 4. Settings — `src/components/settings/SettingsPanel.tsx`
 
 - **Retirer l'UI de sélection de views** : `toggleView`, la liste des views cochables, l'auto-fetch lié à cette sélection.
-- **Nouveau** : sur chaque `ProjectSection`, un **toggle « Connecter ce board »** qui écrit `connected: true/false` dans la config. (L'auto-save au montage peut rester pour créer la ligne, mais avec `connected: false` par défaut — la ligne n'entre au Kanban que si l'user active le toggle.)
+- **Nouveau** : sur chaque `ProjectSection`, un **toggle « Connecter ce board »** qui écrit `connected: true/false` dans la config.
+- ⚠️ **L'auto-save au montage** (`ProjectSection.fetchViews()` → `onSave`, `SettingsPanel.tsx:142-147`) fait un **overwrite de ligne complète** (`route.ts` PUT = `.set(values)` sur toute la ligne). Il doit donc **propager la valeur existante** : `connected: savedConfig?.connected ?? false` — **jamais** un `false` codé en dur, sinon un board connecté se **déconnecte** à chaque ouverture de Settings. Seul le toggle explicite change la valeur.
 - **Conserver** : gestion des **chemins repo locaux** (`repo_paths`).
 - Le compteur `totalConfigured` (`SettingsPanel.tsx:711`) : `configs.filter(c => c.selectedViews.length > 0)` → `configs.filter(c => c.connected)`.
 - Les `statusColumns` du Kanban proviennent du fetch board au runtime, pas de Settings.
@@ -79,7 +80,8 @@ Le passage de `boardIssuesByView` → `boardIssues` casse deux patchs qui dépen
 ### 5. Config / hook `useProjectConfig`
 
 - **Migration additive** : ajout de `connected` (cf. §0). Les colonnes `selected_views`, `view_order`, `view_repo_mappings`, `active_view`, `views` restent en base mais **ne pilotent plus** rien (laissées inertes).
-- `useProjectConfig` : retirer (ou cesser d'exposer) `selectedViewMappings` et les helpers de sélection de views ; exposer `connected` sur les configs + une mutation pour le basculer. Conserver la liste des configs et les CRUD.
+- `useProjectConfig` : retirer (ou cesser d'exposer) `selectedViewMappings` et les helpers de sélection de views ; exposer `connected` sur les configs + une mutation pour le basculer. Conserver la liste des configs et les CRUD. Mettre à jour `configToRow`/`rowToConfig` pour `connected`.
+- **`src/app/api/project-configs/route.ts`** (PUT) : la route **whiteliste** les colonnes du body (`route.ts:26-37` destructure + `:51-62` construit `values`). Il faut **ajouter `connected`** au destructure ET à `values`, sinon le toggle POST `connected: true` mais la route le **droppe** silencieusement (jamais persisté). Fichier à ajouter à la liste des modifs.
 
 ## Types (`src/types/index.ts`)
 
