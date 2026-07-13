@@ -29,7 +29,8 @@
 		"delete": "Delete",
 		"archived": "Archived",
 		"sessionArchived": "Session archived",
-		"archiveError": "Failed to archive"
+		"archiveError": "Failed to archive",
+		"archiveScriptFailed": "Archive script failed, archiving anyway"
 	},
 	"landing": {
 		"nav": {
@@ -73,6 +74,16 @@
 		"newSession": "New session",
 		"activeSession": "Active session",
 		"stopSession": "Stop session"
+	},
+	"creationProgress": {
+		"title": "Preparing the workspace",
+		"readIssue": "Agent reading the issue",
+		"worktree": "Creating the worktree",
+		"copyFiles": "Copying files",
+		"setup": "Setup script",
+		"ready": "Ready",
+		"failed": "Failed — {step}",
+		"retry": "Retry"
 	},
 	"issues": {
 		"title": "Issues",

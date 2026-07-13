@@ -29,7 +29,8 @@
 		"delete": "Löschen",
 		"archived": "Archiviert",
 		"sessionArchived": "Sitzung archiviert",
-		"archiveError": "Archivieren fehlgeschlagen"
+		"archiveError": "Archivieren fehlgeschlagen",
+		"archiveScriptFailed": "Archivierungsskript fehlgeschlagen, trotzdem archiviert"
 	},
 	"landing": {
 		"nav": {
@@ -73,6 +74,16 @@
 		"newSession": "Neue Sitzung",
 		"activeSession": "Aktive Sitzung",
 		"stopSession": "Sitzung beenden"
+	},
+	"creationProgress": {
+		"title": "Arbeitsbereich wird vorbereitet",
+		"readIssue": "Agent liest das Issue",
+		"worktree": "Worktree wird erstellt",
+		"copyFiles": "Dateien werden kopiert",
+		"setup": "Setup-Skript",
+		"ready": "Bereit",
+		"failed": "Fehlgeschlagen — {step}",
+		"retry": "Erneut versuchen"
 	},
 	"issues": {
 		"title": "Issues",

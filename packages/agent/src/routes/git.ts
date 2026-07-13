@@ -10,8 +10,11 @@ import {
 	getToken,
 	findClaude,
 	findTmux,
+	startSSE,
+	sendSSE,
 } from '../helpers.js';
 import { getDb } from '../db.js';
+import { parseFilesToCopy } from '../filesToCopy.js';
 
 const TMUX = findTmux();
 
@@ -65,7 +68,6 @@ function getBaseBranch(cwd: string): string {
 	return 'main';
 }
 
-
 async function postGitHubComment(
 	token: string,
 	owner: string,
@@ -114,7 +116,8 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 	if (path === '/git/worktrees' && method === 'POST') {
 		try {
 			const { cwd, branch } = await readBody<{ cwd: string; branch: string }>(req);
-			if (!cwd || !branch) return sendJson(res, { error: 'cwd and branch are required' }, 400);
+			if (!cwd || !branch)
+				return sendJson(res, { error: 'cwd and branch are required' }, 400);
 
 			const dirName = branch.replace(/\//g, '-');
 			const worktreePath = `${cwd}/.worktrees/${dirName}`;
@@ -132,7 +135,11 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 			}
 
 			try {
-				execSync(`git fetch origin ${baseBranch}`, { cwd, encoding: 'utf-8', timeout: 30000 });
+				execSync(`git fetch origin ${baseBranch}`, {
+					cwd,
+					encoding: 'utf-8',
+					timeout: 30000,
+				});
 			} catch {
 				// May fail if offline
 			}
@@ -173,7 +180,11 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 	// DELETE /git/worktrees
 	if (path === '/git/worktrees' && method === 'DELETE') {
 		try {
-			const { cwd, worktreePath, deleteBranch = false } = await readBody<{
+			const {
+				cwd,
+				worktreePath,
+				deleteBranch = false,
+			} = await readBody<{
 				cwd: string;
 				worktreePath: string;
 				deleteBranch?: boolean;
@@ -214,22 +225,32 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 				const db = getDb();
 				if (db) {
 					const rows = db
-						.prepare('SELECT id, session_id FROM agent_sessions WHERE worktree_path = ?')
+						.prepare(
+							'SELECT id, session_id FROM agent_sessions WHERE worktree_path = ?',
+						)
 						.all(worktreePath) as { id: string; session_id: string }[];
 					for (const s of rows) {
 						try {
-							execSync(`${TMUX} kill-session -t ${s.session_id}-shell`, { stdio: 'ignore' });
+							execSync(`${TMUX} kill-session -t ${s.session_id}-shell`, {
+								stdio: 'ignore',
+							});
 						} catch {
 							// shell may not exist
 						}
 						try {
-							execSync(`${TMUX} kill-session -t ${s.session_id}`, { stdio: 'ignore' });
+							execSync(`${TMUX} kill-session -t ${s.session_id}`, {
+								stdio: 'ignore',
+							});
 						} catch {
 							// session may be dead
 						}
-						db.prepare('DELETE FROM agent_activity_logs WHERE agent_session_id = ?').run(s.id);
+						db.prepare(
+							'DELETE FROM agent_activity_logs WHERE agent_session_id = ?',
+						).run(s.id);
 					}
-					db.prepare('DELETE FROM agent_sessions WHERE worktree_path = ?').run(worktreePath);
+					db.prepare('DELETE FROM agent_sessions WHERE worktree_path = ?').run(
+						worktreePath,
+					);
 				}
 			} catch {
 				// session cleanup is best-effort
@@ -255,11 +276,14 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 
 			let current = '';
 			try {
-				current = execSync(`git -C ${JSON.stringify(localPath)} rev-parse --abbrev-ref HEAD`, {
-					encoding: 'utf-8',
-					timeout: 5_000,
-					stdio: ['pipe', 'pipe', 'ignore'],
-				}).trim();
+				current = execSync(
+					`git -C ${JSON.stringify(localPath)} rev-parse --abbrev-ref HEAD`,
+					{
+						encoding: 'utf-8',
+						timeout: 5_000,
+						stdio: ['pipe', 'pipe', 'ignore'],
+					},
+				).trim();
 			} catch {
 				// ignore
 			}
@@ -553,6 +577,186 @@ Issue title: "${issueTitle}"`;
 			sendJson(res, { branchName, prefix, slug });
 		} catch (err) {
 			sendError(res, err instanceof Error ? err.message : 'Unknown error');
+		}
+		return;
+	}
+
+	// POST /git/provision (SSE) — provisionne un worktree étape par étape
+	if (path === '/git/provision' && method === 'POST') {
+		const body = await readBody<{
+			cwd: string;
+			branch: string;
+			sessionId: string;
+			mode: 'worktree' | 'current-branch';
+			issue?: { owner: string; repo: string; number: number };
+			filesToCopy: string;
+			setupScript: string;
+		}>(req);
+		const token = getToken(req);
+		startSSE(res);
+		const db = getDb();
+
+		const fail = (step: string, message: string) => {
+			try {
+				db?.prepare('UPDATE agent_sessions SET status = ? WHERE session_id = ?').run(
+					'error',
+					body.sessionId,
+				);
+			} catch {
+				/* best-effort */
+			}
+			sendSSE(res, 'step', { step, status: 'error', message });
+			res.end();
+		};
+
+		try {
+			// 1) read-issue (optionnel)
+			if (body.issue && token) {
+				sendSSE(res, 'step', { step: 'read-issue', status: 'running' });
+				try {
+					const { owner, repo, number } = body.issue;
+					const base = `https://api.github.com/repos/${owner}/${repo}/issues/${number}`;
+					const headers = {
+						Authorization: `Bearer ${token}`,
+						Accept: 'application/vnd.github+json',
+						'X-GitHub-Api-Version': '2022-11-28',
+					};
+					const [issueRes, commentsRes] = await Promise.all([
+						fetch(base, { headers }),
+						fetch(`${base}/comments`, { headers }),
+					]);
+					const issue = issueRes.ok ? await issueRes.json() : null;
+					const comments = commentsRes.ok ? await commentsRes.json() : [];
+					if (issue) {
+						const commentsText = (comments as { body?: string }[])
+							.map((c) => c.body ?? '')
+							.filter(Boolean)
+							.join('\n\n---\n\n');
+						const prompt = `Voici une issue GitHub et ses commentaires. Résume le contexte et une approche suggérée, en français, de façon concise.\n\n# ${issue.title}\n\n${issue.body ?? ''}\n\n## Commentaires\n${commentsText}`;
+						const summary = execFileSync(findClaude(), ['--print'], {
+							input: prompt,
+							encoding: 'utf-8',
+							timeout: 120000,
+						}).trim();
+						if (summary && db) {
+							const row = db
+								.prepare(
+									'SELECT system_prompt FROM agent_sessions WHERE session_id = ?',
+								)
+								.get(body.sessionId) as { system_prompt?: string } | undefined;
+							const nextPrompt =
+								`${row?.system_prompt ?? ''}\n\n## Contexte de l'issue (résumé)\n${summary}`.trim();
+							db.prepare(
+								'UPDATE agent_sessions SET system_prompt = ? WHERE session_id = ?',
+							).run(nextPrompt, body.sessionId);
+						}
+					}
+					sendSSE(res, 'step', { step: 'read-issue', status: 'done' });
+				} catch {
+					// non bloquant : on saute proprement
+					sendSSE(res, 'step', {
+						step: 'read-issue',
+						status: 'done',
+						message: 'skipped',
+					});
+				}
+			}
+
+			let worktreePath = body.cwd;
+
+			if (body.mode === 'worktree') {
+				// 2) worktree
+				sendSSE(res, 'step', { step: 'worktree', status: 'running' });
+				const dirName = body.branch.replace(/\//g, '-');
+				worktreePath = `${body.cwd}/.worktrees/${dirName}`;
+				if (!existsSync(worktreePath)) {
+					let baseBranch = 'main';
+					try {
+						baseBranch = execSync('git symbolic-ref refs/remotes/origin/HEAD', {
+							cwd: body.cwd,
+							encoding: 'utf-8',
+							timeout: 5000,
+						})
+							.trim()
+							.replace('refs/remotes/origin/', '');
+					} catch {
+						/* fallback main */
+					}
+					try {
+						execSync(`git fetch origin ${baseBranch}`, {
+							cwd: body.cwd,
+							encoding: 'utf-8',
+							timeout: 30000,
+						});
+					} catch {
+						/* offline */
+					}
+					execSync(
+						`git worktree add ${JSON.stringify(worktreePath)} -b ${JSON.stringify(body.branch)} origin/${baseBranch}`,
+						{ cwd: body.cwd, encoding: 'utf-8', timeout: 30000 },
+					);
+				}
+				sendSSE(res, 'step', { step: 'worktree', status: 'done' });
+
+				// 3) copy files
+				sendSSE(res, 'step', { step: 'copy-files', status: 'running' });
+				try {
+					const files = parseFilesToCopy(body.filesToCopy);
+					const list =
+						files.length > 0
+							? files
+							: readdirSync(body.cwd).filter((f) => f.startsWith('.env'));
+					for (const file of list) {
+						const src = join(body.cwd, file);
+						if (existsSync(src)) copyFileSync(src, join(worktreePath, file));
+					}
+					const srcModules = join(body.cwd, 'node_modules');
+					const destModules = join(worktreePath, 'node_modules');
+					if (existsSync(srcModules) && !existsSync(destModules)) {
+						symlinkSync(srcModules, destModules, 'dir');
+					}
+				} catch {
+					/* non bloquant */
+				}
+				sendSSE(res, 'step', { step: 'copy-files', status: 'done' });
+
+				// 4) setup script
+				if (body.setupScript && body.setupScript.trim()) {
+					sendSSE(res, 'step', { step: 'setup', status: 'running' });
+					try {
+						execSync(body.setupScript, {
+							cwd: worktreePath,
+							encoding: 'utf-8',
+							timeout: 600000,
+						});
+						sendSSE(res, 'step', { step: 'setup', status: 'done' });
+					} catch (err) {
+						return fail('setup', err instanceof Error ? err.message : 'setup failed');
+					}
+				}
+			}
+
+			// 5) done → session active + worktree_path
+			db?.prepare(
+				'UPDATE agent_sessions SET status = ?, worktree_path = ? WHERE session_id = ?',
+			).run('active', body.mode === 'worktree' ? worktreePath : null, body.sessionId);
+			sendSSE(res, 'done', { step: 'done', worktreePath });
+			res.end();
+		} catch (err) {
+			return fail('worktree', err instanceof Error ? err.message : 'provision failed');
+		}
+		return;
+	}
+
+	// POST /git/run-script — exécute une commande dans un cwd (ex. archive_script)
+	if (path === '/git/run-script' && method === 'POST') {
+		try {
+			const { cwd, script } = await readBody<{ cwd: string; script: string }>(req);
+			if (!cwd || !script?.trim()) return sendJson(res, { ok: true });
+			execSync(script, { cwd, encoding: 'utf-8', timeout: 120000 });
+			sendJson(res, { ok: true });
+		} catch (err) {
+			sendError(res, err instanceof Error ? err.message : 'run-script failed');
 		}
 		return;
 	}

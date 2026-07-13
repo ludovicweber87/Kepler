@@ -29,7 +29,8 @@
 		"delete": "Eliminar",
 		"archived": "Arquivadas",
 		"sessionArchived": "Sessão arquivada",
-		"archiveError": "Falha ao arquivar"
+		"archiveError": "Falha ao arquivar",
+		"archiveScriptFailed": "Falha no script de arquivamento, arquivado mesmo assim"
 	},
 	"landing": {
 		"nav": {
@@ -73,6 +74,16 @@
 		"newSession": "Nova sessão",
 		"activeSession": "Sessão ativa",
 		"stopSession": "Parar a sessão"
+	},
+	"creationProgress": {
+		"title": "Preparando o espaço de trabalho",
+		"readIssue": "O agente está lendo a issue",
+		"worktree": "Criando o worktree",
+		"copyFiles": "Copiando arquivos",
+		"setup": "Script de configuração",
+		"ready": "Pronto",
+		"failed": "Falha — {step}",
+		"retry": "Tentar novamente"
 	},
 	"issues": {
 		"title": "Issues",

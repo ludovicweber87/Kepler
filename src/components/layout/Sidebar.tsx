@@ -40,7 +40,11 @@ import { useSessionActions } from '@/hooks/useSessionActions';
 import { classifySession } from '@/lib/sessionStatus';
 import { useAgentViews } from '@/hooks/useAgentViews';
 import { useAllWorktrees } from '@/hooks/useAllWorktrees';
+import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useSnackbar } from '@/hooks/useSnackbar';
+import { resolveRepoFullName } from '@/lib/resolveRepoFullName';
+import { apiFetch } from '@/lib/api-fetch';
+import { localFetch } from '@/lib/local-fetch';
 import LocaleSwitcher from '@/components/LocaleSwitcher';
 import AgentTerminalModal from '@/components/agents/AgentTerminalModal';
 
@@ -65,6 +69,7 @@ export default function Sidebar() {
 	const { views } = useAgentViews();
 	const { byPath, deleteWorktree } = useAllWorktrees(views.map((v) => v.path));
 	const { archive, remove } = useSessionActions();
+	const { repoPaths } = useRepoPaths();
 	const { showSnackbar } = useSnackbar();
 	// Projects are all expanded by default; we only track the ones the user collapsed,
 	// so each accordion opens/closes independently.
@@ -95,10 +100,33 @@ export default function Sidebar() {
 		});
 	};
 
-	const handleArchive = () => {
+	const handleArchive = async () => {
 		if (!actionsMenu?.sessionId) return;
 		const sessionId = actionsMenu.sessionId;
+		const { projectPath, worktreePath } = actionsMenu;
 		setActionsMenu(null);
+
+		const repoFullName = resolveRepoFullName({ project_path: projectPath }, repoPaths);
+		if (repoFullName) {
+			try {
+				const rs = await apiFetch(
+					`/api/repo-settings?repo=${encodeURIComponent(repoFullName)}`,
+				);
+				const settings = rs.ok ? await rs.json() : null;
+				const script = settings?.archive_script?.trim();
+				if (script && worktreePath) {
+					const runRes = await localFetch('/git/run-script', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ cwd: worktreePath, script }),
+					});
+					if (!runRes.ok) throw new Error('archive script failed');
+				}
+			} catch {
+				showSnackbar(t('archiveScriptFailed'), 'warning');
+			}
+		}
+
 		archive(sessionId)
 			.then(() => showSnackbar(t('sessionArchived'), 'success'))
 			.catch(() => showSnackbar(t('archiveError'), 'error'));
@@ -315,10 +343,16 @@ export default function Sidebar() {
 												onClick={() =>
 													router.push(
 														'/settings/repo/' +
-															view.repoFullName.split('/').map(encodeURIComponent).join('/'),
+															view.repoFullName
+																.split('/')
+																.map(encodeURIComponent)
+																.join('/'),
 													)
 												}
-												sx={{ color: 'text.disabled', '&:hover': { color: 'primary.main' } }}
+												sx={{
+													color: 'text.disabled',
+													'&:hover': { color: 'primary.main' },
+												}}
 											>
 												<SettingsRoundedIcon sx={{ fontSize: 16 }} />
 											</IconButton>

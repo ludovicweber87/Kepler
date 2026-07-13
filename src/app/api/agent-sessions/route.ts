@@ -114,6 +114,7 @@ export async function POST(req: NextRequest) {
 			issue_number,
 			issue_title,
 			system_prompt,
+			status,
 		} = body;
 
 		// Check if already exists
@@ -150,7 +151,7 @@ export async function POST(req: NextRequest) {
 				branch: branch ?? null,
 				worktree_path: worktree_path ?? null,
 				agent_name: agent_name ?? null,
-				status: 'active',
+				status: status ?? 'active',
 				issue_owner: issue_owner ?? null,
 				issue_repo: issue_repo ?? null,
 				issue_number: issue_number ?? null,
