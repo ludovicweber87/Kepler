@@ -58,9 +58,10 @@ Calquée sur `/api/settings` (auth via `requireAuth`) :
 - `isLoading`, `isSaving`.
 Type `RepoSettings` ajouté à `src/types/index.ts`.
 
-### 4. Page — `src/app/(app)/settings/repo/[owner]/[repo]/page.tsx` + `RepoSettingsPanel`
+### 4. Page — `src/app/(app)/settings/repo/[...repo]/page.tsx` + `RepoSettingsPanel`
 
-- Route dans le group `(app)`. `page.tsx` (server) lit `params` (owner, repo) et rend `<RepoSettingsPanel repoFullName={owner/repo} />` (client).
+- **Route catch-all `[...repo]`** (et non `[owner]/[repo]`) : `repo_full_name` n'est pas toujours `owner/repo` — pour un repo ajouté manuellement dont le remote git n'a pas pu être résolu, c'est un simple nom de dossier **sans `/`** (cf. `useAgentViews.repoFullName` ← `repo_paths.repo_full_name`). Le catch-all capture 1 **ou** 2+ segments et les rejoint.
+- `page.tsx` (server) : `const repoFullName = decodeURIComponent((await params).repo.join('/'));` puis rend `<RepoSettingsPanel repoFullName={repoFullName} />` (client). Fonctionne pour `owner/repo` (2 segments) comme `myrepo` (1 segment).
 - **`src/components/settings/RepoSettingsPanel.tsx`** — sections (design soigné, cohérent avec `SettingsPanel`) :
   - **Create PR prompt** : textarea + save. Placeholder = `DEFAULT_CREATE_PR_PROMPT`.
   - **Files to copy** : textarea (une ligne par chemin) + description « Devora copiera automatiquement ces fichiers dans chaque nouveau worktree. »
@@ -71,12 +72,12 @@ Type `RepoSettings` ajouté à `src/types/index.ts`.
 
 ### 5. Sidebar — `src/components/layout/Sidebar.tsx`
 
-À côté du **+** de chaque repo (bloc `IconButton` `launchAgent` ~ligne 312-326), ajouter un **`IconButton` ⚙️** (`SettingsRoundedIcon`) → `router.push('/settings/repo/' + view.repoFullName)`. (`useAgentViews` expose `repoFullName` par view ; `view.repoFullName` est `owner/repo`.) `router` déjà présent dans le Sidebar.
+À côté du **+** de chaque repo (bloc `IconButton` `launchAgent` ~ligne 312-326), ajouter un **`IconButton` ⚙️** (`SettingsRoundedIcon`) → `router.push('/settings/repo/' + view.repoFullName.split('/').map(encodeURIComponent).join('/'))`. La route étant catch-all (§4), un `repoFullName` avec ou sans `/` fonctionne — inutile de masquer le bouton. `router` déjà présent dans le Sidebar.
 
 ### 6. Create PR prompt déplacé — `SettingsPanel` + `AgentChatTab` + `Workbench`
 
 - **`SettingsPanel.tsx`** : retirer la section Create PR prompt (le bloc `useAppSetting(CREATE_PR_PROMPT_KEY)` + son UI).
-- **`Workbench.tsx`** : résoudre le `repoFullName` de la session — priorité `issue_owner/issue_repo` (`${owner}/${repo}`), sinon reverse-lookup `repoPaths` par `resolved.project_path` (`repoPaths.find(rp => rp.local_path === project_path)?.repo_full_name`). `useRepoSettings(repoFullName)` → passer **`createPrPrompt`** en prop à `AgentChatTab` (fallback `DEFAULT_CREATE_PR_PROMPT`).
+- **`Workbench.tsx`** : résoudre le `repoFullName` de la session — priorité `issue_owner/issue_repo` (`${owner}/${repo}`), sinon reverse-lookup `repoPaths` par `resolved.project_path`, **match insensible à la casse** (`rp.local_path.toLowerCase() === project_path.toLowerCase()`) pour éviter un échec silencieux sur APFS. `useRepoSettings(repoFullName)` → passer **`createPrPrompt`** en prop à `AgentChatTab` (fallback `DEFAULT_CREATE_PR_PROMPT`).
 - **`AgentChatTab.tsx`** : accepter une prop `createPrPrompt?: string` ; remplacer le `useAppSetting(CREATE_PR_PROMPT_KEY)` par cette prop (fallback `DEFAULT_CREATE_PR_PROMPT`). Le bouton « Create PR » envoie `createPrPrompt`.
 - `CREATE_PR_PROMPT_KEY` / `DEFAULT_CREATE_PR_PROMPT` (`src/lib/prompts.ts`) : `DEFAULT_CREATE_PR_PROMPT` conservé (fallback) ; `CREATE_PR_PROMPT_KEY` (app_settings) devient inutilisé → retirer ses usages (la clé en base est simplement abandonnée, pas de migration).
 
@@ -114,9 +115,9 @@ Namespace `repoSettings` (5 locales) : titres/descriptions des sections, labels 
 
 ## Risques / points à vérifier pendant le plan
 
-1. **Résolution `repoFullName` d'une session** : couvrir les 2 cas (issue → `issue_owner/issue_repo` ; sinon reverse-lookup `repoPaths` par `project_path`). Attention casse (réutiliser le match insensible à la casse de `getLocalPath` si pertinent). Si non résolu → fallback `DEFAULT_CREATE_PR_PROMPT` et pas de run-scripts.
+1. **Résolution `repoFullName` d'une session** : couvrir les 2 cas (issue → `issue_owner/issue_repo` ; sinon reverse-lookup `repoPaths` par `project_path`), **match insensible à la casse d'entrée** (obligatoire, pas « si pertinent »). Si non résolu → fallback `DEFAULT_CREATE_PR_PROMPT` et pas de run-scripts.
 2. **`ShellTerminal.runCommand`** : le composant passe en `forwardRef` ; vérifier que ses conscommateurs actuels (Workbench) ne cassent pas (ref optionnel). Envoi `cmd + "\r"` seulement si `ws.readyState === OPEN`.
 3. **Route `[owner]/[repo]`** : `repo` peut contenir des caractères encodés ; décoder `params`. Le group `(app)` protège déjà via AppShell.
-4. **`useAgentViews.repoFullName`** : confirmer qu'il vaut bien `owner/repo` (résolu via git remote) et pas juste le nom de dossier — sinon l'URL ⚙️ et la résolution repo seront incohérentes. Prévoir un fallback si `repoFullName` n'a pas de `/`.
+4. **`useAgentViews.repoFullName`** peut être un simple nom de dossier sans `/` (repo ajouté manuellement, remote git non résolu). Résolu par la **route catch-all `[...repo]`** (§4) : pas besoin de masquer le ⚙️. `repo_settings` est keyé par ce `repo_full_name` tel quel (cohérent entre sidebar, page et Workbench, tous issus de `repo_paths`).
 5. **Retrait Create PR global** : vérifier qu'aucun autre consommateur de `CREATE_PR_PROMPT_KEY` ne subsiste (grep) avant de retirer l'UI globale.
 6. **run_scripts JSON** : typer `text({ mode: 'json' })` et gérer la génération d'`id` (crypto.randomUUID côté client à l'ajout).
