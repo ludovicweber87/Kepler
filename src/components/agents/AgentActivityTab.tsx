@@ -7,7 +7,6 @@ import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
-import Tooltip from '@mui/material/Tooltip';
 import { alpha } from '@mui/material/styles';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
@@ -93,10 +92,10 @@ export default function AgentActivityTab({
 	const alreadyPublished = !!session?.report_published_at;
 
 	const handlePublish = useCallback(async () => {
-		if (!session || logs.length === 0) return;
+		if (!session || visibleLogs.length === 0) return;
 		setPublishing(true);
 		try {
-			const report = buildReport(session, logs, {
+			const report = buildReport(session, visibleLogs, {
 				reportTitle: t('reportTitle'),
 				branch: t('branch'),
 			});
@@ -218,7 +217,7 @@ export default function AgentActivityTab({
 		} finally {
 			setPublishing(false);
 		}
-	}, [session, hasIssue, logs, qc, showSnackbar]);
+	}, [session, hasIssue, visibleLogs, qc, showSnackbar]);
 
 	if (!session) {
 		return (
