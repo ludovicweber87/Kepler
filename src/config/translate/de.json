@@ -180,7 +180,8 @@
 		"closeSession": "Sitzung schließen",
 		"confirmCloseTitle": "Sitzung schließen?",
 		"confirmCloseBody": "Die aktuelle Sitzung wird beendet. Du kannst sie später erneut starten.",
-		"stopSession": "Sitzung beenden"
+		"stopSession": "Sitzung beenden",
+		"configurePathFirst": "Konfiguriere zuerst den lokalen Ordner für {repo} in den Einstellungen"
 	},
 	"agentActivity": {
 		"reportTitle": "Agent-Bericht",

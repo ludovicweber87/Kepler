@@ -202,7 +202,8 @@
 		"closeSession": "Fermer la session",
 		"confirmCloseTitle": "Fermer la session ?",
 		"confirmCloseBody": "La session en cours sera arretee. Tu pourras la relancer plus tard.",
-		"stopSession": "Arrêter la session"
+		"stopSession": "Arrêter la session",
+		"configurePathFirst": "Configure d'abord le dossier local de {repo} dans les Réglages"
 	},
 	"agentActivity": {
 		"reportTitle": "Rapport agent",

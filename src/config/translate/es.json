@@ -180,7 +180,8 @@
 		"closeSession": "Cerrar sesion",
 		"confirmCloseTitle": "¿Cerrar la sesion?",
 		"confirmCloseBody": "La sesion actual se detendra. Podras relanzarla mas tarde.",
-		"stopSession": "Detener la sesión"
+		"stopSession": "Detener la sesión",
+		"configurePathFirst": "Configura primero la carpeta local de {repo} en Ajustes"
 	},
 	"agentActivity": {
 		"reportTitle": "Informe del agente",
