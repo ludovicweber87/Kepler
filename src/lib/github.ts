@@ -473,6 +473,37 @@ export async function fetchRepoPullRequests(
 	return prs;
 }
 
+// --- Merged branches (léger : 1 page de PRs closed, sans check-runs) ---
+
+/** Extrait les refs de branche (head.ref) uniques des PRs réellement mergées. Pur. */
+export function extractMergedBranches(
+	prs: Array<{ merged_at: string | null; head: { ref: string } }>,
+): string[] {
+	const set = new Set<string>();
+	for (const pr of prs) {
+		if (pr.merged_at && pr.head?.ref) set.add(pr.head.ref);
+	}
+	return [...set];
+}
+
+/**
+ * Renvoie l'ensemble des branches (head.ref) mergées d'un repo.
+ * Volontairement léger : une seule page (100 PRs closed les plus récentes), sans check-runs.
+ */
+export async function fetchMergedBranchRefs(
+	owner: string,
+	repo: string,
+	token: string,
+): Promise<string[]> {
+	const res = await fetch(
+		`${GITHUB_API}/repos/${owner}/${repo}/pulls?state=closed&per_page=100&sort=updated&direction=desc`,
+		{ headers: getHeaders(token) },
+	);
+	if (!res.ok) throw new Error(`GitHub /pulls failed: ${res.status}`);
+	const data = (await res.json()) as Array<{ merged_at: string | null; head: { ref: string } }>;
+	return extractMergedBranches(data);
+}
+
 // --- Check runs ---
 
 async function fetchCheckRunsForRef(
