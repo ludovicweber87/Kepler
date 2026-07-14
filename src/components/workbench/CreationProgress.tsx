@@ -93,6 +93,7 @@ export default function CreationProgress({
 					const data = JSON.parse(dataRaw);
 					if (evt === 'done') {
 						qc.invalidateQueries({ queryKey: ['agent-session', session.session_id] });
+						qc.invalidateQueries({ queryKey: ['git-worktrees', session.project_path] });
 						return;
 					}
 					if (data.status === 'error') {
