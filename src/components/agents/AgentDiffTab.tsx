@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, memo, useCallback } from 'react';
+import { useState, useMemo, memo, useCallback, useRef, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -12,148 +12,8 @@ import InsertDriveFileRoundedIcon from '@mui/icons-material/InsertDriveFileRound
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import RemoveRoundedIcon from '@mui/icons-material/RemoveRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
-import { useQuery } from '@tanstack/react-query';
-import { localFetch } from '@/lib/local-fetch';
-
-/* ── Types ── */
-interface FileDiff {
-	path: string;
-	oldPath?: string;
-	additions: number;
-	deletions: number;
-	hunks: Hunk[];
-}
-
-interface Hunk {
-	header: string;
-	lines: DiffLine[];
-}
-
-interface DiffLine {
-	type: 'add' | 'del' | 'ctx';
-	content: string;
-	oldLineNo?: number;
-	newLineNo?: number;
-}
-
-/** A paired row for side-by-side display */
-interface SideBySideRow {
-	left: { lineNo?: number; content: string; type: 'del' | 'ctx' | 'empty' };
-	right: { lineNo?: number; content: string; type: 'add' | 'ctx' | 'empty' };
-}
-
-/* ── Parser ── */
-function parseDiff(raw: string): FileDiff[] {
-	if (!raw.trim()) return [];
-
-	const files: FileDiff[] = [];
-	const fileParts = raw.split(/^diff --git /m).filter(Boolean);
-
-	for (const part of fileParts) {
-		const lines = part.split('\n');
-		const headerMatch = lines[0]?.match(/a\/(.+?) b\/(.+)/);
-		if (!headerMatch) continue;
-
-		const oldPath = headerMatch[1];
-		const newPath = headerMatch[2];
-
-		const file: FileDiff = {
-			path: newPath,
-			oldPath: oldPath !== newPath ? oldPath : undefined,
-			additions: 0,
-			deletions: 0,
-			hunks: [],
-		};
-
-		let currentHunk: Hunk | null = null;
-		let oldLine = 0;
-		let newLine = 0;
-
-		for (let i = 1; i < lines.length; i++) {
-			const line = lines[i];
-			const hunkMatch = line.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@(.*)/);
-			if (hunkMatch) {
-				oldLine = parseInt(hunkMatch[1], 10);
-				newLine = parseInt(hunkMatch[2], 10);
-				currentHunk = { header: line, lines: [] };
-				file.hunks.push(currentHunk);
-				continue;
-			}
-			if (!currentHunk) continue;
-			if (line.startsWith('\\')) continue;
-
-			if (line.startsWith('+')) {
-				currentHunk.lines.push({ type: 'add', content: line.slice(1), newLineNo: newLine++ });
-				file.additions++;
-			} else if (line.startsWith('-')) {
-				currentHunk.lines.push({ type: 'del', content: line.slice(1), oldLineNo: oldLine++ });
-				file.deletions++;
-			} else if (line.length > 0 || (currentHunk.lines.length > 0 && line === '')) {
-				currentHunk.lines.push({
-					type: 'ctx',
-					content: line.startsWith(' ') ? line.slice(1) : line,
-					oldLineNo: oldLine++,
-					newLineNo: newLine++,
-				});
-			}
-		}
-		files.push(file);
-	}
-	return files;
-}
-
-/* ── Build side-by-side rows from hunk lines ── */
-function buildSideBySideRows(lines: DiffLine[]): SideBySideRow[] {
-	const rows: SideBySideRow[] = [];
-	let i = 0;
-
-	while (i < lines.length) {
-		const line = lines[i];
-
-		if (line.type === 'ctx') {
-			rows.push({
-				left: { lineNo: line.oldLineNo, content: line.content, type: 'ctx' },
-				right: { lineNo: line.newLineNo, content: line.content, type: 'ctx' },
-			});
-			i++;
-		} else if (line.type === 'del') {
-			// Collect consecutive del lines, then pair with following add lines
-			const dels: DiffLine[] = [];
-			while (i < lines.length && lines[i].type === 'del') {
-				dels.push(lines[i]);
-				i++;
-			}
-			const adds: DiffLine[] = [];
-			while (i < lines.length && lines[i].type === 'add') {
-				adds.push(lines[i]);
-				i++;
-			}
-
-			const maxLen = Math.max(dels.length, adds.length);
-			for (let j = 0; j < maxLen; j++) {
-				const del = dels[j];
-				const add = adds[j];
-				rows.push({
-					left: del
-						? { lineNo: del.oldLineNo, content: del.content, type: 'del' }
-						: { content: '', type: 'empty' },
-					right: add
-						? { lineNo: add.newLineNo, content: add.content, type: 'add' }
-						: { content: '', type: 'empty' },
-				});
-			}
-		} else if (line.type === 'add') {
-			// Standalone add (no preceding del)
-			rows.push({
-				left: { content: '', type: 'empty' },
-				right: { lineNo: line.newLineNo, content: line.content, type: 'add' },
-			});
-			i++;
-		}
-	}
-
-	return rows;
-}
+import { useGitDiff } from '@/hooks/useGitDiff';
+import { buildSideBySideRows, type FileDiff, type SideBySideRow } from '@/lib/gitDiff';
 
 /* ── Shared line styles ── */
 const LINE_HEIGHT = '20px';
@@ -162,7 +22,9 @@ const FONT_SIZE = '0.72rem';
 
 function getBgColor(type: 'del' | 'add' | 'ctx' | 'empty') {
 	if (type === 'ctx') return 'transparent';
-	return (theme: { palette: { error: { main: string }; success: { main: string }; text: { primary: string } } }) => {
+	return (theme: {
+		palette: { error: { main: string }; success: { main: string }; text: { primary: string } };
+	}) => {
 		if (type === 'del') return alpha(theme.palette.error.main, 0.1);
 		if (type === 'add') return alpha(theme.palette.success.main, 0.1);
 		return alpha(theme.palette.text.primary, 0.015);
@@ -170,7 +32,9 @@ function getBgColor(type: 'del' | 'add' | 'ctx' | 'empty') {
 }
 
 function getBgHover(type: 'del' | 'add' | 'ctx' | 'empty') {
-	return (theme: { palette: { error: { main: string }; success: { main: string }; text: { primary: string } } }) => {
+	return (theme: {
+		palette: { error: { main: string }; success: { main: string }; text: { primary: string } };
+	}) => {
 		if (type === 'del') return alpha(theme.palette.error.main, 0.16);
 		if (type === 'add') return alpha(theme.palette.success.main, 0.16);
 		return alpha(theme.palette.text.primary, 0.02);
@@ -235,7 +99,11 @@ function SidePanel({
 					lineHeight: LINE_HEIGHT,
 					fontWeight: 700,
 					color:
-						type === 'del' ? 'error.main' : type === 'add' ? 'success.main' : 'transparent',
+						type === 'del'
+							? 'error.main'
+							: type === 'add'
+								? 'success.main'
+								: 'transparent',
 				}}
 			>
 				{type === 'del' ? '−' : type === 'add' ? '+' : ' '}
@@ -273,16 +141,37 @@ const DiffRow = memo(function DiffRow({ row }: { row: SideBySideRow }) {
 		<Box sx={{ display: 'flex' }}>
 			<SidePanel lineNo={row.left.lineNo} content={row.left.content} type={row.left.type} />
 			<Box sx={{ width: '1px', flexShrink: 0, bgcolor: 'divider' }} />
-			<SidePanel lineNo={row.right.lineNo} content={row.right.content} type={row.right.type} />
+			<SidePanel
+				lineNo={row.right.lineNo}
+				content={row.right.content}
+				type={row.right.type}
+			/>
 		</Box>
 	);
 });
 
 /* ── File Diff Viewer (side-by-side, lazy + truncated) ── */
-const FileDiffView = memo(function FileDiffView({ file }: { file: FileDiff }) {
+const FileDiffView = memo(function FileDiffView({
+	file,
+	focused = false,
+	focusNonce = 0,
+}: {
+	file: FileDiff;
+	focused?: boolean;
+	focusNonce?: number;
+}) {
 	const t = useTranslations('agentDiff');
-	const [expanded, setExpanded] = useState(false);
+	const [manualExpanded, setManualExpanded] = useState(false);
 	const [showAll, setShowAll] = useState(false);
+	const rootRef = useRef<HTMLDivElement>(null);
+	// Un fichier ciblé est toujours déplié ; sinon l'état est piloté par le clic.
+	const expanded = manualExpanded || focused;
+
+	// Ciblage depuis le chat / la liste Activity : on scrolle sur le fichier.
+	useEffect(() => {
+		if (!focused) return;
+		rootRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+	}, [focused, focusNonce]);
 
 	const total = file.additions + file.deletions;
 	const maxBlocks = 5;
@@ -294,7 +183,10 @@ const FileDiffView = memo(function FileDiffView({ file }: { file: FileDiff }) {
 		if (!expanded) return [];
 		return file.hunks.flatMap((hunk) => {
 			const rows = buildSideBySideRows(hunk.lines);
-			return [{ type: 'hunk-header' as const, header: hunk.header }, ...rows.map((r) => ({ type: 'row' as const, ...r }))];
+			return [
+				{ type: 'hunk-header' as const, header: hunk.header },
+				...rows.map((r) => ({ type: 'row' as const, ...r })),
+			];
 		});
 	}, [expanded, file.hunks]);
 
@@ -302,10 +194,10 @@ const FileDiffView = memo(function FileDiffView({ file }: { file: FileDiff }) {
 	const visibleRows = isTruncated ? allRows.slice(0, MAX_ROWS_INITIAL) : allRows;
 	const hiddenCount = allRows.length - MAX_ROWS_INITIAL;
 
-	const toggleExpand = useCallback(() => setExpanded((p) => !p), []);
+	const toggleExpand = useCallback(() => setManualExpanded((p) => !p), []);
 
 	return (
-		<Box>
+		<Box ref={rootRef} sx={{ scrollMarginTop: 8 }}>
 			{/* File header */}
 			<Box
 				onClick={toggleExpand}
@@ -350,7 +242,12 @@ const FileDiffView = memo(function FileDiffView({ file }: { file: FileDiff }) {
 				{file.additions > 0 && (
 					<Typography
 						variant="caption"
-						sx={{ color: 'success.main', fontWeight: 700, fontFamily: 'monospace', fontSize: '0.72rem' }}
+						sx={{
+							color: 'success.main',
+							fontWeight: 700,
+							fontFamily: 'monospace',
+							fontSize: '0.72rem',
+						}}
 					>
 						+{file.additions}
 					</Typography>
@@ -358,7 +255,12 @@ const FileDiffView = memo(function FileDiffView({ file }: { file: FileDiff }) {
 				{file.deletions > 0 && (
 					<Typography
 						variant="caption"
-						sx={{ color: 'error.main', fontWeight: 700, fontFamily: 'monospace', fontSize: '0.72rem' }}
+						sx={{
+							color: 'error.main',
+							fontWeight: 700,
+							fontFamily: 'monospace',
+							fontSize: '0.72rem',
+						}}
 					>
 						−{file.deletions}
 					</Typography>
@@ -366,10 +268,21 @@ const FileDiffView = memo(function FileDiffView({ file }: { file: FileDiff }) {
 
 				<Box sx={{ display: 'flex', gap: '2px', ml: 0.5 }}>
 					{Array.from({ length: addBlocks }).map((_, i) => (
-						<Box key={`a${i}`} sx={{ width: 8, height: 8, borderRadius: '1px', bgcolor: 'success.main' }} />
+						<Box
+							key={`a${i}`}
+							sx={{
+								width: 8,
+								height: 8,
+								borderRadius: '1px',
+								bgcolor: 'success.main',
+							}}
+						/>
 					))}
 					{Array.from({ length: delBlocks }).map((_, i) => (
-						<Box key={`d${i}`} sx={{ width: 8, height: 8, borderRadius: '1px', bgcolor: 'error.main' }} />
+						<Box
+							key={`d${i}`}
+							sx={{ width: 8, height: 8, borderRadius: '1px', bgcolor: 'error.main' }}
+						/>
 					))}
 				</Box>
 			</Box>
@@ -402,7 +315,11 @@ const FileDiffView = memo(function FileDiffView({ file }: { file: FileDiff }) {
 								>
 									<Typography
 										variant="caption"
-										sx={{ fontFamily: FONT, fontSize: '0.68rem', color: 'text.disabled' }}
+										sx={{
+											fontFamily: FONT,
+											fontSize: '0.68rem',
+											color: 'text.disabled',
+										}}
 									>
 										{item.header}
 									</Typography>
@@ -448,31 +365,42 @@ const FileDiffView = memo(function FileDiffView({ file }: { file: FileDiff }) {
 interface AgentDiffTabProps {
 	projectPath: string | null;
 	branch: string | null;
+	/** Chemin du fichier à cibler (déplier + scroller). Peut être un chemin absolu. */
+	activeFile?: string | null;
+	/** Change à chaque demande d'ouverture pour re-déclencher le ciblage même fichier. */
+	focusNonce?: number;
 }
 
-export default function AgentDiffTab({ projectPath, branch }: AgentDiffTabProps) {
+export default function AgentDiffTab({
+	projectPath,
+	branch,
+	activeFile,
+	focusNonce = 0,
+}: AgentDiffTabProps) {
 	const t = useTranslations('agentDiff');
-	const { data, isLoading, error } = useQuery({
-		queryKey: ['git-diff', projectPath, branch],
-		queryFn: async () => {
-			const params = new URLSearchParams();
-			if (projectPath) params.set('cwd', projectPath);
-			if (branch) params.set('branch', branch);
-			const res = await localFetch(`/git/diff?${params}`);
-			if (!res.ok) throw new Error('Failed to fetch diff');
-			return res.json() as Promise<{ diff: string; stats: string }>;
-		},
-		enabled: !!projectPath,
-		staleTime: 30_000,
-	});
+	const { files, isLoading, error } = useGitDiff(projectPath, branch);
 
-	const files = useMemo(() => parseDiff(data?.diff ?? ''), [data?.diff]);
 	const totalAdditions = files.reduce((sum, f) => sum + f.additions, 0);
 	const totalDeletions = files.reduce((sum, f) => sum + f.deletions, 0);
 
+	// Résout le fichier ciblé : activeFile peut être absolu, file.path est relatif au repo.
+	const focusedPath = useMemo(() => {
+		if (!activeFile) return null;
+		const norm = activeFile.replace(/\\/g, '/');
+		const match = files.find((f) => norm === f.path || norm.endsWith('/' + f.path));
+		return match?.path ?? null;
+	}, [activeFile, files]);
+
 	if (isLoading) {
 		return (
-			<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+			<Box
+				sx={{
+					display: 'flex',
+					alignItems: 'center',
+					justifyContent: 'center',
+					height: '100%',
+				}}
+			>
 				<CircularProgress size={24} sx={{ color: 'primary.main' }} />
 			</Box>
 		);
@@ -480,7 +408,14 @@ export default function AgentDiffTab({ projectPath, branch }: AgentDiffTabProps)
 
 	if (error) {
 		return (
-			<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+			<Box
+				sx={{
+					display: 'flex',
+					alignItems: 'center',
+					justifyContent: 'center',
+					height: '100%',
+				}}
+			>
 				<Typography variant="caption" sx={{ color: 'text.disabled' }}>
 					{t('loadError')}
 				</Typography>
@@ -509,7 +444,14 @@ export default function AgentDiffTab({ projectPath, branch }: AgentDiffTabProps)
 	}
 
 	return (
-		<Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: 'background.default' }}>
+		<Box
+			sx={{
+				display: 'flex',
+				flexDirection: 'column',
+				height: '100%',
+				bgcolor: 'background.default',
+			}}
+		>
 			{/* Stats header */}
 			<Box
 				sx={{
@@ -533,7 +475,12 @@ export default function AgentDiffTab({ projectPath, branch }: AgentDiffTabProps)
 					<AddRoundedIcon sx={{ fontSize: 14, color: 'success.main' }} />
 					<Typography
 						variant="caption"
-						sx={{ color: 'success.main', fontWeight: 700, fontFamily: 'monospace', fontSize: '0.72rem' }}
+						sx={{
+							color: 'success.main',
+							fontWeight: 700,
+							fontFamily: 'monospace',
+							fontSize: '0.72rem',
+						}}
 					>
 						{totalAdditions}
 					</Typography>
@@ -542,7 +489,12 @@ export default function AgentDiffTab({ projectPath, branch }: AgentDiffTabProps)
 					<RemoveRoundedIcon sx={{ fontSize: 14, color: 'error.main' }} />
 					<Typography
 						variant="caption"
-						sx={{ color: 'error.main', fontWeight: 700, fontFamily: 'monospace', fontSize: '0.72rem' }}
+						sx={{
+							color: 'error.main',
+							fontWeight: 700,
+							fontFamily: 'monospace',
+							fontSize: '0.72rem',
+						}}
 					>
 						{totalDeletions}
 					</Typography>
@@ -559,7 +511,12 @@ export default function AgentDiffTab({ projectPath, branch }: AgentDiffTabProps)
 				}}
 			>
 				{files.map((file) => (
-					<FileDiffView key={file.path} file={file} />
+					<FileDiffView
+						key={file.path}
+						file={file}
+						focused={file.path === focusedPath}
+						focusNonce={focusNonce}
+					/>
 				))}
 			</Box>
 		</Box>

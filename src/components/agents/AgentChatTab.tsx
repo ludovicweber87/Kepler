@@ -29,6 +29,8 @@ interface Props {
 	createPrPrompt?: string;
 	onFirstUserMessage?: (text: string) => void;
 	onResume?: () => void;
+	/** Ouvre l'onglet Changes centré sur le fichier (clic sur une tool card). */
+	onOpenChanges?: (filePath: string) => void;
 }
 
 export default function AgentChatTab({
@@ -43,6 +45,7 @@ export default function AgentChatTab({
 	createPrPrompt,
 	onFirstUserMessage,
 	onResume,
+	onOpenChanges,
 }: Props) {
 	const t = useTranslations('agentChat');
 	const firstSent = useRef(false);
@@ -59,6 +62,25 @@ export default function AgentChatTab({
 	});
 
 	const scrollRef = useRef<HTMLDivElement>(null);
+	const didInitialScroll = useRef(false);
+
+	// Nouvelle session (ou réouverture d'un autre chat) : on réarme le scroll initial.
+	useEffect(() => {
+		didInitialScroll.current = false;
+	}, [sessionId]);
+
+	// Ouverture du chat / arrivée de l'historique : scroll forcé tout en bas, une fois.
+	useEffect(() => {
+		const el = scrollRef.current;
+		if (!el || didInitialScroll.current || chat.messages.length === 0) return;
+		didInitialScroll.current = true;
+		requestAnimationFrame(() => {
+			const node = scrollRef.current;
+			if (node) node.scrollTop = node.scrollHeight;
+		});
+	}, [chat.messages]);
+
+	// Streaming live : suit le bas seulement si l'utilisateur y est déjà (pas d'arrachage).
 	useEffect(() => {
 		const el = scrollRef.current;
 		if (!el) return;
@@ -111,7 +133,7 @@ export default function AgentChatTab({
 			)}
 			<Box ref={scrollRef} sx={{ flex: 1, overflowY: 'auto', py: 1 }}>
 				{chat.messages.map((m) => (
-					<ChatBubble key={m.id} message={m} />
+					<ChatBubble key={m.id} message={m} onOpenChanges={onOpenChanges} />
 				))}
 				{chat.pendingPermissions.map((p) => (
 					<ChatPermissionCard key={p.id} perm={p} onDecide={chat.resolvePermission} />

@@ -6,7 +6,13 @@ import ChatThinking from './ChatThinking';
 import ChatToolCard from './ChatToolCard';
 import type { ChatMessage } from '@/types';
 
-export default function ChatBubble({ message }: { message: ChatMessage }) {
+export default function ChatBubble({
+	message,
+	onOpenChanges,
+}: {
+	message: ChatMessage;
+	onOpenChanges?: (filePath: string) => void;
+}) {
 	const isUser = message.role === 'user';
 	return (
 		<Box
@@ -14,7 +20,7 @@ export default function ChatBubble({ message }: { message: ChatMessage }) {
 				display: 'flex',
 				justifyContent: isUser ? 'flex-end' : 'flex-start',
 				px: 2,
-				py: 0.5,
+				py: 1.25,
 			}}
 		>
 			<Box
@@ -38,7 +44,8 @@ export default function ChatBubble({ message }: { message: ChatMessage }) {
 			>
 				{message.segments.map((seg, i) => {
 					if (seg.kind === 'thinking') return <ChatThinking key={i} text={seg.text} />;
-					if (seg.kind === 'tool') return <ChatToolCard key={i} call={seg.call} />;
+					if (seg.kind === 'tool')
+						return <ChatToolCard key={i} call={seg.call} onOpen={onOpenChanges} />;
 					return isUser ? (
 						<span key={i}>{seg.text}</span>
 					) : (
