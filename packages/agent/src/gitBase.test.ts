@@ -1,54 +1,58 @@
-import { describe, it, expect } from 'vitest';
+import { test } from 'node:test';
+import assert from 'node:assert';
 import { selectRemoteBase } from './gitBase.js';
 
-describe('selectRemoteBase', () => {
-	it('dérive la base depuis le symbolic-ref origin/HEAD', () => {
-		expect(
-			selectRemoteBase({
-				symbolicRef: 'refs/remotes/origin/main',
-				hasOriginMain: true,
-				hasOriginMaster: false,
-			}),
-		).toBe('origin/main');
-	});
+test('dérive la base depuis le symbolic-ref origin/HEAD', () => {
+	assert.equal(
+		selectRemoteBase({
+			symbolicRef: 'refs/remotes/origin/main',
+			hasOriginMain: true,
+			hasOriginMaster: false,
+		}),
+		'origin/main',
+	);
+});
 
-	it('gère un repo dont la HEAD distante pointe sur master', () => {
-		expect(
-			selectRemoteBase({
-				symbolicRef: 'refs/remotes/origin/master',
-				hasOriginMain: false,
-				hasOriginMaster: true,
-			}),
-		).toBe('origin/master');
-	});
+test('gère un repo dont la HEAD distante pointe sur master', () => {
+	assert.equal(
+		selectRemoteBase({
+			symbolicRef: 'refs/remotes/origin/master',
+			hasOriginMain: false,
+			hasOriginMaster: true,
+		}),
+		'origin/master',
+	);
+});
 
-	it('sans symbolic-ref, préfère origin/main s’il existe', () => {
-		expect(
-			selectRemoteBase({
-				symbolicRef: null,
-				hasOriginMain: true,
-				hasOriginMaster: true,
-			}),
-		).toBe('origin/main');
-	});
+test('sans symbolic-ref, préfère origin/main s’il existe', () => {
+	assert.equal(
+		selectRemoteBase({
+			symbolicRef: null,
+			hasOriginMain: true,
+			hasOriginMaster: true,
+		}),
+		'origin/main',
+	);
+});
 
-	it('sans symbolic-ref ni origin/main, retombe sur origin/master', () => {
-		expect(
-			selectRemoteBase({
-				symbolicRef: null,
-				hasOriginMain: false,
-				hasOriginMaster: true,
-			}),
-		).toBe('origin/master');
-	});
+test('sans symbolic-ref ni origin/main, retombe sur origin/master', () => {
+	assert.equal(
+		selectRemoteBase({
+			symbolicRef: null,
+			hasOriginMain: false,
+			hasOriginMaster: true,
+		}),
+		'origin/master',
+	);
+});
 
-	it('défaut origin/main quand aucun signal', () => {
-		expect(
-			selectRemoteBase({
-				symbolicRef: null,
-				hasOriginMain: false,
-				hasOriginMaster: false,
-			}),
-		).toBe('origin/main');
-	});
+test('défaut origin/main quand aucun signal', () => {
+	assert.equal(
+		selectRemoteBase({
+			symbolicRef: null,
+			hasOriginMain: false,
+			hasOriginMaster: false,
+		}),
+		'origin/main',
+	);
 });
