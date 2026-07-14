@@ -34,8 +34,8 @@ Un worktree est créé depuis `origin/<base>` (cf. endpoints de création). Si l
 
 ### Portée du changement
 
-- Extraire une fonction pure testable, ex. `resolveRemoteBaseRef(cwd): string` (renvoie `origin/main` ou `origin/master`), remplaçant/complétant `getBaseBranch` pour le chemin diff.
-- Le chemin `else if (branch && branch !== baseBranch)` (diff hors répertoire worktree) est aligné sur la même base distante.
+- Extraire une fonction pure testable, ex. `resolveRemoteBaseRef(cwd): string` (renvoie `origin/main` ou `origin/master`), remplaçant/complétant `getBaseBranch` pour le chemin diff. Elle **sonde l'existence des refs** (`git rev-parse --verify refs/remotes/origin/HEAD` puis `origin/main` / `origin/master`) plutôt que de supposer — c'est le but du fallback, car `refs/remotes/origin/HEAD` est parfois absent selon le clone.
+- Le chemin `else if (branch && branch !== baseBranch)` (diff hors répertoire worktree) est aligné sur la même base distante. Note : `baseBranch` devenant `origin/main`, la garde `branch !== baseBranch` compare un nom court à `origin/main` ; un checkout littéralement sur `main` ferait alors `git diff origin/main..main` (diff vide/correct) au lieu d'être court-circuité — comportement inoffensif et attendu.
 
 ### Test
 
@@ -74,17 +74,18 @@ Via l'état PR GitHub (gère les squash-merges, contrairement à `git branch --m
 
 - **Nouvelle route Next** `GET /api/github/merged-branches?repo=owner/name` :
   - `requireAuth`.
-  - Liste les PRs `state=closed` du repo (`per_page=100`, 1 appel).
-  - Renvoie l'ensemble des `head.ref` dont `merged_at != null` : `{ branches: string[] }`.
-- **Nouveau hook** `useMergedBranches(repoFullName)` :
-  - React Query, `staleTime` ~5 min, `enabled: !!repoFullName`.
-  - Retourne un `Set<string>` de branches mergées.
+  - Liste les PRs `state=closed` du repo (`per_page=100`, 1 appel), renvoie l'ensemble des `head.ref` dont `merged_at != null` : `{ branches: string[] }`.
+  - **Ne réutilise pas** `fetchRepoPullRequests()` : cette fonction pagine sur *toutes* les PRs closed et déclenche un appel check-runs par PR — bien plus lourd que le besoin (1 appel, `per_page=100`, sans checks). On ajoute donc une fonction dédiée légère dans `github.ts`.
+- **Nouveau hook** `useMergedBranches(repoFullNames: string[])` :
+  - React Query, `staleTime` ~5 min, `enabled: repoFullNames.length > 0`.
+  - Interface **multi-repos** : retourne une `Map<repoFullName, Set<string>>` (ou `(repo) => Set<string>`).
+  - **Rationale** : la `Sidebar` rend les worktrees dans `views.map((view) => …)` (un bloc par repo configuré). Appeler un hook par-repo dans ce `.map()` violerait les Rules of Hooks (nombre de hooks variable). Le hook prend donc la **liste** des repos en une fois (1 query batchée ou une query par repo via un pattern stable), pas un repo à la fois.
 
 ### Rendu
 
 `src/components/layout/Sidebar.tsx` :
 
-- Pour chaque worktree : `const isMerged = mergedBranches.has(wt.branch)`.
+- Le hook est appelé **une seule fois** au niveau du composant avec la liste des repos (`views.map((v) => v.repoFullName)`) ; dans le `.map()` par repo on lit `mergedForRepo(view.repoFullName)` puis `const isMerged = set.has(wt.branch)`. Aucun appel de hook dans le `.map()`.
 - Rendu si `isMerged` : **pastille de couleur verte** (success) devant/à côté du nom + nom de branche en **strikethrough**.
 - Pas d'action cleanup dédiée — la suppression reste via le menu contextuel existant.
 - i18n : label/tooltip « Merged » dans le namespace `sidebar`, 5 locales (`en/fr/es/de/pt`).
