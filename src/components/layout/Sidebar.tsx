@@ -40,6 +40,7 @@ import { useSessionActions } from '@/hooks/useSessionActions';
 import { classifySession } from '@/lib/sessionStatus';
 import { useAgentViews } from '@/hooks/useAgentViews';
 import { useAllWorktrees } from '@/hooks/useAllWorktrees';
+import { useMergedBranches } from '@/hooks/useMergedBranches';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { resolveRepoFullName } from '@/lib/resolveRepoFullName';
@@ -68,6 +69,7 @@ export default function Sidebar() {
 	}, [allSessions]);
 	const { views } = useAgentViews();
 	const { byPath, deleteWorktree } = useAllWorktrees(views.map((v) => v.path));
+	const { mergedForRepo } = useMergedBranches(views.map((v) => v.repoFullName));
 	const { archive, remove } = useSessionActions();
 	const { repoPaths } = useRepoPaths();
 	const { showSnackbar } = useSnackbar();
@@ -306,6 +308,7 @@ export default function Sidebar() {
 								return !(s && classifySession(s) === 'archived');
 							});
 							const expanded = !collapsedProjects.has(view.path);
+							const mergedBranches = mergedForRepo(view.repoFullName);
 							return (
 								<Box key={view.path}>
 									<Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -404,6 +407,7 @@ export default function Sidebar() {
 														wtSession?.agent_name ?? wt.branch;
 													const sessionIdForWt =
 														wtSession?.session_id ?? null;
+													const isMerged = mergedBranches.has(wt.branch);
 													return (
 														<Box
 															key={wt.path}
@@ -443,25 +447,36 @@ export default function Sidebar() {
 															<AccountTreeRoundedIcon
 																sx={{
 																	fontSize: 13,
-																	color: isActiveWt
+																	color: isMerged
 																		? 'success.main'
-																		: 'text.disabled',
+																		: isActiveWt
+																			? 'success.main'
+																			: 'text.disabled',
 																}}
 															/>
-															<Typography
-																variant="caption"
-																sx={{
-																	flex: 1,
-																	overflow: 'hidden',
-																	textOverflow: 'ellipsis',
-																	whiteSpace: 'nowrap',
-																	color: isActiveWt
-																		? 'text.primary'
-																		: 'text.secondary',
-																}}
+															<Tooltip
+																title={isMerged ? t('merged') : ''}
+																disableHoverListener={!isMerged}
 															>
-																{displayName}
-															</Typography>
+																<Typography
+																	variant="caption"
+																	sx={{
+																		flex: 1,
+																		overflow: 'hidden',
+																		textOverflow: 'ellipsis',
+																		whiteSpace: 'nowrap',
+																		textDecoration: isMerged
+																			? 'line-through'
+																			: 'none',
+																		opacity: isMerged ? 0.6 : 1,
+																		color: isActiveWt
+																			? 'text.primary'
+																			: 'text.secondary',
+																	}}
+																>
+																	{displayName}
+																</Typography>
+															</Tooltip>
 															<Tooltip title={t('worktreeActions')}>
 																<IconButton
 																	className="wt-delete"
