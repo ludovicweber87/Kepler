@@ -15,6 +15,7 @@ import {
 } from '../helpers.js';
 import { getDb } from '../db.js';
 import { parseFilesToCopy } from '../filesToCopy.js';
+import { resolveRemoteBaseRef } from '../gitBase.js';
 
 const TMUX = findTmux();
 
@@ -50,22 +51,6 @@ function parseWorktreeList(output: string): WorktreeInfo[] {
 		worktrees.push(current as WorktreeInfo);
 	}
 	return worktrees;
-}
-
-function getBaseBranch(cwd: string): string {
-	try {
-		const branches = execSync('git branch --list main master', {
-			cwd,
-			encoding: 'utf-8',
-			timeout: 5000,
-		}).trim();
-		if (branches.includes('master') && !branches.includes('main')) {
-			return 'master';
-		}
-	} catch {
-		// fallback
-	}
-	return 'main';
 }
 
 async function postGitHubComment(
@@ -434,14 +419,14 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 		if (!cwd) return sendJson(res, { error: 'cwd is required' }, 400);
 
 		try {
-			const baseBranch = getBaseBranch(cwd);
+			const baseRef = resolveRemoteBaseRef(cwd);
 			let diff = '';
 			let stats = '';
 
 			const isWorktreeDir = existsSync(cwd);
 
 			if (isWorktreeDir) {
-				const mergeBase = execFileSync('git', ['merge-base', baseBranch, 'HEAD'], {
+				const mergeBase = execFileSync('git', ['merge-base', baseRef, 'HEAD'], {
 					cwd,
 					encoding: 'utf-8',
 					timeout: 5000,
@@ -458,14 +443,17 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 					encoding: 'utf-8',
 					timeout: 5000,
 				});
-			} else if (branch && branch !== baseBranch) {
-				diff = execSync(`git diff ${baseBranch}..${branch}`, {
+			} else if (branch) {
+				// Diff hors répertoire worktree : compare la base distante à la branche.
+				// Note : si `branch` vaut le nom court de la base (ex. 'main'), le diff
+				// `origin/main..main` est vide/correct — comportement inoffensif attendu.
+				diff = execSync(`git diff ${baseRef}..${branch}`, {
 					cwd: process.cwd(),
 					encoding: 'utf-8',
 					timeout: 15000,
 					maxBuffer: 5 * 1024 * 1024,
 				});
-				stats = execSync(`git diff --stat ${baseBranch}..${branch}`, {
+				stats = execSync(`git diff --stat ${baseRef}..${branch}`, {
 					cwd: process.cwd(),
 					encoding: 'utf-8',
 					timeout: 5000,
