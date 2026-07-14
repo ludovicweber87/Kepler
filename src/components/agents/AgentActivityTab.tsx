@@ -10,7 +10,6 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { alpha } from '@mui/material/styles';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
-import InsertDriveFileRoundedIcon from '@mui/icons-material/InsertDriveFileRounded';
 import FiberManualRecordRoundedIcon from '@mui/icons-material/FiberManualRecordRounded';
 import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
 import PublishRoundedIcon from '@mui/icons-material/PublishRounded';
@@ -20,7 +19,6 @@ import { apiFetch } from '@/lib/api-fetch';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { localFetch } from '@/lib/local-fetch';
 import type { AgentSession, AgentActivityLog } from '@/hooks/useAgentSession';
-import type { FileDiff } from '@/lib/gitDiff';
 
 const LOG_TYPE_COLORS: Record<AgentActivityLog['log_type'], string> = {
 	info: 'text.disabled',
@@ -40,10 +38,6 @@ interface AgentActivityTabProps {
 	session: AgentSession | null;
 	logs: AgentActivityLog[];
 	isStreaming?: boolean;
-	/** Fichiers modifiés (diff courant) affichés en tête, cliquables. */
-	changedFiles?: FileDiff[];
-	/** Ouvre l'onglet Changes centré sur le fichier. */
-	onOpenFile?: (filePath: string) => void;
 }
 
 function buildReport(
@@ -84,8 +78,6 @@ export default function AgentActivityTab({
 	session,
 	logs,
 	isStreaming = false,
-	changedFiles = [],
-	onOpenFile,
 }: AgentActivityTabProps) {
 	const t = useTranslations('agentActivity');
 	const [publishing, setPublishing] = useState(false);
@@ -316,91 +308,6 @@ export default function AgentActivityTab({
 					}}
 				/>
 			</Box>
-
-			{/* Fichiers modifiés — cliquables, ouvrent l'onglet Changes */}
-			{changedFiles.length > 0 && (
-				<Box sx={{ flexShrink: 0, borderBottom: 1, borderColor: 'divider', py: 0.5 }}>
-					<Typography
-						variant="caption"
-						sx={{
-							display: 'block',
-							px: 2,
-							py: 0.5,
-							color: 'text.disabled',
-							fontWeight: 600,
-							fontSize: '0.65rem',
-							textTransform: 'uppercase',
-							letterSpacing: '0.04em',
-						}}
-					>
-						{t('changedFiles', { count: changedFiles.length })}
-					</Typography>
-					<Box sx={{ maxHeight: 160, overflowY: 'auto' }}>
-						{changedFiles.map((file) => (
-							<Box
-								key={file.path}
-								onClick={() => onOpenFile?.(file.path)}
-								sx={{
-									display: 'flex',
-									alignItems: 'center',
-									gap: 0.75,
-									px: 2,
-									py: 0.4,
-									cursor: 'pointer',
-									transition: 'background-color 0.15s',
-									'&:hover': { bgcolor: 'action.hover' },
-								}}
-							>
-								<InsertDriveFileRoundedIcon
-									sx={{ fontSize: 13, color: 'text.disabled', flexShrink: 0 }}
-								/>
-								<Typography
-									variant="caption"
-									sx={{
-										flex: 1,
-										minWidth: 0,
-										color: 'text.secondary',
-										fontSize: '0.72rem',
-										overflow: 'hidden',
-										textOverflow: 'ellipsis',
-										whiteSpace: 'nowrap',
-										direction: 'rtl',
-										textAlign: 'left',
-									}}
-								>
-									{file.path}
-								</Typography>
-								{file.additions > 0 && (
-									<Typography
-										variant="caption"
-										sx={{
-											color: 'success.main',
-											fontWeight: 700,
-											fontFamily: 'monospace',
-											fontSize: '0.68rem',
-										}}
-									>
-										+{file.additions}
-									</Typography>
-								)}
-								{file.deletions > 0 && (
-									<Typography
-										variant="caption"
-										sx={{
-											color: 'error.main',
-											fontWeight: 700,
-											fontFamily: 'monospace',
-											fontSize: '0.68rem',
-										}}
-									>
-										−{file.deletions}
-									</Typography>
-								)}
-							</Box>
-						))}
-					</Box>
-				</Box>
-			)}
 
 			{/* Timeline */}
 			<Box sx={{ flex: 1, overflowX: 'hidden', overflowY: 'auto', py: 1 }}>
