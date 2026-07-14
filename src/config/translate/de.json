@@ -76,7 +76,8 @@
 		"terminal": "Terminal",
 		"newSession": "Neue Sitzung",
 		"activeSession": "Aktive Sitzung",
-		"stopSession": "Sitzung beenden"
+		"stopSession": "Sitzung beenden",
+		"closeFile": "Datei schließen"
 	},
 	"creationProgress": {
 		"title": "Arbeitsbereich wird vorbereitet",

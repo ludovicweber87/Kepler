@@ -76,7 +76,8 @@
 		"terminal": "Terminal",
 		"newSession": "New session",
 		"activeSession": "Active session",
-		"stopSession": "Stop session"
+		"stopSession": "Stop session",
+		"closeFile": "Close file"
 	},
 	"creationProgress": {
 		"title": "Preparing the workspace",

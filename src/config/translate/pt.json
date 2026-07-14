@@ -76,7 +76,8 @@
 		"terminal": "Terminal",
 		"newSession": "Nova sessão",
 		"activeSession": "Sessão ativa",
-		"stopSession": "Parar a sessão"
+		"stopSession": "Parar a sessão",
+		"closeFile": "Fechar ficheiro"
 	},
 	"creationProgress": {
 		"title": "Preparando o espaço de trabalho",
