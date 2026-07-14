@@ -184,6 +184,12 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
       const s = sessions.get(sessionId);
       if (!s) return;
       s.busy = true;
+      // Persiste le tour utilisateur dans le transcript (rejouable au refresh) et
+      // l'émet aux clients : c'est l'écho serveur qui fait foi, pas d'optimiste client.
+      const seq = s.seq++;
+      const ev = { event: 'user', data: { text } } as const;
+      transcript.appendEvent(sessionId, seq, 'user', ev);
+      broadcast(s, { type: 'stream-event', seq, ...ev });
       s.queue.push(text);
     },
     setModel(sessionId: string, model?: string) {

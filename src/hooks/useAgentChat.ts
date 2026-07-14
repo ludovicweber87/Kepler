@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { getAgentWsUrl } from '@/lib/local-fetch';
-import { reduceStreamEvent, userMessage } from '@/lib/chatReducer';
+import { reduceStreamEvent } from '@/lib/chatReducer';
 import type {
 	ChatMessage,
 	PendingPermission,
@@ -135,7 +135,8 @@ export function useAgentChat(p: Params) {
 		(text: string) => {
 			const t = text.trim();
 			if (!t) return;
-			setMessages((prev) => [...prev, userMessage(t)]);
+			// Pas d'ajout optimiste : le serveur persiste le tour user et le renvoie
+			// (stream-event 'user'), source unique dédupliquée par seq.
 			setStatus('busy');
 			sendCtl({ type: 'stream-user-message', text: t });
 		},

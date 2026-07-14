@@ -354,7 +354,7 @@ export type QuestionAnswers = Record<string, string>;
 /** Event tel qu'il arrive sur le fil WS (data selon l'`event`). */
 export interface StreamEventWire {
 	seq: number;
-	event: 'session' | 'thinking' | 'assistant' | 'tool_use' | 'tool_result' | 'result';
+	event: 'session' | 'user' | 'thinking' | 'assistant' | 'tool_use' | 'tool_result' | 'result';
 	data: Record<string, unknown>;
 }
 
