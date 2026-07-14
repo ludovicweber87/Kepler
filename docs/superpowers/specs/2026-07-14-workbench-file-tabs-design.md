@@ -25,6 +25,8 @@ Les `<Chip>` actuelles (pilotées par `topPanel`) sont remplacées par des `<Tab
 
 - **Changes** : liste compacte des fichiers modifiés (nom + `+additions` / `−deletions`),
   extraite de l'actuel `AgentActivityTab`. Cliquer un fichier → ouvre/active son onglet à gauche.
+  Le compteur `(N)` actuellement sur la chip Changes est reporté sur le label du `<Tab>`
+  (`Changes (N)`). État vide : message « aucun changement ».
 - **Activity** : uniquement la timeline (`summary` / `error`) + header + bouton Publish.
   La section « liste des fichiers » est retirée.
 - **Issue** : 3ᵉ tab, rendu seulement si `hasIssue` (comportement conservé).
@@ -38,9 +40,17 @@ Le `ShellTerminal` reste empilé sous le panneau droit, hors du système d'ongle
   permanence** (masqué via `display` quand un fichier est actif) pour préserver la WebSocket.
 - **Un onglet par fichier ouvert** :
   - Label = **nom du fichier seul** (basename) + bouton **✕**.
-  - Tooltip = chemin complet au survol.
-  - Contenu = diff de **ce seul fichier** (réutilise `FileDiffView` / `AgentDiffTab`
-    filtré sur un `filePath`).
+  - Tooltip = **chemin relatif repo complet** (`file.path`, relatif au repo — pas d'absolu
+    fiable à ce niveau) au survol.
+  - Contenu = diff de **ce seul fichier**. On rend directement **`FileDiffView`** (extrait
+    de `AgentDiffTab`) avec le `FileDiff` correspondant, `focused`/`focusNonce`. On ne
+    réutilise **pas** `AgentDiffTab` complet ici pour éviter son stats-header redondant
+    (« 1 fichier modifié »). Le `FileDiff` est pris depuis `useGitDiff` (match par
+    `path`/`endsWith`, même normalisation que `AgentDiffTab` lignes 387-392).
+  - **Rendu** : seul l'onglet **actif** est monté (diffs potentiellement lourds). Seul
+    `Chat` reste monté en permanence (WebSocket).
+  - **État vide** : si le fichier a disparu du diff (plus modifié), `FileDiffView` affiche
+    un message « aucun changement » — l'onglet n'est pas fermé automatiquement.
 - Cliquer un fichier **déjà ouvert** → bascule sur son onglet (pas de doublon), avec
   re-focus/scroll (`focusNonce`).
 - Fermer un onglet (✕) → retire le fichier ; si c'était l'actif, bascule sur l'onglet
@@ -79,9 +89,13 @@ partagé entre le tab Changes (droite) et les onglets fichier (gauche).
 
 ### i18n
 
-Nouvelles clés dans le namespace `workbench` (`src/config/translate/*.json`, 5 locales) :
-`tabChanges` (déjà présent), `chipActivity`→`tabActivity` si besoin, tooltip `closeFile`,
-label onglet fichier. Réutiliser les clés existantes quand possible.
+Clés dans le namespace `workbench` (`src/config/translate/*.json`, 5 locales) :
+
+- **Réutilisées** : `tabChat`, `tabChanges`, `chipActivity` (label tab Activity),
+  labels Issue existants.
+- **Nouvelle** : `closeFile` (aria-label / tooltip du bouton ✕), `noChanges` (état vide),
+  ajoutée aux 5 locales (en/fr/es/de/pt).
+- **Pas de clé** pour le label d'onglet fichier : c'est un basename dynamique, non traduisible.
 
 ## Non-objectifs (YAGNI)
 
