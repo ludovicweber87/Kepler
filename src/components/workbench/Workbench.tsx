@@ -322,22 +322,6 @@ export default function Workbench() {
 							variant={centerTab === 'chat' ? 'filled' : 'outlined'}
 							onClick={() => setCenterTab('chat')}
 						/>
-						{(changedFiles.length > 0 || centerTab === 'changes') && (
-							<Chip
-								icon={
-									<DescriptionRoundedIcon sx={{ fontSize: '16px !important' }} />
-								}
-								label={
-									changedFiles.length > 0
-										? `${t('tabChanges')} (${changedFiles.length})`
-										: t('tabChanges')
-								}
-								size="small"
-								color={centerTab === 'changes' ? 'primary' : 'default'}
-								variant={centerTab === 'changes' ? 'filled' : 'outlined'}
-								onClick={() => setCenterTab('changes')}
-							/>
-						)}
 					</Box>
 
 					{/* Contenu : on garde le chat monté (WebSocket) et on masque via display. */}
@@ -402,6 +386,22 @@ export default function Workbench() {
 							flexShrink: 0,
 						}}
 					>
+						{(changedFiles.length > 0 || centerTab === 'changes') && (
+							<Chip
+								icon={
+									<DescriptionRoundedIcon sx={{ fontSize: '16px !important' }} />
+								}
+								label={
+									changedFiles.length > 0
+										? `${t('tabChanges')} (${changedFiles.length})`
+										: t('tabChanges')
+								}
+								size="small"
+								color={centerTab === 'changes' ? 'primary' : 'default'}
+								variant={centerTab === 'changes' ? 'filled' : 'outlined'}
+								onClick={() => setCenterTab('changes')}
+							/>
+						)}
 						<Chip
 							icon={<TimelineRoundedIcon sx={{ fontSize: '16px !important' }} />}
 							label={t('chipActivity')}
