@@ -9,6 +9,8 @@ export function reduceStreamEvent(messages: ChatMessage[], wire: StreamEventWire
 
 	if (event === 'session' || event === 'result') return messages;
 
+	if (event === 'user') return [...messages, userMessage(String(data.text ?? ''))];
+
 	if (event === 'tool_result') {
 		const toolUseId = String(data.tool_use_id ?? '');
 		return messages.map((m) => ({

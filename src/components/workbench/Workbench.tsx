@@ -35,6 +35,7 @@ import { resolveEffectivePath } from '@/lib/effectivePath';
 import { resolveRepoFullName } from '@/lib/resolveRepoFullName';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useRepoSettings } from '@/hooks/useRepoSettings';
+import { useGitDiff } from '@/hooks/useGitDiff';
 import AgentChatTab from '@/components/agents/AgentChatTab';
 import AgentDiffTab from '@/components/agents/AgentDiffTab';
 import AgentActivityTab from '@/components/agents/AgentActivityTab';
@@ -80,8 +81,23 @@ export default function Workbench() {
 	const chatReadOnly = !!sessionId && bucket !== null && bucket !== 'active';
 
 	const hasIssue = !!(resolved?.issue_owner && resolved?.issue_repo && resolved?.issue_number);
-	type TopPanel = 'files' | 'activity' | 'issue';
-	const [topPanel, setTopPanel] = useState<TopPanel>('files');
+	type TopPanel = 'activity' | 'issue';
+	const [topPanel, setTopPanel] = useState<TopPanel>('activity');
+
+	// Zone centrale : conversation ou diff des changements.
+	type CenterTab = 'chat' | 'changes';
+	const [centerTab, setCenterTab] = useState<CenterTab>('chat');
+	const [changesTarget, setChangesTarget] = useState<string | null>(null);
+	const [focusNonce, setFocusNonce] = useState(0);
+
+	const diffPath = resolved?.worktree_path ?? resolved?.project_path ?? null;
+	const { files: changedFiles } = useGitDiff(diffPath, resolved?.branch ?? null);
+
+	const openChanges = useCallback((filePath: string) => {
+		setChangesTarget(filePath || null);
+		setFocusNonce((n) => n + 1);
+		setCenterTab('changes');
+	}, []);
 
 	// Resize vertical de la zone terminal (px depuis le bas).
 	const [termHeight, setTermHeight] = useState(240);
@@ -283,27 +299,85 @@ export default function Workbench() {
 
 			{/* Split gauche/droite */}
 			<Box sx={{ flex: 1, display: 'flex', minHeight: 0 }}>
-				{/* Gauche : conversation 75% */}
+				{/* Gauche : conversation + changes 75% */}
 				<Box
 					sx={{ flex: '0 0 75%', minWidth: 0, display: 'flex', flexDirection: 'column' }}
 				>
-					<AgentChatTab
-						sessionId={sessionId}
-						cwd={effectivePath}
-						systemPrompt={resolved?.system_prompt ?? undefined}
-						readOnly={chatReadOnly}
-						archived={isArchived}
-						createPrPrompt={repoSettings.create_pr_prompt}
-						onResume={() => {
-							resume(sessionId).catch(() => {});
+					{/* Onglets centraux */}
+					<Box
+						sx={{
+							display: 'flex',
+							gap: 0.75,
+							px: 1,
+							py: 0.75,
+							borderBottom: 1,
+							borderColor: 'divider',
+							flexShrink: 0,
 						}}
-						onFirstUserMessage={(text) => {
-							if (isAutoNamed && !firstPromptSent.current) {
-								firstPromptSent.current = true;
-								submitRenameFromPrompt(text);
-							}
+					>
+						<Chip
+							label={t('tabChat')}
+							size="small"
+							color={centerTab === 'chat' ? 'primary' : 'default'}
+							variant={centerTab === 'chat' ? 'filled' : 'outlined'}
+							onClick={() => setCenterTab('chat')}
+						/>
+						{(changedFiles.length > 0 || centerTab === 'changes') && (
+							<Chip
+								icon={
+									<DescriptionRoundedIcon sx={{ fontSize: '16px !important' }} />
+								}
+								label={
+									changedFiles.length > 0
+										? `${t('tabChanges')} (${changedFiles.length})`
+										: t('tabChanges')
+								}
+								size="small"
+								color={centerTab === 'changes' ? 'primary' : 'default'}
+								variant={centerTab === 'changes' ? 'filled' : 'outlined'}
+								onClick={() => setCenterTab('changes')}
+							/>
+						)}
+					</Box>
+
+					{/* Contenu : on garde le chat monté (WebSocket) et on masque via display. */}
+					<Box
+						sx={{
+							flex: 1,
+							minHeight: 0,
+							display: centerTab === 'chat' ? 'flex' : 'none',
+							flexDirection: 'column',
 						}}
-					/>
+					>
+						<AgentChatTab
+							sessionId={sessionId}
+							cwd={effectivePath}
+							systemPrompt={resolved?.system_prompt ?? undefined}
+							readOnly={chatReadOnly}
+							archived={isArchived}
+							createPrPrompt={repoSettings.create_pr_prompt}
+							onResume={() => {
+								resume(sessionId).catch(() => {});
+							}}
+							onOpenChanges={openChanges}
+							onFirstUserMessage={(text) => {
+								if (isAutoNamed && !firstPromptSent.current) {
+									firstPromptSent.current = true;
+									submitRenameFromPrompt(text);
+								}
+							}}
+						/>
+					</Box>
+					{centerTab === 'changes' && (
+						<Box sx={{ flex: 1, minHeight: 0 }}>
+							<AgentDiffTab
+								projectPath={diffPath}
+								branch={resolved?.branch ?? null}
+								activeFile={changesTarget}
+								focusNonce={focusNonce}
+							/>
+						</Box>
+					)}
 				</Box>
 				{/* Droite : sidebar (Task 4) */}
 				<Box
@@ -329,14 +403,6 @@ export default function Workbench() {
 						}}
 					>
 						<Chip
-							icon={<DescriptionRoundedIcon sx={{ fontSize: '16px !important' }} />}
-							label={t('chipFiles')}
-							size="small"
-							color={topPanel === 'files' ? 'primary' : 'default'}
-							variant={topPanel === 'files' ? 'filled' : 'outlined'}
-							onClick={() => setTopPanel('files')}
-						/>
-						<Chip
 							icon={<TimelineRoundedIcon sx={{ fontSize: '16px !important' }} />}
 							label={t('chipActivity')}
 							size="small"
@@ -358,16 +424,13 @@ export default function Workbench() {
 
 					{/* Panneau haut */}
 					<Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-						{topPanel === 'files' && (
-							<AgentDiffTab
-								projectPath={
-									resolved?.worktree_path ?? resolved?.project_path ?? null
-								}
-								branch={resolved?.branch ?? null}
-							/>
-						)}
 						{topPanel === 'activity' && (
-							<AgentActivityTab session={resolved} logs={logs} />
+							<AgentActivityTab
+								session={resolved}
+								logs={logs}
+								changedFiles={changedFiles}
+								onOpenFile={openChanges}
+							/>
 						)}
 						{topPanel === 'issue' && hasIssue && (
 							<AgentIssueTab
