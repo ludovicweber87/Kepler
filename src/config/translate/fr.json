@@ -68,7 +68,6 @@
 	"workbench": {
 		"emptyTitle": "Aucune session sélectionnée",
 		"emptyDesc": "Sélectionne une session dans la barre latérale ou lance un nouveau worktree depuis un projet.",
-		"chipFiles": "Changes",
 		"chipActivity": "Activity",
 		"tabChat": "Chat",
 		"tabChanges": "Changes",
@@ -226,7 +225,6 @@
 		"branch": "Branch",
 		"sessionLoading": "L'agent est en cours de travail. Le résultat sera affiché ici.",
 		"noActivity": "Aucune activite",
-		"changedFiles": "{count, plural, one {# fichier modifie} other {# fichiers modifies}}",
 		"inProgress": "en cours...",
 		"reportPublished": "Rapport publie",
 		"publishReport": "Publier le rapport",

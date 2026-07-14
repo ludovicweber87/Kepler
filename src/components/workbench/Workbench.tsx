@@ -100,6 +100,13 @@ export default function Workbench() {
 	const [activeTab, setActiveTab] = useState<string>(CHAT_TAB);
 	const [focusNonce, setFocusNonce] = useState(0);
 
+	useEffect(() => {
+		setOpenFiles([]);
+		setActiveTab(CHAT_TAB);
+		setRightTab('activity');
+		setFocusNonce(0);
+	}, [sessionId]);
+
 	const diffPath = resolved?.worktree_path ?? resolved?.project_path ?? null;
 	const { files: changedFiles } = useGitDiff(diffPath, resolved?.branch ?? null);
 
@@ -357,10 +364,18 @@ export default function Workbench() {
 											<Box
 												component="span"
 												role="button"
+												tabIndex={0}
 												aria-label={t('closeFile')}
 												onClick={(e) => {
 													e.stopPropagation();
 													closeFile(path);
+												}}
+												onKeyDown={(e) => {
+													if (e.key === 'Enter' || e.key === ' ') {
+														e.stopPropagation();
+														e.preventDefault();
+														closeFile(path);
+													}
 												}}
 												sx={{
 													display: 'inline-flex',
@@ -409,6 +424,7 @@ export default function Workbench() {
 						<Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
 							{activeFileDiff ? (
 								<FileDiffView
+									key={activeTab}
 									file={activeFileDiff}
 									focused
 									focusNonce={focusNonce}
