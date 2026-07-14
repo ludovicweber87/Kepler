@@ -25,6 +25,7 @@
 		"worktreeDeleted": "Worktree gelöscht",
 		"deleteWorktreeError": "Löschen des Worktree fehlgeschlagen",
 		"worktreeActions": "Aktionen",
+		"merged": "Gemergt",
 		"archive": "Archivieren",
 		"delete": "Löschen",
 		"archived": "Archiviert",
