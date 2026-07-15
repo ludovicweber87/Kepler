@@ -17,6 +17,7 @@ import {
 import { getDb } from '../db.js';
 import { parseFilesToCopy } from '../filesToCopy.js';
 import { resolveRemoteBaseRef } from '../gitBase.js';
+import { dedupeAndSortBranches, type RawBranch } from '../branches.js';
 
 const TMUX = findTmux();
 const execAsync = promisify(exec);
@@ -254,28 +255,10 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 	if (path === '/git/branches' && method === 'GET') {
 		const localPath = query.get('path');
 		if (!localPath) return sendJson(res, { error: 'path required' }, 400);
+		const includeRemote = query.get('includeRemote') === 'true';
 
-		try {
-			const raw = execSync(
-				`git -C ${JSON.stringify(localPath)} branch --format='%(refname:short)|%(committerdate:iso8601)|%(subject)|%(authorname)' --sort=-committerdate`,
-				{ encoding: 'utf-8', timeout: 10_000, stdio: ['pipe', 'pipe', 'ignore'] },
-			);
-
-			let current = '';
-			try {
-				current = execSync(
-					`git -C ${JSON.stringify(localPath)} rev-parse --abbrev-ref HEAD`,
-					{
-						encoding: 'utf-8',
-						timeout: 5_000,
-						stdio: ['pipe', 'pipe', 'ignore'],
-					},
-				).trim();
-			} catch {
-				// ignore
-			}
-
-			const branches = raw
+		const parseRefs = (raw: string): RawBranch[] =>
+			raw
 				.trim()
 				.split('\n')
 				.filter(Boolean)
@@ -286,10 +269,57 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 						lastCommitDate: date?.trim() ?? '',
 						lastCommitMessage: message?.trim() ?? '',
 						lastCommitAuthor: author?.trim() ?? '',
-						isCurrent: name.trim() === current,
 					};
 				});
 
+		try {
+			const localRaw = execSync(
+				`git -C ${JSON.stringify(localPath)} branch --format='%(refname:short)|%(committerdate:iso8601)|%(subject)|%(authorname)' --sort=-committerdate`,
+				{ encoding: 'utf-8', timeout: 10_000, stdio: ['pipe', 'pipe', 'ignore'] },
+			);
+			const local = parseRefs(localRaw);
+
+			let current = '';
+			try {
+				current = execSync(`git -C ${JSON.stringify(localPath)} rev-parse --abbrev-ref HEAD`, {
+					encoding: 'utf-8',
+					timeout: 5_000,
+					stdio: ['pipe', 'pipe', 'ignore'],
+				}).trim();
+			} catch {
+				// ignore
+			}
+
+			let remote: RawBranch[] = [];
+			let checkedOut: string[] = [];
+			if (includeRemote) {
+				try {
+					const remoteRaw = execSync(
+						`git -C ${JSON.stringify(localPath)} for-each-ref --sort=-committerdate --format='%(refname:short)|%(committerdate:iso8601)|%(subject)|%(authorname)' refs/remotes/origin`,
+						{ encoding: 'utf-8', timeout: 10_000, stdio: ['pipe', 'pipe', 'ignore'] },
+					);
+					remote = parseRefs(remoteRaw)
+						.map((b) => ({ ...b, name: b.name.replace(/^origin\//, '') }))
+						.filter((b) => b.name && b.name !== 'HEAD');
+				} catch {
+					// pas de remote / offline
+				}
+				try {
+					const wtRaw = execSync(`git -C ${JSON.stringify(localPath)} worktree list --porcelain`, {
+						encoding: 'utf-8',
+						timeout: 10_000,
+						stdio: ['pipe', 'pipe', 'ignore'],
+					});
+					checkedOut = wtRaw
+						.split('\n')
+						.filter((l) => l.startsWith('branch refs/heads/'))
+						.map((l) => l.replace('branch refs/heads/', '').trim());
+				} catch {
+					// ignore
+				}
+			}
+
+			const branches = dedupeAndSortBranches({ local, remote, current, checkedOut });
 			sendJson(res, { branches });
 		} catch (err) {
 			sendError(res, err instanceof Error ? err.message : 'Unknown error');
