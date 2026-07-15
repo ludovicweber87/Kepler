@@ -1000,34 +1000,39 @@ export default function AgentTerminalModal({
 							getOptionDisabled={(o) => o.isCheckedOut === true}
 							isOptionEqualToValue={(o, v) => o.name === v.name}
 							noOptionsText={tl('noBranchesFound')}
-							renderOption={(props, option) => (
-								<Box component="li" {...props} key={option.name}>
-									<Box
-										sx={{
-											display: 'flex',
-											flexDirection: 'column',
-											minWidth: 0,
-										}}
-									>
-										<Typography variant="body2" sx={{ fontWeight: 500 }}>
-											{option.name}
-										</Typography>
-										<Typography
-											variant="caption"
-											sx={{ color: 'text.secondary' }}
+							renderOption={(props, option) => {
+								const { key, ...optionProps } = props;
+								return (
+									<Box component="li" key={key} {...optionProps}>
+										<Box
+											sx={{
+												display: 'flex',
+												flexDirection: 'column',
+												minWidth: 0,
+											}}
 										>
-											{option.lastCommitMessage}
-										</Typography>
+											<Typography variant="body2" sx={{ fontWeight: 500 }}>
+												{option.name}
+											</Typography>
+											<Typography
+												variant="caption"
+												sx={{ color: 'text.secondary' }}
+											>
+												{option.lastCommitMessage}
+											</Typography>
+										</Box>
+										<Chip
+											size="small"
+											label={
+												option.isRemote
+													? tl('branchRemote')
+													: tl('branchLocal')
+											}
+											sx={{ ml: 'auto', height: 20, fontSize: '0.65rem' }}
+										/>
 									</Box>
-									<Chip
-										size="small"
-										label={
-											option.isRemote ? tl('branchRemote') : tl('branchLocal')
-										}
-										sx={{ ml: 'auto', height: 20, fontSize: '0.65rem' }}
-									/>
-								</Box>
-							)}
+								);
+							}}
 							renderInput={(params) => (
 								<TextField
 									{...params}
