@@ -27,6 +27,7 @@ import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
 import StopCircleRoundedIcon from '@mui/icons-material/StopCircleRounded';
 import PictureInPictureAltRoundedIcon from '@mui/icons-material/PictureInPictureAltRounded';
+import CallMergeRoundedIcon from '@mui/icons-material/CallMergeRounded';
 import { useTranslations } from 'next-intl';
 import { useAgentSessionHistory, useAgentSession } from '@/hooks/useAgentSession';
 import { useSessionActions } from '@/hooks/useSessionActions';
@@ -53,6 +54,7 @@ import { matchFileDiff, resolveTabAfterClose, addOpenFile, CHAT_TAB } from '@/li
 export default function Workbench() {
 	const t = useTranslations('workbench');
 	const tc = useTranslations('common');
+	const tAgentChat = useTranslations('agentChat');
 	const searchParams = useSearchParams();
 	const router = useRouter();
 	const sessionId = searchParams.get('session') ?? undefined;
@@ -134,7 +136,11 @@ export default function Workbench() {
 		isArchived && rightTab === 'activity' ? 'changes' : rightTab;
 
 	// Resize vertical de la zone terminal (px depuis le bas).
-	const [termHeight, setTermHeight] = useState(240);
+	const [termHeight, setTermHeight] = useState(340);
+	const [prState, setPrState] = useState<{ available: boolean; trigger: () => void }>({
+		available: false,
+		trigger: () => {},
+	});
 	const resizing = useRef(false);
 	const startResize = useCallback((e: React.MouseEvent) => {
 		resizing.current = true;
@@ -301,6 +307,24 @@ export default function Workbench() {
 					/>
 				)}
 				<Box sx={{ flex: 1 }} />
+				{prState.available && !isArchived && (
+					<Button
+						variant="contained"
+						color="primary"
+						startIcon={<CallMergeRoundedIcon sx={{ fontSize: 18 }} />}
+						onClick={() => prState.trigger()}
+						sx={{
+							textTransform: 'none',
+							fontWeight: 600,
+							borderRadius: 999,
+							px: 2,
+							boxShadow: 'none',
+							'&:hover': { boxShadow: 'none', bgcolor: 'primary.dark' },
+						}}
+					>
+						{tAgentChat('createPr')}
+					</Button>
+				)}
 				<Chip
 					icon={<FolderOpenRoundedIcon sx={{ fontSize: '14px !important' }} />}
 					label={repoLabel}
@@ -335,7 +359,7 @@ export default function Workbench() {
 			<Box sx={{ flex: 1, display: 'flex', minHeight: 0 }}>
 				{/* Gauche : conversation + changes 75% */}
 				<Box
-					sx={{ flex: '0 0 75%', minWidth: 0, display: 'flex', flexDirection: 'column' }}
+					sx={{ flex: '0 0 68%', minWidth: 0, display: 'flex', flexDirection: 'column' }}
 				>
 					{/* Onglets : Chat + un onglet par fichier ouvert */}
 					<Tabs
@@ -423,6 +447,7 @@ export default function Workbench() {
 									resume(sessionId).catch(() => {});
 								}}
 								onOpenChanges={openChanges}
+								onCreatePrStateChange={setPrState}
 								onTurnComplete={() => {
 									queryClient.invalidateQueries({ queryKey: ['git-diff'] });
 								}}

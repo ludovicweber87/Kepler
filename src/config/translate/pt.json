@@ -208,6 +208,8 @@
 		"launch": "Iniciar",
 		"creating": "Criando...",
 		"issueUrl": "URL da issue do GitHub para contexto (opcional)",
+		"linkingIssueTitle": "Lendo a issue",
+		"linkingIssueDesc": "O agente está lendo a issue #{number} para entender o contexto…",
 		"closeSession": "Fechar sessao",
 		"confirmCloseTitle": "Fechar a sessao?",
 		"confirmCloseBody": "A sessao atual sera encerrada. Voce podera relanca-la mais tarde.",

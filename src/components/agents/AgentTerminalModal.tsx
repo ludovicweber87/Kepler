@@ -122,14 +122,15 @@ export default function AgentTerminalModal({
 	const tl = useTranslations('launchModal');
 	const tc = useTranslations('common');
 	// Step management: 'project' → 'launch-mode' → 'branch'
-	const [step, setStep] = useState<'project' | 'launch-mode' | 'branch' | 'existing-branch'>(
-		'project',
-	);
+	const [step, setStep] = useState<
+		'project' | 'launch-mode' | 'branch' | 'existing-branch' | 'linking-issue'
+	>('project');
 	const [branchInput, setBranchInput] = useState('');
 	// F2 — optional GitHub issue linked at launch, injected into the agent prompt as context
 	const [issueUrl, setIssueUrl] = useState('');
 	const [issueFetching, setIssueFetching] = useState(false);
 	const [issueLoaded, setIssueLoaded] = useState<string | null>(null);
+	const [linkingNumber, setLinkingNumber] = useState<number | null>(null);
 	const [, setWorktreePath] = useState<string | null>(null);
 	const [worktreeError, setWorktreeError] = useState<string | null>(null);
 	// Current branch mode state
@@ -158,6 +159,8 @@ export default function AgentTerminalModal({
 	const generatedIdRef = useRef<string | null>(null);
 	const redirectedRef = useRef(false);
 	const issueCtxRef = useRef<string | null>(null);
+	// Issue linked via the URL field in the worktree step — persisted on the session
+	const linkedIssueRef = useRef<IssueContext | null>(null);
 	if (open && !existingSessionId && !generatedIdRef.current) {
 		generatedIdRef.current = buildSessionId(projectPath ?? undefined, agentFile, issueContext);
 	}
@@ -215,6 +218,11 @@ export default function AgentTerminalModal({
 			setFetchingBranch(false);
 			setLaunchMode(null);
 			setSelectedExistingBranch(null);
+			setIssueUrl('');
+			setIssueLoaded(null);
+			setLinkingNumber(null);
+			issueCtxRef.current = null;
+			linkedIssueRef.current = null;
 			redirectedRef.current = false;
 		}
 	}, [open]);
@@ -260,12 +268,13 @@ export default function AgentTerminalModal({
 	}, [open, existingWorktree]);
 
 	// Handle branch submission + worktree creation
-	const fetchIssueContext = useCallback(async (url: string) => {
+	const fetchIssueContext = useCallback(async (url: string): Promise<IssueContext | null> => {
 		const m = url.match(/github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)/);
 		if (!m) {
 			issueCtxRef.current = null;
+			linkedIssueRef.current = null;
 			setIssueLoaded(null);
-			return;
+			return null;
 		}
 		const [, owner, repo, number] = m;
 		setIssueFetching(true);
@@ -273,15 +282,25 @@ export default function AgentTerminalModal({
 			const res = await apiFetch(
 				`/api/github/issue?owner=${owner}&repo=${repo}&number=${number}`,
 			);
-			if (!res.ok) return;
+			if (!res.ok) return null;
 			const data = await res.json();
 			const issue = data.issue;
 			if (issue) {
 				issueCtxRef.current = `## Contexte de l'issue #${issue.number} : ${issue.title}\n\n${issue.body ?? ''}`;
 				setIssueLoaded(`#${issue.number} ${issue.title}`);
+				const linked: IssueContext = {
+					owner,
+					repo,
+					issueNumber: issue.number,
+					issueTitle: issue.title,
+				};
+				linkedIssueRef.current = linked;
+				return linked;
 			}
+			return null;
 		} catch {
 			// silent — context is optional
+			return null;
 		} finally {
 			setIssueFetching(false);
 		}
@@ -290,8 +309,9 @@ export default function AgentTerminalModal({
 	const composeSystemPrompt = useCallback((): string | undefined => {
 		const base = agentFile ? agentFile.content : '';
 		const issueBlock = issueCtxRef.current ? `\n\n${issueCtxRef.current}` : '';
-		const sourceIssueBlock = issueContext
-			? `\n\n## Contexte\nCette session a été ouverte depuis l'issue GitHub ${issueContext.owner}/${issueContext.repo}#${issueContext.issueNumber}${issueContext.issueTitle ? ` : « ${issueContext.issueTitle} »` : ''}.\nAvant d'agir, lis cette issue pour comprendre le contexte — par exemple : \`gh issue view ${issueContext.issueNumber} --repo ${issueContext.owner}/${issueContext.repo} --comments\`.`
+		const effectiveIssue = issueContext ?? linkedIssueRef.current;
+		const sourceIssueBlock = effectiveIssue
+			? `\n\n## Contexte\nCette session a été ouverte depuis l'issue GitHub ${effectiveIssue.owner}/${effectiveIssue.repo}#${effectiveIssue.issueNumber}${effectiveIssue.issueTitle ? ` : « ${effectiveIssue.issueTitle} »` : ''}.\nAvant d'agir, lis cette issue pour comprendre le contexte — par exemple : \`gh issue view ${effectiveIssue.issueNumber} --repo ${effectiveIssue.owner}/${effectiveIssue.repo} --comments\`.`
 			: '';
 		return (base + issueBlock + sourceIssueBlock).trim() || undefined;
 	}, [agentFile, issueContext]);
@@ -304,6 +324,18 @@ export default function AgentTerminalModal({
 		const name = trimmedName || randomWorktreeName();
 		setWorktreeError(null);
 
+		// When an issue URL is linked, show the "reading issue" step and make sure the
+		// issue is actually fetched (and its owner/repo/number/title persisted) before
+		// launching. Issue context stays optional — a fetch failure never blocks launch.
+		let linked: IssueContext | null = issueContext ?? linkedIssueRef.current;
+		const url = issueUrl.trim();
+		const match = url.match(/github\.com\/[^/]+\/[^/]+\/issues\/(\d+)/);
+		if (match) {
+			setLinkingNumber(Number(match[1]));
+			setStep('linking-issue');
+			linked = linkedIssueRef.current ?? (await fetchIssueContext(url)) ?? linked;
+		}
+
 		try {
 			const projectName = projectPath.split('/').filter(Boolean).pop() ?? 'unknown';
 			ensureSession({
@@ -311,20 +343,21 @@ export default function AgentTerminalModal({
 				projectPath,
 				projectName,
 				agentName:
-					agentFile?.name ?? (issueContext ? `#${issueContext.issueNumber}` : null),
+					agentFile?.name ?? (linked ? `#${linked.issueNumber}` : null),
 				branch: name,
 				worktreePath: null,
 				status: 'provisioning',
 				launchMode: 'worktree',
-				issueOwner: issueContext?.owner ?? null,
-				issueRepo: issueContext?.repo ?? null,
-				issueNumber: issueContext?.issueNumber ?? null,
-				issueTitle: issueContext?.issueTitle ?? null,
+				issueOwner: linked?.owner ?? null,
+				issueRepo: linked?.repo ?? null,
+				issueNumber: linked?.issueNumber ?? null,
+				issueTitle: linked?.issueTitle ?? null,
 				systemPrompt: composeSystemPrompt(),
 			});
 			goToWorkbench(sessionId);
 		} catch (err) {
 			setWorktreeError(err instanceof Error ? err.message : 'Erreur au lancement');
+			setStep('branch');
 		}
 	}, [
 		branchInput,
@@ -332,6 +365,8 @@ export default function AgentTerminalModal({
 		sessionId,
 		agentFile,
 		issueContext,
+		issueUrl,
+		fetchIssueContext,
 		composeSystemPrompt,
 		ensureSession,
 		goToWorkbench,
@@ -968,6 +1003,44 @@ export default function AgentTerminalModal({
 							{tc('back')}
 						</Button>
 					</Box>
+				</Box>
+			)}
+
+			{/* Transient step: reading the linked issue before launch */}
+			{step === 'linking-issue' && (
+				<Box
+					sx={{
+						flex: 1,
+						display: 'flex',
+						flexDirection: 'column',
+						alignItems: 'center',
+						justifyContent: 'center',
+						gap: 3,
+						px: 4,
+					}}
+				>
+					<Box sx={{ position: 'relative', display: 'flex' }}>
+						<CircularProgress size={56} thickness={2.5} sx={{ color: 'primary.main' }} />
+						<DescriptionRoundedIcon
+							sx={{
+								position: 'absolute',
+								top: '50%',
+								left: '50%',
+								transform: 'translate(-50%, -50%)',
+								fontSize: 26,
+								color: 'primary.main',
+							}}
+						/>
+					</Box>
+					<Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+						{tl('linkingIssueTitle')}
+					</Typography>
+					<Typography
+						variant="body2"
+						sx={{ color: 'text.secondary', textAlign: 'center', maxWidth: 450 }}
+					>
+						{tl('linkingIssueDesc', { number: linkingNumber ?? '' })}
+					</Typography>
 				</Box>
 			)}
 

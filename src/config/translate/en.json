@@ -229,6 +229,8 @@
 		"launch": "Launch",
 		"creating": "Creating...",
 		"issueUrl": "GitHub issue URL for context (optional)",
+		"linkingIssueTitle": "Reading the issue",
+		"linkingIssueDesc": "The agent is reading issue #{number} to understand the context…",
 		"closeSession": "Close session",
 		"confirmCloseTitle": "Close session?",
 		"confirmCloseBody": "The current session will be stopped. You can relaunch it later.",
