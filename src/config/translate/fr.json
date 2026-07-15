@@ -229,6 +229,8 @@
 		"launch": "Lancer",
 		"creating": "Creation...",
 		"issueUrl": "URL d'issue GitHub pour le contexte (optionnel)",
+		"linkingIssueTitle": "Lecture de l'issue",
+		"linkingIssueDesc": "L'agent lit l'issue #{number} pour comprendre le contexte…",
 		"closeSession": "Fermer la session",
 		"confirmCloseTitle": "Fermer la session ?",
 		"confirmCloseBody": "La session en cours sera arretee. Tu pourras la relancer plus tard.",

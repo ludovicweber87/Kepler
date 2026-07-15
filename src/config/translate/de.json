@@ -207,6 +207,8 @@
 		"launch": "Starten",
 		"creating": "Erstellen...",
 		"issueUrl": "GitHub-Issue-URL für Kontext (optional)",
+		"linkingIssueTitle": "Issue wird gelesen",
+		"linkingIssueDesc": "Der Agent liest Issue #{number}, um den Kontext zu verstehen…",
 		"closeSession": "Sitzung schließen",
 		"confirmCloseTitle": "Sitzung schließen?",
 		"confirmCloseBody": "Die aktuelle Sitzung wird beendet. Du kannst sie später erneut starten.",
