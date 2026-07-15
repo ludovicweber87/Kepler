@@ -9,7 +9,8 @@ import '@xterm/xterm/css/xterm.css';
 import { getAgentWsUrl } from '@/lib/local-fetch';
 
 interface ShellTerminalProps {
-	sessionId: string;
+	/** Nom de la session tmux à créer/attacher (unique par terminal). */
+	shellSessionId: string;
 	cwd: string | null;
 	active: boolean;
 	ready?: boolean;
@@ -17,10 +18,12 @@ interface ShellTerminalProps {
 
 export interface ShellTerminalHandle {
 	runCommand: (cmd: string) => void;
+	/** Tue la session tmux sous-jacente (utilisé à la fermeture d'un onglet). */
+	kill: () => void;
 }
 
 const ShellTerminal = forwardRef<ShellTerminalHandle, ShellTerminalProps>(function ShellTerminal(
-	{ sessionId, cwd, active, ready = true },
+	{ shellSessionId, cwd, active, ready = true },
 	ref,
 ) {
 	const [node, setNode] = useState<HTMLDivElement | null>(null);
@@ -36,11 +39,18 @@ const ShellTerminal = forwardRef<ShellTerminalHandle, ShellTerminalProps>(functi
 				ws.send(JSON.stringify({ type: 'input', data: cmd + '\r' }));
 			}
 		},
+		kill: () => {
+			const ws = wsRef.current;
+			if (ws && ws.readyState === WebSocket.OPEN) {
+				ws.send(JSON.stringify({ type: 'kill', sessionId: shellSessionId }));
+			}
+		},
 	}));
 
-	// Init une seule fois quand tout est prêt et le panneau visible.
+	// Init une seule fois au montage (les terminaux sont toujours montés actifs).
+	// On ne détruit qu'au unmount : un onglet inactif reste connecté, scrollback préservé.
 	useEffect(() => {
-		if (!node || !active || !ready || !cwd) return;
+		if (!node || !ready || !cwd) return;
 		if (initialized.current) return;
 		initialized.current = true;
 
@@ -91,7 +101,6 @@ const ShellTerminal = forwardRef<ShellTerminalHandle, ShellTerminalProps>(functi
 		terminalRef.current = terminal;
 		fitAddonRef.current = fitAddon;
 
-		const shellSessionId = `${sessionId}-shell`;
 		const ws = new WebSocket(getAgentWsUrl());
 		wsRef.current = ws;
 
@@ -171,7 +180,7 @@ const ShellTerminal = forwardRef<ShellTerminalHandle, ShellTerminalProps>(functi
 			fitAddonRef.current = null;
 			initialized.current = false;
 		};
-	}, [node, active, ready, cwd, sessionId]);
+	}, [node, ready, cwd, shellSessionId]);
 
 	// Refit + focus quand le panneau (re)devient visible.
 	useEffect(() => {
