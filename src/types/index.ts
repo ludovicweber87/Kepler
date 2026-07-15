@@ -359,12 +359,6 @@ export interface StreamEventWire {
 }
 
 // ─── Repo Settings ──────────────────────────────────────────
-export interface RunScript {
-	id: string;
-	name: string;
-	command: string;
-}
-
 export interface RepoSettings {
 	repo_full_name: string;
 	create_pr_prompt: string;
@@ -372,5 +366,4 @@ export interface RepoSettings {
 	setup_script: string;
 	setup_script_name: string;
 	archive_script: string;
-	run_scripts: RunScript[];
 }

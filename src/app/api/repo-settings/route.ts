@@ -12,7 +12,6 @@ function defaults(repo: string) {
 		setup_script: '',
 		setup_script_name: '',
 		archive_script: '',
-		run_scripts: [],
 	};
 }
 
@@ -37,7 +36,7 @@ export async function GET(req: NextRequest) {
 	}
 }
 
-// PUT /api/repo-settings { repo_full_name, create_pr_prompt, files_to_copy, setup_script, archive_script, run_scripts }
+// PUT /api/repo-settings { repo_full_name, create_pr_prompt, files_to_copy, setup_script, setup_script_name, archive_script }
 export async function PUT(req: NextRequest) {
 	const auth = await requireAuth();
 	if (isAuthError(auth)) return auth;
@@ -55,7 +54,6 @@ export async function PUT(req: NextRequest) {
 			setup_script: body.setup_script ?? '',
 			setup_script_name: body.setup_script_name ?? '',
 			archive_script: body.archive_script ?? '',
-			run_scripts: body.run_scripts ?? [],
 		};
 		const [row] = db
 			.insert(repoSettings)

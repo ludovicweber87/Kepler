@@ -112,12 +112,6 @@ export const appSettings = sqliteTable('app_settings', {
 
 // ─── Repo Settings ───────────────────────────────────────
 
-export interface RunScriptRow {
-	id: string;
-	name: string;
-	command: string;
-}
-
 export const repoSettings = sqliteTable('repo_settings', {
 	id: uuid(),
 	repo_full_name: text().notNull().unique(),
@@ -126,7 +120,6 @@ export const repoSettings = sqliteTable('repo_settings', {
 	setup_script: text().default(''),
 	setup_script_name: text().default(''),
 	archive_script: text().default(''),
-	run_scripts: text({ mode: 'json' }).$type<RunScriptRow[]>().default([]),
 	updated_at: timestamp(),
 });
 

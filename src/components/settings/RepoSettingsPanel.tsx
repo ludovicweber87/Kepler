@@ -5,13 +5,9 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
-import IconButton from '@mui/material/IconButton';
-import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
-import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import { useTranslations } from 'next-intl';
 import { useRepoSettings } from '@/hooks/useRepoSettings';
 import { useSnackbar } from '@/hooks/useSnackbar';
-import type { RunScript } from '@/types';
 import { DEFAULT_CREATE_PR_PROMPT } from '@/lib/prompts';
 
 export default function RepoSettingsPanel({ repoFullName }: { repoFullName: string }) {
@@ -24,7 +20,6 @@ export default function RepoSettingsPanel({ repoFullName }: { repoFullName: stri
 	const [setupScript, setSetupScript] = useState('');
 	const [setupScriptName, setSetupScriptName] = useState('');
 	const [archiveScript, setArchiveScript] = useState('');
-	const [runScripts, setRunScripts] = useState<RunScript[]>([]);
 
 	// Hydrate local state from server once loaded.
 	useEffect(() => {
@@ -34,7 +29,6 @@ export default function RepoSettingsPanel({ repoFullName }: { repoFullName: stri
 		setSetupScript(settings.setup_script);
 		setSetupScriptName(settings.setup_script_name);
 		setArchiveScript(settings.archive_script);
-		setRunScripts(settings.run_scripts);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isLoading, repoFullName]);
 
@@ -42,12 +36,6 @@ export default function RepoSettingsPanel({ repoFullName }: { repoFullName: stri
 		await save(patch);
 		showSnackbar(t('saved'), 'success');
 	};
-
-	const addRunScript = () =>
-		setRunScripts((s) => [...s, { id: crypto.randomUUID(), name: '', command: '' }]);
-	const updateRunScript = (id: string, field: 'name' | 'command', value: string) =>
-		setRunScripts((s) => s.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
-	const deleteRunScript = (id: string) => setRunScripts((s) => s.filter((r) => r.id !== id));
 
 	return (
 		<Box
@@ -177,51 +165,6 @@ export default function RepoSettingsPanel({ repoFullName }: { repoFullName: stri
 				>
 					{t('save')}
 				</Button>
-			</Box>
-
-			{/* Run scripts */}
-			<Box>
-				<Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-					{t('runScripts')}
-				</Typography>
-				<Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
-					{t('runScriptsDesc')}
-				</Typography>
-				<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-					{runScripts.map((rs) => (
-						<Box key={rs.id} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-							<TextField
-								size="small"
-								sx={{ width: 180 }}
-								placeholder={t('runScriptName')}
-								value={rs.name}
-								onChange={(e) => updateRunScript(rs.id, 'name', e.target.value)}
-							/>
-							<TextField
-								size="small"
-								fullWidth
-								placeholder={t('runScriptCommand')}
-								value={rs.command}
-								onChange={(e) => updateRunScript(rs.id, 'command', e.target.value)}
-							/>
-							<IconButton size="small" onClick={() => deleteRunScript(rs.id)}>
-								<DeleteOutlineRoundedIcon fontSize="small" />
-							</IconButton>
-						</Box>
-					))}
-				</Box>
-				<Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-					<Button startIcon={<AddRoundedIcon />} onClick={addRunScript}>
-						{t('addRunScript')}
-					</Button>
-					<Button
-						variant="contained"
-						disabled={isSaving}
-						onClick={() => persist({ run_scripts: runScripts })}
-					>
-						{t('save')}
-					</Button>
-				</Box>
 			</Box>
 
 			<Typography variant="caption" sx={{ color: 'text.disabled' }}>
