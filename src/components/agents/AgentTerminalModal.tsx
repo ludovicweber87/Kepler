@@ -406,6 +406,7 @@ export default function AgentTerminalModal({
 					agentName: agentFile?.name ?? null,
 					branch: data.branch,
 					worktreePath: null,
+					launchMode: 'current-branch',
 					issueOwner: issueContext?.owner ?? null,
 					issueRepo: issueContext?.repo ?? null,
 					issueNumber: issueContext?.issueNumber ?? null,

@@ -11,8 +11,8 @@ const mk = (name: string, date: string) => ({
 
 test('dédupe: une branche locale masque son homologue distante', () => {
 	const out = dedupeAndSortBranches({
-		local: [mk('feat/x', '2026-07-10T10:00:00+00:00')],
-		remote: [mk('feat/x', '2026-07-10T10:00:00+00:00')],
+		local: [mk('feat/x', '2026-07-10 10:00:00 +0000')],
+		remote: [mk('feat/x', '2026-07-10 10:00:00 +0000')],
 		current: 'main',
 		checkedOut: [],
 	});
@@ -24,7 +24,7 @@ test('dédupe: une branche locale masque son homologue distante', () => {
 test('branche distante seule est marquée isRemote', () => {
 	const out = dedupeAndSortBranches({
 		local: [],
-		remote: [mk('feat/only-remote', '2026-07-10T10:00:00+00:00')],
+		remote: [mk('feat/only-remote', '2026-07-10 10:00:00 +0000')],
 		current: 'main',
 		checkedOut: [],
 	});
@@ -34,7 +34,7 @@ test('branche distante seule est marquée isRemote', () => {
 
 test('marque isCurrent et isCheckedOut', () => {
 	const out = dedupeAndSortBranches({
-		local: [mk('main', '2026-07-10T10:00:00+00:00'), mk('feat/y', '2026-07-09T10:00:00+00:00')],
+		local: [mk('main', '2026-07-10 10:00:00 +0000'), mk('feat/y', '2026-07-09 10:00:00 +0000')],
 		remote: [],
 		current: 'main',
 		checkedOut: ['feat/y'],
@@ -48,7 +48,7 @@ test('marque isCurrent et isCheckedOut', () => {
 
 test('trie par date de commit décroissante', () => {
 	const out = dedupeAndSortBranches({
-		local: [mk('old', '2026-01-01T00:00:00+00:00'), mk('new', '2026-07-01T00:00:00+00:00')],
+		local: [mk('old', '2026-01-01 00:00:00 +0000'), mk('new', '2026-07-01 00:00:00 +0000')],
 		remote: [],
 		current: 'x',
 		checkedOut: [],
