@@ -94,6 +94,42 @@ export async function fetchAssignedIssues(token: string): Promise<GitHubIssue[]>
 	return fetchIssuesByFilter('assigned', token);
 }
 
+/**
+ * Issues ouvertes assignées à `assignee` dans UN repo (scope tab active du Kanban).
+ * PRs exclues. Paginé (100/page) avec garde-fou de 10 pages.
+ */
+export async function fetchRepoAssignedOpenIssues(
+	owner: string,
+	repo: string,
+	assignee: string,
+	token: string,
+): Promise<GitHubIssue[]> {
+	const issues: GitHubIssue[] = [];
+	const repo_full_name = `${owner}/${repo}`;
+	const MAX_PAGES = 10;
+
+	for (let page = 1; page <= MAX_PAGES; page++) {
+		const res = await fetch(
+			`${GITHUB_API}/repos/${owner}/${repo}/issues?assignee=${encodeURIComponent(
+				assignee,
+			)}&state=open&per_page=100&sort=updated&page=${page}`,
+			{ headers: getHeaders(token) },
+		);
+		if (!res.ok) throw new Error(`GitHub repo issues failed: ${res.status}`);
+		const data: GitHubIssue[] = await res.json();
+		if (data.length === 0) break;
+
+		issues.push(
+			...data
+				.filter((issue) => !issue.pull_request)
+				.map((issue) => ({ ...issue, repo_full_name })),
+		);
+		if (data.length < 100) break;
+	}
+
+	return issues;
+}
+
 async function fetchProjectColumnsBatch(
 	batch: string[],
 	token: string,
