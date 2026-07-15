@@ -1,6 +1,10 @@
 import { IncomingMessage, ServerResponse } from 'node:http';
 import { execSync } from 'node:child_process';
-import { sendJson } from '../helpers.js';
+import { openSync, readSync, closeSync, statSync } from 'node:fs';
+import { isAbsolute, join } from 'node:path';
+import { sendJson, parseQuery } from '../helpers.js';
+
+const MAX_BYTES = 1024 * 1024; // 1 Mo
 
 export async function handleFilesystemRoutes(
 	req: IncomingMessage,
@@ -22,6 +26,41 @@ export async function handleFilesystemRoutes(
 			sendJson(res, { path: dirPath });
 		} catch {
 			sendJson(res, { path: null });
+		}
+		return;
+	}
+
+	// ── Read a file's raw content (bounded to MAX_BYTES) ──
+
+	if (path === '/filesystem/read-file' && method === 'GET') {
+		const q = parseQuery(req);
+		const filePath = q.get('path') ?? '';
+		const cwd = q.get('cwd') ?? '';
+		if (!filePath) {
+			sendJson(res, { error: 'path required' }, 400);
+			return;
+		}
+		const abs = isAbsolute(filePath) ? filePath : join(cwd, filePath);
+		try {
+			const st = statSync(abs);
+			if (!st.isFile()) {
+				sendJson(res, { error: 'not a file' }, 400);
+				return;
+			}
+			const truncated = st.size > MAX_BYTES;
+			const len = truncated ? MAX_BYTES : st.size;
+			const buf = Buffer.alloc(len);
+			if (len > 0) {
+				const fd = openSync(abs, 'r');
+				try {
+					readSync(fd, buf, 0, len, 0);
+				} finally {
+					closeSync(fd);
+				}
+			}
+			sendJson(res, { content: buf.toString('utf-8'), truncated, path: abs });
+		} catch (err) {
+			sendJson(res, { error: err instanceof Error ? err.message : 'read failed' }, 404);
 		}
 		return;
 	}
