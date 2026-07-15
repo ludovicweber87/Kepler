@@ -1,11 +1,10 @@
 'use client';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
 import Typography from '@mui/material/Typography';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
-import CallMergeRoundedIcon from '@mui/icons-material/CallMergeRounded';
 import { useTranslations } from 'next-intl';
 import { useAgentChat } from '@/hooks/useAgentChat';
 import { DEFAULT_CREATE_PR_PROMPT } from '@/lib/prompts';
@@ -31,6 +30,8 @@ interface Props {
 	onOpenChanges?: (filePath: string) => void;
 	/** Appelé à la fin d'un tour de l'agent (transition busy → idle). */
 	onTurnComplete?: () => void;
+	/** Remonte au parent la disponibilité + l'action « Create PR » (rendue dans le header). */
+	onCreatePrStateChange?: (state: { available: boolean; trigger: () => void }) => void;
 }
 
 export default function AgentChatTab({
@@ -46,6 +47,7 @@ export default function AgentChatTab({
 	onResume,
 	onOpenChanges,
 	onTurnComplete,
+	onCreatePrStateChange,
 }: Props) {
 	const t = useTranslations('agentChat');
 	const firstSent = useRef(false);
@@ -115,6 +117,19 @@ export default function AgentChatTab({
 		lastRole !== 'assistant';
 	// "Create PR" : l'agent a fini de répondre et il y a eu au moins un échange.
 	const canCreatePr = chat.status === 'idle' && chat.messages.length > 0;
+
+	// Le bouton « Create PR » est rendu dans le header du Workbench : on remonte
+	// au parent la disponibilité et une action stable (qui lit toujours le dernier send).
+	const sendRef = useRef(chat.send);
+	sendRef.current = chat.send;
+	const triggerCreatePr = useCallback(() => sendRef.current(prPrompt), [prPrompt]);
+	useEffect(() => {
+		onCreatePrStateChange?.({
+			available: !readOnly && canCreatePr,
+			trigger: triggerCreatePr,
+		});
+	}, [readOnly, canCreatePr, triggerCreatePr, onCreatePrStateChange]);
+
 	return (
 		<Box
 			sx={{
@@ -176,26 +191,6 @@ export default function AgentChatTab({
 				</Box>
 			) : (
 				<>
-					{canCreatePr && (
-						<Box
-							sx={{
-								px: 1.5,
-								pt: 1,
-								display: 'flex',
-								justifyContent: 'flex-end',
-							}}
-						>
-							<Button
-								size="small"
-								variant="outlined"
-								startIcon={<CallMergeRoundedIcon sx={{ fontSize: 16 }} />}
-								onClick={() => chat.send(prPrompt)}
-								sx={{ textTransform: 'none', borderRadius: 999 }}
-							>
-								{t('createPr')}
-							</Button>
-						</Box>
-					)}
 					<ChatComposer
 						disabled={chat.status !== 'idle'}
 						busy={busy}
