@@ -40,6 +40,11 @@ interface ListSessionsMessage {
 	type: 'list-sessions';
 }
 
+interface KillMessage {
+	type: 'kill';
+	sessionId: string;
+}
+
 interface StreamInitMessage {
 	type: 'stream-init';
 	sessionId: string;
@@ -96,6 +101,7 @@ type ClientMessage =
 	| InputMessage
 	| ResizeMessage
 	| ListSessionsMessage
+	| KillMessage
 	| StreamInitMessage
 	| StreamUserMessage
 	| StreamSetModelMessage
@@ -298,6 +304,17 @@ export function startTerminalServer(httpServer: HttpServer) {
 			if (msg.type === 'list-sessions') {
 				const sessions = listTmuxSessions();
 				ws.send(JSON.stringify({ type: 'sessions', sessions }));
+				return;
+			}
+
+			if (msg.type === 'kill') {
+				try {
+					if (tmuxSessionExists(msg.sessionId)) {
+						execSync(`${TMUX} kill-session -t ${msg.sessionId}`, { stdio: 'ignore' });
+					}
+				} catch (err) {
+					console.error('[devora-agent] kill-session failed:', err);
+				}
 				return;
 			}
 

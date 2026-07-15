@@ -45,7 +45,7 @@ import ChangedFilesList from '@/components/agents/ChangedFilesList';
 import SessionRecap from '@/components/agents/SessionRecap';
 import AgentActivityTab from '@/components/agents/AgentActivityTab';
 import AgentIssueTab from '@/components/agents/AgentIssueTab';
-import ShellTerminal, { type ShellTerminalHandle } from '@/components/agents/ShellTerminal';
+import TerminalTabs from '@/components/agents/TerminalTabs';
 import CreationProgress from '@/components/workbench/CreationProgress';
 import { matchFileDiff, resolveTabAfterClose, addOpenFile, CHAT_TAB } from '@/lib/workbenchTabs';
 
@@ -67,7 +67,6 @@ export default function Workbench() {
 	const [confirmClose, setConfirmClose] = useState(false);
 	const [closing, setClosing] = useState(false);
 	const firstPromptSent = useRef(false);
-	const shellRef = useRef<ShellTerminalHandle>(null);
 
 	// Fallback : la session peut deja etre dans l'historique avant que useAgentSession resolve.
 	const resolved = useMemo(
@@ -546,7 +545,7 @@ export default function Workbench() {
 						}}
 					/>
 
-					{/* Terminal empilé */}
+					{/* Terminaux (onglets multiples) empilés */}
 					<Box
 						sx={{
 							height: termHeight,
@@ -556,49 +555,12 @@ export default function Workbench() {
 							minHeight: 0,
 						}}
 					>
-						<Box
-							sx={{
-								display: 'flex',
-								alignItems: 'center',
-								px: 1.5,
-								py: 0.5,
-								borderBottom: 1,
-								borderColor: 'divider',
-								flexShrink: 0,
-							}}
-						>
-							<Typography
-								variant="caption"
-								sx={{ fontWeight: 600, color: 'text.secondary' }}
-							>
-								{t('terminal')}
-							</Typography>
-							{repoSettings.run_scripts.length > 0 && (
-								<Box
-									sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', ml: 'auto' }}
-								>
-									{repoSettings.run_scripts
-										.filter((rs) => rs.command.trim())
-										.map((rs) => (
-											<Chip
-												key={rs.id}
-												label={rs.name || rs.command}
-												size="small"
-												onClick={() =>
-													shellRef.current?.runCommand(rs.command)
-												}
-												sx={{ cursor: 'pointer' }}
-											/>
-										))}
-								</Box>
-							)}
-						</Box>
-						<ShellTerminal
-							ref={shellRef}
+						<TerminalTabs
+							key={sessionId}
 							sessionId={sessionId}
 							cwd={effectivePath}
-							active
 							ready={!!resolved}
+							runScripts={repoSettings.run_scripts}
 						/>
 					</Box>
 				</Box>
