@@ -2,6 +2,8 @@
 
 import { useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
@@ -344,9 +346,8 @@ export default function AgentActivityTab({
 										}}
 									/>
 
-									{/* Content */}
-									<Typography
-										variant="body2"
+									{/* Content (markdown) */}
+									<Box
 										sx={{
 											flex: 1,
 											fontSize: '0.78rem',
@@ -355,13 +356,41 @@ export default function AgentActivityTab({
 												log.log_type === 'error'
 													? 'error.main'
 													: 'text.primary',
-											whiteSpace: 'pre-wrap',
 											wordBreak: 'break-word',
 											pl: 1,
+											'& p': { m: 0 },
+											'& p + p': { mt: 0.5 },
+											'& ul, & ol': { m: 0, pl: 2.5 },
+											'& li': { mb: 0.25 },
+											'& a': { color: 'primary.main' },
+											'& code': {
+												fontFamily: 'monospace',
+												fontSize: '0.72rem',
+												bgcolor: (theme) =>
+													alpha(theme.palette.text.primary, 0.08),
+												px: 0.5,
+												borderRadius: 0.5,
+											},
+											'& pre': {
+												overflowX: 'auto',
+												bgcolor: 'background.default',
+												p: 1,
+												borderRadius: 1,
+												my: 0.5,
+											},
+											'& pre code': { bgcolor: 'transparent', px: 0 },
+											'& h1, & h2, & h3, & h4': {
+												fontSize: '0.82rem',
+												fontWeight: 700,
+												m: 0,
+												mt: 0.5,
+											},
 										}}
 									>
-										{log.content}
-									</Typography>
+										<ReactMarkdown remarkPlugins={[remarkGfm]}>
+											{log.content}
+										</ReactMarkdown>
+									</Box>
 								</Box>
 							);
 						})}
