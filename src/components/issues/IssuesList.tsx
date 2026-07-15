@@ -17,7 +17,6 @@ import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import Dialog from '@mui/material/Dialog';
 import Link from 'next/link';
 import KanbanColumn from './KanbanColumn';
-import CreateBranchModal from './CreateBranchModal';
 import IssueDetail from '@/components/dashboard/IssueDetail';
 import { useProjectConfig } from '@/hooks/useProjectConfig';
 import { useProjectBoards } from '@/hooks/useProjectBoards';
@@ -92,9 +91,6 @@ export default function IssuesList() {
 	const mutation = useUpdateIssueStatus();
 	const todoQc = useQueryClient();
 
-	// Branch modal state
-	const [branchModalIssue, setBranchModalIssue] = useState<GitHubIssue | null>(null);
-
 	// Issue detail modal state
 	const [detailIssue, setDetailIssue] = useState<{
 		owner: string;
@@ -134,7 +130,6 @@ export default function IssuesList() {
 				projectNumber: cfg.projectNumber,
 				ownerType: cfg.ownerType,
 			});
-			if (newStatus.includes('In Progress')) setBranchModalIssue(issue);
 			if (newStatus.toLowerCase().includes('qa')) {
 				const repo = issue.repo_full_name;
 				if (repo && issue.number) {
@@ -332,14 +327,6 @@ export default function IssuesList() {
 						/>
 					))}
 				</Box>
-			)}
-
-			{branchModalIssue && (
-				<CreateBranchModal
-					open
-					onClose={() => setBranchModalIssue(null)}
-					issue={branchModalIssue}
-				/>
 			)}
 
 			<Dialog
