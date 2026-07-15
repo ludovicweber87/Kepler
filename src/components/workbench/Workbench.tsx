@@ -47,12 +47,12 @@ import AgentActivityTab from '@/components/agents/AgentActivityTab';
 import AgentIssueTab from '@/components/agents/AgentIssueTab';
 import TerminalTabs from '@/components/agents/TerminalTabs';
 import CreationProgress from '@/components/workbench/CreationProgress';
+import FileContentView from '@/components/workbench/FileContentView';
 import { matchFileDiff, resolveTabAfterClose, addOpenFile, CHAT_TAB } from '@/lib/workbenchTabs';
 
 export default function Workbench() {
 	const t = useTranslations('workbench');
 	const tc = useTranslations('common');
-	const td = useTranslations('agentDiff');
 	const searchParams = useSearchParams();
 	const router = useRouter();
 	const sessionId = searchParams.get('session') ?? undefined;
@@ -423,6 +423,9 @@ export default function Workbench() {
 									resume(sessionId).catch(() => {});
 								}}
 								onOpenChanges={openChanges}
+								onTurnComplete={() => {
+									queryClient.invalidateQueries({ queryKey: ['git-diff'] });
+								}}
 								onFirstUserMessage={(text) => {
 									if (isAutoNamed && !firstPromptSent.current) {
 										firstPromptSent.current = true;
@@ -442,19 +445,7 @@ export default function Workbench() {
 									focusNonce={focusNonce}
 								/>
 							) : (
-								<Box
-									sx={{
-										display: 'flex',
-										alignItems: 'center',
-										justifyContent: 'center',
-										height: '100%',
-										px: 2,
-									}}
-								>
-									<Typography variant="caption" sx={{ color: 'text.disabled' }}>
-										{td('noChanges')}
-									</Typography>
-								</Box>
+								<FileContentView key={activeTab} cwd={diffPath} path={activeTab} />
 							)}
 						</Box>
 					)}

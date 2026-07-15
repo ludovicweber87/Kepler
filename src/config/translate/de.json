@@ -81,7 +81,9 @@
 		"newSession": "Neue Sitzung",
 		"activeSession": "Aktive Sitzung",
 		"stopSession": "Sitzung beenden",
-		"closeFile": "Datei schließen"
+		"closeFile": "Datei schließen",
+		"fileError": "Datei kann nicht gelesen werden",
+		"fileTruncated": "Datei gekürzt (zu groß zur vollständigen Anzeige)"
 	},
 	"creationProgress": {
 		"title": "Arbeitsbereich wird vorbereitet",
@@ -312,7 +314,13 @@
 		"empty": "Keine archivierte Sitzung",
 		"unarchive": "Wiederherstellen",
 		"sessionUnarchived": "Sitzung wiederhergestellt",
-		"unarchiveError": "Wiederherstellen fehlgeschlagen"
+		"unarchiveError": "Wiederherstellen fehlgeschlagen",
+		"delete": "Löschen",
+		"deleteSession": "Sitzung löschen",
+		"deleteWorktreeOnly": "Nur Worktree",
+		"deleteWorktreeAndBranch": "Worktree + Branch",
+		"sessionDeleted": "Sitzung gelöscht",
+		"deleteError": "Löschen fehlgeschlagen"
 	},
 	"repoSettings": {
 		"title": "Repo-Einstellungen",
@@ -331,6 +339,9 @@
 		"runScriptCommand": "Befehl",
 		"save": "Speichern",
 		"saved": "Gespeichert",
-		"shareHint": "Mit deinem Team teilen? Erstelle eine .devora/settings.toml-Datei."
+		"shareHint": "Mit deinem Team teilen? Erstelle eine .devora/settings.toml-Datei.",
+		"setupScriptName": "Schrittname",
+		"setupScriptNameDesc": "Beschriftung, die für diesen Schritt bei der Worktree-Erstellung angezeigt wird (optional).",
+		"setupScriptNamePlaceholder": "Setup-Skript"
 	}
 }

@@ -81,7 +81,9 @@
 		"newSession": "New session",
 		"activeSession": "Active session",
 		"stopSession": "Stop session",
-		"closeFile": "Close file"
+		"closeFile": "Close file",
+		"fileError": "Unable to read file",
+		"fileTruncated": "File truncated (too large to display fully)"
 	},
 	"creationProgress": {
 		"title": "Preparing the workspace",
@@ -334,7 +336,13 @@
 		"empty": "No archived session",
 		"unarchive": "Unarchive",
 		"sessionUnarchived": "Session unarchived",
-		"unarchiveError": "Failed to unarchive"
+		"unarchiveError": "Failed to unarchive",
+		"delete": "Delete",
+		"deleteSession": "Delete session",
+		"deleteWorktreeOnly": "Worktree only",
+		"deleteWorktreeAndBranch": "Worktree + branch",
+		"sessionDeleted": "Session deleted",
+		"deleteError": "Failed to delete"
 	},
 	"repoSettings": {
 		"title": "Repo settings",
@@ -353,6 +361,9 @@
 		"runScriptCommand": "Command",
 		"save": "Save",
 		"saved": "Saved",
-		"shareHint": "Share with your team? Create a .devora/settings.toml file."
+		"shareHint": "Share with your team? Create a .devora/settings.toml file.",
+		"setupScriptName": "Step name",
+		"setupScriptNameDesc": "Label shown for this step during worktree creation (optional).",
+		"setupScriptNamePlaceholder": "Setup script"
 	}
 }

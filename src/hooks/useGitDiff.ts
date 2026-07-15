@@ -18,6 +18,7 @@ export function useGitDiff(projectPath: string | null, branch: string | null) {
 		},
 		enabled: !!projectPath,
 		staleTime: 30_000,
+		refetchOnWindowFocus: true,
 	});
 
 	const files = useMemo(() => parseDiff(query.data?.diff ?? ''), [query.data?.diff]);

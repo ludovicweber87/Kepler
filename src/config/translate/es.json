@@ -81,7 +81,9 @@
 		"newSession": "Nueva sesión",
 		"activeSession": "Sesión activa",
 		"stopSession": "Detener la sesión",
-		"closeFile": "Cerrar archivo"
+		"closeFile": "Cerrar archivo",
+		"fileError": "No se puede leer el archivo",
+		"fileTruncated": "Archivo truncado (demasiado grande para mostrarlo completo)"
 	},
 	"creationProgress": {
 		"title": "Preparando el espacio de trabajo",
@@ -312,7 +314,13 @@
 		"empty": "Ninguna sesión archivada",
 		"unarchive": "Desarchivar",
 		"sessionUnarchived": "Sesión desarchivada",
-		"unarchiveError": "Error al desarchivar"
+		"unarchiveError": "Error al desarchivar",
+		"delete": "Eliminar",
+		"deleteSession": "Eliminar sesión",
+		"deleteWorktreeOnly": "Solo worktree",
+		"deleteWorktreeAndBranch": "Worktree + rama",
+		"sessionDeleted": "Sesión eliminada",
+		"deleteError": "Error al eliminar"
 	},
 	"repoSettings": {
 		"title": "Ajustes del repositorio",
@@ -331,6 +339,9 @@
 		"runScriptCommand": "Comando",
 		"save": "Guardar",
 		"saved": "Guardado",
-		"shareHint": "¿Compartir con tu equipo? Crea un archivo .devora/settings.toml."
+		"shareHint": "¿Compartir con tu equipo? Crea un archivo .devora/settings.toml.",
+		"setupScriptName": "Nombre del paso",
+		"setupScriptNameDesc": "Etiqueta mostrada para este paso durante la creación del worktree (opcional).",
+		"setupScriptNamePlaceholder": "Script de configuración"
 	}
 }

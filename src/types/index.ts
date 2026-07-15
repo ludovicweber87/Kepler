@@ -370,6 +370,7 @@ export interface RepoSettings {
 	create_pr_prompt: string;
 	files_to_copy: string;
 	setup_script: string;
+	setup_script_name: string;
 	archive_script: string;
 	run_scripts: RunScript[];
 }

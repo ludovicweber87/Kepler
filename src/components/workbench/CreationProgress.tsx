@@ -43,7 +43,7 @@ export default function CreationProgress({
 		'read-issue': t('readIssue'),
 		worktree: t('worktree'),
 		'copy-files': t('copyFiles'),
-		setup: t('setup'),
+		setup: (repoSettings.setup_script_name ?? '').trim() || t('setup'),
 	};
 
 	const run = useCallback(async () => {
