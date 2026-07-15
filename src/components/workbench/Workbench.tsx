@@ -42,6 +42,7 @@ import { useGitDiff } from '@/hooks/useGitDiff';
 import AgentChatTab from '@/components/agents/AgentChatTab';
 import { FileDiffView } from '@/components/agents/AgentDiffTab';
 import ChangedFilesList from '@/components/agents/ChangedFilesList';
+import SessionRecap from '@/components/agents/SessionRecap';
 import AgentActivityTab from '@/components/agents/AgentActivityTab';
 import AgentIssueTab from '@/components/agents/AgentIssueTab';
 import ShellTerminal, { type ShellTerminalHandle } from '@/components/agents/ShellTerminal';
@@ -127,6 +128,11 @@ export default function Workbench() {
 
 	const activeFileDiff =
 		activeTab === CHAT_TAB ? undefined : matchFileDiff(changedFiles, activeTab);
+
+	// Session archivée : l'onglet Activity disparaît → on dérive un onglet droit valide
+	// pour que <Tabs value> corresponde toujours à un <Tab> rendu (évite le warning MUI).
+	const effectiveRightTab: RightTab =
+		isArchived && rightTab === 'activity' ? 'changes' : rightTab;
 
 	// Resize vertical de la zone terminal (px depuis le bas).
 	const [termHeight, setTermHeight] = useState(240);
@@ -346,7 +352,7 @@ export default function Workbench() {
 							'& .MuiTab-root': { textTransform: 'none', minHeight: 40 },
 						}}
 					>
-						<Tab value={CHAT_TAB} label={t('tabChat')} />
+						<Tab value={CHAT_TAB} label={isArchived ? t('tabRecap') : t('tabChat')} />
 						{openFiles.map((path) => {
 							const name = path.split('/').filter(Boolean).pop() ?? path;
 							return (
@@ -392,34 +398,41 @@ export default function Workbench() {
 						})}
 					</Tabs>
 
-					{/* Contenu : on garde le chat monté (WebSocket) et on masque via display. */}
-					<Box
-						sx={{
-							flex: 1,
-							minHeight: 0,
-							display: activeTab === CHAT_TAB ? 'flex' : 'none',
-							flexDirection: 'column',
-						}}
-					>
-						<AgentChatTab
-							sessionId={sessionId}
-							cwd={effectivePath}
-							systemPrompt={resolved?.system_prompt ?? undefined}
-							readOnly={chatReadOnly}
-							archived={isArchived}
-							createPrPrompt={repoSettings.create_pr_prompt}
-							onResume={() => {
-								resume(sessionId).catch(() => {});
+					{/* Contenu de l'onglet de base : récap (archivé) ou chat (sinon). */}
+					{isArchived ? (
+						activeTab === CHAT_TAB && (
+							<Box sx={{ flex: 1, minHeight: 0 }}>
+								<SessionRecap session={resolved} logs={logs} />
+							</Box>
+						)
+					) : (
+						<Box
+							sx={{
+								flex: 1,
+								minHeight: 0,
+								display: activeTab === CHAT_TAB ? 'flex' : 'none',
+								flexDirection: 'column',
 							}}
-							onOpenChanges={openChanges}
-							onFirstUserMessage={(text) => {
-								if (isAutoNamed && !firstPromptSent.current) {
-									firstPromptSent.current = true;
-									submitRenameFromPrompt(text);
-								}
-							}}
-						/>
-					</Box>
+						>
+							<AgentChatTab
+								sessionId={sessionId}
+								cwd={effectivePath}
+								systemPrompt={resolved?.system_prompt ?? undefined}
+								readOnly={chatReadOnly}
+								createPrPrompt={repoSettings.create_pr_prompt}
+								onResume={() => {
+									resume(sessionId).catch(() => {});
+								}}
+								onOpenChanges={openChanges}
+								onFirstUserMessage={(text) => {
+									if (isAutoNamed && !firstPromptSent.current) {
+										firstPromptSent.current = true;
+										submitRenameFromPrompt(text);
+									}
+								}}
+							/>
+						</Box>
+					)}
 					{activeTab !== CHAT_TAB && (
 						<Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
 							{activeFileDiff ? (
@@ -461,7 +474,7 @@ export default function Workbench() {
 				>
 					{/* Onglets droite : Changes | Activity | Issue */}
 					<Tabs
-						value={rightTab}
+						value={effectiveRightTab}
 						onChange={(_, val) => setRightTab(val as RightTab)}
 						variant="scrollable"
 						scrollButtons="auto"
@@ -483,12 +496,14 @@ export default function Workbench() {
 									: t('tabChanges')
 							}
 						/>
-						<Tab
-							value="activity"
-							iconPosition="start"
-							icon={<TimelineRoundedIcon sx={{ fontSize: 16 }} />}
-							label={t('chipActivity')}
-						/>
+						{!isArchived && (
+							<Tab
+								value="activity"
+								iconPosition="start"
+								icon={<TimelineRoundedIcon sx={{ fontSize: 16 }} />}
+								label={t('chipActivity')}
+							/>
+						)}
 						{hasIssue && (
 							<Tab
 								value="issue"
@@ -501,16 +516,16 @@ export default function Workbench() {
 
 					{/* Panneau droit */}
 					<Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-						{rightTab === 'changes' && (
+						{effectiveRightTab === 'changes' && (
 							<ChangedFilesList
 								changedFiles={changedFiles}
 								onOpenFile={openChanges}
 							/>
 						)}
-						{rightTab === 'activity' && (
+						{effectiveRightTab === 'activity' && !isArchived && (
 							<AgentActivityTab session={resolved} logs={logs} />
 						)}
-						{rightTab === 'issue' && hasIssue && (
+						{effectiveRightTab === 'issue' && hasIssue && (
 							<AgentIssueTab
 								owner={resolved!.issue_owner!}
 								repo={resolved!.issue_repo!}
