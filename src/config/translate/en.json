@@ -70,6 +70,7 @@
 		"emptyDesc": "Select a session in the sidebar or launch a new worktree from a project.",
 		"chipActivity": "Activity",
 		"tabChat": "Chat",
+		"tabRecap": "Recap",
 		"tabChanges": "Changes",
 		"chipIssue": "Issue",
 		"terminal": "Terminal",
