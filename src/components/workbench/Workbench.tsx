@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import Box from '@mui/material/Box';
@@ -15,6 +15,9 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import { alpha } from '@mui/material/styles';
 import TerminalRoundedIcon from '@mui/icons-material/TerminalRounded';
 import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
@@ -37,15 +40,19 @@ import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useRepoSettings } from '@/hooks/useRepoSettings';
 import { useGitDiff } from '@/hooks/useGitDiff';
 import AgentChatTab from '@/components/agents/AgentChatTab';
-import AgentDiffTab from '@/components/agents/AgentDiffTab';
+import { FileDiffView } from '@/components/agents/AgentDiffTab';
+import ChangedFilesList from '@/components/agents/ChangedFilesList';
+import SessionRecap from '@/components/agents/SessionRecap';
 import AgentActivityTab from '@/components/agents/AgentActivityTab';
 import AgentIssueTab from '@/components/agents/AgentIssueTab';
 import ShellTerminal, { type ShellTerminalHandle } from '@/components/agents/ShellTerminal';
 import CreationProgress from '@/components/workbench/CreationProgress';
+import { matchFileDiff, resolveTabAfterClose, addOpenFile, CHAT_TAB } from '@/lib/workbenchTabs';
 
 export default function Workbench() {
 	const t = useTranslations('workbench');
 	const tc = useTranslations('common');
+	const td = useTranslations('agentDiff');
 	const searchParams = useSearchParams();
 	const router = useRouter();
 	const sessionId = searchParams.get('session') ?? undefined;
@@ -81,23 +88,51 @@ export default function Workbench() {
 	const chatReadOnly = !!sessionId && bucket !== null && bucket !== 'active';
 
 	const hasIssue = !!(resolved?.issue_owner && resolved?.issue_repo && resolved?.issue_number);
-	type TopPanel = 'activity' | 'issue';
-	const [topPanel, setTopPanel] = useState<TopPanel>('activity');
 
-	// Zone centrale : conversation ou diff des changements.
-	type CenterTab = 'chat' | 'changes';
-	const [centerTab, setCenterTab] = useState<CenterTab>('chat');
-	const [changesTarget, setChangesTarget] = useState<string | null>(null);
+	type RightTab = 'changes' | 'activity' | 'issue';
+	const [rightTab, setRightTab] = useState<RightTab>('activity');
+
+	useEffect(() => {
+		if (rightTab === 'issue' && !hasIssue) setRightTab('activity');
+	}, [rightTab, hasIssue]);
+
+	// Onglets gauche : 'chat' + un chemin de fichier par onglet ouvert.
+	const [openFiles, setOpenFiles] = useState<string[]>([]);
+	const [activeTab, setActiveTab] = useState<string>(CHAT_TAB);
 	const [focusNonce, setFocusNonce] = useState(0);
+
+	useEffect(() => {
+		setOpenFiles([]);
+		setActiveTab(CHAT_TAB);
+		setRightTab('activity');
+		setFocusNonce(0);
+	}, [sessionId]);
 
 	const diffPath = resolved?.worktree_path ?? resolved?.project_path ?? null;
 	const { files: changedFiles } = useGitDiff(diffPath, resolved?.branch ?? null);
 
 	const openChanges = useCallback((filePath: string) => {
-		setChangesTarget(filePath || null);
+		if (!filePath) return;
+		setOpenFiles((prev) => addOpenFile(prev, filePath));
+		setActiveTab(filePath);
 		setFocusNonce((n) => n + 1);
-		setCenterTab('changes');
 	}, []);
+
+	const closeFile = useCallback(
+		(filePath: string) => {
+			setActiveTab((active) => resolveTabAfterClose(openFiles, filePath, active));
+			setOpenFiles((prev) => prev.filter((p) => p !== filePath));
+		},
+		[openFiles],
+	);
+
+	const activeFileDiff =
+		activeTab === CHAT_TAB ? undefined : matchFileDiff(changedFiles, activeTab);
+
+	// Session archivée : l'onglet Activity disparaît → on dérive un onglet droit valide
+	// pour que <Tabs value> corresponde toujours à un <Tab> rendu (évite le warning MUI).
+	const effectiveRightTab: RightTab =
+		isArchived && rightTab === 'activity' ? 'changes' : rightTab;
 
 	// Resize vertical de la zone terminal (px depuis le bas).
 	const [termHeight, setTermHeight] = useState(240);
@@ -303,63 +338,125 @@ export default function Workbench() {
 				<Box
 					sx={{ flex: '0 0 75%', minWidth: 0, display: 'flex', flexDirection: 'column' }}
 				>
-					{/* Onglets centraux */}
-					<Box
+					{/* Onglets : Chat + un onglet par fichier ouvert */}
+					<Tabs
+						value={activeTab}
+						onChange={(_, val) => setActiveTab(val as string)}
+						variant="scrollable"
+						scrollButtons="auto"
 						sx={{
-							display: 'flex',
-							gap: 0.75,
-							px: 1,
-							py: 0.75,
+							minHeight: 40,
 							borderBottom: 1,
 							borderColor: 'divider',
 							flexShrink: 0,
+							'& .MuiTab-root': { textTransform: 'none', minHeight: 40 },
 						}}
 					>
-						<Chip
-							label={t('tabChat')}
-							size="small"
-							color={centerTab === 'chat' ? 'primary' : 'default'}
-							variant={centerTab === 'chat' ? 'filled' : 'outlined'}
-							onClick={() => setCenterTab('chat')}
-						/>
-					</Box>
+						<Tab value={CHAT_TAB} label={isArchived ? t('tabRecap') : t('tabChat')} />
+						{openFiles.map((path) => {
+							const name = path.split('/').filter(Boolean).pop() ?? path;
+							return (
+								<Tab
+									key={path}
+									value={path}
+									label={
+										<Box
+											component="span"
+											sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+										>
+											<Tooltip title={path} arrow>
+												<Box component="span">{name}</Box>
+											</Tooltip>
+											<Box
+												component="span"
+												role="button"
+												tabIndex={0}
+												aria-label={t('closeFile')}
+												onClick={(e) => {
+													e.stopPropagation();
+													closeFile(path);
+												}}
+												onKeyDown={(e) => {
+													if (e.key === 'Enter' || e.key === ' ') {
+														e.stopPropagation();
+														e.preventDefault();
+														closeFile(path);
+													}
+												}}
+												sx={{
+													display: 'inline-flex',
+													borderRadius: '50%',
+													'&:hover': { color: 'error.main' },
+												}}
+											>
+												<CloseRoundedIcon sx={{ fontSize: 14 }} />
+											</Box>
+										</Box>
+									}
+								/>
+							);
+						})}
+					</Tabs>
 
-					{/* Contenu : on garde le chat monté (WebSocket) et on masque via display. */}
-					<Box
-						sx={{
-							flex: 1,
-							minHeight: 0,
-							display: centerTab === 'chat' ? 'flex' : 'none',
-							flexDirection: 'column',
-						}}
-					>
-						<AgentChatTab
-							sessionId={sessionId}
-							cwd={effectivePath}
-							systemPrompt={resolved?.system_prompt ?? undefined}
-							readOnly={chatReadOnly}
-							archived={isArchived}
-							createPrPrompt={repoSettings.create_pr_prompt}
-							onResume={() => {
-								resume(sessionId).catch(() => {});
+					{/* Contenu de l'onglet de base : récap (archivé) ou chat (sinon). */}
+					{isArchived ? (
+						activeTab === CHAT_TAB && (
+							<Box sx={{ flex: 1, minHeight: 0 }}>
+								<SessionRecap session={resolved} logs={logs} />
+							</Box>
+						)
+					) : (
+						<Box
+							sx={{
+								flex: 1,
+								minHeight: 0,
+								display: activeTab === CHAT_TAB ? 'flex' : 'none',
+								flexDirection: 'column',
 							}}
-							onOpenChanges={openChanges}
-							onFirstUserMessage={(text) => {
-								if (isAutoNamed && !firstPromptSent.current) {
-									firstPromptSent.current = true;
-									submitRenameFromPrompt(text);
-								}
-							}}
-						/>
-					</Box>
-					{centerTab === 'changes' && (
-						<Box sx={{ flex: 1, minHeight: 0 }}>
-							<AgentDiffTab
-								projectPath={diffPath}
-								branch={resolved?.branch ?? null}
-								activeFile={changesTarget}
-								focusNonce={focusNonce}
+						>
+							<AgentChatTab
+								sessionId={sessionId}
+								cwd={effectivePath}
+								systemPrompt={resolved?.system_prompt ?? undefined}
+								readOnly={chatReadOnly}
+								createPrPrompt={repoSettings.create_pr_prompt}
+								onResume={() => {
+									resume(sessionId).catch(() => {});
+								}}
+								onOpenChanges={openChanges}
+								onFirstUserMessage={(text) => {
+									if (isAutoNamed && !firstPromptSent.current) {
+										firstPromptSent.current = true;
+										submitRenameFromPrompt(text);
+									}
+								}}
 							/>
+						</Box>
+					)}
+					{activeTab !== CHAT_TAB && (
+						<Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+							{activeFileDiff ? (
+								<FileDiffView
+									key={activeTab}
+									file={activeFileDiff}
+									focused
+									focusNonce={focusNonce}
+								/>
+							) : (
+								<Box
+									sx={{
+										display: 'flex',
+										alignItems: 'center',
+										justifyContent: 'center',
+										height: '100%',
+										px: 2,
+									}}
+								>
+									<Typography variant="caption" sx={{ color: 'text.disabled' }}>
+										{td('noChanges')}
+									</Typography>
+								</Box>
+							)}
 						</Box>
 					)}
 				</Box>
@@ -375,64 +472,60 @@ export default function Workbench() {
 						minHeight: 0,
 					}}
 				>
-					{/* Chips */}
-					<Box
+					{/* Onglets droite : Changes | Activity | Issue */}
+					<Tabs
+						value={effectiveRightTab}
+						onChange={(_, val) => setRightTab(val as RightTab)}
+						variant="scrollable"
+						scrollButtons="auto"
 						sx={{
-							display: 'flex',
-							gap: 0.75,
-							p: 1,
+							minHeight: 40,
 							borderBottom: 1,
 							borderColor: 'divider',
 							flexShrink: 0,
+							'& .MuiTab-root': { textTransform: 'none', minHeight: 40 },
 						}}
 					>
-						{(changedFiles.length > 0 || centerTab === 'changes') && (
-							<Chip
-								icon={
-									<DescriptionRoundedIcon sx={{ fontSize: '16px !important' }} />
-								}
-								label={
-									changedFiles.length > 0
-										? `${t('tabChanges')} (${changedFiles.length})`
-										: t('tabChanges')
-								}
-								size="small"
-								color={centerTab === 'changes' ? 'primary' : 'default'}
-								variant={centerTab === 'changes' ? 'filled' : 'outlined'}
-								onClick={() => setCenterTab('changes')}
-							/>
-						)}
-						<Chip
-							icon={<TimelineRoundedIcon sx={{ fontSize: '16px !important' }} />}
-							label={t('chipActivity')}
-							size="small"
-							color={topPanel === 'activity' ? 'primary' : 'default'}
-							variant={topPanel === 'activity' ? 'filled' : 'outlined'}
-							onClick={() => setTopPanel('activity')}
+						<Tab
+							value="changes"
+							iconPosition="start"
+							icon={<DescriptionRoundedIcon sx={{ fontSize: 16 }} />}
+							label={
+								changedFiles.length > 0
+									? `${t('tabChanges')} (${changedFiles.length})`
+									: t('tabChanges')
+							}
 						/>
-						{hasIssue && (
-							<Chip
-								icon={<BugReportRoundedIcon sx={{ fontSize: '16px !important' }} />}
-								label={t('chipIssue')}
-								size="small"
-								color={topPanel === 'issue' ? 'primary' : 'default'}
-								variant={topPanel === 'issue' ? 'filled' : 'outlined'}
-								onClick={() => setTopPanel('issue')}
+						{!isArchived && (
+							<Tab
+								value="activity"
+								iconPosition="start"
+								icon={<TimelineRoundedIcon sx={{ fontSize: 16 }} />}
+								label={t('chipActivity')}
 							/>
 						)}
-					</Box>
+						{hasIssue && (
+							<Tab
+								value="issue"
+								iconPosition="start"
+								icon={<BugReportRoundedIcon sx={{ fontSize: 16 }} />}
+								label={t('chipIssue')}
+							/>
+						)}
+					</Tabs>
 
-					{/* Panneau haut */}
+					{/* Panneau droit */}
 					<Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-						{topPanel === 'activity' && (
-							<AgentActivityTab
-								session={resolved}
-								logs={logs}
+						{effectiveRightTab === 'changes' && (
+							<ChangedFilesList
 								changedFiles={changedFiles}
 								onOpenFile={openChanges}
 							/>
 						)}
-						{topPanel === 'issue' && hasIssue && (
+						{effectiveRightTab === 'activity' && !isArchived && (
+							<AgentActivityTab session={resolved} logs={logs} />
+						)}
+						{effectiveRightTab === 'issue' && hasIssue && (
 							<AgentIssueTab
 								owner={resolved!.issue_owner!}
 								repo={resolved!.issue_repo!}

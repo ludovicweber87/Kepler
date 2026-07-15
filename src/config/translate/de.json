@@ -68,15 +68,16 @@
 	"workbench": {
 		"emptyTitle": "Keine Sitzung ausgewählt",
 		"emptyDesc": "Wähle eine Sitzung in der Seitenleiste aus oder starte einen neuen Worktree aus einem Projekt.",
-		"chipFiles": "Changes",
 		"chipActivity": "Activity",
 		"tabChat": "Chat",
+		"tabRecap": "Zusammenfassung",
 		"tabChanges": "Changes",
 		"chipIssue": "Issue",
 		"terminal": "Terminal",
 		"newSession": "Neue Sitzung",
 		"activeSession": "Aktive Sitzung",
-		"stopSession": "Sitzung beenden"
+		"stopSession": "Sitzung beenden",
+		"closeFile": "Datei schließen"
 	},
 	"creationProgress": {
 		"title": "Arbeitsbereich wird vorbereitet",
@@ -203,7 +204,6 @@
 		"branch": "Branch",
 		"sessionLoading": "Der Agent ist in Arbeit. Das Ergebnis wird hier angezeigt.",
 		"noActivity": "Keine Aktivität",
-		"changedFiles": "{count, plural, one {# geänderte Datei} other {# geänderte Dateien}}",
 		"inProgress": "läuft...",
 		"reportPublished": "Bericht veröffentlicht",
 		"publishReport": "Bericht veröffentlichen",
@@ -293,7 +293,6 @@
 		"pending": "Denkt nach…",
 		"modeEdit": "Bearbeiten",
 		"createPr": "PR erstellen",
-		"archivedReadOnly": "Archivierte Sitzung — schreibgeschützt",
 		"questionProgress": "Frage {current}/{total}",
 		"questionMultiHint": "Mehrfachauswahl möglich",
 		"questionOther": "Andere…",

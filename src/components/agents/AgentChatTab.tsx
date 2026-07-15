@@ -21,8 +21,6 @@ interface Props {
 	systemPrompt?: string;
 	/** Controlled by the parent from the session's DB status. */
 	readOnly?: boolean;
-	/** Archived sessions are read-only with no "Reprendre" (resume) affordance. */
-	archived?: boolean;
 	initialModel?: string;
 	initialEffort?: string;
 	initialMode?: string;
@@ -38,7 +36,6 @@ export default function AgentChatTab({
 	cwd,
 	systemPrompt,
 	readOnly = false,
-	archived = false,
 	initialModel,
 	initialEffort,
 	initialMode,
@@ -155,19 +152,17 @@ export default function AgentChatTab({
 					}}
 				>
 					<Typography variant="caption" sx={{ color: 'text.secondary', flex: 1 }}>
-						{archived ? t('archivedReadOnly') : t('readOnly')}
+						{t('readOnly')}
 					</Typography>
-					{!archived && (
-						<Button
-							size="small"
-							variant="contained"
-							startIcon={<PlayArrowRoundedIcon />}
-							onClick={() => onResume?.()}
-							sx={{ textTransform: 'none' }}
-						>
-							{t('resume')}
-						</Button>
-					)}
+					<Button
+						size="small"
+						variant="contained"
+						startIcon={<PlayArrowRoundedIcon />}
+						onClick={() => onResume?.()}
+						sx={{ textTransform: 'none' }}
+					>
+						{t('resume')}
+					</Button>
 				</Box>
 			) : (
 				<>

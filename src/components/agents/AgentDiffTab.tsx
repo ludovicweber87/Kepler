@@ -151,7 +151,7 @@ const DiffRow = memo(function DiffRow({ row }: { row: SideBySideRow }) {
 });
 
 /* ── File Diff Viewer (side-by-side, lazy + truncated) ── */
-const FileDiffView = memo(function FileDiffView({
+export const FileDiffView = memo(function FileDiffView({
 	file,
 	focused = false,
 	focusNonce = 0,

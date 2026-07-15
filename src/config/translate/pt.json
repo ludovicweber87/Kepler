@@ -68,15 +68,16 @@
 	"workbench": {
 		"emptyTitle": "Nenhuma sessão selecionada",
 		"emptyDesc": "Selecione uma sessão na barra lateral ou inicie um novo worktree a partir de um projeto.",
-		"chipFiles": "Changes",
 		"chipActivity": "Activity",
 		"tabChat": "Chat",
+		"tabRecap": "Resumo",
 		"tabChanges": "Changes",
 		"chipIssue": "Issue",
 		"terminal": "Terminal",
 		"newSession": "Nova sessão",
 		"activeSession": "Sessão ativa",
-		"stopSession": "Parar a sessão"
+		"stopSession": "Parar a sessão",
+		"closeFile": "Fechar ficheiro"
 	},
 	"creationProgress": {
 		"title": "Preparando o espaço de trabalho",
@@ -204,7 +205,6 @@
 		"branch": "Branch",
 		"sessionLoading": "O agente está em andamento. O resultado será exibido aqui.",
 		"noActivity": "Sem atividade",
-		"changedFiles": "{count, plural, one {# arquivo alterado} other {# arquivos alterados}}",
 		"inProgress": "em andamento...",
 		"reportPublished": "Relatório publicado",
 		"publishReport": "Publicar relatório",
@@ -294,7 +294,6 @@
 		"pending": "A pensar…",
 		"modeEdit": "Edição",
 		"createPr": "Criar PR",
-		"archivedReadOnly": "Sessão arquivada — apenas leitura",
 		"questionProgress": "Pergunta {current}/{total}",
 		"questionMultiHint": "Várias opções permitidas",
 		"questionOther": "Outro…",
