@@ -36,7 +36,7 @@ const CLAUDE_BIN = findClaude();
 const inProgress = new Set<string>();
 
 /** Normalize a raw string into a Karma-style kebab branch name (`feat-add-auth`). */
-function toKarmaKebab(raw: string): string | null {
+export function toKarmaKebab(raw: string): string | null {
 	const cleaned = raw
 		.trim()
 		.toLowerCase()
@@ -47,6 +47,100 @@ function toKarmaKebab(raw: string): string | null {
 		.slice(0, 50)
 		.replace(/-+$/, '');
 	return cleaned.length >= 3 ? cleaned : null;
+}
+
+// Mots vides (FR + EN) filtrés pour garder un slug lisible.
+const STOP_WORDS = new Set([
+	'le',
+	'la',
+	'les',
+	'un',
+	'une',
+	'des',
+	'de',
+	'du',
+	'ne',
+	'pas',
+	'et',
+	'ou',
+	'au',
+	'aux',
+	'ce',
+	'ca',
+	'cet',
+	'cette',
+	'que',
+	'qui',
+	'quoi',
+	'dans',
+	'sur',
+	'pour',
+	'avec',
+	'sans',
+	'je',
+	'tu',
+	'il',
+	'elle',
+	'on',
+	'nous',
+	'vous',
+	'ils',
+	'elles',
+	'mon',
+	'ma',
+	'mes',
+	'son',
+	'the',
+	'a',
+	'an',
+	'to',
+	'of',
+	'in',
+	'on',
+	'for',
+	'with',
+	'and',
+	'or',
+	'is',
+	'it',
+	'this',
+	'that',
+	'these',
+	'those',
+	'be',
+	'by',
+	'as',
+	'at',
+]);
+
+/**
+ * Fallback purement local (sans LLM) : dérive un nom de branche Karma à partir du
+ * texte. Choisit un type par heuristique de mots-clés (défaut `feat`), filtre les
+ * mots vides, garde les premiers mots significatifs. Toujours déterministe.
+ */
+export function localSlug(text: string): string | null {
+	const t = text.trim().toLowerCase();
+	if (!t) return null;
+
+	let type = 'feat';
+	if (/(^|\s)(fix|bug|corrig|répar|repar|erreur|error|casse|broken|plante|crash)/.test(t))
+		type = 'fix';
+	else if (/(^|\s)(refactor|refacto|clean|nettoy|réorganis|reorganis|simplif)/.test(t))
+		type = 'refactor';
+	else if (/(^|\s)(doc|docs|documentation|readme)/.test(t)) type = 'docs';
+	else if (/(^|\s)(test|tests|spec)/.test(t)) type = 'test';
+	else if (/(^|\s)(chore|config|bump|dépendance|dependance|dependency|dependencies)/.test(t))
+		type = 'chore';
+
+	const body = t
+		.replace(/[^a-z0-9\s-]/g, ' ')
+		.split(/\s+/)
+		.filter((w) => w.length > 2 && !STOP_WORDS.has(w))
+		.slice(0, 6)
+		.join('-');
+
+	const kebab = toKarmaKebab(`${type}-${body}`);
+	return kebab;
 }
 
 /**
@@ -66,6 +160,42 @@ export async function renameBranchFromText(
 	inProgress.add(session.id);
 
 	try {
+		// 1) Nom "joli" via LLM ; échec/timeout → on retombe sur le fallback local.
+		let newName = generateNameViaClaude(text);
+		if (!newName) newName = localSlug(text);
+		if (!newName || newName === session.branch) return null;
+
+		// 2) Renomme la BRANCHE uniquement (dossier intact → safe pendant la session).
+		try {
+			execSync(
+				`git -C ${JSON.stringify(session.worktree_path)} branch -m ${JSON.stringify(newName)}`,
+				{ stdio: 'ignore' },
+			);
+		} catch (err) {
+			console.warn(
+				'[autoRenameBranch] git branch -m a échoué :',
+				err instanceof Error ? err.message : err,
+			);
+			return null;
+		}
+
+		db.update(schema.agentSessions)
+			.set({ branch: newName })
+			.where(eq(schema.agentSessions.id, session.id))
+			.run();
+		return newName;
+	} finally {
+		inProgress.delete(session.id);
+	}
+}
+
+/**
+ * Génère un nom de branche via `claude --print`. Retourne null (sans throw) en cas
+ * d'échec/timeout/absence de nom exploitable, en loguant la cause — l'appelant
+ * bascule alors sur le fallback local déterministe.
+ */
+function generateNameViaClaude(text: string): string | null {
+	try {
 		const prompt = `Transforme cette demande en un nom de branche git court, convention Karma (format: type-en-kebab, ex: "feat-add-google-auth"). Types autorisés: feat, fix, docs, refactor, test, chore. Réponds UNIQUEMENT le nom, sans guillemets ni autre texte.\n\nDemande: ${text.slice(0, 500)}`;
 		const escaped = prompt.replace(/'/g, "'\\''");
 		const out = execSync(`${CLAUDE_BIN} --print '${escaped}'`, {
@@ -73,23 +203,19 @@ export async function renameBranchFromText(
 			timeout: 30_000,
 			maxBuffer: 1024 * 1024,
 		});
-		const newName = toKarmaKebab(out);
-		if (!newName || newName === session.branch) return null;
-
-		execSync(
-			`git -C ${JSON.stringify(session.worktree_path)} branch -m ${JSON.stringify(newName)}`,
-			{ stdio: 'ignore' },
+		const name = toKarmaKebab(out);
+		if (!name) {
+			console.warn(
+				'[autoRenameBranch] claude --print : aucun nom exploitable, fallback local',
+			);
+		}
+		return name;
+	} catch (err) {
+		console.warn(
+			'[autoRenameBranch] claude --print a échoué, fallback local :',
+			err instanceof Error ? err.message : err,
 		);
-		db.update(schema.agentSessions)
-			.set({ branch: newName })
-			.where(eq(schema.agentSessions.id, session.id))
-			.run();
-		return newName;
-	} catch {
-		// keep the wip- name — graceful degradation
 		return null;
-	} finally {
-		inProgress.delete(session.id);
 	}
 }
 
