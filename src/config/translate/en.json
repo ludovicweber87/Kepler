@@ -113,7 +113,10 @@
 		"created": "Created",
 		"branchCreated": "Branch {branchName} created",
 		"moveTo": "Move to",
-		"updated": "Updated {time}"
+		"updated": "Updated {time}",
+		"noReposConfigured": "No repository configured",
+		"noReposConfiguredDesc": "Add a repository in the settings to see its issues here.",
+		"configureRepos": "Configure my repositories"
 	},
 	"todos": {
 		"title": "Tasks",
@@ -202,7 +205,14 @@
 		"sessionDeleted": "Session deleted",
 		"agentOffline": "Local agent not connected — run `npm run dev:agent` to enable local features (terminal, git, agents).",
 		"soon": "Soon",
-		"incomingFeature": "This feature is coming soon!"
+		"incomingFeature": "This feature is coming soon!",
+		"autoRefresh": "Auto refresh",
+		"refreshManual": "Manual",
+		"refresh1min": "1 min",
+		"refresh5min": "5 min",
+		"refresh10min": "10 min",
+		"refresh1h": "1 h",
+		"refresh24h": "24 h"
 	},
 	"launchModal": {
 		"selectProject": "Select a project",
@@ -364,11 +374,6 @@
 		"setupScriptDesc": "Runs when a worktree is created (e.g. pnpm install).",
 		"archiveScript": "Archive script",
 		"archiveScriptDesc": "Runs before a worktree is archived.",
-		"runScripts": "Run scripts",
-		"runScriptsDesc": "Shortcuts to launch your dev server, tests, etc.",
-		"addRunScript": "Add",
-		"runScriptName": "Name",
-		"runScriptCommand": "Command",
 		"save": "Save",
 		"saved": "Saved",
 		"shareHint": "Share with your team? Create a .devora/settings.toml file.",

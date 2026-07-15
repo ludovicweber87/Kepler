@@ -113,7 +113,10 @@
 		"created": "Criada",
 		"branchCreated": "Branch {branchName} criada",
 		"moveTo": "Mover para",
-		"updated": "Atualizado às {time}"
+		"updated": "Atualizado às {time}",
+		"noReposConfigured": "Nenhum repositório configurado",
+		"noReposConfiguredDesc": "Adicione um repositório nas configurações para ver as suas issues aqui.",
+		"configureRepos": "Configurar os meus repositórios"
 	},
 	"todos": {
 		"title": "Tarefas",
@@ -181,7 +184,14 @@
 		"sessionDeleted": "Sessão eliminada",
 		"agentOffline": "Agente local não conectado — execute `npm run dev:agent` para ativar funcionalidades locais (terminal, git, agentes).",
 		"soon": "Em breve",
-		"incomingFeature": "Esta funcionalidade chegará em breve!"
+		"incomingFeature": "Esta funcionalidade chegará em breve!",
+		"autoRefresh": "Atualização automática",
+		"refreshManual": "Manual",
+		"refresh1min": "1 min",
+		"refresh5min": "5 min",
+		"refresh10min": "10 min",
+		"refresh1h": "1 h",
+		"refresh24h": "24 h"
 	},
 	"launchModal": {
 		"selectProject": "Selecionar projeto",
@@ -343,11 +353,6 @@
 		"setupScriptDesc": "Executa quando um worktree é criado (ex. pnpm install).",
 		"archiveScript": "Script de arquivamento",
 		"archiveScriptDesc": "Executa antes de arquivar um worktree.",
-		"runScripts": "Run scripts",
-		"runScriptsDesc": "Atalhos para iniciar seu servidor de desenvolvimento, seus testes, etc.",
-		"addRunScript": "Adicionar",
-		"runScriptName": "Nome",
-		"runScriptCommand": "Comando",
 		"save": "Salvar",
 		"saved": "Salvo",
 		"shareHint": "Compartilhar com sua equipe? Crie um arquivo .devora/settings.toml.",

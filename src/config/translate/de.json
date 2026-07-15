@@ -113,7 +113,10 @@
 		"created": "Erstellt",
 		"branchCreated": "Branch {branchName} erstellt",
 		"moveTo": "Verschieben nach",
-		"updated": "Aktualisiert um {time}"
+		"updated": "Aktualisiert um {time}",
+		"noReposConfigured": "Kein Repository konfiguriert",
+		"noReposConfiguredDesc": "Füge in den Einstellungen ein Repository hinzu, um dessen Issues hier zu sehen.",
+		"configureRepos": "Repositories konfigurieren"
 	},
 	"todos": {
 		"title": "Aufgaben",
@@ -180,7 +183,14 @@
 		"sessionDeleted": "Sitzung gelöscht",
 		"agentOffline": "Lokaler Agent nicht verbunden — führen Sie `npm run dev:agent` aus, um lokale Funktionen (Terminal, Git, Agenten) zu aktivieren.",
 		"soon": "Bald",
-		"incomingFeature": "Diese Funktion kommt bald!"
+		"incomingFeature": "Diese Funktion kommt bald!",
+		"autoRefresh": "Autom. Aktualisierung",
+		"refreshManual": "Manuell",
+		"refresh1min": "1 Min",
+		"refresh5min": "5 Min",
+		"refresh10min": "10 Min",
+		"refresh1h": "1 Std",
+		"refresh24h": "24 Std"
 	},
 	"launchModal": {
 		"selectProject": "Projekt auswahlen",
@@ -342,11 +352,6 @@
 		"setupScriptDesc": "Läuft, wenn ein Worktree erstellt wird (z. B. pnpm install).",
 		"archiveScript": "Archivierungs-Skript",
 		"archiveScriptDesc": "Läuft, bevor ein Worktree archiviert wird.",
-		"runScripts": "Run-Skripte",
-		"runScriptsDesc": "Shortcuts, um deinen Dev-Server, deine Tests usw. zu starten.",
-		"addRunScript": "Hinzufügen",
-		"runScriptName": "Name",
-		"runScriptCommand": "Befehl",
 		"save": "Speichern",
 		"saved": "Gespeichert",
 		"shareHint": "Mit deinem Team teilen? Erstelle eine .devora/settings.toml-Datei.",

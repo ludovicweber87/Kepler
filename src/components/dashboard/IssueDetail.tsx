@@ -51,6 +51,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useIssue, useDashboard } from '@/hooks/useGitHub';
 import { useTodos, useIssueTodos } from '@/hooks/useTodos';
+import { useRefetchInterval } from '@/hooks/useRefetchInterval';
+import RefetchIntervalSelect from '@/components/shared/RefetchIntervalSelect';
 import { apiFetch } from '@/lib/api-fetch';
 import { GitHubComment } from '@/types';
 import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
@@ -399,7 +401,10 @@ export default function IssueDetail({
 	const t = useTranslations('issueDetail');
 	const tc = useTranslations('common');
 	const ti = useTranslations('agentIssue');
-	const { data, error, isLoading } = useIssue(owner, repo, number);
+	const [refetchMs, setRefetchMs] = useRefetchInterval('issueDetail.refetchIntervalMs');
+	const { data, error, isLoading } = useIssue(owner, repo, number, {
+		refetchInterval: refetchMs,
+	});
 	const repoFullName = `${owner}/${repo}`;
 	const issueNum = parseInt(number, 10);
 	const qc = useQueryClient();
@@ -654,24 +659,32 @@ export default function IssueDetail({
 	const stateLabel = isOpen ? 'Open' : 'Closed';
 	return (
 		<Box sx={{ maxWidth: 860, mx: 'auto' }}>
-			{onClose ? (
-				<Button
-					startIcon={<ArrowBackRoundedIcon />}
-					onClick={onClose}
-					sx={{ mb: 3, color: 'text.secondary' }}
-				>
-					{t('backToIssues')}
-				</Button>
-			) : (
-				<Link href="/issues" style={{ textDecoration: 'none' }}>
+			<Box
+				sx={{
+					display: 'flex',
+					alignItems: 'center',
+					justifyContent: 'space-between',
+					gap: 1,
+					mb: 3,
+				}}
+			>
+				{onClose ? (
 					<Button
 						startIcon={<ArrowBackRoundedIcon />}
-						sx={{ mb: 3, color: 'text.secondary' }}
+						onClick={onClose}
+						sx={{ color: 'text.secondary' }}
 					>
 						{t('backToIssues')}
 					</Button>
-				</Link>
-			)}
+				) : (
+					<Link href="/issues" style={{ textDecoration: 'none' }}>
+						<Button startIcon={<ArrowBackRoundedIcon />} sx={{ color: 'text.secondary' }}>
+							{t('backToIssues')}
+						</Button>
+					</Link>
+				)}
+				<RefetchIntervalSelect value={refetchMs} onChange={setRefetchMs} />
+			</Box>
 
 			<Card sx={{ mb: 3, animation: 'fadeInUp 0.4s ease-out both' }}>
 				<CardContent sx={{ p: 4, '&:last-child': { pb: 4 } }}>

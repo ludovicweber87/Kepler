@@ -52,11 +52,17 @@ export function useDashboard(issueRefs?: ViewIssueRef[], options?: { enabled?: b
 	});
 }
 
-export function useIssue(owner: string, repo: string, number: string) {
+export function useIssue(
+	owner: string,
+	repo: string,
+	number: string,
+	options?: { refetchInterval?: number },
+) {
 	return useQuery({
 		queryKey: ['github', 'issue', owner, repo, number],
 		queryFn: () => fetchIssue(owner, repo, number),
 		refetchOnMount: 'always',
+		refetchInterval: options?.refetchInterval || undefined,
 	});
 }
 
