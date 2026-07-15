@@ -46,38 +46,72 @@ Ajout d'une **3ᵉ carte** dans l'étape `launch-mode` :
   commit décroissante, avec badge `local`/`distant`. Les branches déjà checkout dans
   un worktree sont **désactivées**.
 - Champ optionnel URL d'issue GitHub conservé (identique à l'étape `branch`).
-- Submit → `handleLaunch` avec `mode = 'existing-branch'` et la branche sélectionnée.
+- Submit → un handler dédié (ou `handleLaunch` paramétré par `mode`) : contrairement
+  à l'actuel `handleLaunch`, **aucun fallback `randomWorktreeName()`** — la branche est
+  obligatoire (sélectionnée), jamais auto-générée. La session est créée avec
+  `launch_mode = 'existing-branch'` et `branch = <nom court sélectionné>`.
 
 ### 2. Session & provision (serveur agent)
 
-Le mode de lancement se propage jusqu'à `POST /git/provision`.
-`mode` passe de `'worktree' | 'current-branch'` à
+**Transport du mode.** Le mode de lancement doit survivre à la redirection modal →
+Workbench. `handleLaunch` ferme le modal et redirige vers `/workbench?session=<id>` ;
+`CreationProgress` relit ensuite la session **depuis SQLite** et construit le payload
+`/git/provision`. Aujourd'hui `CreationProgress` hardcode `mode = 'worktree'`, et la
+table `agent_sessions` ne porte aucune notion de mode.
+
+→ On **persiste le mode** via une nouvelle colonne `launch_mode` sur `agent_sessions`
+(migration Drizzle), valeurs `'worktree' | 'current-branch' | 'existing-branch'`
+(défaut `'worktree'` pour compat). `handleLaunch` l'écrit à la création ;
+`CreationProgress` lit `session.launch_mode` et le passe au payload provision.
+
+**Pas de flag `isRemote` transporté.** Le distinguo local/distant est **résolu côté
+serveur** au moment de la provision (via `git show-ref --verify refs/heads/<branch>`),
+ce qui évite d'avoir à le persister et garde une seule source de vérité.
+
+**Nom de branche stocké.** `session.branch` = **nom court** de la branche
+(`feat/x`), jamais préfixé `origin/`. Le select ne renvoie que le nom court ;
+`worktreePath` reste dérivé du nom court (slashes → tirets).
+
+`POST /git/provision` : `mode` passe de `'worktree' | 'current-branch'` à
 `'worktree' | 'current-branch' | 'existing-branch'`.
 
 - **Création session** (`handleLaunch`) : session en `provisioning` avec
-  `branch = <branche choisie>` (pas de nom auto `wip-*`). Le payload transporte le
-  mode `existing-branch` et un flag indiquant si la branche source est distante
-  (`isRemote`).
+  `branch = <branche choisie>` (nom court, pas de nom auto `wip-*`),
+  `launch_mode = 'existing-branch'`.
 - **Étape `worktree` de provision** — selon le mode :
   - `worktree` → inchangé : `git worktree add <path> -b <branch> origin/<HEAD>`
-  - **`existing-branch`** → `git fetch origin` (best-effort) puis :
-    - branche **locale** : `git worktree add <path> <branch>`
-    - branche **distante seule** : `git worktree add --track -b <branch> <path> origin/<branch>`
-      (crée la branche locale de tracking)
-- `worktreePath` dérivé du nom de branche (slashes → tirets), comme aujourd'hui.
-- `worktree_path` enregistré en fin de provision (`done`).
+  - **`existing-branch`** → `git fetch origin` (best-effort), puis résolution serveur :
+    - branche **locale existante** (`show-ref refs/heads/<branch>` OK) :
+      `git worktree add <path> <branch>`
+    - sinon branche **distante** (`origin/<branch>`) :
+      `git worktree add --track -b <branch> <path> origin/<branch>`
+      (crée la branche locale de tracking, nom court)
+- **Étapes `copy-files`, `setup` et enregistrement `worktree_path`** : aujourd'hui
+  gardées derrière `if (body.mode === 'worktree')`. On élargit la condition à
+  **tout mode produisant un worktree** (`worktree` ou `existing-branch`) : la copie
+  des `.env*` / symlink `node_modules`, le `setupScript` et l'écriture de
+  `worktree_path` en fin de provision (`done`) s'appliquent aussi à `existing-branch`.
+- **Collision de chemin.** Le guard existant `if (!existsSync(worktreePath))` est
+  conservé : si le worktree existe déjà, on skip la création `git worktree add`
+  (réutilisation), même comportement que le mode `worktree`.
 
 ### 3. Listing des branches (local + distant)
 
 `GET /git/branches` étendu avec le param optionnel `?includeRemote=true` :
 
-- **Local** : `git for-each-ref --sort=-committerdate refs/heads`
-  (nom, date, subject, author) + flag `isCurrent`.
+- **Local** : listing local, nom court + date/subject/author + flag `isCurrent`.
+  L'endpoint actuel utilise `git branch --format=... --sort=-committerdate` + un
+  `git rev-parse --abbrev-ref HEAD` séparé pour `isCurrent`. On conserve cette
+  approche (le `isCurrent` continue de venir de `rev-parse`, pas du marqueur `*`) et
+  on l'étend, plutôt que de la réécrire.
 - **Distant** (si `includeRemote`) : `refs/remotes`, en excluant `origin/HEAD`.
 - **Dédup** : si `feat/x` existe en local, l'entrée `origin/feat/x` est droppée.
-  Chaque entrée porte `isRemote: boolean`.
+  Chaque entrée porte `isRemote: boolean`. Les noms exposés sont **courts** (sans
+  préfixe `origin/`).
 - **Déjà en worktree** : parse de `git worktree list --porcelain` → `isCheckedOut: boolean`
-  (→ désactivé dans l'`Autocomplete`).
+  (→ désactivé dans l'`Autocomplete`). La branche courante du repo principal apparaît
+  dans cette liste : elle sera donc `isCheckedOut` et désactivée — comportement
+  **attendu** (git refuse de checkout deux fois la même branche), pas un bug.
 - Tri global par date de dernier commit décroissante.
 - **Rétro-compatibilité** : sans le param → comportement actuel (local only), réponse identique.
 
@@ -89,6 +123,8 @@ Le type `Branch` (défini dans `src/hooks/useBranches.ts`) gagne `isRemote` et
 - Branche introuvable / déjà checkout / fetch échoué → SSE `event: error` dans provision
   (mécanisme existant), affiché par `CreationProgress`.
 - Le select désactive déjà les branches en worktree, évitant le cas d'erreur le plus courant.
+- Cas spécifique du mode distant : `origin/<branch>` peut avoir disparu entre le listing
+  et la provision (ex. fetch prune). Message d'erreur explicite plutôt que le stderr git brut.
 
 ### 5. i18n
 
@@ -102,13 +138,21 @@ placeholder de recherche, libellés d'erreur.
   Test unitaire Vitest.
 - Helper pur côté agent : **choix des arguments git** selon `mode` + `isRemote`
   (retourne le tableau d'args `git worktree add ...`). Test unitaire Vitest.
+  Note : `isRemote` ici = booléen **résolu côté serveur** (via `git show-ref`) et passé
+  en entrée du helper, **pas** un flag transporté/persisté.
 
 ## Fichiers impactés
 
-- `src/components/agents/AgentTerminalModal.tsx` — 3ᵉ carte + étape `existing-branch`.
-- `src/components/workbench/CreationProgress.tsx` — passage du mode `existing-branch` au payload.
+- `src/db/schema.ts` + `src/db/migrations/` — nouvelle colonne `launch_mode` sur
+  `agent_sessions` (défaut `'worktree'`).
+- `src/components/agents/AgentTerminalModal.tsx` — 3ᵉ carte + étape `existing-branch`
+  + handler dédié (écrit `launch_mode`, pas de fallback `wip-*`).
+- `src/components/workbench/CreationProgress.tsx` — lit `session.launch_mode` (au lieu
+  du `mode` hardcodé) et le passe au payload provision.
 - `src/hooks/useBranches.ts` — param `includeRemote`, types `isRemote`/`isCheckedOut`.
 - `packages/agent/src/routes/git.ts` — `GET /git/branches?includeRemote`,
-  `POST /git/provision` (branche `existing-branch`), helpers purs extraits.
+  `POST /git/provision` (branche `existing-branch` + condition worktree élargie),
+  helpers purs extraits.
+- `src/types/index.ts` / types de session — champ `launch_mode`.
 - `src/config/translate/{en,fr,es,de,pt}.json` — libellés `launchModal`.
-- Tests Vitest pour les helpers purs.
+- Tests Vitest pour les helpers purs (dédup/tri/flags + choix des args git).
