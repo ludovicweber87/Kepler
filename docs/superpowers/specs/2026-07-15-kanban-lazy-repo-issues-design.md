@@ -40,65 +40,90 @@ La page Kanban Issues (`/issues`) souffre de deux problèmes :
 
 ## Design
 
+### 0. Principe directeur — toute la résolution est serveur
+
+Sans le board global, la résolution « repo → config connectée → project retenu → lanes »
+est **centralisée dans la route serveur**. Le client ne manipule plus `view_repo_mappings`
+ni les configs pour le rendu du Kanban ; il consomme un payload déjà réconcilié. Cela lève
+les contradictions 1–4 de la revue : une seule source de vérité pour les lanes ET le
+statut par issue ET le `__config` de drag.
+
+Helper partagé **`resolveConfigForRepo(repo, configs): ProjectV2Config | null`** extrait dans
+`src/lib/projectViews.ts` (ou `src/lib/boardMerge.ts`), réutilisé par la nouvelle route ET
+par `move-status/route.ts` (aujourd'hui la logique est inline dans le handler). Règle : parmi
+les configs connectées, retenir la **première** dont `view_repo_mappings[].repos` contient le
+repo (cohérent avec le dedup cross-projet actuel « première occurrence gardée »).
+
 ### 1. Route serveur — `GET /api/github/repo-issues?repo=<owner/name>`
 
-Nouvelle route (ou route dédiée) qui, pour un repo donné :
+Route dédiée (nom figé : `/api/github/repo-issues`). Pour un repo donné :
 
-1. `requireAuth()` → contexte `{ accessToken, login }`.
+1. `requireAuth()` → `{ accessToken, login }`.
 2. Récupère les issues ouvertes assignées au viewer **de ce repo uniquement** :
-   `GET /repos/{owner}/{repo}/issues?assignee=<viewer>&state=open` (paginé, PRs exclues).
-   → c'est cette étape qui fait remonter l'issue Devora (assignée, ouverte, hors Project).
-3. Enrichit le statut via `fetchProjectColumns(nodeIds)` (fonction **existante** dans
-   `src/lib/github.ts`) : batch GraphQL `node_id → [{ project, column }]`. Chaque issue
-   reçoit `project_columns`. Une issue sans item Project reste sans colonne.
-4. Renvoie `{ issues, fetchedAt }`.
+   `GET /repos/{owner}/{repo}/issues?assignee=<login>&state=open` — **paginé**
+   (`per_page=100`, garde-fou d'un nombre max de pages), **PRs exclues** (`!issue.pull_request`).
+   Chaque item REST porte `node_id` (dépendance explicite ; c'est le cas de l'API REST
+   issues). → cette étape fait remonter l'issue Devora (assignée, ouverte, hors Project).
+3. Résout la config couvrante via `resolveConfigForRepo(repo, connectedConfigs)`
+   (configs lues depuis la table SQLite `project_configs`).
+4. Enrichit le statut via `fetchProjectColumns(nodeIds)` (fonction **existante**,
+   `src/lib/github.ts`) → `node_id → [{ project, column }]`.
+5. **Réconciliation lane/statut (résout revue #2 et #3)** : pour chaque issue, la colonne
+   retenue est celle de l'entrée `project_columns` dont `project` (titre) == `project_title`
+   de la **config couvrante**. Si aucune entrée ne matche (issue hors de ce Project, ou hors
+   Project tout court) → « No Status ». On garantit ainsi que la lane d'une issue appartient
+   toujours au même Project que celui qui fournit `statusColumns`.
+6. Attache `__config` (`org` / `projectNumber` / `ownerType`) à chaque issue **couverte par
+   le Project retenu** ; les issues hors Project restent sans `__config` (drag désactivé).
+7. Renvoie `{ issues, statusColumns, fetchedAt, error? }` où :
+   - `statusColumns` = `statusColumns` de la config couvrante (déjà persistée en DB, pas de
+     fetch supplémentaire). **Fallback** : si aucune config couvrante (ou config couvrante
+     sans `statusColumns` persistées), les lanes se réduisent à `[« No Status »]` — puisque
+     sans config la réconciliation §1.5 fait tomber toutes les issues en « No Status ». Le
+     Kanban reste alors une simple liste mono-colonne, ce qui est le comportement voulu pour
+     un repo assigné hors Project (cas Devora).
+   - `error` : flag renvoyé (payload non-crashant) en cas d'échec GitHub, comme la route
+     `projects` actuelle.
 
-En cas d'échec GitHub : renvoyer un payload avec flag `error` (comme la route `projects`
-actuelle) plutôt que de crasher.
-
-### 2. `statusColumns` (lanes du Kanban)
-
-- Source primaire : `statusColumns` de la (des) config(s) connectée(s) qui couvre(nt) le
-  repo actif — résolue via `view_repo_mappings` (même logique que
-  `src/app/api/github/issue/move-status/route.ts`). Cette métadonnée est déjà persistée en
-  DB, donc pas de fetch supplémentaire au montage.
-- Fallback : union des colonnes présentes dans les issues fetchées + « No Status ».
-
-### 3. Hook client — `useRepoIssues(effectiveRepo)`
+### 2. Hook client — `useRepoIssues(effectiveRepo)`
 
 - `useQuery({ queryKey: ['repo-issues', repo], queryFn: fetch /api/github/repo-issues,
   enabled: !!repo })`.
 - Chaque tab = sa propre query → chargée seulement à la sélection, puis cachée par React
   Query. Changer de tab ne recharge pas les autres.
 - `refresh()` → invalide/refetch uniquement `['repo-issues', repo]` du repo actif.
-- Expose `{ issues, statusColumns, fetchedAt, isLoading, error, refresh }`.
+- Expose `{ issues, statusColumns, fetchedAt, isLoading, error, refresh }` — tout vient déjà
+  réconcilié du serveur, le client ne recalcule rien (ni lanes, ni `__config`).
 
-### 4. `IssuesList`
+### 3. `IssuesList`
 
 - `effectiveRepo` (déjà présent) devient l'**entrée** du fetch au lieu d'un simple filtre.
 - Supprimer `useProjectBoards` de cette page et le `useMemo` `repoIssues` (le serveur scope
   déjà par repo).
-- `buildColumns`, la recherche (`search`), le détail d'issue (`IssueDetail`), les états de
-  chargement/vide et l'auto-refetch (`useRefetchInterval`) : conservés, branchés sur la
-  nouvelle source.
+- `buildColumns`, le détail d'issue (`IssueDetail`), les états de chargement/vide et
+  l'auto-refetch (`useRefetchInterval`) : conservés, branchés sur la nouvelle source.
 - L'auto-refetch appelle `refresh()` du repo actif au lieu de refrapper tous les projets.
+- **Recherche (`search`)** : sa portée devient le repo actif (changement assumé, cohérent
+  avec le lazy per-tab). Avant, elle balayait l'ensemble mergé ; désormais elle filtre les
+  issues du repo courant. Ce n'est pas une régression silencieuse mais un choix explicite.
 
-### 5. Drag-to-status (à préserver)
+### 4. Drag-to-status (à préserver)
 
-- `handleStatusChange` a besoin de `__config` (org / projectNumber / ownerType) par issue
-  pour appeler `useUpdateIssueStatus`. On rattache la config par repo→config (via
-  `view_repo_mappings`, même résolution que `move-status`).
-- Pour une issue **hors Project** (ex. Devora), le changement de statut est désactivé /
-  no-op (pas d'item Project à muter). L'UI doit gérer proprement l'absence de `__config`.
+- `handleStatusChange` consomme le `__config` **déjà attaché par le serveur** (§1.6) pour
+  appeler `useUpdateIssueStatus`. Le client ne résout plus rien.
+- Pour une issue **hors Project** (ex. Devora) → pas de `__config` → drag désactivé / no-op
+  (pas d'item Project à muter). L'UI gère proprement l'absence de `__config`.
 
-### 6. Sync métadonnées Project (views / mappings / statusColumns)
+### 5. Sync métadonnées Project (views / mappings / statusColumns)
 
-- Aujourd'hui ce sync piggyback sur le board fetch global (`useEffect` dans `IssuesList`).
-  Comme on arrête ce fetch global, on lit `statusColumns` depuis la config stockée.
-- Le rafraîchissement de cette métadonnée (views/mappings/statusColumns depuis GitHub) est
-  déplacé sur : refresh explicite et/ou l'écran Settings — hors du chemin de montage du
-  Kanban. (Détail d'implémentation à préciser dans le plan ; ne doit pas réintroduire un
-  fetch massif au montage.)
+- Aujourd'hui ce sync piggyback sur le board fetch global (`useEffect` dans `IssuesList`) et
+  persiste views/mappings/statusColumns dans la config. On arrête ce fetch global.
+- **Déclencheur minimal retenu** : la métadonnée (views / `view_repo_mappings` /
+  `statusColumns`) est rafraîchie depuis GitHub **sur l'écran Settings** (qui appelle déjà
+  `/api/github/projects`) lors de la (re)connexion / sélection d'un Project. Le Kanban, lui,
+  lit toujours la version persistée. Conséquence documentée : un repo nouvellement mappé
+  n'aura des lanes correctes qu'après un passage/refresh dans Settings — acceptable pour un
+  usage mono-utilisateur. Aucun fetch massif n'est réintroduit au montage du Kanban.
 
 ## Comportement attendu (gains / changements)
 
@@ -116,21 +141,26 @@ actuelle) plutôt que de crasher.
 
 ## Risques / points de vigilance
 
-- **Pagination REST** : `/repos/{owner}/{repo}/issues?assignee=...` doit paginer (>100).
+- **Pagination REST** : `/repos/{owner}/{repo}/issues?assignee=...` doit paginer
+  (`per_page=100` + garde-fou nombre de pages).
+- **`node_id` requis** : l'enrichissement dépend du `node_id` de chaque issue REST — présent
+  sur l'API REST issues, à conserver dans le mapping issue → `nodeIds`.
 - **Batch `fetchProjectColumns`** : déjà en place (batches de 50, en parallèle), silencieux
   en cas de scope GraphQL manquant → dégrade proprement en « No Status ».
 - **Résolution repo→config** : un repo peut être couvert par plusieurs configs connectées ;
-  choisir la première (cohérent avec le dedup cross-projet actuel) et documenter.
-- **Cohérence colonnes** : si le champ de statut du Project a un nom ≠ « Status », les
-  issues tombent en « No Status » (comportement actuel déjà).
+  `resolveConfigForRepo` retient la première (cohérent avec le dedup cross-projet actuel).
+- **Cohérence colonnes** : la lane d'une issue et les `statusColumns` viennent du **même**
+  Project (§1.5) → plus de « colonne existante mais lane absente ». Si le champ de statut du
+  Project a un nom ≠ « Status », les issues tombent en « No Status » (comportement actuel).
 
 ## Fichiers concernés (indicatif)
 
 | Fichier | Changement |
 |---|---|
-| `src/app/api/github/repo-issues/route.ts` | **Nouveau** — REST assignées + enrichissement |
-| `src/lib/github.ts` | Réutilise `fetchProjectColumns` ; éventuel helper repo-scoped assigned |
+| `src/app/api/github/repo-issues/route.ts` | **Nouveau** — REST assignées + enrichissement + réconciliation |
+| `src/lib/projectViews.ts` (ou `boardMerge.ts`) | **Nouveau** helper `resolveConfigForRepo(repo, configs)` partagé |
+| `src/lib/github.ts` | Réutilise `fetchProjectColumns` ; éventuel helper REST repo-scoped assigned |
 | `src/hooks/useRepoIssues.ts` | **Nouveau** hook lazy par repo |
-| `src/components/issues/IssuesList.tsx` | Branché sur `useRepoIssues`, retrait `useProjectBoards` |
-| `src/hooks/useProjectBoards.ts` | Plus utilisé par Issues (à conserver si d'autres conscommateurs, sinon nettoyer) |
-| `src/app/api/github/issue/move-status/route.ts` | Réutilisé pour la résolution repo→config |
+| `src/components/issues/IssuesList.tsx` | Branché sur `useRepoIssues`, retrait `useProjectBoards` + `repoIssues` |
+| `src/app/api/github/issue/move-status/route.ts` | Refactor pour consommer `resolveConfigForRepo` (logique repo→config extraite) |
+| `src/hooks/useProjectBoards.ts` | Plus utilisé par Issues — nettoyer si aucun autre consommateur |
