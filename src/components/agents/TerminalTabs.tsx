@@ -13,21 +13,14 @@ import TerminalRoundedIcon from '@mui/icons-material/TerminalRounded';
 import { alpha } from '@mui/material/styles';
 import { useTranslations } from 'next-intl';
 import ShellTerminal, { type ShellTerminalHandle } from '@/components/agents/ShellTerminal';
-import type { RunScript } from '@/types';
 
 interface TerminalTabsProps {
 	sessionId: string;
 	cwd: string | null;
 	ready?: boolean;
-	runScripts: RunScript[];
 }
 
-export default function TerminalTabs({
-	sessionId,
-	cwd,
-	ready = true,
-	runScripts,
-}: TerminalTabsProps) {
+export default function TerminalTabs({ sessionId, cwd, ready = true }: TerminalTabsProps) {
 	const t = useTranslations('workbench');
 
 	const [terminals, setTerminals] = useState<number[]>([1]);
@@ -55,18 +48,9 @@ export default function TerminalTabs({
 		});
 	}, []);
 
-	const runOnActive = useCallback(
-		(command: string) => {
-			handles.current.get(activeId)?.runCommand(command);
-		},
-		[activeId],
-	);
-
-	const scripts = runScripts.filter((rs) => rs.command.trim());
-
 	return (
 		<Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-			{/* Barre d'onglets + bouton d'ajout + chips run-scripts */}
+			{/* Barre d'onglets + bouton d'ajout */}
 			<Box
 				sx={{
 					display: 'flex',
@@ -118,20 +102,6 @@ export default function TerminalTabs({
 						<AddRoundedIcon sx={{ fontSize: 18 }} />
 					</IconButton>
 				</Tooltip>
-
-				{scripts.length > 0 && (
-					<Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', ml: 'auto' }}>
-						{scripts.map((rs) => (
-							<Chip
-								key={rs.id}
-								label={rs.name || rs.command}
-								size="small"
-								onClick={() => runOnActive(rs.command)}
-								sx={{ cursor: 'pointer' }}
-							/>
-						))}
-					</Box>
-				)}
 			</Box>
 
 			{/* Zone terminaux : tous montés, seul l'actif est visible. */}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Skeleton from '@mui/material/Skeleton';
@@ -10,6 +10,8 @@ import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
 import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import ClearRoundedIcon from '@mui/icons-material/ClearRounded';
@@ -18,8 +20,11 @@ import Dialog from '@mui/material/Dialog';
 import Link from 'next/link';
 import KanbanColumn from './KanbanColumn';
 import IssueDetail from '@/components/dashboard/IssueDetail';
+import RefetchIntervalSelect from '@/components/shared/RefetchIntervalSelect';
 import { useProjectConfig } from '@/hooks/useProjectConfig';
 import { useProjectBoards } from '@/hooks/useProjectBoards';
+import { useRepoPaths } from '@/hooks/useRepoPaths';
+import { useRefetchInterval } from '@/hooks/useRefetchInterval';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUpdateIssueStatus } from '@/hooks/useUpdateIssueStatus';
 import { completeIssueTodos } from '@/hooks/useTodos';
@@ -56,6 +61,16 @@ export default function IssuesList() {
 		useProjectBoards(boardConfigs);
 	const [refreshing, setRefreshing] = useState(false);
 
+	const { repoPaths } = useRepoPaths();
+
+	// Active repo tab (default = first configured repo). Derived so it stays valid
+	// even when the repoPaths list changes without an explicit selection.
+	const [activeRepo, setActiveRepo] = useState<string | null>(null);
+	const effectiveRepo = useMemo(() => {
+		if (activeRepo && repoPaths.some((r) => r.repo_full_name === activeRepo)) return activeRepo;
+		return repoPaths[0]?.repo_full_name ?? null;
+	}, [activeRepo, repoPaths]);
+
 	const handleRefresh = useCallback(async () => {
 		setRefreshing(true);
 		try {
@@ -64,6 +79,16 @@ export default function IssuesList() {
 			setRefreshing(false);
 		}
 	}, [refresh]);
+
+	// Auto-refetch: poll the board (GitHub-backed refresh) on the persisted interval.
+	const [refetchMs, setRefetchMs] = useRefetchInterval('issues.refetchIntervalMs');
+	const refreshRef = useRef(refresh);
+	refreshRef.current = refresh;
+	useEffect(() => {
+		if (!refetchMs) return;
+		const id = setInterval(() => void refreshRef.current(), refetchMs);
+		return () => clearInterval(id);
+	}, [refetchMs]);
 
 	// Persist fresh Project V2 metadata (views / mappings / status columns) into the stored config,
 	// reusing the board fetch — no separate sync request. The diff guard avoids a save loop.
@@ -103,16 +128,22 @@ export default function IssuesList() {
 		if (owner && repo) setDetailIssue({ owner, repo, number: String(issue.number) });
 	}, []);
 
+	// Issues of the active repo tab, then narrowed by the search query.
+	const repoIssues = useMemo(
+		() => (effectiveRepo ? issues.filter((i) => i.repo_full_name === effectiveRepo) : []),
+		[issues, effectiveRepo],
+	);
+
 	const searchedIssues = useMemo(() => {
 		const q = search.trim().toLowerCase();
-		if (!q) return issues;
-		return issues.filter(
+		if (!q) return repoIssues;
+		return repoIssues.filter(
 			(i) =>
 				i.title.toLowerCase().includes(q) ||
 				String(i.number).includes(q) ||
 				`#${i.number}`.includes(q),
 		);
-	}, [issues, search]);
+	}, [repoIssues, search]);
 
 	const columns = useMemo(
 		() => buildColumns(searchedIssues, statusColumns),
@@ -259,6 +290,7 @@ export default function IssuesList() {
 							})}
 						</Typography>
 					)}
+					<RefetchIntervalSelect value={refetchMs} onChange={setRefetchMs} />
 					<Tooltip title={t('refresh')}>
 						<span>
 							<IconButton
@@ -276,57 +308,104 @@ export default function IssuesList() {
 				</Box>
 			</Box>
 
-			{searchedIssues.length === 0 ? (
-				boardConfigs.length === 0 ? (
-					<Box sx={{ textAlign: 'center', py: 8 }}>
-						<Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
-							{t('noViewsSelected')}
-						</Typography>
-						<Typography variant="body2" sx={{ mb: 3 }}>
-							{t('noViewsSelectedDesc')}
-						</Typography>
-						<Button
-							component={Link}
-							href="/settings"
-							variant="contained"
-							startIcon={<SettingsRoundedIcon />}
-						>
-							{t('configureViews')}
-						</Button>
-					</Box>
-				) : (
-					<Box sx={{ textAlign: 'center', py: 8 }}>
-						<Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
-							{t('noOpenIssues')}
-						</Typography>
-						<Typography variant="body2">{t('noOpenIssuesDesc')}</Typography>
-					</Box>
-				)
-			) : (
-				<Box
-					sx={{
-						display: 'flex',
-						gap: 2,
-						flex: 1,
-						overflowX: 'auto',
-						overflowY: 'hidden',
-						pb: 1,
-						scrollbarWidth: 'thin',
-						'&::-webkit-scrollbar': { height: 6 },
-						'&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 3 },
-					}}
-				>
-					{columns.map(([colName, colIssues]) => (
-						<KanbanColumn
-							key={colName}
-							columnName={colName}
-							issues={colIssues}
-							allColumns={statusColumns}
-							onStatusChange={handleStatusChange}
-							onCardClick={openDetail}
-						/>
-					))}
+			{repoPaths.length === 0 ? (
+				<Box sx={{ textAlign: 'center', py: 8 }}>
+					<Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
+						{t('noReposConfigured')}
+					</Typography>
+					<Typography variant="body2" sx={{ mb: 3 }}>
+						{t('noReposConfiguredDesc')}
+					</Typography>
+					<Button
+						component={Link}
+						href="/settings"
+						variant="contained"
+						startIcon={<SettingsRoundedIcon />}
+					>
+						{t('configureRepos')}
+					</Button>
 				</Box>
+			) : (
+				<>
+					<Tabs
+						value={effectiveRepo ?? false}
+						onChange={(_, v) => setActiveRepo(v)}
+						variant="scrollable"
+						scrollButtons="auto"
+						sx={{
+							minHeight: 40,
+							mb: 2,
+							flexShrink: 0,
+							borderBottom: 1,
+							borderColor: 'divider',
+							'& .MuiTab-root': {
+								textTransform: 'none',
+								minHeight: 40,
+								fontSize: '0.82rem',
+							},
+						}}
+					>
+						{repoPaths.map((r) => (
+							<Tab
+								key={r.repo_full_name}
+								value={r.repo_full_name}
+								label={r.repo_full_name.split('/')[1] ?? r.repo_full_name}
+							/>
+						))}
+					</Tabs>
+					{searchedIssues.length === 0 ? (
+						boardConfigs.length === 0 ? (
+							<Box sx={{ textAlign: 'center', py: 8 }}>
+								<Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
+									{t('noViewsSelected')}
+								</Typography>
+								<Typography variant="body2" sx={{ mb: 3 }}>
+									{t('noViewsSelectedDesc')}
+								</Typography>
+								<Button
+									component={Link}
+									href="/settings"
+									variant="contained"
+									startIcon={<SettingsRoundedIcon />}
+								>
+									{t('configureViews')}
+								</Button>
+							</Box>
+						) : (
+							<Box sx={{ textAlign: 'center', py: 8 }}>
+								<Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
+									{t('noOpenIssues')}
+								</Typography>
+								<Typography variant="body2">{t('noOpenIssuesDesc')}</Typography>
+							</Box>
+						)
+					) : (
+						<Box
+							sx={{
+								display: 'flex',
+								gap: 2,
+								flex: 1,
+								overflowX: 'auto',
+								overflowY: 'hidden',
+								pb: 1,
+								scrollbarWidth: 'thin',
+								'&::-webkit-scrollbar': { height: 6 },
+								'&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 3 },
+							}}
+						>
+							{columns.map(([colName, colIssues]) => (
+								<KanbanColumn
+									key={colName}
+									columnName={colName}
+									issues={colIssues}
+									allColumns={statusColumns}
+									onStatusChange={handleStatusChange}
+									onCardClick={openDetail}
+								/>
+							))}
+						</Box>
+					)}
+				</>
 			)}
 
 			<Dialog

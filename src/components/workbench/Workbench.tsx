@@ -576,7 +576,6 @@ export default function Workbench() {
 							sessionId={sessionId}
 							cwd={effectivePath}
 							ready={!!resolved}
-							runScripts={repoSettings.run_scripts}
 						/>
 					</Box>
 				</Box>
