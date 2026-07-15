@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -54,6 +54,8 @@ export const SIDEBAR_WIDTH = 220;
 export default function Sidebar() {
 	const theme = useTheme();
 	const pathname = usePathname();
+	const searchParams = useSearchParams();
+	const currentSessionId = searchParams.get('session');
 	const router = useRouter();
 	const { me } = useMe();
 	const t = useTranslations('sidebar');
@@ -216,7 +218,11 @@ export default function Sidebar() {
 							const active =
 								item.href === '/'
 									? pathname === '/'
-									: pathname.startsWith(item.href);
+									: item.href === '/workbench'
+										? // Don't keep Workbench lit when a specific session is
+											// open — the active worktree row gets highlighted instead.
+											pathname.startsWith('/workbench') && !currentSessionId
+										: pathname.startsWith(item.href);
 							return (
 								<Link
 									key={item.label}
@@ -407,6 +413,10 @@ export default function Sidebar() {
 														wtSession?.agent_name ?? wt.branch;
 													const sessionIdForWt =
 														wtSession?.session_id ?? null;
+													// Currently open in the Workbench.
+													const isCurrent =
+														!!currentSessionId &&
+														sessionIdForWt === currentSessionId;
 													const isMerged = mergedBranches.has(wt.branch);
 													return (
 														<Box
@@ -433,11 +443,28 @@ export default function Sidebar() {
 																py: 0.4,
 																borderRadius: 1,
 																cursor: 'pointer',
+																bgcolor: isCurrent
+																	? alpha(
+																			theme.palette.primary
+																				.main,
+																			0.18,
+																		)
+																	: 'transparent',
+																borderLeft: isCurrent
+																	? `2px solid ${theme.palette.primary.main}`
+																	: '2px solid transparent',
 																'&:hover': {
-																	bgcolor: alpha(
-																		theme.palette.primary.main,
-																		0.1,
-																	),
+																	bgcolor: isCurrent
+																		? alpha(
+																				theme.palette.primary
+																					.main,
+																				0.22,
+																			)
+																		: alpha(
+																				theme.palette.primary
+																					.main,
+																				0.1,
+																			),
 																},
 																'&:hover .wt-delete': {
 																	opacity: 1,
@@ -469,9 +496,14 @@ export default function Sidebar() {
 																			? 'line-through'
 																			: 'none',
 																		opacity: isMerged ? 0.6 : 1,
-																		color: isActiveWt
-																			? 'text.primary'
-																			: 'text.secondary',
+																		fontWeight: isCurrent
+																			? 700
+																			: 400,
+																		color: isCurrent
+																			? 'primary.main'
+																			: isActiveWt
+																				? 'text.primary'
+																				: 'text.secondary',
 																	}}
 																>
 																	{displayName}
