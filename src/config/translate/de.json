@@ -293,7 +293,6 @@
 		"pending": "Denkt nach…",
 		"modeEdit": "Bearbeiten",
 		"createPr": "PR erstellen",
-		"archivedReadOnly": "Archivierte Sitzung — schreibgeschützt",
 		"questionProgress": "Frage {current}/{total}",
 		"questionMultiHint": "Mehrfachauswahl möglich",
 		"questionOther": "Andere…",

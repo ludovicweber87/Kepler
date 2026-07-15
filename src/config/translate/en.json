@@ -315,7 +315,6 @@
 		"pending": "Thinking…",
 		"modeEdit": "Edit",
 		"createPr": "Create PR",
-		"archivedReadOnly": "Archived session — read only",
 		"questionProgress": "Question {current}/{total}",
 		"questionMultiHint": "Multiple choices allowed",
 		"questionOther": "Other…",
