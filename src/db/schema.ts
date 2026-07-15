@@ -42,6 +42,7 @@ export const agentSessions = sqliteTable('agent_sessions', {
 	issue_title: text(),
 	claude_session_id: text(),
 	system_prompt: text(),
+	launch_mode: text().default('worktree'),
 });
 
 // ─── Agent Activity Logs ─────────────────────────────────
