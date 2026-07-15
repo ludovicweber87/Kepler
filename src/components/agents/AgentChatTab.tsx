@@ -29,6 +29,8 @@ interface Props {
 	onResume?: () => void;
 	/** Ouvre l'onglet Changes centré sur le fichier (clic sur une tool card). */
 	onOpenChanges?: (filePath: string) => void;
+	/** Appelé à la fin d'un tour de l'agent (transition busy → idle). */
+	onTurnComplete?: () => void;
 }
 
 export default function AgentChatTab({
@@ -43,9 +45,11 @@ export default function AgentChatTab({
 	onFirstUserMessage,
 	onResume,
 	onOpenChanges,
+	onTurnComplete,
 }: Props) {
 	const t = useTranslations('agentChat');
 	const firstSent = useRef(false);
+	const prevStatus = useRef<string | null>(null);
 
 	const chat = useAgentChat({
 		sessionId,
@@ -84,6 +88,12 @@ export default function AgentChatTab({
 		const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
 		if (nearBottom) el.scrollTop = el.scrollHeight;
 	}, [chat.messages, chat.pendingPermissions, chat.pendingQuestions]);
+
+	// Fin de tour de l'agent (busy → idle) : signale au parent pour rafraîchir le diff.
+	useEffect(() => {
+		if (prevStatus.current === 'busy' && chat.status === 'idle') onTurnComplete?.();
+		prevStatus.current = chat.status;
+	}, [chat.status, onTurnComplete]);
 
 	const prPrompt = createPrPrompt || DEFAULT_CREATE_PR_PROMPT;
 

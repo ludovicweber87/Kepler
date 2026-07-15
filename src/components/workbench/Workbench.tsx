@@ -423,6 +423,9 @@ export default function Workbench() {
 									resume(sessionId).catch(() => {});
 								}}
 								onOpenChanges={openChanges}
+								onTurnComplete={() => {
+									queryClient.invalidateQueries({ queryKey: ['git-diff'] });
+								}}
 								onFirstUserMessage={(text) => {
 									if (isAutoNamed && !firstPromptSent.current) {
 										firstPromptSent.current = true;
