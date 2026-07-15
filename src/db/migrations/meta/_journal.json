@@ -64,6 +64,13 @@
       "when": 1784500000000,
       "tag": "0008_setup_script_name",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1784600000000,
+      "tag": "0009_launch_mode",
+      "breakpoints": true
     }
   ]
 }

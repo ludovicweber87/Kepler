@@ -33,7 +33,7 @@ export default function CreationProgress({
 	const outputRef = useRef<HTMLDivElement | null>(null);
 
 	const hasIssue = !!(session.issue_owner && session.issue_repo && session.issue_number);
-	const mode = 'worktree' as const; // provisioning ne concerne que la création worktree ; current-branch est géré à part
+	const mode = session.launch_mode ?? 'worktree'; // 'worktree' | 'existing-branch' (les deux produisent un worktree)
 	// Étapes affichées (ordre)
 	const stepKeys = [
 		...(hasIssue ? ['read-issue'] : []),

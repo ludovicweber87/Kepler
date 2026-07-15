@@ -10,6 +10,7 @@ import IconButton from '@mui/material/IconButton';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import TextField from '@mui/material/TextField';
+import Autocomplete from '@mui/material/Autocomplete';
 import Alert from '@mui/material/Alert';
 import { alpha } from '@mui/material/styles';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -22,6 +23,7 @@ import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
+import AltRouteRoundedIcon from '@mui/icons-material/AltRouteRounded';
 import Tooltip from '@mui/material/Tooltip';
 interface AgentFile {
 	filename: string;
@@ -32,6 +34,7 @@ import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useAgentSession } from '@/hooks/useAgentSession';
 import { useWorktrees } from '@/hooks/useWorktrees';
+import { useBranches, type Branch } from '@/hooks/useBranches';
 import { useTranslations } from 'next-intl';
 import { localFetch } from '@/lib/local-fetch';
 import { apiFetch } from '@/lib/api-fetch';
@@ -119,7 +122,9 @@ export default function AgentTerminalModal({
 	const tl = useTranslations('launchModal');
 	const tc = useTranslations('common');
 	// Step management: 'project' → 'launch-mode' → 'branch'
-	const [step, setStep] = useState<'project' | 'launch-mode' | 'branch'>('project');
+	const [step, setStep] = useState<'project' | 'launch-mode' | 'branch' | 'existing-branch'>(
+		'project',
+	);
 	const [branchInput, setBranchInput] = useState('');
 	// F2 — optional GitHub issue linked at launch, injected into the agent prompt as context
 	const [issueUrl, setIssueUrl] = useState('');
@@ -131,7 +136,10 @@ export default function AgentTerminalModal({
 	const [selectedProject, setSelectedProject] = useState<string | null>(null);
 	const [, setCurrentBranch] = useState<string | null>(null);
 	const [fetchingBranch, setFetchingBranch] = useState(false);
-	const [launchMode, setLaunchMode] = useState<'worktree' | 'current-branch' | null>(null);
+	const [launchMode, setLaunchMode] = useState<
+		'worktree' | 'current-branch' | 'existing-branch' | null
+	>(null);
+	const [selectedExistingBranch, setSelectedExistingBranch] = useState<Branch | null>(null);
 
 	// Path resolution for issue context
 	const { repoPaths, getLocalPath } = useRepoPaths();
@@ -142,6 +150,10 @@ export default function AgentTerminalModal({
 
 	// Worktree management
 	const { isCreating } = useWorktrees(projectPath ?? undefined);
+	const { data: existingBranches = [], isLoading: branchesLoading } = useBranches(
+		projectPath ?? undefined,
+		{ includeRemote: true, enabled: step === 'existing-branch' },
+	);
 
 	const generatedIdRef = useRef<string | null>(null);
 	const redirectedRef = useRef(false);
@@ -202,6 +214,7 @@ export default function AgentTerminalModal({
 			setCurrentBranch(null);
 			setFetchingBranch(false);
 			setLaunchMode(null);
+			setSelectedExistingBranch(null);
 			redirectedRef.current = false;
 		}
 	}, [open]);
@@ -302,6 +315,7 @@ export default function AgentTerminalModal({
 				branch: name,
 				worktreePath: null,
 				status: 'provisioning',
+				launchMode: 'worktree',
 				issueOwner: issueContext?.owner ?? null,
 				issueRepo: issueContext?.repo ?? null,
 				issueNumber: issueContext?.issueNumber ?? null,
@@ -315,6 +329,42 @@ export default function AgentTerminalModal({
 	}, [
 		branchInput,
 		projectPath,
+		sessionId,
+		agentFile,
+		issueContext,
+		composeSystemPrompt,
+		ensureSession,
+		goToWorkbench,
+	]);
+
+	const handleLaunchExistingBranch = useCallback(() => {
+		if (!projectPath || !selectedExistingBranch) return;
+		setWorktreeError(null);
+		try {
+			const projectName = projectPath.split('/').filter(Boolean).pop() ?? 'unknown';
+			ensureSession({
+				sessionId,
+				projectPath,
+				projectName,
+				agentName:
+					agentFile?.name ?? (issueContext ? `#${issueContext.issueNumber}` : null),
+				branch: selectedExistingBranch.name,
+				worktreePath: null,
+				status: 'provisioning',
+				launchMode: 'existing-branch',
+				issueOwner: issueContext?.owner ?? null,
+				issueRepo: issueContext?.repo ?? null,
+				issueNumber: issueContext?.issueNumber ?? null,
+				issueTitle: issueContext?.issueTitle ?? null,
+				systemPrompt: composeSystemPrompt(),
+			});
+			goToWorkbench(sessionId);
+		} catch (err) {
+			setWorktreeError(err instanceof Error ? err.message : 'Erreur au lancement');
+		}
+	}, [
+		projectPath,
+		selectedExistingBranch,
 		sessionId,
 		agentFile,
 		issueContext,
@@ -356,6 +406,7 @@ export default function AgentTerminalModal({
 					agentName: agentFile?.name ?? null,
 					branch: data.branch,
 					worktreePath: null,
+					launchMode: 'current-branch',
 					issueOwner: issueContext?.owner ?? null,
 					issueRepo: issueContext?.repo ?? null,
 					issueNumber: issueContext?.issueNumber ?? null,
@@ -377,6 +428,8 @@ export default function AgentTerminalModal({
 		if (!launchMode) return;
 		if (launchMode === 'worktree') {
 			setStep('branch');
+		} else if (launchMode === 'existing-branch') {
+			setStep('existing-branch');
 		} else {
 			handleLaunchCurrentBranch();
 		}
@@ -708,6 +761,48 @@ export default function AgentTerminalModal({
 								</Typography>
 							</Box>
 						</Tooltip>
+
+						{/* Existing branch option */}
+						<Tooltip title={tl('existingBranchTooltip')} arrow placement="top">
+							<Box
+								onClick={() => setLaunchMode('existing-branch')}
+								sx={{
+									flex: 1,
+									p: 3,
+									borderRadius: 1,
+									border: 2,
+									borderColor:
+										launchMode === 'existing-branch'
+											? 'primary.main'
+											: 'divider',
+									bgcolor:
+										launchMode === 'existing-branch'
+											? (theme) => alpha(theme.palette.primary.main, 0.08)
+											: 'transparent',
+									cursor: 'pointer',
+									textAlign: 'center',
+									transition: 'all 0.15s',
+									'&:hover': {
+										borderColor: 'primary.main',
+										bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
+										transform: 'translateY(-2px)',
+									},
+								}}
+							>
+								<AltRouteRoundedIcon
+									sx={{ fontSize: 36, color: 'primary.main', mb: 1 }}
+								/>
+								<Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
+									{tl('existingBranch')}
+								</Typography>
+								<Typography
+									variant="body2"
+									sx={{ color: 'text.secondary', fontSize: '0.75rem' }}
+								>
+									{tl('existingBranchDesc')}
+								</Typography>
+							</Box>
+						</Tooltip>
 					</Box>
 
 					<Box sx={{ display: 'flex', gap: 2 }}>
@@ -871,6 +966,113 @@ export default function AgentTerminalModal({
 							sx={{ textTransform: 'none', fontWeight: 600 }}
 						>
 							{tc('back')}
+						</Button>
+					</Box>
+				</Box>
+			)}
+
+			{/* Step 3 bis: Select an existing branch (local or remote) */}
+			{step === 'existing-branch' && (
+				<Box
+					sx={{
+						flex: 1,
+						display: 'flex',
+						flexDirection: 'column',
+						alignItems: 'center',
+						justifyContent: 'center',
+						gap: 3,
+						px: 4,
+					}}
+				>
+					<AltRouteRoundedIcon
+						sx={{ fontSize: 56, color: 'primary.main', opacity: 0.7 }}
+					/>
+					<Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+						{tl('selectBranchTitle')}
+					</Typography>
+
+					<Box sx={{ width: '100%', maxWidth: 500 }}>
+						<Autocomplete
+							options={existingBranches}
+							loading={branchesLoading}
+							value={selectedExistingBranch}
+							onChange={(_, v) => setSelectedExistingBranch(v)}
+							getOptionLabel={(o) => o.name}
+							getOptionDisabled={(o) => o.isCheckedOut === true}
+							isOptionEqualToValue={(o, v) => o.name === v.name}
+							noOptionsText={tl('noBranchesFound')}
+							renderOption={(props, option) => {
+								const { key, ...optionProps } = props;
+								return (
+									<Box component="li" key={key} {...optionProps}>
+										<Box
+											sx={{
+												display: 'flex',
+												flexDirection: 'column',
+												minWidth: 0,
+											}}
+										>
+											<Typography variant="body2" sx={{ fontWeight: 500 }}>
+												{option.name}
+											</Typography>
+											<Typography
+												variant="caption"
+												sx={{ color: 'text.secondary' }}
+											>
+												{option.lastCommitMessage}
+											</Typography>
+										</Box>
+										<Chip
+											size="small"
+											label={
+												option.isRemote
+													? tl('branchRemote')
+													: tl('branchLocal')
+											}
+											sx={{ ml: 'auto', height: 20, fontSize: '0.65rem' }}
+										/>
+									</Box>
+								);
+							}}
+							renderInput={(params) => (
+								<TextField
+									{...params}
+									autoFocus
+									size="small"
+									placeholder={tl('selectBranchPlaceholder')}
+								/>
+							)}
+						/>
+					</Box>
+
+					{worktreeError && (
+						<Alert severity="error" sx={{ maxWidth: 500, width: '100%' }}>
+							{worktreeError}
+						</Alert>
+					)}
+
+					<Box sx={{ display: 'flex', gap: 1.5 }}>
+						<Button
+							variant="outlined"
+							startIcon={<ArrowBackRoundedIcon />}
+							onClick={() => setStep('launch-mode')}
+							sx={{ textTransform: 'none', fontWeight: 600 }}
+						>
+							{tc('back')}
+						</Button>
+						<Button
+							variant="contained"
+							disabled={!selectedExistingBranch || !projectPath}
+							startIcon={<RocketLaunchRoundedIcon sx={{ fontSize: 18 }} />}
+							onClick={handleLaunchExistingBranch}
+							sx={{
+								textTransform: 'none',
+								fontWeight: 600,
+								px: 4,
+								'&:hover': { bgcolor: 'primary.dark' },
+							}}
+						>
+							{tl('launch')}
 						</Button>
 					</Box>
 				</Box>

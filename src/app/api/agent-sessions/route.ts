@@ -115,6 +115,7 @@ export async function POST(req: NextRequest) {
 			issue_title,
 			system_prompt,
 			status,
+			launch_mode,
 		} = body;
 
 		// Check if already exists
@@ -157,6 +158,7 @@ export async function POST(req: NextRequest) {
 				issue_number: issue_number ?? null,
 				issue_title: issue_title ?? null,
 				system_prompt: system_prompt ?? null,
+				launch_mode: launch_mode ?? 'worktree',
 			})
 			.returning()
 			.all();

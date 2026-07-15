@@ -7,6 +7,8 @@ export interface Branch {
 	lastCommitMessage: string;
 	lastCommitAuthor: string;
 	isCurrent: boolean;
+	isRemote?: boolean;
+	isCheckedOut?: boolean;
 }
 
 export interface BranchCommit {
@@ -17,16 +19,22 @@ export interface BranchCommit {
 	date: string;
 }
 
-export function useBranches(localPath: string | undefined) {
+export function useBranches(
+	localPath: string | undefined,
+	opts?: { includeRemote?: boolean; enabled?: boolean },
+) {
+	const includeRemote = opts?.includeRemote ?? false;
 	return useQuery({
-		queryKey: ['git-branches', localPath],
+		queryKey: ['git-branches', localPath, includeRemote],
 		queryFn: async () => {
-			const res = await localFetch(`/git/branches?path=${encodeURIComponent(localPath!)}`);
+			const params = new URLSearchParams({ path: localPath! });
+			if (includeRemote) params.set('includeRemote', 'true');
+			const res = await localFetch(`/git/branches?${params.toString()}`);
 			if (!res.ok) throw new Error('Failed to fetch branches');
 			const { branches } = await res.json();
 			return branches as Branch[];
 		},
-		enabled: !!localPath,
+		enabled: !!localPath && (opts?.enabled ?? true),
 		staleTime: 30_000,
 	});
 }

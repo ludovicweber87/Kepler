@@ -1,5 +1,5 @@
 import { IncomingMessage, ServerResponse } from 'node:http';
-import { execSync, execFileSync, exec, spawn } from 'node:child_process';
+import { execSync, execFileSync, exec, execFile, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
 import { readdirSync, copyFileSync, existsSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
@@ -17,9 +17,36 @@ import {
 import { getDb } from '../db.js';
 import { parseFilesToCopy } from '../filesToCopy.js';
 import { resolveRemoteBaseRef } from '../gitBase.js';
+import { dedupeAndSortBranches, worktreeAddArgs, type RawBranch } from '../branches.js';
 
 const TMUX = findTmux();
 const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
+
+function localBranchExists(cwd: string, branch: string): boolean {
+	try {
+		execFileSync('git', ['-C', cwd, 'show-ref', '--verify', '--quiet', `refs/heads/${branch}`], {
+			timeout: 5000,
+			stdio: 'ignore',
+		});
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+function remoteBranchExists(cwd: string, branch: string): boolean {
+	try {
+		execFileSync(
+			'git',
+			['-C', cwd, 'show-ref', '--verify', '--quiet', `refs/remotes/origin/${branch}`],
+			{ timeout: 5000, stdio: 'ignore' },
+		);
+		return true;
+	} catch {
+		return false;
+	}
+}
 
 // ── Types ──
 
@@ -254,28 +281,10 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 	if (path === '/git/branches' && method === 'GET') {
 		const localPath = query.get('path');
 		if (!localPath) return sendJson(res, { error: 'path required' }, 400);
+		const includeRemote = query.get('includeRemote') === 'true';
 
-		try {
-			const raw = execSync(
-				`git -C ${JSON.stringify(localPath)} branch --format='%(refname:short)|%(committerdate:iso8601)|%(subject)|%(authorname)' --sort=-committerdate`,
-				{ encoding: 'utf-8', timeout: 10_000, stdio: ['pipe', 'pipe', 'ignore'] },
-			);
-
-			let current = '';
-			try {
-				current = execSync(
-					`git -C ${JSON.stringify(localPath)} rev-parse --abbrev-ref HEAD`,
-					{
-						encoding: 'utf-8',
-						timeout: 5_000,
-						stdio: ['pipe', 'pipe', 'ignore'],
-					},
-				).trim();
-			} catch {
-				// ignore
-			}
-
-			const branches = raw
+		const parseRefs = (raw: string): RawBranch[] =>
+			raw
 				.trim()
 				.split('\n')
 				.filter(Boolean)
@@ -286,10 +295,57 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 						lastCommitDate: date?.trim() ?? '',
 						lastCommitMessage: message?.trim() ?? '',
 						lastCommitAuthor: author?.trim() ?? '',
-						isCurrent: name.trim() === current,
 					};
 				});
 
+		try {
+			const localRaw = execSync(
+				`git -C ${JSON.stringify(localPath)} branch --format='%(refname:short)|%(committerdate:iso8601)|%(subject)|%(authorname)' --sort=-committerdate`,
+				{ encoding: 'utf-8', timeout: 10_000, stdio: ['pipe', 'pipe', 'ignore'] },
+			);
+			const local = parseRefs(localRaw);
+
+			let current = '';
+			try {
+				current = execSync(`git -C ${JSON.stringify(localPath)} rev-parse --abbrev-ref HEAD`, {
+					encoding: 'utf-8',
+					timeout: 5_000,
+					stdio: ['pipe', 'pipe', 'ignore'],
+				}).trim();
+			} catch {
+				// ignore
+			}
+
+			let remote: RawBranch[] = [];
+			let checkedOut: string[] = [];
+			if (includeRemote) {
+				try {
+					const remoteRaw = execSync(
+						`git -C ${JSON.stringify(localPath)} for-each-ref --sort=-committerdate --format='%(refname:short)|%(committerdate:iso8601)|%(subject)|%(authorname)' refs/remotes/origin`,
+						{ encoding: 'utf-8', timeout: 10_000, stdio: ['pipe', 'pipe', 'ignore'] },
+					);
+					remote = parseRefs(remoteRaw)
+						.map((b) => ({ ...b, name: b.name.replace(/^origin\//, '') }))
+						.filter((b) => b.name && b.name !== 'HEAD');
+				} catch {
+					// pas de remote / offline
+				}
+				try {
+					const wtRaw = execSync(`git -C ${JSON.stringify(localPath)} worktree list --porcelain`, {
+						encoding: 'utf-8',
+						timeout: 10_000,
+						stdio: ['pipe', 'pipe', 'ignore'],
+					});
+					checkedOut = wtRaw
+						.split('\n')
+						.filter((l) => l.startsWith('branch refs/heads/'))
+						.map((l) => l.replace('branch refs/heads/', '').trim());
+				} catch {
+					// ignore
+				}
+			}
+
+			const branches = dedupeAndSortBranches({ local, remote, current, checkedOut });
 			sendJson(res, { branches });
 		} catch (err) {
 			sendError(res, err instanceof Error ? err.message : 'Unknown error');
@@ -577,7 +633,7 @@ Issue title: "${issueTitle}"`;
 			cwd: string;
 			branch: string;
 			sessionId: string;
-			mode: 'worktree' | 'current-branch';
+			mode: 'worktree' | 'current-branch' | 'existing-branch';
 			issue?: { owner: string; repo: string; number: number };
 			filesToCopy: string;
 			setupScript: string;
@@ -654,37 +710,77 @@ Issue title: "${issueTitle}"`;
 
 			let worktreePath = body.cwd;
 
-			if (body.mode === 'worktree') {
+			const producesWorktree =
+				body.mode === 'worktree' || body.mode === 'existing-branch';
+
+			if (producesWorktree) {
 				// 2) worktree
 				sendSSE(res, 'step', { step: 'worktree', status: 'running' });
 				const dirName = body.branch.replace(/\//g, '-');
 				worktreePath = `${body.cwd}/.worktrees/${dirName}`;
 				if (!existsSync(worktreePath)) {
-					let baseBranch = 'main';
-					try {
-						baseBranch = (
-							await execAsync('git symbolic-ref refs/remotes/origin/HEAD', {
+					if (body.mode === 'existing-branch') {
+						try {
+							await execAsync('git fetch origin', {
 								cwd: body.cwd,
-								timeout: 5000,
-							})
-						).stdout
-							.trim()
-							.replace('refs/remotes/origin/', '');
-					} catch {
-						/* fallback main */
-					}
-					try {
-						await execAsync(`git fetch origin ${baseBranch}`, {
+								timeout: 30000,
+							});
+						} catch {
+							/* offline — on tente quand même avec l'état local */
+						}
+						const isLocal = localBranchExists(body.cwd, body.branch);
+						const isRemote = !isLocal && remoteBranchExists(body.cwd, body.branch);
+						if (!isLocal && !isRemote) {
+							return fail(
+								'worktree',
+								`Branche "${body.branch}" introuvable (ni locale ni sur origin)`,
+							);
+						}
+						const args = worktreeAddArgs({
+							worktreePath,
+							branch: body.branch,
+							mode: 'existing-branch',
+							isRemote,
+							base: '',
+						});
+						await execFileAsync('git', ['-C', body.cwd, 'worktree', 'add', ...args], {
 							cwd: body.cwd,
 							timeout: 30000,
 						});
-					} catch {
-						/* offline */
+					} else {
+						let baseBranch = 'main';
+						try {
+							baseBranch = (
+								await execAsync('git symbolic-ref refs/remotes/origin/HEAD', {
+									cwd: body.cwd,
+									timeout: 5000,
+								})
+							).stdout
+								.trim()
+								.replace('refs/remotes/origin/', '');
+						} catch {
+							/* fallback main */
+						}
+						try {
+							await execAsync(`git fetch origin ${baseBranch}`, {
+								cwd: body.cwd,
+								timeout: 30000,
+							});
+						} catch {
+							/* offline */
+						}
+						const args = worktreeAddArgs({
+							worktreePath,
+							branch: body.branch,
+							mode: 'worktree',
+							isRemote: false,
+							base: `origin/${baseBranch}`,
+						});
+						await execFileAsync('git', ['-C', body.cwd, 'worktree', 'add', ...args], {
+							cwd: body.cwd,
+							timeout: 30000,
+						});
 					}
-					await execAsync(
-						`git worktree add ${JSON.stringify(worktreePath)} -b ${JSON.stringify(body.branch)} origin/${baseBranch}`,
-						{ cwd: body.cwd, timeout: 30000 },
-					);
 				}
 				sendSSE(res, 'step', { step: 'worktree', status: 'done' });
 
@@ -746,7 +842,13 @@ Issue title: "${issueTitle}"`;
 			// 5) done → session active + worktree_path
 			db?.prepare(
 				'UPDATE agent_sessions SET status = ?, worktree_path = ? WHERE session_id = ?',
-			).run('active', body.mode === 'worktree' ? worktreePath : null, body.sessionId);
+			).run(
+				'active',
+				body.mode === 'worktree' || body.mode === 'existing-branch'
+					? worktreePath
+					: null,
+				body.sessionId,
+			);
 			sendSSE(res, 'done', { step: 'done', worktreePath });
 			res.end();
 		} catch (err) {
