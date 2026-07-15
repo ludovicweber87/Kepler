@@ -1,5 +1,6 @@
 import { IncomingMessage, ServerResponse } from 'node:http';
-import { execSync, execFileSync } from 'node:child_process';
+import { execSync, execFileSync, exec, spawn } from 'node:child_process';
+import { promisify } from 'node:util';
 import { readdirSync, copyFileSync, existsSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import {
@@ -18,6 +19,7 @@ import { parseFilesToCopy } from '../filesToCopy.js';
 import { resolveRemoteBaseRef } from '../gitBase.js';
 
 const TMUX = findTmux();
+const execAsync = promisify(exec);
 
 // ── Types ──
 
@@ -660,28 +662,28 @@ Issue title: "${issueTitle}"`;
 				if (!existsSync(worktreePath)) {
 					let baseBranch = 'main';
 					try {
-						baseBranch = execSync('git symbolic-ref refs/remotes/origin/HEAD', {
-							cwd: body.cwd,
-							encoding: 'utf-8',
-							timeout: 5000,
-						})
+						baseBranch = (
+							await execAsync('git symbolic-ref refs/remotes/origin/HEAD', {
+								cwd: body.cwd,
+								timeout: 5000,
+							})
+						).stdout
 							.trim()
 							.replace('refs/remotes/origin/', '');
 					} catch {
 						/* fallback main */
 					}
 					try {
-						execSync(`git fetch origin ${baseBranch}`, {
+						await execAsync(`git fetch origin ${baseBranch}`, {
 							cwd: body.cwd,
-							encoding: 'utf-8',
 							timeout: 30000,
 						});
 					} catch {
 						/* offline */
 					}
-					execSync(
+					await execAsync(
 						`git worktree add ${JSON.stringify(worktreePath)} -b ${JSON.stringify(body.branch)} origin/${baseBranch}`,
-						{ cwd: body.cwd, encoding: 'utf-8', timeout: 30000 },
+						{ cwd: body.cwd, timeout: 30000 },
 					);
 				}
 				sendSSE(res, 'step', { step: 'worktree', status: 'done' });
@@ -708,18 +710,35 @@ Issue title: "${issueTitle}"`;
 				}
 				sendSSE(res, 'step', { step: 'copy-files', status: 'done' });
 
-				// 4) setup script
+				// 4) setup script (streaming stdout/stderr en temps réel)
 				if (body.setupScript && body.setupScript.trim()) {
 					sendSSE(res, 'step', { step: 'setup', status: 'running' });
-					try {
-						execSync(body.setupScript, {
+					const tail: string[] = [];
+					const pushTail = (chunk: string) => {
+						sendSSE(res, 'log', { step: 'setup', chunk });
+						tail.push(chunk);
+						if (tail.length > 40) tail.shift();
+					};
+					const code = await new Promise<number>((resolve) => {
+						const child = spawn(body.setupScript, {
 							cwd: worktreePath,
-							encoding: 'utf-8',
-							timeout: 600000,
+							shell: true,
+							env: process.env,
 						});
+						child.stdout.on('data', (d: Buffer) => pushTail(d.toString()));
+						child.stderr.on('data', (d: Buffer) => pushTail(d.toString()));
+						child.on('error', (err) => {
+							pushTail(err.message);
+							resolve(1);
+						});
+						child.on('close', (c) => resolve(c ?? 0));
+					});
+					if (code === 0) {
 						sendSSE(res, 'step', { step: 'setup', status: 'done' });
-					} catch (err) {
-						return fail('setup', err instanceof Error ? err.message : 'setup failed');
+					} else {
+						const lastLine =
+							tail.join('').trim().split('\n').filter(Boolean).pop() ?? '';
+						return fail('setup', `exit ${code}${lastLine ? ` — ${lastLine}` : ''}`);
 					}
 				}
 			}

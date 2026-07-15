@@ -28,7 +28,9 @@ export default function CreationProgress({
 	const qc = useQueryClient();
 	const abortRef = useRef<AbortController | null>(null);
 	const [steps, setSteps] = useState<Record<string, StepStatus>>({});
+	const [output, setOutput] = useState('');
 	const [error, setError] = useState<{ step: string; message?: string } | null>(null);
+	const outputRef = useRef<HTMLDivElement | null>(null);
 
 	const hasIssue = !!(session.issue_owner && session.issue_repo && session.issue_number);
 	const mode = 'worktree' as const; // provisioning ne concerne que la création worktree ; current-branch est géré à part
@@ -49,6 +51,7 @@ export default function CreationProgress({
 	const run = useCallback(async () => {
 		setError(null);
 		setSteps({});
+		setOutput('');
 		abortRef.current?.abort();
 		const controller = new AbortController();
 		abortRef.current = controller;
@@ -96,6 +99,10 @@ export default function CreationProgress({
 						qc.invalidateQueries({ queryKey: ['git-worktrees', session.project_path] });
 						return;
 					}
+					if (evt === 'log') {
+						if (typeof data.chunk === 'string') setOutput((o) => o + data.chunk);
+						continue;
+					}
 					if (data.status === 'error') {
 						setError({ step: data.step, message: data.message });
 						setSteps((s) => ({ ...s, [data.step]: 'error' }));
@@ -115,6 +122,11 @@ export default function CreationProgress({
 		return () => abortRef.current?.abort();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
+
+	useEffect(() => {
+		const el = outputRef.current;
+		if (el) el.scrollTop = el.scrollHeight;
+	}, [output]);
 
 	const iconFor = (st: StepStatus | undefined) => {
 		if (st === 'done') return <CheckCircleRoundedIcon color="success" fontSize="small" />;
@@ -151,6 +163,26 @@ export default function CreationProgress({
 						</Box>
 					))}
 				</Box>
+				{output && (
+					<Box
+						ref={outputRef}
+						sx={{
+							mt: 2,
+							maxHeight: 160,
+							overflowY: 'auto',
+							p: 1.5,
+							borderRadius: 2,
+							bgcolor: 'action.hover',
+							fontFamily: 'monospace',
+							fontSize: 11,
+							lineHeight: 1.5,
+							whiteSpace: 'pre-wrap',
+							color: 'text.secondary',
+						}}
+					>
+						{output}
+					</Box>
+				)}
 				{error && (
 					<Box sx={{ mt: 3, textAlign: 'center' }}>
 						<Typography variant="body2" color="error" sx={{ mb: 1 }}>
