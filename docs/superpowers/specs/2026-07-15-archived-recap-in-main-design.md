@@ -23,8 +23,15 @@ Condition unique : `isArchived` (déjà dérivé dans `Workbench.tsx` :
 ### Colonne droite (archivée)
 
 - L'onglet **Activity** n'est pas rendu (il reste `Changes`, + `Issue` si `hasIssue`).
-- Garde-fou : si `isArchived && rightTab === 'activity'`, rebascule `rightTab` sur
-  `'changes'` (via `useEffect`).
+- **`rightTab` effectif dérivé** (évite tout warning MUI « invalid value » lié au timing
+  d'un `useEffect`) : on calcule
+  `const effectiveRightTab = isArchived && rightTab === 'activity' ? 'changes' : rightTab;`
+  et on l'utilise **à la fois** pour `<Tabs value>` **et** pour le switch du panneau droit.
+  Ainsi `<Tabs value>` correspond toujours à un `<Tab>` rendu, dès le premier render, même
+  sur deep-link `?session=<id>` d'une archivée.
+- L'effet de reset existant (sur changement de `sessionId`) devient **archived-aware** :
+  il set `rightTab` sur `isArchived ? 'changes' : 'activity'` (cohérence de l'état source,
+  en plus de la dérivation ci-dessus).
 
 ### Colonne gauche / fenêtre principale (archivée)
 
@@ -59,7 +66,8 @@ droite `Changes | Activity | Issue`. Aucun impact sur active / past.
 | ------- | ---------- |
 | `src/lib/activityReport.ts` (nouveau) | `buildReport()` extrait d'`AgentActivityTab`, exporté, testé (Vitest). Signature conservée : `buildReport(session, logs, labels: { reportTitle, branch }): string`. |
 | `src/lib/activityReport.test.ts` (nouveau) | Tests purs de `buildReport` (icônes par type, filtrage, en-tête branche). |
-| `src/components/agents/SessionRecap.tsx` (nouveau) | Props `{ session: AgentSession \| null; logs: AgentActivityLog[] }`. Filtre `summary`/`error`, construit le markdown via `buildReport`, rend via `react-markdown`+`remark-gfm`. État vide si pas de logs. |
+| `src/components/agents/SessionRecap.tsx` (nouveau) | Props `{ session: AgentSession \| null; logs: AgentActivityLog[] }`. **Si `session === null`** → état chargement (`agentActivity.sessionLoading`, comme `AgentActivityTab`). Sinon filtre `summary`/`error` ; **si aucun log** → `agentActivity.noActivity` ; sinon construit le markdown via `buildReport` et rend via `react-markdown`+`remark-gfm`. |
+| `src/components/agents/AgentChatTab.tsx` | Retirer la prop `archived` et sa branche devenue morte (bandeau `t('archivedReadOnly')` + masquage du bouton Reprendre), puisque `AgentChatTab` n'est plus monté pour les archivées. Le read-only des sessions `past` reste géré par `readOnly`. Retirer aussi `archived={isArchived}` au call site du Workbench et la clé i18n `agentChat.archivedReadOnly` (après confirmation qu'elle n'est plus référencée). |
 | `src/components/agents/AgentActivityTab.tsx` | Importe `buildReport` depuis `@/lib/activityReport` (retrait de la copie locale). Aucun autre changement de comportement. |
 | `src/components/workbench/Workbench.tsx` | Branchements conditionnels `isArchived` : label onglet gauche, rendu gauche (SessionRecap vs AgentChatTab), retrait du `<Tab value="activity">` et de son panneau à droite, garde-fou `rightTab`. |
 
@@ -68,7 +76,10 @@ droite `Changes | Activity | Issue`. Aucun impact sur active / past.
 - **Nouvelle clé** : `workbench.tabRecap` (« Récap » / « Recap » / « Resumen » / « Recap » /
   « Resumo ») dans les 5 locales (`src/config/translate/{en,fr,es,de,pt}.json`).
 - **Réutilisées** : `agentActivity.reportTitle`, `agentActivity.branch` (labels de
-  `buildReport`), `agentActivity.noActivity` (état vide), `workbench.tabChat`.
+  `buildReport`), `agentActivity.noActivity` (état vide), `agentActivity.sessionLoading`
+  (état `session === null`), `workbench.tabChat`.
+- **Supprimée** (devenue morte) : `agentChat.archivedReadOnly` dans les 5 locales, après
+  confirmation par grep qu'aucun code ne la référence plus.
 
 ## Non-objectifs (YAGNI)
 
