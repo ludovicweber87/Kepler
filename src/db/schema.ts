@@ -123,6 +123,7 @@ export const repoSettings = sqliteTable('repo_settings', {
 	create_pr_prompt: text().default(''),
 	files_to_copy: text().default(''),
 	setup_script: text().default(''),
+	setup_script_name: text().default(''),
 	archive_script: text().default(''),
 	run_scripts: text({ mode: 'json' }).$type<RunScriptRow[]>().default([]),
 	updated_at: timestamp(),

@@ -8,6 +8,7 @@ function defaults(repo: string): RepoSettings {
 		create_pr_prompt: '',
 		files_to_copy: '',
 		setup_script: '',
+		setup_script_name: '',
 		archive_script: '',
 		run_scripts: [],
 	};

@@ -22,6 +22,7 @@ export default function RepoSettingsPanel({ repoFullName }: { repoFullName: stri
 	const [prPrompt, setPrPrompt] = useState('');
 	const [filesToCopy, setFilesToCopy] = useState('');
 	const [setupScript, setSetupScript] = useState('');
+	const [setupScriptName, setSetupScriptName] = useState('');
 	const [archiveScript, setArchiveScript] = useState('');
 	const [runScripts, setRunScripts] = useState<RunScript[]>([]);
 
@@ -31,6 +32,7 @@ export default function RepoSettingsPanel({ repoFullName }: { repoFullName: stri
 		setPrPrompt(settings.create_pr_prompt);
 		setFilesToCopy(settings.files_to_copy);
 		setSetupScript(settings.setup_script);
+		setSetupScriptName(settings.setup_script_name);
 		setArchiveScript(settings.archive_script);
 		setRunScripts(settings.run_scripts);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -124,6 +126,16 @@ export default function RepoSettingsPanel({ repoFullName }: { repoFullName: stri
 				</Typography>
 				<TextField
 					fullWidth
+					size="small"
+					sx={{ mb: 1 }}
+					label={t('setupScriptName')}
+					helperText={t('setupScriptNameDesc')}
+					value={setupScriptName}
+					onChange={(e) => setSetupScriptName(e.target.value)}
+					placeholder={t('setupScriptNamePlaceholder')}
+				/>
+				<TextField
+					fullWidth
 					multiline
 					minRows={2}
 					value={setupScript}
@@ -134,7 +146,9 @@ export default function RepoSettingsPanel({ repoFullName }: { repoFullName: stri
 					sx={{ mt: 1 }}
 					variant="contained"
 					disabled={isSaving}
-					onClick={() => persist({ setup_script: setupScript })}
+					onClick={() =>
+						persist({ setup_script: setupScript, setup_script_name: setupScriptName })
+					}
 				>
 					{t('save')}
 				</Button>

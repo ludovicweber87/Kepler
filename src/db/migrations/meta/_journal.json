@@ -57,6 +57,13 @@
       "when": 1783957516313,
       "tag": "0007_cynical_jimmy_woo",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1784500000000,
+      "tag": "0008_setup_script_name",
+      "breakpoints": true
     }
   ]
 }

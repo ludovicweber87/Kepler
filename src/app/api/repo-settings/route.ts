@@ -10,6 +10,7 @@ function defaults(repo: string) {
 		create_pr_prompt: '',
 		files_to_copy: '',
 		setup_script: '',
+		setup_script_name: '',
 		archive_script: '',
 		run_scripts: [],
 	};
@@ -52,6 +53,7 @@ export async function PUT(req: NextRequest) {
 			create_pr_prompt: body.create_pr_prompt ?? '',
 			files_to_copy: body.files_to_copy ?? '',
 			setup_script: body.setup_script ?? '',
+			setup_script_name: body.setup_script_name ?? '',
 			archive_script: body.archive_script ?? '',
 			run_scripts: body.run_scripts ?? [],
 		};

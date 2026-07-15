@@ -1,0 +1,1 @@
+ALTER TABLE `repo_settings` ADD `setup_script_name` text DEFAULT '';
