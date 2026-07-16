@@ -143,7 +143,25 @@ export default function IssuesList() {
 		[mutation, todoQc],
 	);
 
-	if (isLoading || configsLoading) {
+	const columnAreaSkeleton = (
+		<Box sx={{ display: 'flex', gap: 2 }}>
+			{[1, 2, 3].map((i) => (
+				<Box key={i} sx={{ width: COLUMN_WIDTH, flexShrink: 0 }}>
+					<Skeleton variant="rounded" height={32} sx={{ mb: 1.5, borderRadius: 1 }} />
+					{[1, 2].map((j) => (
+						<Skeleton
+							key={j}
+							variant="rounded"
+							height={80}
+							sx={{ mb: 1, borderRadius: 1 }}
+						/>
+					))}
+				</Box>
+			))}
+		</Box>
+	);
+
+	if (configsLoading) {
 		return (
 			<Box>
 				<Skeleton
@@ -153,34 +171,8 @@ export default function IssuesList() {
 					sx={{ mb: 3, borderRadius: 1 }}
 				/>
 				<Skeleton variant="rounded" height={36} sx={{ mb: 2, borderRadius: 1 }} />
-				<Box sx={{ display: 'flex', gap: 2 }}>
-					{[1, 2, 3].map((i) => (
-						<Box key={i} sx={{ width: COLUMN_WIDTH, flexShrink: 0 }}>
-							<Skeleton
-								variant="rounded"
-								height={32}
-								sx={{ mb: 1.5, borderRadius: 1 }}
-							/>
-							{[1, 2].map((j) => (
-								<Skeleton
-									key={j}
-									variant="rounded"
-									height={80}
-									sx={{ mb: 1, borderRadius: 1 }}
-								/>
-							))}
-						</Box>
-					))}
-				</Box>
+				{columnAreaSkeleton}
 			</Box>
-		);
-	}
-
-	if (error) {
-		return (
-			<Alert severity="error" sx={{ borderRadius: 1 }}>
-				Failed to load GitHub data: {error.message}
-			</Alert>
 		);
 	}
 
@@ -323,7 +315,13 @@ export default function IssuesList() {
 							/>
 						))}
 					</Tabs>
-					{searchedIssues.length === 0 ? (
+					{isLoading ? (
+						columnAreaSkeleton
+					) : error ? (
+						<Alert severity="error" sx={{ borderRadius: 1 }}>
+							Failed to load GitHub data: {error.message}
+						</Alert>
+					) : searchedIssues.length === 0 ? (
 						!hasConnectedProject ? (
 							<Box sx={{ textAlign: 'center', py: 8 }}>
 								<Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>

@@ -22,7 +22,9 @@ export function useRepoIssues(repo: string | null) {
 		queryFn: async (): Promise<RepoIssuesResponse> => {
 			const res = await apiFetch(`/api/github/repo-issues?repo=${encodeURIComponent(repo!)}`);
 			if (!res.ok) throw new Error(`Repo issues fetch failed: ${res.status}`);
-			return res.json();
+			const data: RepoIssuesResponse = await res.json();
+			if (data.error) throw new Error(data.error);
+			return data;
 		},
 	});
 
