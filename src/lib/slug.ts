@@ -6,7 +6,7 @@
 export function slugify(text: string, maxLen = 40): string {
 	const slug = text
 		.normalize('NFKD')
-		.replace(/[̀-ͯ]/g, '') // strip diacritics (combining marks)
+		.replace(/[\u0300-\u036f]/g, '') // strip diacritics (combining marks)
 		.toLowerCase()
 		.replace(/[^a-z0-9]+/g, '-') // non-alphanumeric → hyphen
 		.replace(/^-+|-+$/g, ''); // trim leading/trailing hyphens
