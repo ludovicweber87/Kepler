@@ -367,3 +367,29 @@ export interface RepoSettings {
 	setup_script_name: string;
 	archive_script: string;
 }
+
+// ─── Daily Recaps ───────────────────────────────────────────
+export interface RecapItem {
+	time: string; // HH:MM local
+	type: string; // commit | pr | summary | file_change | info | error
+	text: string;
+}
+
+export interface DailyRecap {
+	id: string;
+	repo_full_name: string;
+	recap_date: string; // YYYY-MM-DD (local)
+	content: string; // concise FR markdown
+	items: RecapItem[] | null;
+	trigger_type: 'manual' | 'scheduled';
+	created_at: string;
+}
+
+export interface RecapSchedule {
+	id: string;
+	repo_full_name: string;
+	time: string; // HH:MM local
+	enabled: boolean;
+	last_run_date: string | null;
+	created_at: string;
+}
