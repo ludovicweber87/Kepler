@@ -30,7 +30,19 @@ else
 	git clone "$REPO_URL" "$REPO_DIR"
 fi
 
-# 2. GitHub auth comes from the local `gh` CLI — no secrets to configure.
+# 2. Prerequisite checks (non-blocking warnings — Devora needs these at runtime).
+if ! command -v node >/dev/null 2>&1; then
+	echo "⚠ Node.js not found — install Node 20–25 (native modules don't support Node 26 yet)."
+else
+	node_major="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"
+	if [ "$node_major" -lt 20 ] || [ "$node_major" -gt 25 ]; then
+		echo "⚠ Node $(node -v) detected — Devora targets Node 20–25 (better-sqlite3 / node-pty)."
+	fi
+fi
+command -v tmux  >/dev/null 2>&1 || echo "⚠ tmux not found — required for agent terminal sessions. Install it (e.g. brew install tmux)."
+command -v claude >/dev/null 2>&1 || echo "⚠ Claude CLI (claude) not found — required for the Agent SDK. See https://docs.anthropic.com/en/docs/claude-code"
+
+# GitHub auth comes from the local `gh` CLI — no secrets to configure.
 if ! command -v gh >/dev/null 2>&1; then
 	echo "⚠ GitHub CLI (gh) not found. Install it: https://cli.github.com"
 	echo "  Devora uses your gh session for GitHub access."
