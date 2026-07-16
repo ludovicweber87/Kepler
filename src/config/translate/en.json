@@ -373,10 +373,6 @@
 		"noRepoConfigured": "No repository configured. Add one in settings.",
 		"emptyTitle": "Select a repository",
 		"emptyDesc": "Choose a repository to view and generate its daily reports.",
-		"schedules": "Automatic times",
-		"schedulesHint": "A report is generated automatically at each defined time.",
-		"addSchedule": "Add",
-		"noSchedules": "No time defined",
 		"generateToday": "Generate report",
 		"generating": "Generating…",
 		"dayTitle": "Reports for {date}",
@@ -393,8 +389,6 @@
 		"close": "Close",
 		"generatedSuccess": "Report generated",
 		"generateError": "Generation failed",
-		"deletedSuccess": "Report deleted",
-		"badgeScheduled": "auto",
-		"badgeManual": "manual"
+		"deletedSuccess": "Report deleted"
 	}
 }

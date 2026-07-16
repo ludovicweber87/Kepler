@@ -381,15 +381,6 @@ export interface DailyRecap {
 	recap_date: string; // YYYY-MM-DD (local)
 	content: string; // concise FR markdown
 	items: RecapItem[] | null;
-	trigger_type: 'manual' | 'scheduled';
-	created_at: string;
-}
-
-export interface RecapSchedule {
-	id: string;
-	repo_full_name: string;
-	time: string; // HH:MM local
-	enabled: boolean;
-	last_run_date: string | null;
+	trigger_type: 'manual';
 	created_at: string;
 }

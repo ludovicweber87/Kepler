@@ -16,10 +16,9 @@ import { fr } from 'date-fns/locale';
 import { format } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
-import { useRecaps, useGenerateRecap, useDeleteRecap } from '@/hooks/useRecaps';
+import { useRecaps, useGenerateRecap, useDeleteRecap, useGeneratingDates } from '@/hooks/useRecaps';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import RecapCalendar from './RecapCalendar';
-import ScheduleManager from './ScheduleManager';
 import RecapDayModal from './RecapDayModal';
 
 export default function DailyPage() {
@@ -38,6 +37,10 @@ export default function DailyPage() {
 	const { data: recaps = [] } = useRecaps(repo, month);
 	const generate = useGenerateRecap();
 	const deleteRecap = useDeleteRecap();
+	const generatingDates = useGeneratingDates();
+
+	const todayKey = format(new Date(), 'yyyy-MM-dd');
+	const todayGenerating = generatingDates.has(todayKey);
 
 	const recapDays = useMemo(() => new Set(recaps.map((r) => r.recap_date)), [recaps]);
 	const selectedKey = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : '';
@@ -116,10 +119,10 @@ export default function DailyPage() {
 
 						<Button
 							variant="contained"
-							disabled={!repo || generate.isPending}
-							onClick={() => runGenerate(format(new Date(), 'yyyy-MM-dd'))}
+							disabled={!repo || todayGenerating}
+							onClick={() => runGenerate(todayKey)}
 							startIcon={
-								generate.isPending ? (
+								todayGenerating ? (
 									<CircularProgress size={16} color="inherit" />
 								) : (
 									<AutoAwesomeRoundedIcon />
@@ -127,11 +130,9 @@ export default function DailyPage() {
 							}
 							sx={{ textTransform: 'none', fontWeight: 600 }}
 						>
-							{generate.isPending ? t('generating') : t('generateToday')}
+							{todayGenerating ? t('generating') : t('generateToday')}
 						</Button>
 					</Box>
-
-					{repo && <ScheduleManager repo={repo} />}
 				</Paper>
 
 				<RecapCalendar
@@ -143,7 +144,7 @@ export default function DailyPage() {
 					}}
 					onMonthChange={(m) => setMonth(m)}
 					onGenerate={(key) => runGenerate(key)}
-					generatingDate={generate.isPending ? (generate.variables?.date ?? null) : null}
+					generatingDates={generatingDates}
 				/>
 
 				<RecapDayModal
@@ -151,7 +152,7 @@ export default function DailyPage() {
 					onClose={() => setModalOpen(false)}
 					date={selectedDate}
 					recaps={recapsForDay}
-					generating={generate.isPending}
+					generating={!!selectedKey && generatingDates.has(selectedKey)}
 					onGenerate={() => selectedKey && runGenerate(selectedKey)}
 					onDelete={handleDelete}
 				/>

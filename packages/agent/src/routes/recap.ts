@@ -169,12 +169,11 @@ async function synthesize(
 
 /**
  * Génère (et persiste) un rapport quotidien pour un dépôt et une date locale.
- * Réutilisé par la route manuelle et par le scheduler.
  */
 export async function generateRecap(
 	repoFullName: string,
 	date: string,
-	triggerType: 'manual' | 'scheduled',
+	triggerType: 'manual' = 'manual',
 ): Promise<GeneratedRecap> {
 	if (!YMD.test(date)) throw new Error('date must be YYYY-MM-DD');
 	const db = getDb();

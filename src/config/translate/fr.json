@@ -373,10 +373,6 @@
 		"noRepoConfigured": "Aucun dépôt configuré. Ajoutez-en un dans les paramètres.",
 		"emptyTitle": "Sélectionnez un dépôt",
 		"emptyDesc": "Choisissez un dépôt pour voir et générer ses rapports quotidiens.",
-		"schedules": "Créneaux automatiques",
-		"schedulesHint": "Un rapport est généré automatiquement à chaque heure définie.",
-		"addSchedule": "Ajouter",
-		"noSchedules": "Aucun créneau défini",
 		"generateToday": "Générer le rapport",
 		"generating": "Génération en cours…",
 		"dayTitle": "Rapports du {date}",
@@ -393,8 +389,6 @@
 		"close": "Fermer",
 		"generatedSuccess": "Rapport généré",
 		"generateError": "Échec de la génération",
-		"deletedSuccess": "Rapport supprimé",
-		"badgeScheduled": "auto",
-		"badgeManual": "manuel"
+		"deletedSuccess": "Rapport supprimé"
 	}
 }

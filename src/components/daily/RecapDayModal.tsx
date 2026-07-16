@@ -54,14 +54,6 @@ function RecapCard({ recap, onDelete }: { recap: DailyRecap; onDelete: (id: stri
 				<Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1 }}>
 					{t('reportAt', { time })}
 				</Typography>
-				<Chip
-					label={
-						recap.trigger_type === 'scheduled' ? t('badgeScheduled') : t('badgeManual')
-					}
-					size="small"
-					color={recap.trigger_type === 'scheduled' ? 'secondary' : 'default'}
-					sx={{ fontSize: '0.65rem', height: 20 }}
-				/>
 				<Tooltip title={t('delete')}>
 					<IconButton size="small" color="error" onClick={() => onDelete(recap.id)}>
 						<DeleteOutlineRoundedIcon fontSize="small" />
