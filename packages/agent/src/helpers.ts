@@ -1,6 +1,6 @@
 import { IncomingMessage, ServerResponse } from 'node:http';
 import { URL } from 'node:url';
-import { execSync } from 'node:child_process';
+import { execSync, execFileSync } from 'node:child_process';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
@@ -81,6 +81,25 @@ export function findClaude(): string {
 	return 'claude';
 }
 
+export function findGh(): string {
+	const paths = ['/opt/homebrew/bin/gh', '/usr/local/bin/gh', '/usr/bin/gh'];
+	for (const p of paths) {
+		try {
+			execSync(`test -x ${p}`, { stdio: 'ignore' });
+			return p;
+		} catch {
+			/* continue */
+		}
+	}
+	try {
+		const resolved = execSync('command -v gh', { encoding: 'utf-8' }).trim();
+		if (resolved) return resolved;
+	} catch {
+		/* continue */
+	}
+	return 'gh';
+}
+
 export function findTmux(): string {
 	const paths = ['/opt/homebrew/bin/tmux', '/usr/local/bin/tmux', '/usr/bin/tmux'];
 	for (const p of paths) {
@@ -100,4 +119,19 @@ export function getToken(req: IncomingMessage): string | null {
 	const auth = req.headers.authorization;
 	if (!auth?.startsWith('Bearer ')) return null;
 	return auth.slice(7);
+}
+
+export function resolveGitHubToken(req: IncomingMessage): string | null {
+	const header = getToken(req);
+	if (header) return header;
+	try {
+		const token = execFileSync(findGh(), ['auth', 'token'], {
+			encoding: 'utf-8',
+			timeout: 10000,
+		}).trim();
+		if (token) return token;
+	} catch {
+		/* gh absent ou non authentifié — on tente le fallback env */
+	}
+	return process.env.GITHUB_TOKEN ?? null;
 }

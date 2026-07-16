@@ -8,7 +8,7 @@ import {
 	readBody,
 	sendJson,
 	sendError,
-	getToken,
+	resolveGitHubToken,
 	findClaude,
 	findTmux,
 	startSSE,
@@ -389,7 +389,7 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 
 	// POST /git/branch (create branch + worktree from issue)
 	if (path === '/git/branch' && method === 'POST') {
-		const token = getToken(req);
+		const token = resolveGitHubToken(req);
 
 		try {
 			const { repoFullName, branchName, issueNumber } = await readBody<{
@@ -638,7 +638,7 @@ Issue title: "${issueTitle}"`;
 			filesToCopy: string;
 			setupScript: string;
 		}>(req);
-		const token = getToken(req);
+		const token = resolveGitHubToken(req);
 		startSSE(res);
 		const db = getDb();
 
@@ -657,44 +657,55 @@ Issue title: "${issueTitle}"`;
 
 		try {
 			// 1) read-issue (optionnel)
-			if (body.issue && token) {
+			if (body.issue) {
 				sendSSE(res, 'step', { step: 'read-issue', status: 'running' });
 				try {
-					const { owner, repo, number } = body.issue;
-					const base = `https://api.github.com/repos/${owner}/${repo}/issues/${number}`;
-					const headers = {
-						Authorization: `Bearer ${token}`,
-						Accept: 'application/vnd.github+json',
-						'X-GitHub-Api-Version': '2022-11-28',
-					};
-					const [issueRes, commentsRes] = await Promise.all([
-						fetch(base, { headers }),
-						fetch(`${base}/comments`, { headers }),
-					]);
-					const issue = issueRes.ok ? await issueRes.json() : null;
-					const comments = commentsRes.ok ? await commentsRes.json() : [];
-					if (issue) {
-						const commentsText = (comments as { body?: string }[])
-							.map((c) => c.body ?? '')
-							.filter(Boolean)
-							.join('\n\n---\n\n');
-						const prompt = `Voici une issue GitHub et ses commentaires. Résume le contexte et une approche suggérée, en français, de façon concise.\n\n# ${issue.title}\n\n${issue.body ?? ''}\n\n## Commentaires\n${commentsText}`;
-						const summary = execFileSync(findClaude(), ['--print'], {
-							input: prompt,
-							encoding: 'utf-8',
-							timeout: 120000,
-						}).trim();
-						if (summary && db) {
-							const row = db
-								.prepare(
-									'SELECT system_prompt FROM agent_sessions WHERE session_id = ?',
-								)
-								.get(body.sessionId) as { system_prompt?: string } | undefined;
-							const nextPrompt =
-								`${row?.system_prompt ?? ''}\n\n## Contexte de l'issue (résumé)\n${summary}`.trim();
-							db.prepare(
-								'UPDATE agent_sessions SET system_prompt = ? WHERE session_id = ?',
-							).run(nextPrompt, body.sessionId);
+					// Sans token (gh non authentifié) : on n'injecte rien mais on émet
+					// quand même running→done pour ne pas bloquer la step côté UI.
+					if (token) {
+						const { owner, repo, number } = body.issue;
+						const base = `https://api.github.com/repos/${owner}/${repo}/issues/${number}`;
+						const headers = {
+							Authorization: `Bearer ${token}`,
+							Accept: 'application/vnd.github+json',
+							'X-GitHub-Api-Version': '2022-11-28',
+						};
+						const [issueRes, commentsRes] = await Promise.all([
+							fetch(base, { headers }),
+							fetch(`${base}/comments`, { headers }),
+						]);
+						const issue = issueRes.ok ? await issueRes.json() : null;
+						const comments = commentsRes.ok ? await commentsRes.json() : [];
+						if (issue) {
+							const commentsText = (comments as { body?: string }[])
+								.map((c) => c.body ?? '')
+								.filter(Boolean)
+								.join('\n\n---\n\n');
+							const issueBlock = [
+								`## Contexte de l'issue #${number} : ${issue.title}`,
+								'',
+								issue.body ?? '',
+								commentsText ? `\n## Commentaires\n${commentsText}` : '',
+							]
+								.join('\n')
+								.trim();
+							if (issueBlock && db) {
+								// Idempotence : ne pas ré-injecter si un provision précédent
+								// (ex. retry) a déjà ajouté le contexte de cette issue.
+								const marker = `## Contexte de l'issue #${number}`;
+								const row = db
+									.prepare(
+										'SELECT system_prompt FROM agent_sessions WHERE session_id = ?',
+									)
+									.get(body.sessionId) as { system_prompt?: string } | undefined;
+								if (!(row?.system_prompt ?? '').includes(marker)) {
+									const nextPrompt =
+										`${row?.system_prompt ?? ''}\n\n${issueBlock}`.trim();
+									db.prepare(
+										'UPDATE agent_sessions SET system_prompt = ? WHERE session_id = ?',
+									).run(nextPrompt, body.sessionId);
+								}
+							}
 						}
 					}
 					sendSSE(res, 'step', { step: 'read-issue', status: 'done' });
@@ -709,14 +720,29 @@ Issue title: "${issueTitle}"`;
 			}
 
 			let worktreePath = body.cwd;
+			let finalBranch = body.branch;
 
-			const producesWorktree =
-				body.mode === 'worktree' || body.mode === 'existing-branch';
+			const producesWorktree = body.mode === 'worktree' || body.mode === 'existing-branch';
 
 			if (producesWorktree) {
+				// Nom déterministe (issue) → on garantit l'unicité pour un NOUVEAU worktree.
+				// (mode existing-branch = on attache une branche existante, pas de dédup.)
+				if (body.mode === 'worktree') {
+					let candidate = body.branch;
+					let n = 2;
+					while (
+						localBranchExists(body.cwd, candidate) ||
+						existsSync(`${body.cwd}/.worktrees/${candidate.replace(/\//g, '-')}`)
+					) {
+						candidate = `${body.branch}-${n}`;
+						n += 1;
+					}
+					finalBranch = candidate;
+				}
+
 				// 2) worktree
 				sendSSE(res, 'step', { step: 'worktree', status: 'running' });
-				const dirName = body.branch.replace(/\//g, '-');
+				const dirName = finalBranch.replace(/\//g, '-');
 				worktreePath = `${body.cwd}/.worktrees/${dirName}`;
 				if (!existsSync(worktreePath)) {
 					if (body.mode === 'existing-branch') {
@@ -771,7 +797,7 @@ Issue title: "${issueTitle}"`;
 						}
 						const args = worktreeAddArgs({
 							worktreePath,
-							branch: body.branch,
+							branch: finalBranch,
 							mode: 'worktree',
 							isRemote: false,
 							base: `origin/${baseBranch}`,
@@ -839,17 +865,11 @@ Issue title: "${issueTitle}"`;
 				}
 			}
 
-			// 5) done → session active + worktree_path
+			// 5) done → session active + worktree_path + branch (dédup éventuel)
 			db?.prepare(
-				'UPDATE agent_sessions SET status = ?, worktree_path = ? WHERE session_id = ?',
-			).run(
-				'active',
-				body.mode === 'worktree' || body.mode === 'existing-branch'
-					? worktreePath
-					: null,
-				body.sessionId,
-			);
-			sendSSE(res, 'done', { step: 'done', worktreePath });
+				'UPDATE agent_sessions SET status = ?, worktree_path = ?, branch = ? WHERE session_id = ?',
+			).run('active', producesWorktree ? worktreePath : null, finalBranch, body.sessionId);
+			sendSSE(res, 'done', { step: 'done', worktreePath, branch: finalBranch });
 			res.end();
 		} catch (err) {
 			return fail('worktree', err instanceof Error ? err.message : 'provision failed');
