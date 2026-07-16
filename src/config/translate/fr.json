@@ -180,8 +180,11 @@
 		"createPrPromptSaved": "Prompt enregistré"
 	},
 	"header": {
-		"lightMode": "Mode clair",
-		"darkMode": "Mode sombre",
+		"themeSelector": "Thème",
+		"themeDark": "Sombre",
+		"themeLightWarm": "Clair — Chaud",
+		"themeLightSolarized": "Clair — Solarized",
+		"themeLightNearWhite": "Clair — Éclatant",
 		"hideAgents": "Masquer workers",
 		"showAgents": "Afficher workers"
 	},

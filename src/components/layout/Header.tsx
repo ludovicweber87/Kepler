@@ -4,18 +4,42 @@ import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
-import IconButton from '@mui/material/IconButton';
-import Tooltip from '@mui/material/Tooltip';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
 import { alpha, useTheme } from '@mui/material/styles';
-import LightModeRoundedIcon from '@mui/icons-material/LightModeRounded';
-import DarkModeRoundedIcon from '@mui/icons-material/DarkModeRounded';
 import { SIDEBAR_WIDTH } from './Sidebar';
 import { useColorMode } from '@/hooks/useColorMode';
+import { THEME_VARIANTS, THEME_VARIANT_SWATCH, type ThemeVariant } from '@/theme/theme';
 import { useTranslations } from 'next-intl';
+
+const VARIANT_LABEL_KEY: Record<ThemeVariant, string> = {
+	dark: 'themeDark',
+	'light-warm': 'themeLightWarm',
+	'light-solarized': 'themeLightSolarized',
+	'light-near-white': 'themeLightNearWhite',
+};
+
+function Swatch({ variant }: { variant: ThemeVariant }) {
+	const [a, b] = THEME_VARIANT_SWATCH[variant];
+	return (
+		<Box
+			component="span"
+			sx={{
+				width: 14,
+				height: 14,
+				borderRadius: '4px',
+				flexShrink: 0,
+				background: `linear-gradient(135deg, ${a}, ${b})`,
+				border: '1px solid',
+				borderColor: 'divider',
+			}}
+		/>
+	);
+}
 
 export default function Header() {
 	const theme = useTheme();
-	const { mode, toggleColorMode } = useColorMode();
+	const { variant, setVariant } = useColorMode();
 	const t = useTranslations('header');
 
 	return (
@@ -34,26 +58,44 @@ export default function Header() {
 		>
 			<Toolbar sx={{ px: { xs: 2, md: 4 }, py: 0.5, justifyContent: 'flex-end' }}>
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-					{/* Theme toggle */}
-					<Tooltip title={mode === 'dark' ? t('lightMode') : t('darkMode')}>
-						<IconButton
-							onClick={toggleColorMode}
-							size="small"
-							sx={{
-								color: 'text.secondary',
-								'&:hover': {
-									bgcolor: alpha(theme.palette.primary.main, 0.15),
-									color: 'primary.main',
-								},
-							}}
-						>
-							{mode === 'dark' ? (
-								<LightModeRoundedIcon fontSize="small" />
-							) : (
-								<DarkModeRoundedIcon fontSize="small" />
-							)}
-						</IconButton>
-					</Tooltip>
+					{/* Theme picker */}
+					<Select
+						value={variant}
+						onChange={(e) => setVariant(e.target.value as ThemeVariant)}
+						size="small"
+						aria-label={t('themeSelector')}
+						renderValue={(value) => (
+							<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+								<Swatch variant={value as ThemeVariant} />
+								{t(VARIANT_LABEL_KEY[value as ThemeVariant])}
+							</Box>
+						)}
+						sx={{
+							color: 'text.primary',
+							fontSize: '0.75rem',
+							bgcolor: 'background.paper',
+							borderRadius: 2,
+							'& .MuiSelect-select': {
+								py: 0.75,
+								pl: 1.25,
+								display: 'flex',
+								alignItems: 'center',
+							},
+							'& .MuiOutlinedInput-notchedOutline': {
+								borderColor: 'divider',
+							},
+							'&:hover .MuiOutlinedInput-notchedOutline': {
+								borderColor: alpha(theme.palette.primary.main, 0.5),
+							},
+						}}
+					>
+						{THEME_VARIANTS.map((v) => (
+							<MenuItem key={v} value={v} sx={{ fontSize: '0.75rem', gap: 1 }}>
+								<Swatch variant={v} />
+								{t(VARIANT_LABEL_KEY[v])}
+							</MenuItem>
+						))}
+					</Select>
 
 					<Avatar
 						sx={{

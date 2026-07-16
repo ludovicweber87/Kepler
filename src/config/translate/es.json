@@ -158,8 +158,11 @@
 		"createPrPromptSaved": "Prompt guardado"
 	},
 	"header": {
-		"lightMode": "Modo claro",
-		"darkMode": "Modo oscuro",
+		"themeSelector": "Tema",
+		"themeDark": "Oscuro",
+		"themeLightWarm": "Claro — Cálido",
+		"themeLightSolarized": "Claro — Solarized",
+		"themeLightNearWhite": "Claro — Brillante",
 		"hideAgents": "Ocultar workers",
 		"showAgents": "Mostrar workers"
 	},
