@@ -200,18 +200,6 @@ Devora runs as **two processes** sharing one local SQLite database:
 
 <br/>
 
-## Roadmap
-
-- [x] Git worktree integration for parallel agent execution
-- [x] Claude Agent SDK chat with streaming, permissions and persistent transcripts
-- [x] One-line CLI install (`install.sh` + `devora` command)
-- [ ] Agent-to-agent communication
-- [ ] PR review automation with Claude
-- [ ] Notifications (Slack, email) on agent completion
-- [ ] Self-hosted deployment guide (Docker)
-
-<br/>
-
 ## License
 
 MIT
