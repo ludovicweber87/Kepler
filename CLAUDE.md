@@ -53,7 +53,6 @@ En dev, `scripts/dev-auto-port.mjs` lance les deux via `concurrently` et injecte
 | Agents / Chat   | **@anthropic-ai/claude-agent-sdk** (streaming via WebSocket) |
 | Intégrations    | GitHub API (REST + GraphQL) via proxy Next            |
 | i18n            | next-intl 4.8 (5 locales : en, fr, es, de, pt)       |
-| Graphiques      | Recharts 3                                            |
 | Terminal        | xterm.js 6 + node-pty 1.1 + WebSocket (ws, port 4001)|
 | Animations      | Framer Motion 12                                      |
 | Markdown        | react-markdown 10 + rehype-raw + remark-gfm           |
