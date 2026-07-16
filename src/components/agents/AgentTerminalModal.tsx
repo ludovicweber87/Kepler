@@ -38,6 +38,7 @@ import { useBranches, type Branch } from '@/hooks/useBranches';
 import { useTranslations } from 'next-intl';
 import { localFetch } from '@/lib/local-fetch';
 import { apiFetch } from '@/lib/api-fetch';
+import { slugify } from '@/lib/slug';
 
 interface IssueContext {
 	owner: string;
@@ -107,6 +108,17 @@ function randomWorktreeName(): string {
 	const n = WT_NOUN[Math.floor(Math.random() * WT_NOUN.length)];
 	const id = Math.random().toString(36).slice(2, 6);
 	return `wip-${a}-${n}-${id}`;
+}
+
+function issueBranchName(issue: { issueNumber: number; issueTitle: string }): string {
+	const slug = slugify(issue.issueTitle);
+	return slug ? `feat/${issue.issueNumber}-${slug}` : `feat/${issue.issueNumber}`;
+}
+
+function issueDisplayName(issue: { issueNumber: number; issueTitle: string }): string {
+	const t = issue.issueTitle.trim();
+	if (!t) return `#${issue.issueNumber}`;
+	return t.length > 72 ? `${t.slice(0, 71)}…` : t;
 }
 
 export default function AgentTerminalModal({
@@ -323,7 +335,7 @@ export default function AgentTerminalModal({
 		const issueBlock = issueCtxRef.current ? `\n\n${issueCtxRef.current}` : '';
 		const effectiveIssue = issueContext ?? linkedIssueRef.current;
 		const sourceIssueBlock = effectiveIssue
-			? `\n\n## Contexte\nCette session a été ouverte depuis l'issue GitHub ${effectiveIssue.owner}/${effectiveIssue.repo}#${effectiveIssue.issueNumber}${effectiveIssue.issueTitle ? ` : « ${effectiveIssue.issueTitle} »` : ''}.\nAvant d'agir, lis cette issue pour comprendre le contexte — par exemple : \`gh issue view ${effectiveIssue.issueNumber} --repo ${effectiveIssue.owner}/${effectiveIssue.repo} --comments\`.`
+			? `\n\n## Contexte\nCette session a été ouverte depuis l'issue GitHub ${effectiveIssue.owner}/${effectiveIssue.repo}#${effectiveIssue.issueNumber}${effectiveIssue.issueTitle ? ` : « ${effectiveIssue.issueTitle} »` : ''}.`
 			: '';
 		return (base + issueBlock + sourceIssueBlock).trim() || undefined;
 	}, [agentFile, issueContext]);
@@ -333,7 +345,6 @@ export default function AgentTerminalModal({
 		// Name is optional — fall back to an auto-generated `wip-` name (renamed later
 		// from the user's first prompt, in the Workbench).
 		const trimmedName = branchInput.trim();
-		const name = trimmedName || randomWorktreeName();
 		setWorktreeError(null);
 
 		// When an issue URL is linked, show the "reading issue" step and make sure the
@@ -348,14 +359,15 @@ export default function AgentTerminalModal({
 			linked = linkedIssueRef.current ?? (await fetchIssueContext(url)) ?? linked;
 		}
 
+		const name = trimmedName || (linked ? issueBranchName(linked) : randomWorktreeName());
+
 		try {
 			const projectName = projectPath.split('/').filter(Boolean).pop() ?? 'unknown';
 			ensureSession({
 				sessionId,
 				projectPath,
 				projectName,
-				agentName:
-					agentFile?.name ?? (linked ? `#${linked.issueNumber}` : null),
+				agentName: agentFile?.name ?? (linked ? issueDisplayName(linked) : null),
 				branch: name,
 				worktreePath: null,
 				status: 'provisioning',
@@ -413,7 +425,7 @@ export default function AgentTerminalModal({
 				projectPath,
 				projectName,
 				agentName:
-					agentFile?.name ?? (issueContext ? `#${issueContext.issueNumber}` : null),
+					agentFile?.name ?? (issueContext ? issueDisplayName(issueContext) : null),
 				branch: selectedExistingBranch.name,
 				worktreePath: null,
 				status: 'provisioning',
@@ -1051,7 +1063,11 @@ export default function AgentTerminalModal({
 					}}
 				>
 					<Box sx={{ position: 'relative', display: 'flex' }}>
-						<CircularProgress size={56} thickness={2.5} sx={{ color: 'primary.main' }} />
+						<CircularProgress
+							size={56}
+							thickness={2.5}
+							sx={{ color: 'primary.main' }}
+						/>
 						<DescriptionRoundedIcon
 							sx={{
 								position: 'absolute',
