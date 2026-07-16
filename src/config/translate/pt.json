@@ -159,8 +159,11 @@
 		"createPrPromptSaved": "Prompt guardado"
 	},
 	"header": {
-		"lightMode": "Modo claro",
-		"darkMode": "Modo escuro",
+		"themeSelector": "Tema",
+		"themeDark": "Escuro",
+		"themeLightWarm": "Claro — Quente",
+		"themeLightSolarized": "Claro — Solarized",
+		"themeLightNearWhite": "Claro — Brilhante",
 		"hideAgents": "Ocultar workers",
 		"showAgents": "Mostrar workers"
 	},
@@ -320,6 +323,7 @@
 		"pending": "A pensar…",
 		"modeEdit": "Edição",
 		"createPr": "Criar PR",
+		"viewPr": "Ver PR #{number}",
 		"questionProgress": "Pergunta {current}/{total}",
 		"questionMultiHint": "Várias opções permitidas",
 		"questionOther": "Outro…",

@@ -180,8 +180,11 @@
 		"createPrPromptSaved": "Prompt saved"
 	},
 	"header": {
-		"lightMode": "Light mode",
-		"darkMode": "Dark mode",
+		"themeSelector": "Theme",
+		"themeDark": "Dark",
+		"themeLightWarm": "Light — Warm",
+		"themeLightSolarized": "Light — Solarized",
+		"themeLightNearWhite": "Light — Bright",
 		"hideAgents": "Hide workers",
 		"showAgents": "Show workers"
 	},
@@ -341,6 +344,7 @@
 		"pending": "Thinking…",
 		"modeEdit": "Edit",
 		"createPr": "Create PR",
+		"viewPr": "View PR #{number}",
 		"questionProgress": "Question {current}/{total}",
 		"questionMultiHint": "Multiple choices allowed",
 		"questionOther": "Other…",

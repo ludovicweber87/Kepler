@@ -40,6 +40,8 @@ import { resolveRepoFullName } from '@/lib/resolveRepoFullName';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useRepoSettings } from '@/hooks/useRepoSettings';
 import { useGitDiff } from '@/hooks/useGitDiff';
+import { usePullRequests } from '@/hooks/usePullRequests';
+import { findOpenPrForBranch } from '@/lib/pullRequests';
 import AgentChatTab from '@/components/agents/AgentChatTab';
 import { FileDiffView } from '@/components/agents/AgentDiffTab';
 import ChangedFilesList from '@/components/agents/ChangedFilesList';
@@ -172,6 +174,8 @@ export default function Workbench() {
 	);
 
 	const branch = resolved?.branch ?? null;
+	const { data: branchPrs } = usePullRequests(repoFullName ? [repoFullName] : []);
+	const openPr = useMemo(() => findOpenPrForBranch(branchPrs, branch), [branchPrs, branch]);
 	const repoLabel =
 		resolved?.project_name ?? resolved?.project_path?.split('/').filter(Boolean).pop() ?? '';
 	const isAutoNamed = !!branch && branch.startsWith('wip-');
@@ -307,24 +311,45 @@ export default function Workbench() {
 					/>
 				)}
 				<Box sx={{ flex: 1 }} />
-				{prState.available && !isArchived && (
-					<Button
-						variant="contained"
-						color="primary"
-						startIcon={<CallMergeRoundedIcon sx={{ fontSize: 18 }} />}
-						onClick={() => prState.trigger()}
-						sx={{
-							textTransform: 'none',
-							fontWeight: 600,
-							borderRadius: 999,
-							px: 2,
-							boxShadow: 'none',
-							'&:hover': { boxShadow: 'none', bgcolor: 'primary.dark' },
-						}}
-					>
-						{tAgentChat('createPr')}
-					</Button>
-				)}
+				{openPr
+					? !isArchived && (
+							<Button
+								component="a"
+								href={openPr.html_url}
+								target="_blank"
+								rel="noopener noreferrer"
+								variant="outlined"
+								color="primary"
+								startIcon={<CallMergeRoundedIcon sx={{ fontSize: 18 }} />}
+								sx={{
+									textTransform: 'none',
+									fontWeight: 600,
+									borderRadius: 999,
+									px: 2,
+								}}
+							>
+								{tAgentChat('viewPr', { number: openPr.number })}
+							</Button>
+						)
+					: prState.available &&
+						!isArchived && (
+							<Button
+								variant="contained"
+								color="primary"
+								startIcon={<CallMergeRoundedIcon sx={{ fontSize: 18 }} />}
+								onClick={() => prState.trigger()}
+								sx={{
+									textTransform: 'none',
+									fontWeight: 600,
+									borderRadius: 999,
+									px: 2,
+									boxShadow: 'none',
+									'&:hover': { boxShadow: 'none', bgcolor: 'primary.dark' },
+								}}
+							>
+								{tAgentChat('createPr')}
+							</Button>
+						)}
 				<Chip
 					icon={<FolderOpenRoundedIcon sx={{ fontSize: '14px !important' }} />}
 					label={repoLabel}
@@ -450,6 +475,7 @@ export default function Workbench() {
 								onCreatePrStateChange={setPrState}
 								onTurnComplete={() => {
 									queryClient.invalidateQueries({ queryKey: ['git-diff'] });
+									queryClient.invalidateQueries({ queryKey: ['github', 'prs'] });
 								}}
 								onFirstUserMessage={(text) => {
 									if (isAutoNamed && !firstPromptSent.current) {

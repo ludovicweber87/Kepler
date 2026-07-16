@@ -158,8 +158,11 @@
 		"createPrPromptSaved": "Prompt gespeichert"
 	},
 	"header": {
-		"lightMode": "Heller Modus",
-		"darkMode": "Dunkler Modus",
+		"themeSelector": "Design",
+		"themeDark": "Dunkel",
+		"themeLightWarm": "Hell — Warm",
+		"themeLightSolarized": "Hell — Solarized",
+		"themeLightNearWhite": "Hell — Klar",
 		"hideAgents": "Workers ausblenden",
 		"showAgents": "Workers einblenden"
 	},
@@ -319,6 +322,7 @@
 		"pending": "Denkt nach…",
 		"modeEdit": "Bearbeiten",
 		"createPr": "PR erstellen",
+		"viewPr": "PR #{number} ansehen",
 		"questionProgress": "Frage {current}/{total}",
 		"questionMultiHint": "Mehrfachauswahl möglich",
 		"questionOther": "Andere…",

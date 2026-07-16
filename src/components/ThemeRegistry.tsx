@@ -7,8 +7,8 @@ import { getTheme } from '@/theme/theme';
 import { ColorModeProvider, useColorMode } from '@/hooks/useColorMode';
 
 function ThemeProviderInner({ children }: { children: React.ReactNode }) {
-	const { mode } = useColorMode();
-	const theme = useMemo(() => getTheme(mode), [mode]);
+	const { variant } = useColorMode();
+	const theme = useMemo(() => getTheme(variant), [variant]);
 
 	return (
 		<ThemeProvider theme={theme}>
