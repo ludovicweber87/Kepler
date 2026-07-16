@@ -711,14 +711,32 @@ Issue title: "${issueTitle}"`;
 			}
 
 			let worktreePath = body.cwd;
+			let finalBranch = body.branch;
 
 			const producesWorktree =
 				body.mode === 'worktree' || body.mode === 'existing-branch';
 
 			if (producesWorktree) {
+				// Nom déterministe (issue) → on garantit l'unicité pour un NOUVEAU worktree.
+				// (mode existing-branch = on attache une branche existante, pas de dédup.)
+				if (body.mode === 'worktree') {
+					let candidate = body.branch;
+					let n = 2;
+					while (
+						localBranchExists(body.cwd, candidate) ||
+						existsSync(
+							`${body.cwd}/.worktrees/${candidate.replace(/\//g, '-')}`,
+						)
+					) {
+						candidate = `${body.branch}-${n}`;
+						n += 1;
+					}
+					finalBranch = candidate;
+				}
+
 				// 2) worktree
 				sendSSE(res, 'step', { step: 'worktree', status: 'running' });
-				const dirName = body.branch.replace(/\//g, '-');
+				const dirName = finalBranch.replace(/\//g, '-');
 				worktreePath = `${body.cwd}/.worktrees/${dirName}`;
 				if (!existsSync(worktreePath)) {
 					if (body.mode === 'existing-branch') {
@@ -773,7 +791,7 @@ Issue title: "${issueTitle}"`;
 						}
 						const args = worktreeAddArgs({
 							worktreePath,
-							branch: body.branch,
+							branch: finalBranch,
 							mode: 'worktree',
 							isRemote: false,
 							base: `origin/${baseBranch}`,
@@ -841,17 +859,16 @@ Issue title: "${issueTitle}"`;
 				}
 			}
 
-			// 5) done → session active + worktree_path
+			// 5) done → session active + worktree_path + branch (dédup éventuel)
 			db?.prepare(
-				'UPDATE agent_sessions SET status = ?, worktree_path = ? WHERE session_id = ?',
+				'UPDATE agent_sessions SET status = ?, worktree_path = ?, branch = ? WHERE session_id = ?',
 			).run(
 				'active',
-				body.mode === 'worktree' || body.mode === 'existing-branch'
-					? worktreePath
-					: null,
+				producesWorktree ? worktreePath : null,
+				finalBranch,
 				body.sessionId,
 			);
-			sendSSE(res, 'done', { step: 'done', worktreePath });
+			sendSSE(res, 'done', { step: 'done', worktreePath, branch: finalBranch });
 			res.end();
 		} catch (err) {
 			return fail('worktree', err instanceof Error ? err.message : 'provision failed');
