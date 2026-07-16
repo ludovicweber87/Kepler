@@ -358,7 +358,10 @@ export default function IssuesList() {
 								pb: 1,
 								scrollbarWidth: 'thin',
 								'&::-webkit-scrollbar': { height: 6 },
-								'&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 3 },
+								'&::-webkit-scrollbar-thumb': {
+									bgcolor: 'divider',
+									borderRadius: 3,
+								},
 							}}
 						>
 							{columns.map(([colName, colIssues]) => (

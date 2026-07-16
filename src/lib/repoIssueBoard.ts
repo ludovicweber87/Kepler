@@ -44,7 +44,11 @@ export function reconcileRepoIssues(
 			...it,
 			project_columns: matched ? [matched] : [],
 			__config: matched
-				? { org: config!.org, projectNumber: config!.projectNumber, ownerType: config!.ownerType }
+				? {
+						org: config!.org,
+						projectNumber: config!.projectNumber,
+						ownerType: config!.ownerType,
+					}
 				: undefined,
 		};
 	});

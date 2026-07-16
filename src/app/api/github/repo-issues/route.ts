@@ -17,7 +17,10 @@ export async function GET(request: NextRequest) {
 
 	const repo = request.nextUrl.searchParams.get('repo');
 	if (!repo || !repo.includes('/')) {
-		return NextResponse.json({ error: 'repo parameter (owner/name) is required' }, { status: 400 });
+		return NextResponse.json(
+			{ error: 'repo parameter (owner/name) is required' },
+			{ status: 400 },
+		);
 	}
 	const [owner, name] = repo.split('/');
 
