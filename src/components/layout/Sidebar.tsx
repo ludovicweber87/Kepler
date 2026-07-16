@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Box from '@mui/material/Box';
@@ -17,10 +17,8 @@ import Tooltip from '@mui/material/Tooltip';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import { alpha, useTheme } from '@mui/material/styles';
-import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
 import MergeTypeRoundedIcon from '@mui/icons-material/MergeTypeRounded';
 import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
-import ChecklistRoundedIcon from '@mui/icons-material/ChecklistRounded';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
@@ -34,7 +32,6 @@ import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
 import Image from 'next/image';
 import { useMe } from '@/hooks/useMe';
 import { useTranslations } from 'next-intl';
-import { usePendingTodoCount } from '@/hooks/usePendingTodoCount';
 import { useAgentSessionHistory } from '@/hooks/useAgentSession';
 import { useSessionActions } from '@/hooks/useSessionActions';
 import { classifySession } from '@/lib/sessionStatus';
@@ -59,7 +56,6 @@ export default function Sidebar() {
 	const router = useRouter();
 	const { me } = useMe();
 	const t = useTranslations('sidebar');
-	const pendingCount = usePendingTodoCount();
 	const { data: allSessions = [] } = useAgentSessionHistory();
 	// Most recent session per worktree path (list is ordered started_at desc).
 	const sessionByWorktree = useMemo(() => {
@@ -75,6 +71,29 @@ export default function Sidebar() {
 	const { archive, remove } = useSessionActions();
 	const { repoPaths } = useRepoPaths();
 	const { showSnackbar } = useSnackbar();
+
+	// Default focus: on a bare /workbench (no ?session=), open the first worktree
+	// that already has a session, scanning folders then worktrees in order.
+	// Runs once per mount; if nothing has a session, the empty-state stays.
+	const hasAutoFocused = useRef(false);
+	useEffect(() => {
+		if (hasAutoFocused.current || currentSessionId) return;
+		if (!pathname.startsWith('/workbench') || views.length === 0) return;
+		for (const view of views) {
+			const worktrees = (byPath.get(view.path) ?? []).filter((wt) => {
+				const s = sessionByWorktree.get(wt.path);
+				return !(s && classifySession(s) === 'archived');
+			});
+			for (const wt of worktrees) {
+				const s = sessionByWorktree.get(wt.path);
+				if (s) {
+					hasAutoFocused.current = true;
+					router.replace(`/workbench?session=${encodeURIComponent(s.session_id)}`);
+					return;
+				}
+			}
+		}
+	}, [currentSessionId, pathname, views, byPath, sessionByWorktree, router]);
 	// Projects are all expanded by default; we only track the ones the user collapsed,
 	// so each accordion opens/closes independently.
 	const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
@@ -155,10 +174,8 @@ export default function Sidebar() {
 			);
 	};
 	const mainItems = [
-		{ label: t('workbench'), href: '/workbench', icon: <DashboardRoundedIcon /> },
 		{ label: t('issues'), href: '/issues', icon: <BugReportRoundedIcon /> },
 		{ label: t('prs'), href: '/prs', icon: <MergeTypeRoundedIcon /> },
-		{ label: t('todos'), href: '/todos', icon: <ChecklistRoundedIcon />, badge: pendingCount },
 	];
 
 	const bottomItems = [
@@ -215,14 +232,7 @@ export default function Sidebar() {
 
 					<List sx={{ px: 1.5 }}>
 						{mainItems.map((item, index) => {
-							const active =
-								item.href === '/'
-									? pathname === '/'
-									: item.href === '/workbench'
-										? // Don't keep Workbench lit when a specific session is
-											// open — the active worktree row gets highlighted instead.
-											pathname.startsWith('/workbench') && !currentSessionId
-										: pathname.startsWith(item.href);
+							const active = pathname.startsWith(item.href);
 							return (
 								<Link
 									key={item.label}
@@ -263,27 +273,6 @@ export default function Sidebar() {
 												fontWeight: 500,
 											}}
 										/>
-										{'badge' in item && (item.badge ?? 0) > 0 && (
-											<Box
-												component="span"
-												sx={{
-													bgcolor: 'warning.main',
-													color: 'common.white',
-													fontSize: '0.65rem',
-													fontWeight: 700,
-													lineHeight: 1,
-													minWidth: 18,
-													height: 18,
-													borderRadius: 1,
-													display: 'flex',
-													alignItems: 'center',
-													justifyContent: 'center',
-													px: 0.5,
-												}}
-											>
-												{(item.badge ?? 0) > 99 ? '99+' : item.badge}
-											</Box>
-										)}
 									</ListItemButton>
 								</Link>
 							);
@@ -456,13 +445,13 @@ export default function Sidebar() {
 																'&:hover': {
 																	bgcolor: isCurrent
 																		? alpha(
-																				theme.palette.primary
-																					.main,
+																				theme.palette
+																					.primary.main,
 																				0.22,
 																			)
 																		: alpha(
-																				theme.palette.primary
-																					.main,
+																				theme.palette
+																					.primary.main,
 																				0.1,
 																			),
 																},
