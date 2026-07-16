@@ -7,6 +7,10 @@ test('toKarmaKebab: normalise en kebab et coupe à 50', () => {
 	expect(toKarmaKebab('ab')).toBeNull();
 });
 
+test('toKarmaKebab: tronque à 4 segments (type + 3 mots max)', () => {
+	expect(toKarmaKebab('feat add google auth system now')).toBe('feat-add-google-auth');
+});
+
 test('localSlug: déduit le type par mots-clés', () => {
 	expect(localSlug('corrige le bug de renommage')).toMatch(/^fix-/);
 	expect(localSlug('refactor du composant sidebar')).toMatch(/^refactor-/);

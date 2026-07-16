@@ -158,6 +158,8 @@ export default function AgentTerminalModal({
 
 	const generatedIdRef = useRef<string | null>(null);
 	const redirectedRef = useRef(false);
+	// Guard: auto-launch (worktree + redirect) fires once when opening from an issue.
+	const autoLaunchedRef = useRef(false);
 	const issueCtxRef = useRef<string | null>(null);
 	// Issue linked via the URL field in the worktree step — persisted on the session
 	const linkedIssueRef = useRef<IssueContext | null>(null);
@@ -224,6 +226,7 @@ export default function AgentTerminalModal({
 			issueCtxRef.current = null;
 			linkedIssueRef.current = null;
 			redirectedRef.current = false;
+			autoLaunchedRef.current = false;
 		}
 	}, [open]);
 
@@ -234,13 +237,22 @@ export default function AgentTerminalModal({
 		}
 	}, [open, existingSessionId, goToWorkbench]);
 
-	// Skip project step when projectPath is already provided (from issue context, agents page, etc.)
-	// Always go to launch-mode step so user can choose worktree or current branch
+	// Skip project step when projectPath is already provided (from the agents page, etc.)
+	// and let the user choose worktree / current / existing branch.
+	// Exception: when launching from an issue, we don't show the launch-mode cards at all
+	// (handled by the auto-launch effect below) — the choice is implicit: worktree.
 	useEffect(() => {
-		if (open && !existingSessionId && !existingWorktree && projectPath && step === 'project') {
+		if (
+			open &&
+			!existingSessionId &&
+			!existingWorktree &&
+			!issueContext &&
+			projectPath &&
+			step === 'project'
+		) {
 			setStep('launch-mode');
 		}
-	}, [open, existingSessionId, existingWorktree, projectPath, step]);
+	}, [open, existingSessionId, existingWorktree, issueContext, projectPath, step]);
 
 	// Skip branch step when launching in an existing worktree
 	useEffect(() => {
@@ -371,6 +383,25 @@ export default function AgentTerminalModal({
 		ensureSession,
 		goToWorkbench,
 	]);
+
+	// Launching from an issue: skip the launch-mode cards AND the branch-name step.
+	// Force worktree mode with an auto `wip-` name and redirect straight to the Workbench.
+	// The Karma rename happens later, on the agent's first activity.
+	useEffect(() => {
+		if (
+			open &&
+			issueContext &&
+			!existingSessionId &&
+			!existingWorktree &&
+			projectPath &&
+			!autoLaunchedRef.current
+		) {
+			autoLaunchedRef.current = true;
+			setLinkingNumber(issueContext.issueNumber);
+			setStep('linking-issue');
+			handleLaunch();
+		}
+	}, [open, issueContext, existingSessionId, existingWorktree, projectPath, handleLaunch]);
 
 	const handleLaunchExistingBranch = useCallback(() => {
 		if (!projectPath || !selectedExistingBranch) return;
@@ -716,7 +747,7 @@ export default function AgentTerminalModal({
 						</Alert>
 					)}
 
-					<Box sx={{ display: 'flex', gap: 2, maxWidth: 500, width: '100%' }}>
+					<Box sx={{ display: 'flex', gap: 2, maxWidth: 760, width: '100%' }}>
 						{/* Worktree option */}
 						<Box
 							onClick={() => setLaunchMode('worktree')}

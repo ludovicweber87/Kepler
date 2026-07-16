@@ -35,7 +35,10 @@ const CLAUDE_BIN = findClaude();
 // Guard against concurrent renames triggered by rapid activity logs.
 const inProgress = new Set<string>();
 
-/** Normalize a raw string into a Karma-style kebab branch name (`feat-add-auth`). */
+/**
+ * Normalize a raw string into a Karma-style kebab branch name (`feat-add-auth`).
+ * Capped at 4 segments (type + 3 words → max 3 dashes) to keep branch names short.
+ */
 export function toKarmaKebab(raw: string): string | null {
 	const cleaned = raw
 		.trim()
@@ -44,6 +47,9 @@ export function toKarmaKebab(raw: string): string | null {
 		.replace(/[\s/]+/g, '-')
 		.replace(/-+/g, '-')
 		.replace(/^-+|-+$/g, '')
+		.split('-')
+		.slice(0, 4)
+		.join('-')
 		.slice(0, 50)
 		.replace(/-+$/, '');
 	return cleaned.length >= 3 ? cleaned : null;
@@ -136,7 +142,7 @@ export function localSlug(text: string): string | null {
 		.replace(/[^a-z0-9\s-]/g, ' ')
 		.split(/\s+/)
 		.filter((w) => w.length > 2 && !STOP_WORDS.has(w))
-		.slice(0, 6)
+		.slice(0, 3)
 		.join('-');
 
 	const kebab = toKarmaKebab(`${type}-${body}`);
@@ -196,7 +202,7 @@ export async function renameBranchFromText(
  */
 function generateNameViaClaude(text: string): string | null {
 	try {
-		const prompt = `Transforme cette demande en un nom de branche git court, convention Karma (format: type-en-kebab, ex: "feat-add-google-auth"). Types autorisés: feat, fix, docs, refactor, test, chore. Réponds UNIQUEMENT le nom, sans guillemets ni autre texte.\n\nDemande: ${text.slice(0, 500)}`;
+		const prompt = `Transforme cette demande en un nom de branche git court, convention Karma (format: type suivi de 3 mots MAXIMUM en kebab, ex: "feat-add-google-auth"). Types autorisés: feat, fix, docs, refactor, test, chore. Réponds UNIQUEMENT le nom, sans guillemets ni autre texte.\n\nDemande: ${text.slice(0, 500)}`;
 		const escaped = prompt.replace(/'/g, "'\\''");
 		const out = execSync(`${CLAUDE_BIN} --print '${escaped}'`, {
 			encoding: 'utf-8',
