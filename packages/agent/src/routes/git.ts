@@ -8,7 +8,7 @@ import {
 	readBody,
 	sendJson,
 	sendError,
-	getToken,
+	resolveGitHubToken,
 	findClaude,
 	findTmux,
 	startSSE,
@@ -389,7 +389,7 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 
 	// POST /git/branch (create branch + worktree from issue)
 	if (path === '/git/branch' && method === 'POST') {
-		const token = getToken(req);
+		const token = resolveGitHubToken(req);
 
 		try {
 			const { repoFullName, branchName, issueNumber } = await readBody<{
@@ -638,7 +638,7 @@ Issue title: "${issueTitle}"`;
 			filesToCopy: string;
 			setupScript: string;
 		}>(req);
-		const token = getToken(req);
+		const token = resolveGitHubToken(req);
 		startSSE(res);
 		const db = getDb();
 
