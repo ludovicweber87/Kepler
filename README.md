@@ -106,7 +106,6 @@ Closed a tab or killed an agent? Devora keeps the full transcript in SQLite. Reo
 | **Auth**      | `gh` CLI session (fallback `GITHUB_TOKEN`)              |
 | **GitHub**    | REST API + GraphQL (Projects V2)                        |
 | **i18n**      | next-intl (en · fr · es · de · pt)                      |
-| **Charts**    | Recharts 3                                              |
 
 <br/>
 
@@ -302,7 +301,6 @@ Onglet fermé ou agent tué ? Devora conserve le transcript complet en SQLite. R
 | **Auth**      | Session `gh` CLI (fallback `GITHUB_TOKEN`)              |
 | **GitHub**    | API REST + GraphQL (Projects V2)                        |
 | **i18n**      | next-intl (en · fr · es · de · pt)                      |
-| **Graphiques**| Recharts 3                                              |
 
 <br/>
 
