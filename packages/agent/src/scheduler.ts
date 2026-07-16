@@ -13,18 +13,59 @@ function localHHMM(): string {
 	return new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 }
 
-interface ScheduleRow {
+export interface ScheduleRow {
 	id: string;
 	repo_full_name: string;
 	time: string;
 	last_run_date: string | null;
 }
 
-function tick() {
+export interface RunDueContext {
+	now: string; // HH:MM local
+	today: string; // YYYY-MM-DD local
+	schedules: ScheduleRow[];
+	inFlight: Set<string>;
+	generate: (repo: string, date: string) => Promise<unknown> | unknown;
+	markRun: (id: string, date: string) => void;
+	log?: (msg: string) => void;
+	error?: (msg: string, err: unknown) => void;
+}
+
+/**
+ * Déclenche les créneaux dus (logique pure des effets injectés → testable).
+ * Un créneau est dû si : pas déjà lancé aujourd'hui, l'heure est atteinte,
+ * et pas déjà en cours. `generate` est attendu (await) pour marquer
+ * `last_run_date` seulement après une génération réussie.
+ * Retourne les ids effectivement lancés.
+ */
+export async function runDueSchedules(ctx: RunDueContext): Promise<string[]> {
+	const ran: string[] = [];
+	for (const s of ctx.schedules) {
+		if (s.last_run_date === ctx.today) continue; // déjà lancé aujourd'hui
+		if (ctx.now < s.time) continue; // pas encore l'heure (déclenche à/après → rattrapage au boot)
+		if (ctx.inFlight.has(s.id)) continue; // génération déjà en cours
+		ctx.inFlight.add(s.id);
+		try {
+			await ctx.generate(s.repo_full_name, ctx.today);
+			ctx.markRun(s.id, ctx.today);
+			ran.push(s.id);
+			ctx.log?.(`rapport planifié généré pour ${s.repo_full_name} (créneau ${s.time})`);
+		} catch (err) {
+			ctx.error?.('échec rapport planifié', err);
+		} finally {
+			ctx.inFlight.delete(s.id);
+		}
+	}
+	return ran;
+}
+
+const inFlight = new Set<string>();
+let ticking = false;
+
+async function tick() {
+	if (ticking) return; // évite le chevauchement de ticks (génération SDK longue)
 	const db = getDb();
 	if (!db) return;
-	const today = localDate();
-	const now = localHHMM();
 
 	let schedules: ScheduleRow[];
 	try {
@@ -34,33 +75,32 @@ function tick() {
 			)
 			.all() as ScheduleRow[];
 	} catch {
-		return; // table not migrated yet
+		return; // table non migrée
 	}
+	if (schedules.length === 0) return;
 
-	for (const s of schedules) {
-		if (s.last_run_date === today) continue; // already ran today
-		if (now < s.time) continue; // not time yet (fires on/after, so it catches up on boot)
-		try {
-			generateRecap(s.repo_full_name, today, 'scheduled');
-			db.prepare('UPDATE recap_schedules SET last_run_date = ? WHERE id = ?').run(
-				today,
-				s.id,
-			);
-			console.log(
-				`[devora-agent] rapport planifié généré pour ${s.repo_full_name} (créneau ${s.time})`,
-			);
-		} catch (err) {
-			console.error(
-				'[devora-agent] échec rapport planifié:',
-				err instanceof Error ? err.message : err,
-			);
-		}
+	ticking = true;
+	try {
+		await runDueSchedules({
+			now: localHHMM(),
+			today: localDate(),
+			schedules,
+			inFlight,
+			generate: (repo, date) => generateRecap(repo, date, 'scheduled'),
+			markRun: (id, date) =>
+				db.prepare('UPDATE recap_schedules SET last_run_date = ? WHERE id = ?').run(date, id),
+			log: (msg) => console.log(`[devora-agent] ${msg}`),
+			error: (msg, err) =>
+				console.error(`[devora-agent] ${msg}:`, err instanceof Error ? err.message : err),
+		});
+	} finally {
+		ticking = false;
 	}
 }
 
 export function startRecapScheduler() {
-	setInterval(tick, TICK_MS);
+	setInterval(() => void tick(), TICK_MS);
 	// Catch-up shortly after boot (server may start after a scheduled time).
-	setTimeout(tick, 5_000);
+	setTimeout(() => void tick(), 5_000);
 	console.log('[devora-agent] scheduler de rapports démarré');
 }

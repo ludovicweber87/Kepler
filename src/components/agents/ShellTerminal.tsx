@@ -1,7 +1,8 @@
 'use client';
 
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import Box from '@mui/material/Box';
+import { alpha, useTheme } from '@mui/material/styles';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebglAddon } from '@xterm/addon-webgl';
@@ -26,11 +27,42 @@ const ShellTerminal = forwardRef<ShellTerminalHandle, ShellTerminalProps>(functi
 	{ shellSessionId, cwd, active, ready = true },
 	ref,
 ) {
+	const theme = useTheme();
 	const [node, setNode] = useState<HTMLDivElement | null>(null);
 	const terminalRef = useRef<Terminal | null>(null);
 	const wsRef = useRef<WebSocket | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
 	const initialized = useRef(false);
+
+	// Thème xterm dérivé du thème MUI (suit le mode clair/sombre choisi).
+	const xtermTheme = useMemo(
+		() => ({
+			background: theme.palette.background.default,
+			foreground: theme.palette.text.primary,
+			cursor: theme.palette.primary.main,
+			selectionBackground: alpha(theme.palette.primary.main, 0.3),
+			red: '#FF5252',
+			green: '#69F0AE',
+			yellow: '#FFD740',
+			blue: '#448AFF',
+			magenta: '#E040FB',
+			cyan: '#00E5FF',
+			white: '#E0E0E0',
+			brightBlack: '#616161',
+			brightRed: '#FF8A80',
+			brightGreen: '#B9F6CA',
+			brightYellow: '#FFE57F',
+			brightBlue: '#82B1FF',
+			brightMagenta: '#EA80FC',
+			brightCyan: '#84FFFF',
+			brightWhite: '#FFFFFF',
+			black: '#1A1A1A',
+		}),
+		[theme.palette.background.default, theme.palette.text.primary, theme.palette.primary.main],
+	);
+	// Thème initial figé au montage (le terminal n'est créé qu'une fois) ;
+	// les changements de mode ultérieurs sont appliqués par l'effet dédié plus bas.
+	const xtermThemeRef = useRef(xtermTheme);
 
 	useImperativeHandle(ref, () => ({
 		runCommand: (cmd: string) => {
@@ -59,28 +91,7 @@ const ShellTerminal = forwardRef<ShellTerminalHandle, ShellTerminalProps>(functi
 			fontSize: 14,
 			fontFamily: '"JetBrains Mono", "Fira Code", "Cascadia Code", monospace',
 			scrollback: 5000,
-			theme: {
-				background: '#1A1A1A',
-				foreground: '#E0E0E0',
-				cursor: '#00E5FF',
-				selectionBackground: 'rgba(0, 229, 255, 0.3)',
-				black: '#1A1A1A',
-				red: '#FF5252',
-				green: '#69F0AE',
-				yellow: '#FFD740',
-				blue: '#448AFF',
-				magenta: '#E040FB',
-				cyan: '#00E5FF',
-				white: '#E0E0E0',
-				brightBlack: '#616161',
-				brightRed: '#FF8A80',
-				brightGreen: '#B9F6CA',
-				brightYellow: '#FFE57F',
-				brightBlue: '#82B1FF',
-				brightMagenta: '#EA80FC',
-				brightCyan: '#84FFFF',
-				brightWhite: '#FFFFFF',
-			},
+			theme: xtermThemeRef.current,
 			allowProposedApi: true,
 		});
 
@@ -181,6 +192,13 @@ const ShellTerminal = forwardRef<ShellTerminalHandle, ShellTerminalProps>(functi
 			initialized.current = false;
 		};
 	}, [node, ready, cwd, shellSessionId]);
+
+	// Applique le thème à la volée quand le mode clair/sombre change,
+	// sans recréer le terminal (préserve scrollback & connexion).
+	useEffect(() => {
+		const term = terminalRef.current;
+		if (term) term.options.theme = xtermTheme;
+	}, [xtermTheme]);
 
 	// Refit + focus quand le panneau (re)devient visible.
 	useEffect(() => {

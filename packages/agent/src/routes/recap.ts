@@ -1,8 +1,9 @@
 import { IncomingMessage, ServerResponse } from 'node:http';
 import { execSync, execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { readBody, sendJson, sendError, findClaude, findGh } from '../helpers.js';
+import { readBody, sendJson, sendError, findGh } from '../helpers.js';
 import { getDb } from '../db.js';
+import { buildRecapPrompt, runRecapAgent } from '../sdk/recapAgent.js';
 
 export interface RecapItem {
 	time: string; // HH:MM local
@@ -144,50 +145,37 @@ function collectActivityLogs(
 	}));
 }
 
-function synthesize(repoFullName: string, date: string, items: RecapItem[]): string {
-	if (items.length === 0) {
+/**
+ * Produit le contenu markdown du rapport via l'Agent SDK (headless).
+ * Si le dépôt n'a pas de chemin local ET qu'aucune activité n'a été collectée,
+ * l'agent ne pourrait rien explorer → on court-circuite avec le placeholder.
+ */
+async function synthesize(
+	repoFullName: string,
+	date: string,
+	items: RecapItem[],
+	localPath: string | null,
+): Promise<string> {
+	if (!localPath && items.length === 0) {
 		return '_Aucune activité enregistrée pour ce jour._';
 	}
-	const lines = items
-		.map((it) => `- ${it.time || '--:--'} [${it.type}] ${it.text}`)
-		.join('\n')
-		.slice(0, 9000);
-
-	const prompt = `Tu rédiges un compte-rendu de "daily" (méthode agile) en français. À partir de l'activité de développement ci-dessous pour le dépôt ${repoFullName} le ${date}, produis un rapport SIMPLE, CONCIS et CLAIR de ce qui a été fait ce jour-là.
-
-Consignes :
-- Écris à la première personne ("J'ai …").
-- Utilise des puces courtes, regroupe ce qui va ensemble.
-- Ne mentionne QUE ce qui est réellement présent ci-dessous, n'invente rien.
-- Pas de préambule ni de conclusion. Réponds UNIQUEMENT avec le rapport en markdown.
-
-Activité :
-${lines}`;
-
-	const escaped = prompt.replace(/'/g, "'\\''");
-	const CLAUDE_BIN = findClaude();
-	const { CLAUDECODE, CLAUDE_CODE_ENTRYPOINT, ...cleanEnv } = process.env as Record<
-		string,
-		string | undefined
-	>;
-	const out = execSync(`${CLAUDE_BIN} --print '${escaped}'`, {
-		encoding: 'utf-8',
-		timeout: 45_000,
-		maxBuffer: 1024 * 1024,
-		env: cleanEnv as NodeJS.ProcessEnv,
-	}).trim();
-	return out || '_Rapport indisponible._';
+	const prompt = buildRecapPrompt(repoFullName, date, items);
+	const content = await runRecapAgent({
+		cwd: localPath ?? process.cwd(),
+		prompt,
+	});
+	return content || '_Rapport indisponible._';
 }
 
 /**
  * Génère (et persiste) un rapport quotidien pour un dépôt et une date locale.
  * Réutilisé par la route manuelle et par le scheduler.
  */
-export function generateRecap(
+export async function generateRecap(
 	repoFullName: string,
 	date: string,
 	triggerType: 'manual' | 'scheduled',
-): GeneratedRecap {
+): Promise<GeneratedRecap> {
 	if (!YMD.test(date)) throw new Error('date must be YYYY-MM-DD');
 	const db = getDb();
 	if (!db) throw new Error('Database not available');
@@ -199,7 +187,7 @@ export function generateRecap(
 		...collectPullRequests(repoFullName, date),
 	].sort((a, b) => a.time.localeCompare(b.time));
 
-	const content = synthesize(repoFullName, date, items);
+	const content = await synthesize(repoFullName, date, items, localPath);
 
 	const id = randomUUID();
 	const created_at = new Date().toISOString();
@@ -230,7 +218,7 @@ export async function handleRecapRoutes(req: IncomingMessage, res: ServerRespons
 			}>(req);
 			if (!repoFullName) return sendJson(res, { error: 'repoFullName required' }, 400);
 			const day = date ?? new Date().toLocaleDateString('en-CA'); // en-CA => YYYY-MM-DD local
-			const recap = generateRecap(repoFullName, day, 'manual');
+			const recap = await generateRecap(repoFullName, day, 'manual');
 			sendJson(res, { recap });
 		} catch (err) {
 			sendError(res, err instanceof Error ? err.message : 'Unknown error');
