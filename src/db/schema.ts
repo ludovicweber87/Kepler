@@ -7,20 +7,6 @@ const uuid = () =>
 		.primaryKey()
 		.$defaultFn(() => crypto.randomUUID());
 
-// ─── Todos ───────────────────────────────────────────────
-
-export const todos = sqliteTable('todos', {
-	id: uuid(),
-	repo_full_name: text().notNull(),
-	title: text().notNull(),
-	description: text().default(''),
-	done: integer({ mode: 'boolean' }).default(false),
-	sort_order: integer().default(0),
-	issue_number: integer(),
-	issue_repo: text(),
-	created_at: timestamp(),
-});
-
 // ─── Agent Sessions ──────────────────────────────────────
 
 export const agentSessions = sqliteTable('agent_sessions', {
@@ -136,3 +122,28 @@ export const projectBoards = sqliteTable(
 	},
 	(table) => [uniqueIndex('project_boards_org_num').on(table.org, table.project_number)],
 );
+
+// ─── Daily Recaps ────────────────────────────────────────
+
+export type RecapItem = { time: string; type: string; text: string };
+
+export const dailyRecaps = sqliteTable('daily_recaps', {
+	id: uuid(),
+	repo_full_name: text().notNull(),
+	recap_date: text().notNull(), // YYYY-MM-DD (local), the day the recap covers
+	content: text().default(''), // concise FR markdown
+	items: text({ mode: 'json' }).$type<RecapItem[]>(), // source timeline
+	trigger_type: text().default('manual'), // 'manual' | 'scheduled'
+	created_at: timestamp(),
+});
+
+// ─── Recap Schedules (per repo, local HH:MM triggers) ────
+
+export const recapSchedules = sqliteTable('recap_schedules', {
+	id: uuid(),
+	repo_full_name: text().notNull(),
+	time: text().notNull(), // 'HH:MM' local
+	enabled: integer({ mode: 'boolean' }).default(true),
+	last_run_date: text(), // YYYY-MM-DD guard against duplicate same-day runs
+	created_at: timestamp(),
+});

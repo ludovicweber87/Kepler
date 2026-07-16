@@ -40,20 +40,14 @@ import MenuItem from '@mui/material/MenuItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import IconButton from '@mui/material/IconButton';
-import AddTaskRoundedIcon from '@mui/icons-material/AddTaskRounded';
-import AssignmentTurnedInRoundedIcon from '@mui/icons-material/AssignmentTurnedInRounded';
-import CheckBoxRoundedIcon from '@mui/icons-material/CheckBoxRounded';
-import CheckBoxOutlineBlankRoundedIcon from '@mui/icons-material/CheckBoxOutlineBlankRounded';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useIssue, useDashboard } from '@/hooks/useGitHub';
-import { useTodos, useIssueTodos } from '@/hooks/useTodos';
 import { useRefetchInterval } from '@/hooks/useRefetchInterval';
 import RefetchIntervalSelect from '@/components/shared/RefetchIntervalSelect';
-import { apiFetch } from '@/lib/api-fetch';
 import { GitHubComment } from '@/types';
 import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
 import IssueTimelineModal from '@/components/dashboard/IssueTimelineModal';
@@ -405,14 +399,10 @@ export default function IssueDetail({
 	const { data, error, isLoading } = useIssue(owner, repo, number, {
 		refetchInterval: refetchMs,
 	});
-	const repoFullName = `${owner}/${repo}`;
 	const issueNum = parseInt(number, 10);
 	const qc = useQueryClient();
-	const { todos, addTodo } = useTodos(repoFullName);
-	const { data: issueTodos = [] } = useIssueTodos(repoFullName, issueNum);
 	const [timelineOpen, setTimelineOpen] = useState(false);
 	const [agentModalOpen, setAgentModalOpen] = useState(false);
-	const [taskAnchor, setTaskAnchor] = useState<HTMLElement | null>(null);
 
 	// Edit state
 	const [editingTitle, setEditingTitle] = useState(false);
@@ -576,39 +566,6 @@ export default function IssueDetail({
 		}
 	}, [deleteComment, deletingComment, owner, repo, qc, issueQueryKey]);
 
-	const invalidateTodos = () => {
-		qc.invalidateQueries({ queryKey: ['todos'] });
-	};
-
-	// All todos for this repo that are NOT linked to this issue (for association)
-	const unlinkedTodos = todos.filter((t) => !t.issue_number && !t.done);
-
-	const handleCreateTask = async () => {
-		setTaskAnchor(null);
-		const title = `#${number} ${data?.issue.title ?? ''}`;
-		addTodo(title, { issueNumber: issueNum, issueRepo: repoFullName });
-		setTimeout(invalidateTodos, 500);
-	};
-
-	const handleUnlinkTodo = async (todoId: string) => {
-		await apiFetch('/api/todos', {
-			method: 'PATCH',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ id: todoId, issue_number: null, issue_repo: null }),
-		});
-		invalidateTodos();
-	};
-
-	const handleLinkTodo = async (todoId: string) => {
-		setTaskAnchor(null);
-		await apiFetch('/api/todos', {
-			method: 'PATCH',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ id: todoId, issue_number: issueNum, issue_repo: repoFullName }),
-		});
-		invalidateTodos();
-	};
-
 	if (isLoading) {
 		return (
 			<Box sx={{ maxWidth: 860, mx: 'auto' }}>
@@ -678,7 +635,10 @@ export default function IssueDetail({
 					</Button>
 				) : (
 					<Link href="/issues" style={{ textDecoration: 'none' }}>
-						<Button startIcon={<ArrowBackRoundedIcon />} sx={{ color: 'text.secondary' }}>
+						<Button
+							startIcon={<ArrowBackRoundedIcon />}
+							sx={{ color: 'text.secondary' }}
+						>
 							{t('backToIssues')}
 						</Button>
 					</Link>
@@ -807,103 +767,6 @@ export default function IssueDetail({
 							>
 								{t('launchAgent')}
 							</Button>
-							<Button
-								variant="outlined"
-								size="small"
-								startIcon={<AssignmentTurnedInRoundedIcon />}
-								onClick={(e) => setTaskAnchor(e.currentTarget)}
-							>
-								{issueTodos.length > 0
-									? t('tasksCount', { count: issueTodos.length })
-									: t('associateTask')}
-							</Button>
-							<Menu
-								anchorEl={taskAnchor}
-								open={Boolean(taskAnchor)}
-								onClose={() => setTaskAnchor(null)}
-								slotProps={{
-									paper: {
-										sx: {
-											bgcolor: 'background.paper',
-											border: 1,
-											borderColor: 'divider',
-											minWidth: 240,
-											maxHeight: 320,
-										},
-									},
-								}}
-							>
-								{/* Linked todos */}
-								{issueTodos.map((todo) => (
-									<MenuItem
-										key={todo.id}
-										onClick={() => handleUnlinkTodo(todo.id)}
-										sx={{ fontSize: '0.8rem', gap: 1 }}
-									>
-										<ListItemIcon sx={{ minWidth: '28px !important' }}>
-											{todo.done ? (
-												<CheckBoxRoundedIcon
-													sx={{ fontSize: 18, color: 'success.main' }}
-												/>
-											) : (
-												<CheckBoxOutlineBlankRoundedIcon
-													sx={{ fontSize: 18, color: 'text.disabled' }}
-												/>
-											)}
-										</ListItemIcon>
-										<ListItemText
-											primaryTypographyProps={{ fontSize: '0.8rem' }}
-										>
-											{todo.title}
-										</ListItemText>
-									</MenuItem>
-								))}
-
-								{/* Unlinked todos to associate */}
-								{unlinkedTodos.length > 0 && issueTodos.length > 0 && (
-									<Divider sx={{ my: 0.5 }} />
-								)}
-								{unlinkedTodos.map((todo) => (
-									<MenuItem
-										key={todo.id}
-										onClick={() => handleLinkTodo(todo.id)}
-										sx={{ fontSize: '0.8rem', gap: 1 }}
-									>
-										<ListItemIcon sx={{ minWidth: '28px !important' }}>
-											<AddTaskRoundedIcon
-												sx={{ fontSize: 18, color: 'text.disabled' }}
-											/>
-										</ListItemIcon>
-										<ListItemText
-											primaryTypographyProps={{ fontSize: '0.8rem' }}
-										>
-											{todo.title}
-										</ListItemText>
-									</MenuItem>
-								))}
-
-								{/* Create new task */}
-								<Divider sx={{ my: 0.5 }} />
-								<MenuItem
-									onClick={handleCreateTask}
-									sx={{ fontSize: '0.8rem', gap: 1 }}
-								>
-									<ListItemIcon sx={{ minWidth: '28px !important' }}>
-										<AddTaskRoundedIcon
-											sx={{ fontSize: 18, color: 'primary.main' }}
-										/>
-									</ListItemIcon>
-									<ListItemText
-										primaryTypographyProps={{
-											fontSize: '0.8rem',
-											color: 'primary.main',
-											fontWeight: 600,
-										}}
-									>
-										{t('createTask')}
-									</ListItemText>
-								</MenuItem>
-							</Menu>
 							<Button
 								variant="outlined"
 								size="small"

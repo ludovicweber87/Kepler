@@ -5,14 +5,12 @@
 		"launch": "Launch Devora"
 	},
 	"sidebar": {
-		"workbench": "Workbench",
 		"issues": "Issues",
 		"prs": "PRs",
 		"workspace": "Workspace",
 		"worktrees": "Worktrees",
 		"agents": "Agents",
 		"skills": "Skills",
-		"todos": "Tasks",
 		"settings": "Settings",
 		"repoSettings": "Repo settings",
 		"signOut": "Sign out",
@@ -117,19 +115,6 @@
 		"noReposConfigured": "No repository configured",
 		"noReposConfiguredDesc": "Add a repository in the settings to see its issues here.",
 		"configureRepos": "Configure my repositories"
-	},
-	"todos": {
-		"title": "Tasks",
-		"noProjectSelected": "No project selected",
-		"addRepoFirst": "Add a repository in settings first.",
-		"addProject": "Add project",
-		"whatToDo": "What needs to be done?",
-		"taskDescription": "What needs to be done for this task?",
-		"inProgress": "In progress",
-		"noTasks": "No tasks",
-		"done": "Done",
-		"allRepos": "All repos",
-		"suggestions": "Suggestions"
 	},
 	"prs": {
 		"title": "Pull Requests",
@@ -300,9 +285,6 @@
 		"backToIssues": "Back to issues",
 		"loadError": "Loading error: {message}",
 		"launchAgent": "Launch agent",
-		"associateTask": "Associate a task",
-		"tasksCount": "{count, plural, one {# task} other {# tasks}}",
-		"createTask": "Create a task",
 		"history": "History",
 		"commentsTitle": "Comments ({count})",
 		"noDescription": "No description. Click to add one.",
@@ -384,5 +366,31 @@
 		"setupScriptName": "Step name",
 		"setupScriptNameDesc": "Label shown for this step during worktree creation (optional).",
 		"setupScriptNamePlaceholder": "Setup script"
+	},
+	"daily": {
+		"title": "Daily",
+		"selectRepoLabel": "Repository",
+		"noRepoConfigured": "No repository configured. Add one in settings.",
+		"emptyTitle": "Select a repository",
+		"emptyDesc": "Choose a repository to view and generate its daily reports.",
+		"schedules": "Automatic times",
+		"schedulesHint": "A report is generated automatically at each defined time.",
+		"addSchedule": "Add",
+		"noSchedules": "No time defined",
+		"generateToday": "Generate report",
+		"generating": "Generating…",
+		"dayTitle": "Reports for {date}",
+		"noRecapsForDay": "No report for this day.",
+		"generateForDay": "Generate report",
+		"reportAt": "Report at {time}",
+		"activityDetail": "Activity details",
+		"noActivity": "No detailed activity.",
+		"delete": "Delete",
+		"close": "Close",
+		"generatedSuccess": "Report generated",
+		"generateError": "Generation failed",
+		"deletedSuccess": "Report deleted",
+		"badgeScheduled": "auto",
+		"badgeManual": "manual"
 	}
 }

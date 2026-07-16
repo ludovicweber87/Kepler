@@ -5,14 +5,12 @@
 		"launch": "Iniciar Devora"
 	},
 	"sidebar": {
-		"workbench": "Workbench",
 		"issues": "Issues",
 		"prs": "PRs",
 		"workspace": "Workspace",
 		"worktrees": "Worktrees",
 		"agents": "Agents",
 		"skills": "Skills",
-		"todos": "Tarefas",
 		"settings": "Configurações",
 		"repoSettings": "Configurações do repositório",
 		"signOut": "Sair",
@@ -117,19 +115,6 @@
 		"noReposConfigured": "Nenhum repositório configurado",
 		"noReposConfiguredDesc": "Adicione um repositório nas configurações para ver as suas issues aqui.",
 		"configureRepos": "Configurar os meus repositórios"
-	},
-	"todos": {
-		"title": "Tarefas",
-		"noProjectSelected": "Nenhum projeto selecionado",
-		"addRepoFirst": "Adicione um repositório nas configurações primeiro.",
-		"addProject": "Adicionar projeto",
-		"whatToDo": "O que precisa ser feito?",
-		"taskDescription": "O que precisa ser feito para esta tarefa?",
-		"inProgress": "Em andamento",
-		"noTasks": "Nenhuma tarefa",
-		"done": "Concluído",
-		"allRepos": "Todos os repos",
-		"suggestions": "Sugestões"
 	},
 	"prs": {
 		"title": "Pull Requests",
@@ -279,9 +264,6 @@
 		"backToIssues": "Voltar para issues",
 		"loadError": "Erro de carregamento: {message}",
 		"launchAgent": "Iniciar agente",
-		"associateTask": "Associar uma tarefa",
-		"tasksCount": "{count, plural, one {# tarefa} other {# tarefas}}",
-		"createTask": "Criar uma tarefa",
 		"history": "Histórico",
 		"commentsTitle": "Comentários ({count})",
 		"noDescription": "Sem descrição. Clique para adicionar uma.",
@@ -363,5 +345,31 @@
 		"setupScriptName": "Nome da etapa",
 		"setupScriptNameDesc": "Rótulo exibido para esta etapa durante a criação do worktree (opcional).",
 		"setupScriptNamePlaceholder": "Script de configuração"
+	},
+	"daily": {
+		"title": "Daily",
+		"selectRepoLabel": "Repositório",
+		"noRepoConfigured": "Nenhum repositório configurado. Adicione um nas configurações.",
+		"emptyTitle": "Selecione um repositório",
+		"emptyDesc": "Escolha um repositório para ver e gerar os seus relatórios diários.",
+		"schedules": "Horários automáticos",
+		"schedulesHint": "Um relatório é gerado automaticamente em cada hora definida.",
+		"addSchedule": "Adicionar",
+		"noSchedules": "Nenhum horário definido",
+		"generateToday": "Gerar o relatório",
+		"generating": "A gerar…",
+		"dayTitle": "Relatórios de {date}",
+		"noRecapsForDay": "Nenhum relatório para este dia.",
+		"generateForDay": "Gerar o relatório",
+		"reportAt": "Relatório das {time}",
+		"activityDetail": "Detalhe da atividade",
+		"noActivity": "Sem atividade detalhada.",
+		"delete": "Eliminar",
+		"close": "Fechar",
+		"generatedSuccess": "Relatório gerado",
+		"generateError": "Falha na geração",
+		"deletedSuccess": "Relatório eliminado",
+		"badgeScheduled": "auto",
+		"badgeManual": "manual"
 	}
 }
