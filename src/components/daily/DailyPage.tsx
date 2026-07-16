@@ -79,7 +79,7 @@ export default function DailyPage() {
 
 	return (
 		<LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={fr}>
-			<Box sx={{ p: 3, maxWidth: 960, mx: 'auto' }}>
+			<Box sx={{ maxWidth: 1100, mx: 'auto' }}>
 				<Typography variant="h4" sx={{ fontWeight: 700, mb: 2 }}>
 					{t('title')}
 				</Typography>
@@ -134,16 +134,17 @@ export default function DailyPage() {
 					{repo && <ScheduleManager repo={repo} />}
 				</Paper>
 
-				<Box sx={{ display: 'flex', justifyContent: 'center' }}>
-					<RecapCalendar
-						recapDays={recapDays}
-						onPickDay={(date) => {
-							setSelectedDate(date);
-							setModalOpen(true);
-						}}
-						onMonthChange={(date) => setMonth(format(date, 'yyyy-MM'))}
-					/>
-				</Box>
+				<RecapCalendar
+					month={month}
+					recapDays={recapDays}
+					onPickDay={(date) => {
+						setSelectedDate(date);
+						setModalOpen(true);
+					}}
+					onMonthChange={(m) => setMonth(m)}
+					onGenerate={(key) => runGenerate(key)}
+					generatingDate={generate.isPending ? (generate.variables?.date ?? null) : null}
+				/>
 
 				<RecapDayModal
 					open={modalOpen}
