@@ -25,9 +25,7 @@ import { useProjectConfig } from '@/hooks/useProjectConfig';
 import { useRepoIssues } from '@/hooks/useRepoIssues';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useRefetchInterval } from '@/hooks/useRefetchInterval';
-import { useQueryClient } from '@tanstack/react-query';
 import { useUpdateIssueStatus } from '@/hooks/useUpdateIssueStatus';
-import { completeIssueTodos } from '@/hooks/useTodos';
 import { useTranslations } from 'next-intl';
 import { useTheme } from '@mui/material/styles';
 import { GitHubIssue } from '@/types';
@@ -90,7 +88,6 @@ export default function IssuesList() {
 
 	const [search, setSearch] = useState('');
 	const mutation = useUpdateIssueStatus();
-	const todoQc = useQueryClient();
 
 	// Issue detail modal state
 	const [detailIssue, setDetailIssue] = useState<{
@@ -131,16 +128,8 @@ export default function IssuesList() {
 				projectNumber: cfg.projectNumber,
 				ownerType: cfg.ownerType,
 			});
-			if (newStatus.toLowerCase().includes('qa')) {
-				const repo = issue.repo_full_name;
-				if (repo && issue.number) {
-					completeIssueTodos(repo, issue.number).then(() => {
-						todoQc.invalidateQueries({ queryKey: ['todos'] });
-					});
-				}
-			}
 		},
-		[mutation, todoQc],
+		[mutation],
 	);
 
 	const columnAreaSkeleton = (

@@ -5,14 +5,12 @@
 		"launch": "Lanzar Devora"
 	},
 	"sidebar": {
-		"workbench": "Workbench",
 		"issues": "Issues",
 		"prs": "PRs",
 		"workspace": "Espacio de trabajo",
 		"worktrees": "Worktrees",
 		"agents": "Agentes",
 		"skills": "Skills",
-		"todos": "Tareas",
 		"settings": "Ajustes",
 		"repoSettings": "Ajustes del repositorio",
 		"signOut": "Cerrar sesión",
@@ -117,19 +115,6 @@
 		"noReposConfigured": "Ningún repositorio configurado",
 		"noReposConfiguredDesc": "Añade un repositorio en los ajustes para ver sus issues aquí.",
 		"configureRepos": "Configurar mis repositorios"
-	},
-	"todos": {
-		"title": "Tareas",
-		"noProjectSelected": "Ningún proyecto seleccionado",
-		"addRepoFirst": "Añade un repositorio en ajustes primero.",
-		"addProject": "Añadir proyecto",
-		"whatToDo": "¿Qué hay que hacer?",
-		"taskDescription": "¿Qué hay que hacer para esta tarea?",
-		"inProgress": "En progreso",
-		"noTasks": "Sin tareas",
-		"done": "Hecho",
-		"allRepos": "Todos los repos",
-		"suggestions": "Sugerencias"
 	},
 	"prs": {
 		"title": "Pull Requests",
@@ -278,9 +263,6 @@
 		"backToIssues": "Volver a issues",
 		"loadError": "Error de carga: {message}",
 		"launchAgent": "Lanzar agente",
-		"associateTask": "Asociar una tarea",
-		"tasksCount": "{count, plural, one {# tarea} other {# tareas}}",
-		"createTask": "Crear una tarea",
 		"history": "Historial",
 		"commentsTitle": "Comentarios ({count})",
 		"noDescription": "Sin descripción. Haz clic para añadir una.",

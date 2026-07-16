@@ -7,20 +7,6 @@ const uuid = () =>
 		.primaryKey()
 		.$defaultFn(() => crypto.randomUUID());
 
-// ─── Todos ───────────────────────────────────────────────
-
-export const todos = sqliteTable('todos', {
-	id: uuid(),
-	repo_full_name: text().notNull(),
-	title: text().notNull(),
-	description: text().default(''),
-	done: integer({ mode: 'boolean' }).default(false),
-	sort_order: integer().default(0),
-	issue_number: integer(),
-	issue_repo: text(),
-	created_at: timestamp(),
-});
-
 // ─── Agent Sessions ──────────────────────────────────────
 
 export const agentSessions = sqliteTable('agent_sessions', {

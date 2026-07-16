@@ -5,14 +5,12 @@
 		"launch": "Devora starten"
 	},
 	"sidebar": {
-		"workbench": "Workbench",
 		"issues": "Issues",
 		"prs": "PRs",
 		"workspace": "Arbeitsbereich",
 		"worktrees": "Worktrees",
 		"agents": "Agents",
 		"skills": "Skills",
-		"todos": "Aufgaben",
 		"settings": "Einstellungen",
 		"repoSettings": "Repo-Einstellungen",
 		"signOut": "Abmelden",
@@ -117,19 +115,6 @@
 		"noReposConfigured": "Kein Repository konfiguriert",
 		"noReposConfiguredDesc": "Füge in den Einstellungen ein Repository hinzu, um dessen Issues hier zu sehen.",
 		"configureRepos": "Repositories konfigurieren"
-	},
-	"todos": {
-		"title": "Aufgaben",
-		"noProjectSelected": "Kein Projekt ausgewählt",
-		"addRepoFirst": "Füge zuerst ein Repository in den Einstellungen hinzu.",
-		"addProject": "Projekt hinzufügen",
-		"whatToDo": "Was muss erledigt werden?",
-		"taskDescription": "Was muss für diese Aufgabe getan werden?",
-		"inProgress": "In Bearbeitung",
-		"noTasks": "Keine Aufgaben",
-		"done": "Erledigt",
-		"allRepos": "Alle Repos",
-		"suggestions": "Vorschläge"
 	},
 	"prs": {
 		"title": "Pull Requests",
@@ -278,9 +263,6 @@
 		"backToIssues": "Zurück zu Issues",
 		"loadError": "Ladefehler: {message}",
 		"launchAgent": "Agent starten",
-		"associateTask": "Aufgabe zuordnen",
-		"tasksCount": "{count, plural, one {# Aufgabe} other {# Aufgaben}}",
-		"createTask": "Aufgabe erstellen",
 		"history": "Verlauf",
 		"commentsTitle": "Kommentare ({count})",
 		"noDescription": "Keine Beschreibung. Klicke, um eine hinzuzufügen.",

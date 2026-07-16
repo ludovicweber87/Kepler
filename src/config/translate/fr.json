@@ -5,14 +5,12 @@
 		"launch": "Lancer Devora"
 	},
 	"sidebar": {
-		"workbench": "Workbench",
 		"issues": "Issues",
 		"prs": "PRs",
 		"workspace": "Workspace",
 		"worktrees": "Worktrees",
 		"agents": "Agents",
 		"skills": "Skills",
-		"todos": "Taches",
 		"settings": "Parametres",
 		"repoSettings": "Reglages du repo",
 		"signOut": "Se deconnecter",
@@ -117,19 +115,6 @@
 		"noReposConfigured": "Aucun dépôt configuré",
 		"noReposConfiguredDesc": "Ajoutez un dépôt dans les paramètres pour afficher ses issues ici.",
 		"configureRepos": "Configurer mes dépôts"
-	},
-	"todos": {
-		"title": "Taches",
-		"noProjectSelected": "Aucun projet selectionne",
-		"addRepoFirst": "Ajoutez d'abord un depot dans les parametres.",
-		"addProject": "Ajouter un projet",
-		"whatToDo": "Que faut-il faire ?",
-		"taskDescription": "Que faut-il faire pour cette tache ?",
-		"inProgress": "En cours",
-		"noTasks": "Aucune tache",
-		"done": "Termine",
-		"allRepos": "Tous les repos",
-		"suggestions": "Suggestions"
 	},
 	"prs": {
 		"title": "Pull Requests",
@@ -300,9 +285,6 @@
 		"backToIssues": "Retour aux issues",
 		"loadError": "Erreur de chargement : {message}",
 		"launchAgent": "Lancer un agent",
-		"associateTask": "Associer une tache",
-		"tasksCount": "{count, plural, one {# tache} other {# taches}}",
-		"createTask": "Creer une tache",
 		"history": "Historique",
 		"commentsTitle": "Commentaires ({count})",
 		"noDescription": "Aucune description. Cliquez pour en ajouter une.",
