@@ -713,8 +713,7 @@ Issue title: "${issueTitle}"`;
 			let worktreePath = body.cwd;
 			let finalBranch = body.branch;
 
-			const producesWorktree =
-				body.mode === 'worktree' || body.mode === 'existing-branch';
+			const producesWorktree = body.mode === 'worktree' || body.mode === 'existing-branch';
 
 			if (producesWorktree) {
 				// Nom déterministe (issue) → on garantit l'unicité pour un NOUVEAU worktree.
@@ -724,9 +723,7 @@ Issue title: "${issueTitle}"`;
 					let n = 2;
 					while (
 						localBranchExists(body.cwd, candidate) ||
-						existsSync(
-							`${body.cwd}/.worktrees/${candidate.replace(/\//g, '-')}`,
-						)
+						existsSync(`${body.cwd}/.worktrees/${candidate.replace(/\//g, '-')}`)
 					) {
 						candidate = `${body.branch}-${n}`;
 						n += 1;
@@ -862,12 +859,7 @@ Issue title: "${issueTitle}"`;
 			// 5) done → session active + worktree_path + branch (dédup éventuel)
 			db?.prepare(
 				'UPDATE agent_sessions SET status = ?, worktree_path = ?, branch = ? WHERE session_id = ?',
-			).run(
-				'active',
-				producesWorktree ? worktreePath : null,
-				finalBranch,
-				body.sessionId,
-			);
+			).run('active', producesWorktree ? worktreePath : null, finalBranch, body.sessionId);
 			sendSSE(res, 'done', { step: 'done', worktreePath, branch: finalBranch });
 			res.end();
 		} catch (err) {
