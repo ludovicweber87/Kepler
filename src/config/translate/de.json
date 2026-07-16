@@ -344,5 +344,31 @@
 		"setupScriptName": "Schrittname",
 		"setupScriptNameDesc": "Beschriftung, die für diesen Schritt bei der Worktree-Erstellung angezeigt wird (optional).",
 		"setupScriptNamePlaceholder": "Setup-Skript"
+	},
+	"daily": {
+		"title": "Daily",
+		"selectRepoLabel": "Repository",
+		"noRepoConfigured": "Kein Repository konfiguriert. Füge eines in den Einstellungen hinzu.",
+		"emptyTitle": "Repository auswählen",
+		"emptyDesc": "Wähle ein Repository, um seine täglichen Berichte anzuzeigen und zu erstellen.",
+		"schedules": "Automatische Zeiten",
+		"schedulesHint": "Zu jeder festgelegten Zeit wird automatisch ein Bericht erstellt.",
+		"addSchedule": "Hinzufügen",
+		"noSchedules": "Keine Zeit festgelegt",
+		"generateToday": "Bericht erstellen",
+		"generating": "Wird erstellt…",
+		"dayTitle": "Berichte vom {date}",
+		"noRecapsForDay": "Kein Bericht für diesen Tag.",
+		"generateForDay": "Bericht erstellen",
+		"reportAt": "Bericht um {time}",
+		"activityDetail": "Aktivitätsdetails",
+		"noActivity": "Keine detaillierte Aktivität.",
+		"delete": "Löschen",
+		"close": "Schließen",
+		"generatedSuccess": "Bericht erstellt",
+		"generateError": "Erstellung fehlgeschlagen",
+		"deletedSuccess": "Bericht gelöscht",
+		"badgeScheduled": "auto",
+		"badgeManual": "manuell"
 	}
 }

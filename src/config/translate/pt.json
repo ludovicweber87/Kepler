@@ -345,5 +345,31 @@
 		"setupScriptName": "Nome da etapa",
 		"setupScriptNameDesc": "Rótulo exibido para esta etapa durante a criação do worktree (opcional).",
 		"setupScriptNamePlaceholder": "Script de configuração"
+	},
+	"daily": {
+		"title": "Daily",
+		"selectRepoLabel": "Repositório",
+		"noRepoConfigured": "Nenhum repositório configurado. Adicione um nas configurações.",
+		"emptyTitle": "Selecione um repositório",
+		"emptyDesc": "Escolha um repositório para ver e gerar os seus relatórios diários.",
+		"schedules": "Horários automáticos",
+		"schedulesHint": "Um relatório é gerado automaticamente em cada hora definida.",
+		"addSchedule": "Adicionar",
+		"noSchedules": "Nenhum horário definido",
+		"generateToday": "Gerar o relatório",
+		"generating": "A gerar…",
+		"dayTitle": "Relatórios de {date}",
+		"noRecapsForDay": "Nenhum relatório para este dia.",
+		"generateForDay": "Gerar o relatório",
+		"reportAt": "Relatório das {time}",
+		"activityDetail": "Detalhe da atividade",
+		"noActivity": "Sem atividade detalhada.",
+		"delete": "Eliminar",
+		"close": "Fechar",
+		"generatedSuccess": "Relatório gerado",
+		"generateError": "Falha na geração",
+		"deletedSuccess": "Relatório eliminado",
+		"badgeScheduled": "auto",
+		"badgeManual": "manual"
 	}
 }

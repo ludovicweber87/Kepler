@@ -366,5 +366,31 @@
 		"setupScriptName": "Step name",
 		"setupScriptNameDesc": "Label shown for this step during worktree creation (optional).",
 		"setupScriptNamePlaceholder": "Setup script"
+	},
+	"daily": {
+		"title": "Daily",
+		"selectRepoLabel": "Repository",
+		"noRepoConfigured": "No repository configured. Add one in settings.",
+		"emptyTitle": "Select a repository",
+		"emptyDesc": "Choose a repository to view and generate its daily reports.",
+		"schedules": "Automatic times",
+		"schedulesHint": "A report is generated automatically at each defined time.",
+		"addSchedule": "Add",
+		"noSchedules": "No time defined",
+		"generateToday": "Generate report",
+		"generating": "Generating…",
+		"dayTitle": "Reports for {date}",
+		"noRecapsForDay": "No report for this day.",
+		"generateForDay": "Generate report",
+		"reportAt": "Report at {time}",
+		"activityDetail": "Activity details",
+		"noActivity": "No detailed activity.",
+		"delete": "Delete",
+		"close": "Close",
+		"generatedSuccess": "Report generated",
+		"generateError": "Generation failed",
+		"deletedSuccess": "Report deleted",
+		"badgeScheduled": "auto",
+		"badgeManual": "manual"
 	}
 }
