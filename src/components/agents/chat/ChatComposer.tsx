@@ -148,8 +148,8 @@ export default function ChatComposer({
 				<InputBase
 					fullWidth
 					multiline
-					minRows={3}
-					maxRows={10}
+					minRows={6}
+					maxRows={14}
 					placeholder={t('composerPlaceholder')}
 					value={text}
 					onChange={(e) => setText(e.target.value)}
