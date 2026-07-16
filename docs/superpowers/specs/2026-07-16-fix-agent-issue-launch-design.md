@@ -134,6 +134,10 @@ persisté dans la session (`UPDATE agent_sessions SET … branch = ?`), et
 `CreationProgress` récupère la valeur à jour via l'invalidation de query au `done`. Le nom
 propre est conservé dans le cas courant (pas de collision).
 
+> ⚠️ Lors de la dédup, recalculer aussi `dirName`/`worktreePath` (dérivés de `body.branch`
+> à `git.ts:719-720`) à partir du nom final suffixé — sinon le dossier worktree et le nom
+> de branche divergent.
+
 ### Nettoyage mineur
 
 `composeSystemPrompt` (`AgentTerminalModal.tsx:321-329`) : le contenu de l'issue étant
