@@ -61,11 +61,16 @@ commentaire posté sur l'issue échoue silencieusement.
 
 ### Fix 1 — `resolveGitHubToken` côté agent
 
-`packages/agent/src/helpers.ts` : nouvelle fonction `resolveGitHubToken(req)` :
+`packages/agent/src/helpers.ts` :
 
-1. `getToken(req)` (header `Authorization: Bearer`) s'il existe, sinon
-2. `gh auth token` via `execFileSync` (trim, try/catch), sinon
-3. `process.env.GITHUB_TOKEN ?? null`.
+- Nouveau locateur `findGh()` calqué sur `findClaude()` (`helpers.ts:59-82`) : le serveur
+  agent tourne dans un process séparé (:4001) dont le `PATH` peut ne pas contenir `gh` ;
+  on cherche donc `gh` dans les emplacements Homebrew/usr puis via `command -v gh`,
+  fallback nom nu.
+- Nouvelle fonction `resolveGitHubToken(req)` :
+  1. `getToken(req)` (header `Authorization: Bearer`) s'il existe, sinon
+  2. `execFileSync(findGh(), ['auth', 'token'])` (trim, try/catch), sinon
+  3. `process.env.GITHUB_TOKEN ?? null`.
 
 Remplacer `getToken(req)` par `resolveGitHubToken(req)` dans :
 
@@ -100,12 +105,34 @@ injection brute dans le `system_prompt` :
 - `AgentTerminalModal.tsx`, quand on lance depuis une issue **sans nom de branche saisi** :
   - `handleLaunch` : `branch = feat/{number}-{slugify(title)}` (au lieu de
     `randomWorktreeName()`), `agentName = title` tronqué (au lieu de `#{number}`).
+    **Ordre important** : le nom de branche doit être calculé **après** la résolution de
+    l'issue liée (après `fetchIssueContext`, aujourd'hui `AgentTerminalModal.tsx:348`),
+    car `linked.issueTitle` n'est disponible qu'à ce moment — sinon on obtient
+    `feat/123-undefined`. La ligne actuelle `const name = trimmedName || randomWorktreeName()`
+    (`:336`) doit être déplacée / recalculée après le bloc de fetch.
   - `handleLaunchExistingBranch` : conserve la branche existante sélectionnée, mais
     corrige `agentName = title` tronqué.
+  - `agentName` : troncature d'affichage uniquement (max ~72 caractères, ellipse), **non**
+    réinjectée dans le slug (le slug a sa propre borne `maxLen = 40`).
   - Fallbacks : titre vide/slug vide → `feat/{number}` ; pas d'issue → comportement
     actuel (`randomWorktreeName()` / nom saisi).
 - `feat/…` ne commence pas par `wip-`, donc `isAutoNamed` (`Workbench.tsx:177`) est faux
   → le rename « premier message » n'écrase pas le nom issu de l'issue.
+
+### Fix 3b — unicité du nom (collision au relancement)
+
+`randomWorktreeName()` est unique par construction ; un nom déterministe
+`feat/{number}-{slug}` ne l'est pas. Un second lancement depuis la même issue (ou un
+relancement après suppression du worktree) collisionnerait avec la branche existante et
+ferait échouer `git worktree add -b <branch> origin/main` (`git.ts:779`).
+
+Exigence : le nom doit rester unique. **Dédup côté serveur dans `/git/provision`** (seul
+endroit qui connaît l'état git, juste avant `git worktree add`) : pour le mode `worktree`,
+si `localBranchExists(cwd, branch)` (ou le dossier `.worktrees/<dir>` existe déjà pour une
+branche différente), suffixer `-2`, `-3`… jusqu'à obtenir un nom libre. Le nom final est
+persisté dans la session (`UPDATE agent_sessions SET … branch = ?`), et
+`CreationProgress` récupère la valeur à jour via l'invalidation de query au `done`. Le nom
+propre est conservé dans le cas courant (pas de collision).
 
 ### Nettoyage mineur
 
@@ -133,6 +160,7 @@ provenance (retirer l'instruction redondante « lance `gh issue view` »).
 ## Tests (convention repo : logique pure only)
 
 - `src/lib/slug.test.ts` : `slugify` — accents, ponctuation, espaces multiples, casse,
-  troncature à `maxLen`, chaîne vide.
+  troncature à `maxLen`, chaîne vide, et **sortie conforme** à la validation de branche
+  `git.ts` (`/^[\w./-]+$/`, cf. `git.ts:404`) → le slug ne produit que `[a-z0-9-]`.
 - Le reste (agent server, modal) se vérifie par `lint` + `tsc --noEmit` + `build` + essai
   manuel (lancement d'un agent depuis une issue).
