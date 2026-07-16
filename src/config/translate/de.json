@@ -322,6 +322,7 @@
 		"pending": "Denkt nach…",
 		"modeEdit": "Bearbeiten",
 		"createPr": "PR erstellen",
+		"viewPr": "PR #{number} ansehen",
 		"questionProgress": "Frage {current}/{total}",
 		"questionMultiHint": "Mehrfachauswahl möglich",
 		"questionOther": "Andere…",

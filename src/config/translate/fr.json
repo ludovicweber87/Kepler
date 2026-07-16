@@ -344,6 +344,7 @@
 		"pending": "Réflexion en cours…",
 		"modeEdit": "Édition",
 		"createPr": "Create PR",
+		"viewPr": "Voir la PR #{number}",
 		"questionProgress": "Question {current}/{total}",
 		"questionMultiHint": "Plusieurs choix possibles",
 		"questionOther": "Autre…",
