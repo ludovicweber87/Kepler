@@ -351,10 +351,6 @@
 		"noRepoConfigured": "Kein Repository konfiguriert. Füge eines in den Einstellungen hinzu.",
 		"emptyTitle": "Repository auswählen",
 		"emptyDesc": "Wähle ein Repository, um seine täglichen Berichte anzuzeigen und zu erstellen.",
-		"schedules": "Automatische Zeiten",
-		"schedulesHint": "Zu jeder festgelegten Zeit wird automatisch ein Bericht erstellt.",
-		"addSchedule": "Hinzufügen",
-		"noSchedules": "Keine Zeit festgelegt",
 		"generateToday": "Bericht erstellen",
 		"generating": "Wird erstellt…",
 		"dayTitle": "Berichte vom {date}",
@@ -371,8 +367,6 @@
 		"close": "Schließen",
 		"generatedSuccess": "Bericht erstellt",
 		"generateError": "Erstellung fehlgeschlagen",
-		"deletedSuccess": "Bericht gelöscht",
-		"badgeScheduled": "auto",
-		"badgeManual": "manuell"
+		"deletedSuccess": "Bericht gelöscht"
 	}
 }

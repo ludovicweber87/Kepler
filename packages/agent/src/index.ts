@@ -7,7 +7,6 @@ import { handleSessionRoutes } from './routes/sessions.js';
 import { handleChatRoutes } from './routes/chat.js';
 import { handleFilesystemRoutes } from './routes/filesystem.js';
 import { handleRecapRoutes } from './routes/recap.js';
-import { startRecapScheduler } from './scheduler.js';
 
 const PORT = parseInt(process.env.DEVORA_AGENT_PORT ?? '4001', 10);
 const ALLOWED_ORIGINS = (process.env.DEVORA_ORIGIN ?? 'http://localhost:4000')
@@ -118,5 +117,4 @@ server.listen(PORT, () => {
 	listenRetries = 0;
 	console.log(`[devora-agent] Running on http://localhost:${PORT}`);
 	console.log(`[devora-agent] CORS origins: ${ALLOWED_ORIGINS.join(', ')}`);
-	startRecapScheduler();
 });

@@ -1,8 +1,10 @@
-import { useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
+import { useQuery, useMutation, useMutationState, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-fetch';
 import { localFetch } from '@/lib/local-fetch';
-import type { DailyRecap, RecapSchedule } from '@/types';
+import type { DailyRecap } from '@/types';
+
+const GENERATE_RECAP_KEY = ['generate-recap'] as const;
 
 // ─── Recaps (read + generate + delete) ──────────────────────
 
@@ -23,6 +25,7 @@ export function useRecaps(repo: string | undefined, month: string) {
 export function useGenerateRecap() {
 	const qc = useQueryClient();
 	return useMutation({
+		mutationKey: GENERATE_RECAP_KEY,
 		mutationFn: async ({ repoFullName, date }: { repoFullName: string; date: string }) => {
 			const res = await localFetch('/recap/generate', {
 				method: 'POST',
@@ -56,46 +59,14 @@ export function useDeleteRecap() {
 	});
 }
 
-// ─── Schedules (créneaux horaires par repo) ─────────────────
+// ─── In-flight generations (garde un loader par rapport) ─────
 
-export function useRecapSchedules(repo: string | undefined) {
-	const qc = useQueryClient();
-	const queryKey = ['recap-schedules', repo];
-
-	const { data: schedules = [], isLoading } = useQuery({
-		queryKey,
-		enabled: !!repo,
-		queryFn: async () => {
-			const res = await apiFetch(`/api/recap-schedules?repo=${encodeURIComponent(repo!)}`);
-			if (!res.ok) throw new Error('Failed to fetch schedules');
-			return (await res.json()) as RecapSchedule[];
-		},
+// Suit TOUTES les générations en cours simultanément (une entrée par date),
+// pas seulement la dernière — contrairement à `mutation.isPending`/`variables`.
+export function useGeneratingDates(): Set<string> {
+	const dates = useMutationState({
+		filters: { mutationKey: GENERATE_RECAP_KEY, status: 'pending' },
+		select: (m) => (m.state.variables as { date?: string } | undefined)?.date,
 	});
-
-	const addMutation = useMutation({
-		mutationFn: async (time: string) => {
-			const res = await apiFetch('/api/recap-schedules', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ repo_full_name: repo, time }),
-			});
-			if (!res.ok) throw new Error('Failed to add schedule');
-		},
-		onSettled: () => qc.invalidateQueries({ queryKey }),
-	});
-
-	const removeMutation = useMutation({
-		mutationFn: async (id: string) => {
-			const res = await apiFetch(`/api/recap-schedules?id=${encodeURIComponent(id)}`, {
-				method: 'DELETE',
-			});
-			if (!res.ok) throw new Error('Failed to remove schedule');
-		},
-		onSettled: () => qc.invalidateQueries({ queryKey }),
-	});
-
-	const addSchedule = useCallback((time: string) => addMutation.mutate(time), [addMutation]);
-	const removeSchedule = useCallback((id: string) => removeMutation.mutate(id), [removeMutation]);
-
-	return { schedules, isLoading, addSchedule, removeSchedule };
+	return useMemo(() => new Set(dates.filter((d): d is string => !!d)), [dates]);
 }

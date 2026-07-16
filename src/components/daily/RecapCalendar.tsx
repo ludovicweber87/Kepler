@@ -23,14 +23,14 @@ export default function RecapCalendar({
 	onPickDay,
 	onMonthChange,
 	onGenerate,
-	generatingDate,
+	generatingDates,
 }: {
 	month: string;
 	recapDays: Set<string>;
 	onPickDay: (date: Date) => void;
 	onMonthChange: (month: string) => void;
 	onGenerate: (dateKey: string) => void;
-	generatingDate?: string | null;
+	generatingDates?: Set<string>;
 }) {
 	const t = useTranslations('daily');
 	const weeks = buildMonthGrid(month);
@@ -90,7 +90,7 @@ export default function RecapCalendar({
 					const isToday = day.key === todayKey;
 					const isFuture = day.key > todayKey;
 					const hasRecap = day.inMonth && recapDays.has(day.key);
-					const isGenerating = generatingDate === day.key;
+					const isGenerating = generatingDates?.has(day.key) ?? false;
 					const canGenerate = day.inMonth && !isFuture;
 
 					return (

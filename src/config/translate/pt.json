@@ -352,10 +352,6 @@
 		"noRepoConfigured": "Nenhum repositório configurado. Adicione um nas configurações.",
 		"emptyTitle": "Selecione um repositório",
 		"emptyDesc": "Escolha um repositório para ver e gerar os seus relatórios diários.",
-		"schedules": "Horários automáticos",
-		"schedulesHint": "Um relatório é gerado automaticamente em cada hora definida.",
-		"addSchedule": "Adicionar",
-		"noSchedules": "Nenhum horário definido",
 		"generateToday": "Gerar o relatório",
 		"generating": "A gerar…",
 		"dayTitle": "Relatórios de {date}",
@@ -372,8 +368,6 @@
 		"close": "Fechar",
 		"generatedSuccess": "Relatório gerado",
 		"generateError": "Falha na geração",
-		"deletedSuccess": "Relatório eliminado",
-		"badgeScheduled": "auto",
-		"badgeManual": "manual"
+		"deletedSuccess": "Relatório eliminado"
 	}
 }
