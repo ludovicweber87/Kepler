@@ -678,20 +678,22 @@ Issue title: "${issueTitle}"`;
 							.map((c) => c.body ?? '')
 							.filter(Boolean)
 							.join('\n\n---\n\n');
-						const prompt = `Voici une issue GitHub et ses commentaires. Résume le contexte et une approche suggérée, en français, de façon concise.\n\n# ${issue.title}\n\n${issue.body ?? ''}\n\n## Commentaires\n${commentsText}`;
-						const summary = execFileSync(findClaude(), ['--print'], {
-							input: prompt,
-							encoding: 'utf-8',
-							timeout: 120000,
-						}).trim();
-						if (summary && db) {
+						const issueBlock = [
+							`## Contexte de l'issue #${number} : ${issue.title}`,
+							'',
+							issue.body ?? '',
+							commentsText ? `\n## Commentaires\n${commentsText}` : '',
+						]
+							.join('\n')
+							.trim();
+						if (issueBlock && db) {
 							const row = db
 								.prepare(
 									'SELECT system_prompt FROM agent_sessions WHERE session_id = ?',
 								)
 								.get(body.sessionId) as { system_prompt?: string } | undefined;
 							const nextPrompt =
-								`${row?.system_prompt ?? ''}\n\n## Contexte de l'issue (résumé)\n${summary}`.trim();
+								`${row?.system_prompt ?? ''}\n\n${issueBlock}`.trim();
 							db.prepare(
 								'UPDATE agent_sessions SET system_prompt = ? WHERE session_id = ?',
 							).run(nextPrompt, body.sessionId);
