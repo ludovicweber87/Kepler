@@ -22,7 +22,7 @@ import KanbanColumn from './KanbanColumn';
 import IssueDetail from '@/components/dashboard/IssueDetail';
 import RefetchIntervalSelect from '@/components/shared/RefetchIntervalSelect';
 import { useProjectConfig } from '@/hooks/useProjectConfig';
-import { useProjectBoards } from '@/hooks/useProjectBoards';
+import { useRepoIssues } from '@/hooks/useRepoIssues';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useRefetchInterval } from '@/hooks/useRefetchInterval';
 import { useQueryClient } from '@tanstack/react-query';
@@ -51,15 +51,8 @@ function buildColumns(issues: GitHubIssue[], statusColumns: string[]): [string, 
 export default function IssuesList() {
 	const theme = useTheme();
 	const t = useTranslations('issues');
-	const { configs, configsLoading, saveConfig } = useProjectConfig();
-
-	// Only fetch boards for projects connected to the unified Kanban board
-	const boardConfigs = configs.filter((c) => c.connected);
-
-	// Board data (SQLite cache-backed): merged issues + union status columns + raw response per config
-	const { issues, statusColumns, perConfig, error, isLoading, refresh, fetchedAt } =
-		useProjectBoards(boardConfigs);
-	const [refreshing, setRefreshing] = useState(false);
+	const { configs, configsLoading } = useProjectConfig();
+	const hasConnectedProject = configs.some((c) => c.connected);
 
 	const { repoPaths } = useRepoPaths();
 
@@ -71,6 +64,11 @@ export default function IssuesList() {
 		return repoPaths[0]?.repo_full_name ?? null;
 	}, [activeRepo, repoPaths]);
 
+	// Lazy per-tab: fetch only the active repo's issues (server-reconciled), cached per repo.
+	const { issues, statusColumns, fetchedAt, isLoading, error, refresh } =
+		useRepoIssues(effectiveRepo);
+	const [refreshing, setRefreshing] = useState(false);
+
 	const handleRefresh = useCallback(async () => {
 		setRefreshing(true);
 		try {
@@ -80,7 +78,7 @@ export default function IssuesList() {
 		}
 	}, [refresh]);
 
-	// Auto-refetch: poll the board (GitHub-backed refresh) on the persisted interval.
+	// Auto-refetch: poll the active repo's board on the persisted interval.
 	const [refetchMs, setRefetchMs] = useRefetchInterval('issues.refetchIntervalMs');
 	const refreshRef = useRef(refresh);
 	refreshRef.current = refresh;
@@ -89,28 +87,6 @@ export default function IssuesList() {
 		const id = setInterval(() => void refreshRef.current(), refetchMs);
 		return () => clearInterval(id);
 	}, [refetchMs]);
-
-	// Persist fresh Project V2 metadata (views / mappings / status columns) into the stored config,
-	// reusing the board fetch — no separate sync request. The diff guard avoids a save loop.
-	useEffect(() => {
-		for (const { config, data } of perConfig) {
-			const nextMappings = data.viewRepoMappings ?? config.viewRepoMappings;
-			const nextViews = data.views ?? config.views;
-			const nextColumns = data.statusColumns ?? config.statusColumns;
-			const changed =
-				JSON.stringify(config.viewRepoMappings) !== JSON.stringify(nextMappings) ||
-				JSON.stringify(config.views) !== JSON.stringify(nextViews) ||
-				JSON.stringify(config.statusColumns) !== JSON.stringify(nextColumns);
-			if (changed) {
-				saveConfig({
-					...config,
-					viewRepoMappings: nextMappings,
-					views: nextViews,
-					statusColumns: nextColumns,
-				});
-			}
-		}
-	}, [perConfig, saveConfig]);
 
 	const [search, setSearch] = useState('');
 	const mutation = useUpdateIssueStatus();
@@ -128,22 +104,16 @@ export default function IssuesList() {
 		if (owner && repo) setDetailIssue({ owner, repo, number: String(issue.number) });
 	}, []);
 
-	// Issues of the active repo tab, then narrowed by the search query.
-	const repoIssues = useMemo(
-		() => (effectiveRepo ? issues.filter((i) => i.repo_full_name === effectiveRepo) : []),
-		[issues, effectiveRepo],
-	);
-
 	const searchedIssues = useMemo(() => {
 		const q = search.trim().toLowerCase();
-		if (!q) return repoIssues;
-		return repoIssues.filter(
+		if (!q) return issues;
+		return issues.filter(
 			(i) =>
 				i.title.toLowerCase().includes(q) ||
 				String(i.number).includes(q) ||
 				`#${i.number}`.includes(q),
 		);
-	}, [repoIssues, search]);
+	}, [issues, search]);
 
 	const columns = useMemo(
 		() => buildColumns(searchedIssues, statusColumns),
@@ -173,7 +143,25 @@ export default function IssuesList() {
 		[mutation, todoQc],
 	);
 
-	if (isLoading || configsLoading) {
+	const columnAreaSkeleton = (
+		<Box sx={{ display: 'flex', gap: 2 }}>
+			{[1, 2, 3].map((i) => (
+				<Box key={i} sx={{ width: COLUMN_WIDTH, flexShrink: 0 }}>
+					<Skeleton variant="rounded" height={32} sx={{ mb: 1.5, borderRadius: 1 }} />
+					{[1, 2].map((j) => (
+						<Skeleton
+							key={j}
+							variant="rounded"
+							height={80}
+							sx={{ mb: 1, borderRadius: 1 }}
+						/>
+					))}
+				</Box>
+			))}
+		</Box>
+	);
+
+	if (configsLoading) {
 		return (
 			<Box>
 				<Skeleton
@@ -183,34 +171,8 @@ export default function IssuesList() {
 					sx={{ mb: 3, borderRadius: 1 }}
 				/>
 				<Skeleton variant="rounded" height={36} sx={{ mb: 2, borderRadius: 1 }} />
-				<Box sx={{ display: 'flex', gap: 2 }}>
-					{[1, 2, 3].map((i) => (
-						<Box key={i} sx={{ width: COLUMN_WIDTH, flexShrink: 0 }}>
-							<Skeleton
-								variant="rounded"
-								height={32}
-								sx={{ mb: 1.5, borderRadius: 1 }}
-							/>
-							{[1, 2].map((j) => (
-								<Skeleton
-									key={j}
-									variant="rounded"
-									height={80}
-									sx={{ mb: 1, borderRadius: 1 }}
-								/>
-							))}
-						</Box>
-					))}
-				</Box>
+				{columnAreaSkeleton}
 			</Box>
-		);
-	}
-
-	if (error) {
-		return (
-			<Alert severity="error" sx={{ borderRadius: 1 }}>
-				Failed to load GitHub data: {error.message}
-			</Alert>
 		);
 	}
 
@@ -353,8 +315,14 @@ export default function IssuesList() {
 							/>
 						))}
 					</Tabs>
-					{searchedIssues.length === 0 ? (
-						boardConfigs.length === 0 ? (
+					{isLoading ? (
+						columnAreaSkeleton
+					) : error ? (
+						<Alert severity="error" sx={{ borderRadius: 1 }}>
+							Failed to load GitHub data: {error.message}
+						</Alert>
+					) : searchedIssues.length === 0 ? (
+						!hasConnectedProject ? (
 							<Box sx={{ textAlign: 'center', py: 8 }}>
 								<Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
 									{t('noViewsSelected')}
@@ -390,7 +358,10 @@ export default function IssuesList() {
 								pb: 1,
 								scrollbarWidth: 'thin',
 								'&::-webkit-scrollbar': { height: 6 },
-								'&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 3 },
+								'&::-webkit-scrollbar-thumb': {
+									bgcolor: 'divider',
+									borderRadius: 3,
+								},
 							}}
 						>
 							{columns.map(([colName, colIssues]) => (

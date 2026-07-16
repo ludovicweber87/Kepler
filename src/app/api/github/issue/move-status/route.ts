@@ -8,6 +8,7 @@ import {
 	updateProjectItemStatus,
 } from '@/lib/github';
 import { requireAuth, isAuthError } from '@/lib/auth-utils';
+import { resolveConfigForRepo } from '@/lib/repoIssueBoard';
 
 export async function POST(req: NextRequest) {
 	const auth = await requireAuth();
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		// Find the project config that contains this repo in its view_repo_mappings
+		// Find the project config that contains this repo in its view_repo_mappings.
 		const repoFullName = `${owner}/${repo}`;
 		const allConfigs = db
 			.select({
@@ -39,12 +40,13 @@ export async function POST(req: NextRequest) {
 			.from(projectConfigs)
 			.all();
 
-		const config =
-			allConfigs?.find((c) => {
-				const mappings = c.view_repo_mappings as { repos?: string[] }[] | null;
-				const lower = repoFullName.toLowerCase();
-				return mappings?.some((m) => m.repos?.some((r) => r.toLowerCase() === lower));
-			}) ?? allConfigs?.[0];
+		const normalized = (allConfigs ?? []).map((c) => ({
+			org: c.org,
+			projectNumber: c.project_number,
+			viewRepoMappings: (c.view_repo_mappings as { repos?: string[] }[] | null) ?? [],
+		}));
+
+		const config = resolveConfigForRepo(repoFullName, normalized) ?? normalized[0];
 
 		if (!config) {
 			return NextResponse.json({ error: 'No project config found' }, { status: 404 });
@@ -53,7 +55,7 @@ export async function POST(req: NextRequest) {
 		const issue = await fetchIssue(owner, repo, issueNumber, auth.accessToken);
 		const fieldInfo = await fetchStatusFieldInfo(
 			config.org,
-			config.project_number,
+			config.projectNumber,
 			auth.accessToken,
 		);
 		const option = fieldInfo.options.find((o) => o.name === newStatus);

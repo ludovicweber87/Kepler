@@ -35,25 +35,23 @@ function updateDashboardIssues(
 	};
 }
 
-interface BoardData {
-	boardIssues?: GitHubIssue[];
+interface RepoIssuesData {
+	issues?: GitHubIssue[];
 	[k: string]: unknown;
 }
 
-function updateBoardIssues(
-	old: BoardData | undefined,
+function updateRepoIssues(
+	old: RepoIssuesData | undefined,
 	params: UpdateStatusParams,
-): BoardData | undefined {
+): RepoIssuesData | undefined {
 	if (!old) return old;
-	const patchList = (list: GitHubIssue[]) =>
-		list.map((issue) =>
+	if (!Array.isArray(old.issues)) return old;
+	return {
+		...old,
+		issues: old.issues.map((issue) =>
 			issue.node_id === params.issueNodeId ? withStatus(issue, params.newStatus) : issue,
-		);
-	const next: BoardData = { ...old };
-	if (Array.isArray(old.boardIssues)) {
-		next.boardIssues = patchList(old.boardIssues);
-	}
-	return next;
+		),
+	};
 }
 
 export function useUpdateIssueStatus() {
@@ -73,10 +71,9 @@ export function useUpdateIssueStatus() {
 			}
 		},
 		onMutate: async (params) => {
-			const boardKey = ['project-board', params.org, params.projectNumber];
 			await Promise.all([
 				queryClient.cancelQueries({ queryKey: DASHBOARD_KEY_PREFIX }),
-				queryClient.cancelQueries({ queryKey: boardKey }),
+				queryClient.cancelQueries({ queryKey: ['repo-issues'] }),
 			]);
 
 			const previousDashboard: [readonly unknown[], DashboardData][] = [];
@@ -89,25 +86,31 @@ export function useUpdateIssueStatus() {
 				updateDashboardIssues(old, params),
 			);
 
-			// Move the card on the board (cache-backed, no refetch)
-			const previousBoard = queryClient.getQueryData<BoardData>(boardKey);
-			queryClient.setQueryData<BoardData>(boardKey, (old) => updateBoardIssues(old, params));
+			// Move the card across every cached repo-issues tab (params carry issueNodeId, not repo).
+			const previousRepoIssues: [readonly unknown[], RepoIssuesData][] = [];
+			for (const [key, data] of queryClient.getQueriesData<RepoIssuesData>({
+				queryKey: ['repo-issues'],
+			})) {
+				if (data) previousRepoIssues.push([key, data]);
+			}
+			queryClient.setQueriesData<RepoIssuesData>({ queryKey: ['repo-issues'] }, (old) =>
+				updateRepoIssues(old, params),
+			);
 
-			return { previousDashboard, previousBoard, boardKey };
+			return { previousDashboard, previousRepoIssues };
 		},
 		onError: (err, _params, context) => {
 			for (const [key, data] of context?.previousDashboard ?? []) {
 				queryClient.setQueryData(key, data);
 			}
-			if (context?.boardKey && context.previousBoard !== undefined) {
-				queryClient.setQueryData(context.boardKey, context.previousBoard);
+			for (const [key, data] of context?.previousRepoIssues ?? []) {
+				queryClient.setQueryData(key, data);
 			}
 			showSnackbar(err instanceof Error ? err.message : 'Failed to update status', 'error');
 		},
 		onSettled: () => {
-			// Only invalidate the (assigned-issues) dashboard; the board stays cache-backed
-			// and was already patched optimistically + server-side. No board refetch.
 			queryClient.invalidateQueries({ queryKey: DASHBOARD_KEY_PREFIX });
+			queryClient.invalidateQueries({ queryKey: ['repo-issues'] });
 		},
 	});
 }
