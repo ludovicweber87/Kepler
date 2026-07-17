@@ -224,53 +224,78 @@ export default function AgentActivityTab({
 					borderBottom: 1,
 					borderColor: 'divider',
 					display: 'flex',
-					alignItems: 'center',
-					gap: 1,
+					flexDirection: 'column',
+					gap: 0.75,
 					flexShrink: 0,
 				}}
 			>
-				<FiberManualRecordRoundedIcon sx={{ fontSize: 8, color: statusColor }} />
-				<Typography
-					variant="caption"
-					sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem' }}
-				>
-					{session.agent_name ?? 'Claude'}
-				</Typography>
-				<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 1 }}>
-					<FolderRoundedIcon sx={{ fontSize: 12, color: 'text.disabled' }} />
+				{/* Rangée 1 : nom (ne casse jamais) */}
+				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+					<FiberManualRecordRoundedIcon
+						sx={{ fontSize: 8, color: statusColor, flexShrink: 0 }}
+					/>
 					<Typography
 						variant="caption"
-						sx={{ color: 'text.disabled', fontSize: '0.7rem' }}
+						sx={{
+							fontWeight: 600,
+							color: 'text.secondary',
+							fontSize: '0.75rem',
+							flex: 1,
+							minWidth: 0,
+							overflow: 'hidden',
+							textOverflow: 'ellipsis',
+							whiteSpace: 'nowrap',
+						}}
 					>
-						{session.project_name}
+						{session.agent_name ?? 'Claude'}
 					</Typography>
 				</Box>
-				{session.branch && (
+				{/* Rangée 2 : dossier · worktree · statut */}
+				<Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.75 }}>
+					<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
+						<FolderRoundedIcon
+							sx={{ fontSize: 12, color: 'text.disabled', flexShrink: 0 }}
+						/>
+						<Typography
+							variant="caption"
+							sx={{
+								color: 'text.disabled',
+								fontSize: '0.7rem',
+								overflow: 'hidden',
+								textOverflow: 'ellipsis',
+								whiteSpace: 'nowrap',
+							}}
+						>
+							{session.project_name}
+						</Typography>
+					</Box>
+					{session.branch && (
+						<Chip
+							icon={<AccountTreeRoundedIcon sx={{ fontSize: '11px !important' }} />}
+							label={session.branch}
+							size="small"
+							sx={{
+								height: 18,
+								fontSize: '0.6rem',
+								maxWidth: '100%',
+								bgcolor: 'transparent',
+								color: 'secondary.main',
+								'& .MuiChip-icon': { color: 'secondary.main' },
+							}}
+						/>
+					)}
 					<Chip
-						icon={<AccountTreeRoundedIcon sx={{ fontSize: '11px !important' }} />}
-						label={session.branch}
+						label={session.status}
 						size="small"
 						sx={{
 							height: 18,
 							fontSize: '0.6rem',
+							fontWeight: 600,
 							bgcolor: 'transparent',
-							color: 'secondary.main',
-							'& .MuiChip-icon': { color: 'secondary.main' },
+							color: statusColor,
 						}}
 					/>
-				)}
-				<Chip
-					label={session.status}
-					size="small"
-					sx={{
-						ml: 'auto',
-						height: 18,
-						fontSize: '0.6rem',
-						fontWeight: 600,
-						bgcolor: 'transparent',
-						color: statusColor,
-					}}
-				/>
+				</Box>
 			</Box>
 
 			{/* Timeline */}
