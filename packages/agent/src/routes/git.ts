@@ -1,8 +1,8 @@
 import { IncomingMessage, ServerResponse } from 'node:http';
 import { execSync, execFileSync, exec, execFile, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
-import { readdirSync, copyFileSync, existsSync, symlinkSync } from 'node:fs';
-import { join } from 'node:path';
+import { readdirSync, copyFileSync, existsSync, symlinkSync, mkdirSync } from 'node:fs';
+import { join, dirname } from 'node:path';
 import {
 	parseQuery,
 	readBody,
@@ -16,12 +16,64 @@ import {
 } from '../helpers.js';
 import { getDb } from '../db.js';
 import { parseFilesToCopy } from '../filesToCopy.js';
+import { resolveCopyTargets } from '../resolveCopyTargets.js';
 import { resolveRemoteBaseRef } from '../gitBase.js';
 import { dedupeAndSortBranches, worktreeAddArgs, type RawBranch } from '../branches.js';
 
 const TMUX = findTmux();
 const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
+
+/**
+ * Récupère la liste `files_to_copy` configurée pour le repo dont le chemin local est `cwd`.
+ * Dégrade proprement (chaîne vide) si la DB est absente ou le repo non configuré.
+ */
+function getFilesToCopyForCwd(cwd: string): string {
+	try {
+		const db = getDb();
+		if (!db) return '';
+		const row = db
+			.prepare(
+				`SELECT s.files_to_copy AS files
+				 FROM repo_settings s
+				 JOIN repo_paths p ON p.repo_full_name = s.repo_full_name
+				 WHERE p.local_path = ?`,
+			)
+			.get(cwd) as { files: string } | undefined;
+		return row?.files ?? '';
+	} catch {
+		return '';
+	}
+}
+
+/**
+ * Copie dans `worktreePath` les fichiers configurés (`files_to_copy`), en les retrouvant
+ * récursivement depuis `sourceCwd` et en les recopiant au même chemin relatif.
+ * Fallback : si aucune config, copie les `.env*` de la racine (comportement historique).
+ * Non bloquant : les erreurs individuelles sont ignorées.
+ */
+function copyConfiguredFiles(
+	sourceCwd: string,
+	worktreePath: string,
+	filesToCopyText: string,
+): void {
+	try {
+		const parsed = parseFilesToCopy(filesToCopyText);
+		const rels =
+			parsed.length > 0
+				? resolveCopyTargets(sourceCwd, parsed)
+				: readdirSync(sourceCwd).filter((f) => f.startsWith('.env'));
+		for (const rel of rels) {
+			const src = join(sourceCwd, rel);
+			if (!existsSync(src)) continue;
+			const dest = join(worktreePath, rel);
+			mkdirSync(dirname(dest), { recursive: true });
+			copyFileSync(src, dest);
+		}
+	} catch {
+		/* non bloquant */
+	}
+}
 
 function localBranchExists(cwd: string, branch: string): boolean {
 	try {
@@ -163,15 +215,8 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 				{ cwd, encoding: 'utf-8', timeout: 30000 },
 			);
 
-			// Copy .env* files
-			try {
-				const envFiles = readdirSync(cwd).filter((f) => f.startsWith('.env'));
-				for (const file of envFiles) {
-					copyFileSync(join(cwd, file), join(worktreePath, file));
-				}
-			} catch {
-				// non-blocking
-			}
+			// Copy configured files (files_to_copy), recursively resolved
+			copyConfiguredFiles(cwd, worktreePath, getFilesToCopyForCwd(cwd));
 
 			// Symlink node_modules
 			try {
@@ -812,16 +857,8 @@ Issue title: "${issueTitle}"`;
 
 				// 3) copy files
 				sendSSE(res, 'step', { step: 'copy-files', status: 'running' });
+				copyConfiguredFiles(body.cwd, worktreePath, body.filesToCopy);
 				try {
-					const files = parseFilesToCopy(body.filesToCopy);
-					const list =
-						files.length > 0
-							? files
-							: readdirSync(body.cwd).filter((f) => f.startsWith('.env'));
-					for (const file of list) {
-						const src = join(body.cwd, file);
-						if (existsSync(src)) copyFileSync(src, join(worktreePath, file));
-					}
 					const srcModules = join(body.cwd, 'node_modules');
 					const destModules = join(worktreePath, 'node_modules');
 					if (existsSync(srcModules) && !existsSync(destModules)) {
