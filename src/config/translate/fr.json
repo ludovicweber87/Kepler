@@ -286,7 +286,9 @@
 		"reportPublished": "Rapport publie",
 		"publishReport": "Publier le rapport",
 		"reportPublishedFor": "Rapport publie pour {name}",
-		"publishError": "Erreur lors de la publication du rapport"
+		"publishError": "Erreur lors de la publication du rapport",
+		"synthesizing": "Synthèse du rapport…",
+		"synthesizeError": "Synthèse impossible, activité brute utilisée"
 	},
 	"agentDiff": {
 		"showRemainingLines": "Afficher {count} lignes restantes",

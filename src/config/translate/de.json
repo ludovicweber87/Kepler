@@ -264,7 +264,9 @@
 		"reportPublished": "Bericht veröffentlicht",
 		"publishReport": "Bericht veröffentlichen",
 		"reportPublishedFor": "Bericht veröffentlicht für {name}",
-		"publishError": "Fehler beim Veröffentlichen des Berichts"
+		"publishError": "Fehler beim Veröffentlichen des Berichts",
+		"synthesizing": "Bericht wird zusammengefasst…",
+		"synthesizeError": "Zusammenfassung fehlgeschlagen, Rohaktivität wird verwendet"
 	},
 	"agentDiff": {
 		"showRemainingLines": "{count} verbleibende Zeilen anzeigen",

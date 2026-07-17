@@ -286,7 +286,9 @@
 		"reportPublished": "Report published",
 		"publishReport": "Publish report",
 		"reportPublishedFor": "Report published for {name}",
-		"publishError": "Error publishing report"
+		"publishError": "Error publishing report",
+		"synthesizing": "Synthesizing report…",
+		"synthesizeError": "Could not synthesize, using raw activity"
 	},
 	"agentDiff": {
 		"showRemainingLines": "Show {count} remaining lines",

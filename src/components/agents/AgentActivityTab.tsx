@@ -59,10 +59,26 @@ export default function AgentActivityTab({
 		if (!session || visibleLogs.length === 0) return;
 		setPublishing(true);
 		try {
-			const report = buildReport(session, visibleLogs, {
-				reportTitle: t('reportTitle'),
-				branch: t('branch'),
-			});
+			let report: string;
+			try {
+				const synthRes = await localFetch(
+					`/agent-sessions/${session.session_id}/synthesize-report`,
+					{ method: 'POST' },
+				);
+				const synthData = (await synthRes.json().catch(() => ({}))) as { report?: string };
+				report =
+					synthRes.ok && synthData.report && synthData.report.trim()
+						? synthData.report
+						: buildReport(session, visibleLogs, {
+								reportTitle: t('reportTitle'),
+								branch: t('branch'),
+							});
+			} catch {
+				report = buildReport(session, visibleLogs, {
+					reportTitle: t('reportTitle'),
+					branch: t('branch'),
+				});
+			}
 
 			if (hasIssue) {
 				// Post comment on issue

@@ -264,7 +264,9 @@
 		"reportPublished": "Informe publicado",
 		"publishReport": "Publicar informe",
 		"reportPublishedFor": "Informe publicado para {name}",
-		"publishError": "Error al publicar el informe"
+		"publishError": "Error al publicar el informe",
+		"synthesizing": "Sintetizando informe…",
+		"synthesizeError": "No se pudo sintetizar, se usa la actividad en bruto"
 	},
 	"agentDiff": {
 		"showRemainingLines": "Mostrar {count} líneas restantes",
