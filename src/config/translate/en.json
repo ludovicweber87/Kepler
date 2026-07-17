@@ -177,6 +177,7 @@
 		"themeLightWarm": "Light — Warm",
 		"themeLightSolarized": "Light — Solarized",
 		"themeLightNearWhite": "Light — Bright",
+		"themeCustom": "Custom",
 		"hideAgents": "Hide workers",
 		"showAgents": "Show workers",
 		"openInEditor": "Open in editor…",

@@ -21,6 +21,7 @@ const VARIANT_LABEL_KEY: Record<ThemeVariant, string> = {
 	'light-warm': 'themeLightWarm',
 	'light-solarized': 'themeLightSolarized',
 	'light-near-white': 'themeLightNearWhite',
+	custom: 'themeCustom',
 };
 
 function Swatch({ variant }: { variant: ThemeVariant }) {
