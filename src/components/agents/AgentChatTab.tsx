@@ -8,6 +8,7 @@ import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import { useTranslations } from 'next-intl';
 import { useAgentChat } from '@/hooks/useAgentChat';
 import { DEFAULT_CREATE_PR_PROMPT } from '@/lib/prompts';
+import type { ChatImageInput } from '@/types';
 import ChatBubble from './chat/ChatBubble';
 import ChatPermissionCard from './chat/ChatPermissionCard';
 import ChatQuestionCard from './chat/ChatQuestionCard';
@@ -100,12 +101,12 @@ export default function AgentChatTab({
 
 	const prPrompt = createPrPrompt || DEFAULT_CREATE_PR_PROMPT;
 
-	const handleSend = (text: string) => {
+	const handleSend = (text: string, images?: ChatImageInput[]) => {
 		if (!firstSent.current) {
 			firstSent.current = true;
 			onFirstUserMessage?.(text);
 		}
-		chat.send(text);
+		chat.send(text, images);
 	};
 
 	const busy = chat.status === 'busy';

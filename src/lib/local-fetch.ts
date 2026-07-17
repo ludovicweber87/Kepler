@@ -24,6 +24,10 @@ export function getAgentWsUrl(): string {
 	return AGENT_BASE_URL.replace(/^http/, 'ws');
 }
 
+export function getAgentHttpUrl(): string {
+	return AGENT_BASE_URL;
+}
+
 /** Thrown when the devora-agent is unreachable (offline / wrong port / CORS). */
 export class AgentOfflineError extends Error {
 	constructor(public path: string) {

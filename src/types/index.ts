@@ -312,7 +312,14 @@ export interface ChatToolCall {
 export type ChatSegment =
 	| { kind: 'text'; text: string }
 	| { kind: 'thinking'; text: string }
+	| { kind: 'image'; url: string; name: string }
 	| { kind: 'tool'; call: ChatToolCall };
+
+export interface ChatImageInput {
+	name: string;
+	mediaType: string;
+	data: string;
+}
 
 export interface ChatMessage {
 	id: string;
