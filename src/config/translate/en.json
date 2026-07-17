@@ -339,6 +339,9 @@
 	},
 	"agentChat": {
 		"composerPlaceholder": "Message the agent…",
+		"attachTypeError": "Unsupported image type",
+		"attachSizeError": "Image too large (max 5 MB)",
+		"removeImage": "Remove image",
 		"send": "Send",
 		"stop": "Stop",
 		"model": "Model",

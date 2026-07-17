@@ -317,6 +317,9 @@
 	},
 	"agentChat": {
 		"composerPlaceholder": "Mensaje para el agente…",
+		"attachTypeError": "Tipo de imagen no soportado",
+		"attachSizeError": "Imagen demasiado grande (máx 5 MB)",
+		"removeImage": "Eliminar imagen",
 		"send": "Enviar",
 		"stop": "Detener",
 		"model": "Model",

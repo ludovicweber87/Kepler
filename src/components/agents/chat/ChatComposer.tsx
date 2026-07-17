@@ -1,5 +1,5 @@
 'use client';
-import { useState, type KeyboardEvent } from 'react';
+import { useState, useRef, type KeyboardEvent, type ClipboardEvent, type DragEvent } from 'react';
 import Box from '@mui/material/Box';
 import InputBase from '@mui/material/InputBase';
 import IconButton from '@mui/material/IconButton';
@@ -14,8 +14,13 @@ import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import BoltRoundedIcon from '@mui/icons-material/BoltRounded';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
 import { alpha, keyframes, type Theme } from '@mui/material/styles';
 import { useTranslations } from 'next-intl';
+import { useSnackbar } from '@/hooks/useSnackbar';
+import { validateImageFile, readFileAsDataUrl, stripDataUrlPrefix } from '@/lib/imageAttach';
+import type { ChatImageInput } from '@/types';
 
 const MODELS = [
 	{ value: 'opus', key: 'modelOpus' },
@@ -45,7 +50,7 @@ interface Props {
 	model: string;
 	effort: string;
 	permissionMode: string;
-	onSend: (text: string) => void;
+	onSend: (text: string, images?: ChatImageInput[]) => void;
 	onStop: () => void;
 	onModel: (m: string) => void;
 	onEffort: (e: string) => void;
@@ -112,12 +117,56 @@ export default function ChatComposer({
 	onMode,
 }: Props) {
 	const t = useTranslations('agentChat');
+	const { showSnackbar } = useSnackbar();
 	const [text, setText] = useState('');
 	const [modelAnchor, setModelAnchor] = useState<null | HTMLElement>(null);
+	type Attachment = { id: string; name: string; mediaType: string; data: string };
+	const [attachments, setAttachments] = useState<Attachment[]>([]);
+	const attachId = useRef(0);
+	const [dragOver, setDragOver] = useState(false);
+
+	const addFiles = async (files: File[]) => {
+		for (const file of files) {
+			const err = validateImageFile(file);
+			if (err) {
+				showSnackbar(t(err === 'type' ? 'attachTypeError' : 'attachSizeError'), 'error');
+				continue;
+			}
+			const dataUrl = await readFileAsDataUrl(file);
+			const { mediaType, data } = stripDataUrlPrefix(dataUrl);
+			setAttachments((prev) => [
+				...prev,
+				{ id: `a${attachId.current++}`, name: file.name || 'image', mediaType, data },
+			]);
+		}
+	};
+
+	const onPaste = (e: ClipboardEvent) => {
+		const files = Array.from(e.clipboardData.files).filter((f) => f.type.startsWith('image/'));
+		if (files.length) {
+			e.preventDefault();
+			void addFiles(files);
+		}
+	};
+	const onDrop = (e: DragEvent) => {
+		e.preventDefault();
+		setDragOver(false);
+		const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('image/'));
+		if (files.length) void addFiles(files);
+	};
+	const removeAttachment = (id: string) =>
+		setAttachments((prev) => prev.filter((a) => a.id !== id));
+
 	const submit = () => {
-		if (!text.trim()) return;
-		onSend(text);
+		if (!text.trim() && attachments.length === 0) return;
+		onSend(
+			text,
+			attachments.length
+				? attachments.map((a) => ({ name: a.name, mediaType: a.mediaType, data: a.data }))
+				: undefined,
+		);
 		setText('');
+		setAttachments([]);
 	};
 	const onKey = (e: KeyboardEvent) => {
 		if (e.key === 'Enter' && !e.shiftKey) {
@@ -136,15 +185,59 @@ export default function ChatComposer({
 	return (
 		<Box sx={{ p: 1.5, borderTop: 1, borderColor: 'divider', flexShrink: 0 }}>
 			<Box
+				onPaste={onPaste}
+				onDrop={onDrop}
+				onDragOver={(e) => {
+					e.preventDefault();
+					setDragOver(true);
+				}}
+				onDragLeave={() => setDragOver(false)}
 				sx={{
 					border: isPlan ? '1px dashed' : '1px solid',
-					borderColor: isPlan ? 'primary.main' : 'divider',
+					borderColor: dragOver ? 'primary.main' : isPlan ? 'primary.main' : 'divider',
 					borderRadius: 2.5,
 					px: 1.5,
 					py: 1,
 					bgcolor: (th) => alpha(th.palette.text.primary, 0.03),
 				}}
 			>
+				{attachments.length > 0 && (
+					<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
+						{attachments.map((a) => (
+							<Box
+								key={a.id}
+								sx={{
+									display: 'flex',
+									alignItems: 'center',
+									gap: 0.5,
+									pl: 0.75,
+									pr: 0.25,
+									py: 0.25,
+									borderRadius: 999,
+									bgcolor: (th) => alpha(th.palette.primary.main, 0.12),
+									maxWidth: 200,
+								}}
+							>
+								<ImageRoundedIcon sx={{ fontSize: 14, color: 'primary.main' }} />
+								<Typography
+									variant="caption"
+									noWrap
+									sx={{ fontSize: '0.7rem', maxWidth: 130 }}
+								>
+									{a.name}
+								</Typography>
+								<IconButton
+									size="small"
+									aria-label={t('removeImage')}
+									onClick={() => removeAttachment(a.id)}
+									sx={{ p: 0.25 }}
+								>
+									<CloseRoundedIcon sx={{ fontSize: 13 }} />
+								</IconButton>
+							</Box>
+						))}
+					</Box>
+				)}
 				<InputBase
 					fullWidth
 					multiline
@@ -236,7 +329,7 @@ export default function ChatComposer({
 						size="small"
 						color="primary"
 						onClick={submit}
-						disabled={disabled || !text.trim()}
+						disabled={disabled || (!text.trim() && attachments.length === 0)}
 					>
 						<SendRoundedIcon />
 					</IconButton>
