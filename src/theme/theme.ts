@@ -163,14 +163,10 @@ function tokensFromCustom(c: CustomThemeTokens): VariantTokens {
 	};
 }
 
-function tokensToCustom(): CustomThemeTokens {
-	return DEFAULT_CUSTOM_TOKENS;
-}
-
 export function getTheme(variant: ThemeVariant, prefs?: ThemePrefs) {
 	const t =
 		variant === 'custom'
-			? tokensFromCustom(prefs?.customTokens ?? tokensToCustom())
+			? tokensFromCustom(prefs?.customTokens ?? DEFAULT_CUSTOM_TOKENS)
 			: (TOKENS[variant] ?? TOKENS[DEFAULT_THEME_VARIANT as Exclude<ThemeVariant, 'custom'>]);
 	const tinted = t.chipStyle === 'tinted';
 

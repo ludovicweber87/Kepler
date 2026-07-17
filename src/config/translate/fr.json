@@ -174,9 +174,7 @@
 	"appearance": {
 		"title": "Apparence",
 		"variant": "Thème",
-		"variantCustom": "Personnalisé",
 		"customColors": "Couleurs personnalisées",
-		"mode": "Mode",
 		"modeLight": "Clair",
 		"modeDark": "Sombre",
 		"typography": "Typographie",

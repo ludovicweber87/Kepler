@@ -9,7 +9,6 @@ import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
-import { alpha, useTheme } from '@mui/material/styles';
 import { useTranslations } from 'next-intl';
 import { useColorMode } from '@/hooks/useColorMode';
 import { useThemePrefs } from '@/hooks/useThemePrefs';
@@ -18,7 +17,6 @@ import { THEME_VARIANTS, THEME_VARIANT_SWATCH, type ThemeVariant } from '@/theme
 import { APP_FONTS, TERMINAL_FONTS, COLOR_TOKEN_KEYS, type ThemePrefs } from '@/lib/themePrefs';
 
 export default function AppearanceSettings() {
-	const theme = useTheme();
 	const t = useTranslations('appearance');
 	const { showSnackbar } = useSnackbar();
 	const { variant, setVariant } = useColorMode();
@@ -61,7 +59,16 @@ export default function AppearanceSettings() {
 						return (
 							<Box
 								key={v}
+								role="button"
+								tabIndex={0}
+								aria-label={v}
 								onClick={() => setVariant(v as ThemeVariant)}
+								onKeyDown={(e) => {
+									if (e.key === 'Enter' || e.key === ' ') {
+										if (e.key === ' ') e.preventDefault();
+										setVariant(v as ThemeVariant);
+									}
+								}}
 								sx={{
 									width: 44,
 									height: 44,
@@ -186,12 +193,7 @@ export default function AppearanceSettings() {
 			</Box>
 
 			<Box>
-				<Button
-					variant="contained"
-					disabled={isSaving}
-					onClick={handleSave}
-					sx={{ bgcolor: alpha(theme.palette.primary.main, 1) }}
-				>
+				<Button variant="contained" disabled={isSaving} onClick={handleSave}>
 					{t('save')}
 				</Button>
 			</Box>

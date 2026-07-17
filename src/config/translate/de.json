@@ -152,9 +152,7 @@
 	"appearance": {
 		"title": "Erscheinungsbild",
 		"variant": "Thema",
-		"variantCustom": "Benutzerdefiniert",
 		"customColors": "Benutzerdefinierte Farben",
-		"mode": "Modus",
 		"modeLight": "Hell",
 		"modeDark": "Dunkel",
 		"typography": "Typografie",

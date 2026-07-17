@@ -153,9 +153,7 @@
 	"appearance": {
 		"title": "Aparência",
 		"variant": "Tema",
-		"variantCustom": "Personalizado",
 		"customColors": "Cores personalizadas",
-		"mode": "Modo",
 		"modeLight": "Claro",
 		"modeDark": "Escuro",
 		"typography": "Tipografia",
