@@ -8,6 +8,8 @@ import { FitAddon } from '@xterm/addon-fit';
 import { WebglAddon } from '@xterm/addon-webgl';
 import '@xterm/xterm/css/xterm.css';
 import { getAgentWsUrl } from '@/lib/local-fetch';
+import { useThemePrefs } from '@/hooks/useThemePrefs';
+import { terminalFontStack } from '@/lib/themePrefs';
 
 interface ShellTerminalProps {
 	/** Nom de la session tmux à créer/attacher (unique par terminal). */
@@ -28,6 +30,7 @@ const ShellTerminal = forwardRef<ShellTerminalHandle, ShellTerminalProps>(functi
 	ref,
 ) {
 	const theme = useTheme();
+	const { prefs } = useThemePrefs();
 	const [node, setNode] = useState<HTMLDivElement | null>(null);
 	const terminalRef = useRef<Terminal | null>(null);
 	const wsRef = useRef<WebSocket | null>(null);
@@ -88,8 +91,8 @@ const ShellTerminal = forwardRef<ShellTerminalHandle, ShellTerminalProps>(functi
 
 		const terminal = new Terminal({
 			cursorBlink: true,
-			fontSize: 14,
-			fontFamily: '"JetBrains Mono", "Fira Code", "Cascadia Code", monospace',
+			fontSize: prefs.terminalFontSize,
+			fontFamily: terminalFontStack(prefs.terminalFont),
 			scrollback: 5000,
 			theme: xtermThemeRef.current,
 			allowProposedApi: true,
@@ -199,6 +202,15 @@ const ShellTerminal = forwardRef<ShellTerminalHandle, ShellTerminalProps>(functi
 		const term = terminalRef.current;
 		if (term) term.options.theme = xtermTheme;
 	}, [xtermTheme]);
+
+	// Applique police/taille à la volée quand les préférences changent.
+	useEffect(() => {
+		const term = terminalRef.current;
+		if (!term) return;
+		term.options.fontFamily = terminalFontStack(prefs.terminalFont);
+		term.options.fontSize = prefs.terminalFontSize;
+		fitAddonRef.current?.fit();
+	}, [prefs.terminalFont, prefs.terminalFontSize]);
 
 	// Refit + focus quand le panneau (re)devient visible.
 	useEffect(() => {

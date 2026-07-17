@@ -16,6 +16,8 @@ import { WebglAddon } from '@xterm/addon-webgl';
 import '@xterm/xterm/css/xterm.css';
 import { useOverlayTerminal } from '@/hooks/useOverlayTerminal';
 import { getAgentWsUrl } from '@/lib/local-fetch';
+import { useThemePrefs } from '@/hooks/useThemePrefs';
+import { terminalFontStack } from '@/lib/themePrefs';
 
 const OVERLAY_W = 560;
 const OVERLAY_H = 340;
@@ -24,6 +26,7 @@ export default function OverlayTerminal() {
 	const theme = useTheme();
 	const router = useRouter();
 	const { session, close } = useOverlayTerminal();
+	const { prefs } = useThemePrefs();
 	const [termNode, setTermNode] = useState<HTMLDivElement | null>(null);
 	const terminalRef = useRef<Terminal | null>(null);
 	const wsRef = useRef<WebSocket | null>(null);
@@ -55,8 +58,8 @@ export default function OverlayTerminal() {
 
 		const terminal = new Terminal({
 			cursorBlink: true,
-			fontSize: 12,
-			fontFamily: '"JetBrains Mono", "Fira Code", "Cascadia Code", monospace',
+			fontSize: prefs.terminalFontSize,
+			fontFamily: terminalFontStack(prefs.terminalFont),
 			theme: {
 				background: theme.palette.background.default,
 				foreground: theme.palette.text.primary,
@@ -147,6 +150,15 @@ export default function OverlayTerminal() {
 			fitAddonRef.current = null;
 		};
 	}, [session, termNode]);
+
+	// Applique police/taille à la volée quand les préférences changent.
+	useEffect(() => {
+		const term = terminalRef.current;
+		if (!term) return;
+		term.options.fontFamily = terminalFontStack(prefs.terminalFont);
+		term.options.fontSize = prefs.terminalFontSize;
+		fitAddonRef.current?.fit();
+	}, [prefs.terminalFont, prefs.terminalFontSize]);
 
 	// Drag handlers
 	const handleMouseDown = useCallback(
