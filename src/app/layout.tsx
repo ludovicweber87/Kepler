@@ -3,6 +3,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import ThemeRegistry from '@/components/ThemeRegistry';
 import QueryProvider from '@/components/QueryProvider';
+import { googleFontsHref } from '@/lib/themePrefs';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -19,10 +20,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 			<head>
 				<link rel="preconnect" href="https://fonts.googleapis.com" />
 				<link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-				<link
-					href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"
-					rel="stylesheet"
-				/>
+				<link href={googleFontsHref()} rel="stylesheet" />
 			</head>
 			<body style={{ margin: 0 }}>
 				<NextIntlClientProvider messages={messages}>
