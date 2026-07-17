@@ -18,14 +18,20 @@ interface TerminalTabsProps {
 	sessionId: string;
 	cwd: string | null;
 	ready?: boolean;
+	autoStart?: boolean;
 }
 
-export default function TerminalTabs({ sessionId, cwd, ready = true }: TerminalTabsProps) {
+export default function TerminalTabs({
+	sessionId,
+	cwd,
+	ready = true,
+	autoStart = true,
+}: TerminalTabsProps) {
 	const t = useTranslations('workbench');
 
-	const [terminals, setTerminals] = useState<number[]>([1]);
-	const [activeId, setActiveId] = useState<number>(1);
-	const counter = useRef(2);
+	const [terminals, setTerminals] = useState<number[]>(autoStart ? [1] : []);
+	const [activeId, setActiveId] = useState<number>(autoStart ? 1 : -1);
+	const counter = useRef(autoStart ? 2 : 1);
 	const handles = useRef<Map<number, ShellTerminalHandle>>(new Map());
 
 	const addTerminal = useCallback(() => {

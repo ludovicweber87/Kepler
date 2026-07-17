@@ -602,6 +602,7 @@ export default function Workbench() {
 							sessionId={sessionId}
 							cwd={effectivePath}
 							ready={!!resolved}
+							autoStart={!isArchived}
 						/>
 					</Box>
 				</Box>
