@@ -8,7 +8,7 @@ import * as transcript from './transcriptStore.js';
 import { deriveLogs } from './activityDeriver.js';
 import { getDb } from '../db.js';
 import { randomUUID } from 'node:crypto';
-import { saveAttachment } from './attachments.js';
+import { saveAttachment, extForMediaType } from './attachments.js';
 import type { ChatImageInput } from './promptQueue.js';
 
 export interface StreamSocket { send(data: string): void; readyState?: number }
@@ -189,8 +189,11 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
       // Persiste le tour utilisateur dans le transcript (rejouable au refresh) et
       // l'émet aux clients : c'est l'écho serveur qui fait foi, pas d'optimiste client.
       // Les pièces jointes sont écrites sur disque ; seuls {name,url} vont en DB (pas de base64).
+      // Type non supporté rejeté une seule fois, en amont : ni persisté, ni transmis au SDK
+      // (un media_type invalide ferait rejeter tout le tour par l'API Anthropic).
+      const validImages = (images ?? []).filter((img) => extForMediaType(img.mediaType) !== null);
       const saved: { name: string; url: string }[] = [];
-      for (const img of images ?? []) {
+      for (const img of validImages) {
         const res = saveAttachment(sessionId, img.mediaType, img.data);
         if (res) saved.push({ name: img.name, url: res.url });
       }
@@ -201,7 +204,7 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
       } as const;
       transcript.appendEvent(sessionId, seq, 'user', ev);
       broadcast(s, { type: 'stream-event', seq, ...ev });
-      s.queue.push(text, images);
+      s.queue.push(text, validImages);
     },
     setModel(sessionId: string, model?: string) {
       const s = sessions.get(sessionId);
