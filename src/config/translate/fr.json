@@ -171,12 +171,44 @@
 		"repoCount": "{count} dépôt{count, plural, one {} other {s}}",
 		"loadViewsError": "Échec du chargement des vues"
 	},
+	"appearance": {
+		"title": "Apparence",
+		"variant": "Thème",
+		"customColors": "Couleurs personnalisées",
+		"modeLight": "Clair",
+		"modeDark": "Sombre",
+		"typography": "Typographie",
+		"appFont": "Police de l'application",
+		"appFontSize": "Taille (application)",
+		"terminalFont": "Police du terminal",
+		"terminalFontSize": "Taille (terminal)",
+		"save": "Enregistrer",
+		"saved": "Apparence enregistrée",
+		"colors": {
+			"primary": "Primaire",
+			"secondary": "Secondaire",
+			"error": "Erreur",
+			"warning": "Avertissement",
+			"success": "Succès",
+			"info": "Info",
+			"backgroundDefault": "Fond",
+			"backgroundPaper": "Surface",
+			"textPrimary": "Texte principal",
+			"textSecondary": "Texte secondaire",
+			"divider": "Séparateur",
+			"cardHover": "Survol carte",
+			"cardBorderHover": "Bordure carte (survol)",
+			"drawer": "Panneau latéral",
+			"drawerBorder": "Bordure panneau"
+		}
+	},
 	"header": {
 		"themeSelector": "Thème",
 		"themeDark": "Sombre",
 		"themeLightWarm": "Clair — Chaud",
 		"themeLightSolarized": "Clair — Solarized",
 		"themeLightNearWhite": "Clair — Éclatant",
+		"themeCustom": "Personnalisé",
 		"hideAgents": "Masquer workers",
 		"showAgents": "Afficher workers",
 		"openInEditor": "Ouvrir dans…",
@@ -254,7 +286,9 @@
 		"reportPublished": "Rapport publie",
 		"publishReport": "Publier le rapport",
 		"reportPublishedFor": "Rapport publie pour {name}",
-		"publishError": "Erreur lors de la publication du rapport"
+		"publishError": "Erreur lors de la publication du rapport",
+		"synthesizing": "Synthèse du rapport…",
+		"synthesizeError": "Synthèse impossible, activité brute utilisée"
 	},
 	"agentDiff": {
 		"showRemainingLines": "Afficher {count} lignes restantes",
@@ -307,6 +341,9 @@
 	},
 	"agentChat": {
 		"composerPlaceholder": "Message à l'agent…",
+		"attachTypeError": "Type d'image non supporté",
+		"attachSizeError": "Image trop lourde (max 5 Mo)",
+		"removeImage": "Supprimer l'image",
 		"send": "Envoyer",
 		"stop": "Stop",
 		"model": "Model",

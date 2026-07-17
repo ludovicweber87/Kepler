@@ -149,12 +149,44 @@
 		"repoCount": "{count, plural, one {# Repository} other {# Repositorys}}",
 		"loadViewsError": "Ansichten konnten nicht geladen werden"
 	},
+	"appearance": {
+		"title": "Erscheinungsbild",
+		"variant": "Thema",
+		"customColors": "Benutzerdefinierte Farben",
+		"modeLight": "Hell",
+		"modeDark": "Dunkel",
+		"typography": "Typografie",
+		"appFont": "App-Schriftart",
+		"appFontSize": "Größe (App)",
+		"terminalFont": "Terminal-Schriftart",
+		"terminalFontSize": "Größe (Terminal)",
+		"save": "Speichern",
+		"saved": "Erscheinungsbild gespeichert",
+		"colors": {
+			"primary": "Primär",
+			"secondary": "Sekundär",
+			"error": "Fehler",
+			"warning": "Warnung",
+			"success": "Erfolg",
+			"info": "Info",
+			"backgroundDefault": "Hintergrund",
+			"backgroundPaper": "Oberfläche",
+			"textPrimary": "Text primär",
+			"textSecondary": "Text sekundär",
+			"divider": "Trenner",
+			"cardHover": "Karte Hover",
+			"cardBorderHover": "Kartenrand (Hover)",
+			"drawer": "Seitenleiste",
+			"drawerBorder": "Seitenleistenrand"
+		}
+	},
 	"header": {
 		"themeSelector": "Design",
 		"themeDark": "Dunkel",
 		"themeLightWarm": "Hell — Warm",
 		"themeLightSolarized": "Hell — Solarized",
 		"themeLightNearWhite": "Hell — Klar",
+		"themeCustom": "Benutzerdefiniert",
 		"hideAgents": "Workers ausblenden",
 		"showAgents": "Workers einblenden",
 		"openInEditor": "Öffnen in…",
@@ -232,7 +264,9 @@
 		"reportPublished": "Bericht veröffentlicht",
 		"publishReport": "Bericht veröffentlichen",
 		"reportPublishedFor": "Bericht veröffentlicht für {name}",
-		"publishError": "Fehler beim Veröffentlichen des Berichts"
+		"publishError": "Fehler beim Veröffentlichen des Berichts",
+		"synthesizing": "Bericht wird zusammengefasst…",
+		"synthesizeError": "Zusammenfassung fehlgeschlagen, Rohaktivität wird verwendet"
 	},
 	"agentDiff": {
 		"showRemainingLines": "{count} verbleibende Zeilen anzeigen",
@@ -285,6 +319,9 @@
 	},
 	"agentChat": {
 		"composerPlaceholder": "Nachricht an den Agenten…",
+		"attachTypeError": "Bildtyp nicht unterstützt",
+		"attachSizeError": "Bild zu groß (max. 5 MB)",
+		"removeImage": "Bild entfernen",
 		"send": "Senden",
 		"stop": "Stopp",
 		"model": "Model",

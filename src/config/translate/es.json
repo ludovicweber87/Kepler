@@ -149,12 +149,44 @@
 		"repoCount": "{count, plural, one {# repositorio} other {# repositorios}}",
 		"loadViewsError": "Error al cargar las vistas"
 	},
+	"appearance": {
+		"title": "Apariencia",
+		"variant": "Tema",
+		"customColors": "Colores personalizados",
+		"modeLight": "Claro",
+		"modeDark": "Oscuro",
+		"typography": "Tipografía",
+		"appFont": "Fuente de la app",
+		"appFontSize": "Tamaño (app)",
+		"terminalFont": "Fuente del terminal",
+		"terminalFontSize": "Tamaño (terminal)",
+		"save": "Guardar",
+		"saved": "Apariencia guardada",
+		"colors": {
+			"primary": "Primario",
+			"secondary": "Secundario",
+			"error": "Error",
+			"warning": "Advertencia",
+			"success": "Éxito",
+			"info": "Info",
+			"backgroundDefault": "Fondo",
+			"backgroundPaper": "Superficie",
+			"textPrimary": "Texto principal",
+			"textSecondary": "Texto secundario",
+			"divider": "Separador",
+			"cardHover": "Hover tarjeta",
+			"cardBorderHover": "Borde tarjeta (hover)",
+			"drawer": "Barra lateral",
+			"drawerBorder": "Borde barra lateral"
+		}
+	},
 	"header": {
 		"themeSelector": "Tema",
 		"themeDark": "Oscuro",
 		"themeLightWarm": "Claro — Cálido",
 		"themeLightSolarized": "Claro — Solarized",
 		"themeLightNearWhite": "Claro — Brillante",
+		"themeCustom": "Personalizado",
 		"hideAgents": "Ocultar workers",
 		"showAgents": "Mostrar workers",
 		"openInEditor": "Abrir en…",
@@ -232,7 +264,9 @@
 		"reportPublished": "Informe publicado",
 		"publishReport": "Publicar informe",
 		"reportPublishedFor": "Informe publicado para {name}",
-		"publishError": "Error al publicar el informe"
+		"publishError": "Error al publicar el informe",
+		"synthesizing": "Sintetizando informe…",
+		"synthesizeError": "No se pudo sintetizar, se usa la actividad en bruto"
 	},
 	"agentDiff": {
 		"showRemainingLines": "Mostrar {count} líneas restantes",
@@ -285,6 +319,9 @@
 	},
 	"agentChat": {
 		"composerPlaceholder": "Mensaje para el agente…",
+		"attachTypeError": "Tipo de imagen no soportado",
+		"attachSizeError": "Imagen demasiado grande (máx 5 MB)",
+		"removeImage": "Eliminar imagen",
 		"send": "Enviar",
 		"stop": "Detener",
 		"model": "Model",

@@ -5,10 +5,12 @@ import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { getTheme } from '@/theme/theme';
 import { ColorModeProvider, useColorMode } from '@/hooks/useColorMode';
+import { ThemePrefsProvider, useThemePrefs } from '@/hooks/useThemePrefs';
 
 function ThemeProviderInner({ children }: { children: React.ReactNode }) {
 	const { variant } = useColorMode();
-	const theme = useMemo(() => getTheme(variant), [variant]);
+	const { prefs } = useThemePrefs();
+	const theme = useMemo(() => getTheme(variant, prefs), [variant, prefs]);
 
 	return (
 		<ThemeProvider theme={theme}>
@@ -21,7 +23,9 @@ function ThemeProviderInner({ children }: { children: React.ReactNode }) {
 export default function ThemeRegistry({ children }: { children: React.ReactNode }) {
 	return (
 		<ColorModeProvider>
-			<ThemeProviderInner>{children}</ThemeProviderInner>
+			<ThemePrefsProvider>
+				<ThemeProviderInner>{children}</ThemeProviderInner>
+			</ThemePrefsProvider>
 		</ColorModeProvider>
 	);
 }

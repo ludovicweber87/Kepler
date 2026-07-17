@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import ChatThinking from './ChatThinking';
 import ChatToolCard from './ChatToolCard';
+import { getAgentHttpUrl } from '@/lib/local-fetch';
 import type { ChatMessage } from '@/types';
 
 export default function ChatBubble({
@@ -46,6 +47,26 @@ export default function ChatBubble({
 					if (seg.kind === 'thinking') return <ChatThinking key={i} text={seg.text} />;
 					if (seg.kind === 'tool')
 						return <ChatToolCard key={i} call={seg.call} onOpen={onOpenChanges} />;
+					if (seg.kind === 'image') {
+						const src = getAgentHttpUrl() + seg.url;
+						return (
+							<Box
+								component="img"
+								key={i}
+								src={src}
+								alt={seg.name}
+								onClick={() => window.open(src, '_blank')}
+								sx={{
+									display: 'block',
+									maxWidth: 180,
+									maxHeight: 180,
+									borderRadius: 1,
+									mt: 0.5,
+									cursor: 'pointer',
+								}}
+							/>
+						);
+					}
 					return isUser ? (
 						<span key={i}>{seg.text}</span>
 					) : (

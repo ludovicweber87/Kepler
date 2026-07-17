@@ -4,6 +4,7 @@ import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { getAgentWsUrl } from '@/lib/local-fetch';
 import { reduceStreamEvent } from '@/lib/chatReducer';
 import type {
+	ChatImageInput,
 	ChatMessage,
 	PendingPermission,
 	PendingQuestion,
@@ -28,6 +29,7 @@ type Status = 'connecting' | 'idle' | 'busy' | 'error' | 'closed';
 export interface QueuedMessage {
 	id: string;
 	text: string;
+	images?: ChatImageInput[];
 }
 
 export function useAgentChat(p: Params) {
@@ -144,25 +146,25 @@ export function useAgentChat(p: Params) {
 	);
 
 	const dispatchUserMessage = useCallback(
-		(text: string) => {
+		(text: string, images?: ChatImageInput[]) => {
 			// Pas d'ajout optimiste : le serveur persiste le tour user et le renvoie
 			// (stream-event 'user'), source unique dédupliquée par seq.
 			setStatus('busy');
-			sendCtl({ type: 'stream-user-message', text });
+			sendCtl({ type: 'stream-user-message', text, images });
 		},
 		[sendCtl],
 	);
 
 	const send = useCallback(
-		(text: string) => {
+		(text: string, images?: ChatImageInput[]) => {
 			const t = text.trim();
-			if (!t) return;
+			if (!t && (!images || images.length === 0)) return;
 			// L'agent lit les messages séquentiellement : envoyer en plein tour placerait
 			// le message au milieu de la réponse en cours (seq). On empile côté client et
 			// on dépile à `idle` (voir l'effet ci-dessous). Sinon, envoi direct.
 			if (statusRef.current === 'idle' && queuedRef.current.length === 0)
-				dispatchUserMessage(t);
-			else setQueued((prev) => [...prev, { id: `q${queuedId.current++}`, text: t }]);
+				dispatchUserMessage(t, images);
+			else setQueued((prev) => [...prev, { id: `q${queuedId.current++}`, text: t, images }]);
 		},
 		[dispatchUserMessage],
 	);
@@ -172,7 +174,7 @@ export function useAgentChat(p: Params) {
 		if (status !== 'idle' || queued.length === 0) return;
 		const [next, ...rest] = queued;
 		setQueued(rest);
-		dispatchUserMessage(next.text);
+		dispatchUserMessage(next.text, next.images);
 	}, [status, queued, dispatchUserMessage]);
 
 	const cancelQueued = useCallback((id: string) => {

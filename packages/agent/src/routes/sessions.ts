@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { readBody, sendJson, sendError, findTmux, findClaude } from '../helpers.js';
 import { getActiveSessions, sdkAgent } from '../terminal.js';
 import { getDb } from '../db.js';
+import { synthesizeReport } from '../sdk/reportSynth.js';
 
 const TMUX = findTmux();
 
@@ -239,6 +240,30 @@ ${truncated}`;
 			).run(randomUUID(), session.id, summary, 'summary');
 
 			sendJson(res, { ok: true });
+		} catch (err) {
+			sendError(res, err instanceof Error ? err.message : 'Unknown error');
+		}
+		return;
+	}
+
+	// POST /agent-sessions/:sessionId/synthesize-report
+	const synthMatch = path.match(/^\/agent-sessions\/([^/]+)\/synthesize-report$/);
+	if (synthMatch && method === 'POST') {
+		const sessionId = decodeURIComponent(synthMatch[1]);
+		try {
+			const db = getDb();
+			if (!db) return sendError(res, 'Database not available', 500);
+			const session = db
+				.prepare('SELECT id FROM agent_sessions WHERE session_id = ?')
+				.get(sessionId) as { id: string } | undefined;
+			if (!session) return sendJson(res, { error: 'Session not found' }, 404);
+			const logs = db
+				.prepare(
+					"SELECT log_type, content FROM agent_activity_logs WHERE agent_session_id = ? AND log_type IN ('summary','error') ORDER BY created_at ASC",
+				)
+				.all(session.id) as { log_type: string; content: string }[];
+			const report = await synthesizeReport(logs);
+			sendJson(res, { report });
 		} catch (err) {
 			sendError(res, err instanceof Error ? err.message : 'Unknown error');
 		}

@@ -1,5 +1,5 @@
-import { test, expect } from 'vitest';
-import { reduceStreamEvent } from './chatReducer';
+import { test, expect, describe, it } from 'vitest';
+import { reduceStreamEvent, userMessage } from './chatReducer';
 import type { ChatMessage, StreamEventWire } from '@/types';
 
 const ev = (
@@ -52,4 +52,23 @@ test('session et result ne créent pas de bulle', () => {
 	let msgs = reduceStreamEvent([], ev(1, 'session', { id: 's', model: 'opus' }));
 	msgs = reduceStreamEvent(msgs, ev(2, 'result', { is_error: false, text: '' }));
 	expect(msgs).toHaveLength(0);
+});
+
+describe('userMessage', () => {
+	it('text-only → single text segment', () => {
+		const m = userMessage('hi');
+		expect(m.role).toBe('user');
+		expect(m.segments).toEqual([{ kind: 'text', text: 'hi' }]);
+	});
+
+	it('with images → text + image segments', () => {
+		const m = userMessage('look', [{ name: 'a.png', url: '/attachments/s/a.png' }]);
+		expect(m.segments[0]).toEqual({ kind: 'text', text: 'look' });
+		expect(m.segments[1]).toEqual({ kind: 'image', url: '/attachments/s/a.png', name: 'a.png' });
+	});
+
+	it('empty text with image → only image segment', () => {
+		const m = userMessage('', [{ name: 'a.png', url: '/x/a.png' }]);
+		expect(m.segments).toEqual([{ kind: 'image', url: '/x/a.png', name: 'a.png' }]);
+	});
 });

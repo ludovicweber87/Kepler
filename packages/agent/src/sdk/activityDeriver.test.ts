@@ -23,9 +23,14 @@ test('Bash autre → info', () => {
   assert.equal(out[0].log_type, 'info');
 });
 
-test('result → summary', () => {
+test('result non-erreur → aucun log (résumé produit séparément)', () => {
   const out = deriveLogs({ event: 'result', data: { is_error: false, text: 'fait', session_id: 's', num_turns: 1, usage: {}, total_cost_usd: 0 } });
-  assert.deepEqual(out, [{ log_type: 'summary', content: 'fait' }]);
+  assert.deepEqual(out, []);
+});
+
+test('result erreur → log error', () => {
+  const out = deriveLogs({ event: 'result', data: { is_error: true, text: 'boom', session_id: 's', num_turns: 1, usage: {}, total_cost_usd: 0 } });
+  assert.deepEqual(out, [{ log_type: 'error', content: 'boom' }]);
 });
 
 test('thinking/assistant/session → rien', () => {

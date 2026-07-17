@@ -46,6 +46,7 @@ export default function AgentActivityTab({
 	const t = useTranslations('agentActivity');
 	const [publishing, setPublishing] = useState(false);
 	const [published, setPublished] = useState(false);
+	const [synthesizing, setSynthesizing] = useState(false);
 	const qc = useQueryClient();
 	const { showSnackbar } = useSnackbar();
 	// Activity ne montre qu'un récap des actions de l'agent : les summary (récap de
@@ -59,10 +60,31 @@ export default function AgentActivityTab({
 		if (!session || visibleLogs.length === 0) return;
 		setPublishing(true);
 		try {
-			const report = buildReport(session, visibleLogs, {
-				reportTitle: t('reportTitle'),
-				branch: t('branch'),
-			});
+			let report: string;
+			setSynthesizing(true);
+			const rawReport = () =>
+				buildReport(session, visibleLogs, {
+					reportTitle: t('reportTitle'),
+					branch: t('branch'),
+				});
+			try {
+				const synthRes = await localFetch(
+					`/agent-sessions/${session.session_id}/synthesize-report`,
+					{ method: 'POST' },
+				);
+				const synthData = (await synthRes.json().catch(() => ({}))) as { report?: string };
+				if (synthRes.ok && synthData.report && synthData.report.trim()) {
+					report = synthData.report;
+				} else {
+					showSnackbar(t('synthesizeError'), 'info');
+					report = rawReport();
+				}
+			} catch {
+				showSnackbar(t('synthesizeError'), 'info');
+				report = rawReport();
+			} finally {
+				setSynthesizing(false);
+			}
 
 			if (hasIssue) {
 				// Post comment on issue
@@ -523,7 +545,11 @@ export default function AgentActivityTab({
 									: undefined,
 						})}
 					>
-						{published || alreadyPublished ? t('reportPublished') : t('publishReport')}
+						{published || alreadyPublished
+							? t('reportPublished')
+							: synthesizing
+								? t('synthesizing')
+								: t('publishReport')}
 					</Button>
 				</Box>
 			)}

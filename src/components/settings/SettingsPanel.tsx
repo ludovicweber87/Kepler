@@ -32,8 +32,10 @@ import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
+import PaletteRoundedIcon from '@mui/icons-material/PaletteRounded';
 import type { OrgWithProjects } from './projectListUtils';
 import { ProjectList } from './ProjectList';
+import AppearanceSettings from './AppearanceSettings';
 import { useProjectConfig } from '@/hooks/useProjectConfig';
 import { useTranslations } from 'next-intl';
 import { localFetch } from '@/lib/local-fetch';
@@ -264,6 +266,7 @@ export default function SettingsPanel() {
 	const theme = useTheme();
 	const t = useTranslations('settings');
 	const tc = useTranslations('common');
+	const tAppearance = useTranslations('appearance');
 	const { configs, configsLoading, saveConfig, clearConfig } = useProjectConfig();
 	const { repoPaths, savePath, deletePath } = useRepoPaths();
 	const { isAgentOnline } = useAgentStatus();
@@ -530,6 +533,32 @@ export default function SettingsPanel() {
 								onClearAll={clearConfig}
 							/>
 						)}
+					</AccordionDetails>
+				</Accordion>
+
+				{/* Accordion: Appearance */}
+				<Accordion
+					disableGutters
+					sx={{
+						bgcolor: 'transparent',
+						boxShadow: 'none',
+						'&:before': { display: 'none' },
+						border: 1,
+						borderColor: 'divider',
+						borderRadius: '8px !important',
+						overflow: 'hidden',
+					}}
+				>
+					<AccordionSummary expandIcon={<ExpandMoreRoundedIcon />} sx={{ px: 2 }}>
+						<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1 }}>
+							<PaletteRoundedIcon sx={{ color: 'text.secondary', fontSize: 22 }} />
+							<Typography variant="h6" sx={{ fontWeight: 600 }}>
+								{tAppearance('title')}
+							</Typography>
+						</Box>
+					</AccordionSummary>
+					<AccordionDetails sx={{ px: 2, pb: 2 }}>
+						<AppearanceSettings />
 					</AccordionDetails>
 				</Accordion>
 			</Box>

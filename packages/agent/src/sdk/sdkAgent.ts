@@ -6,8 +6,11 @@ import { createPermissionController, type PermissionController, type PendingPerm
 import type { PermissionDecision } from './types.js';
 import * as transcript from './transcriptStore.js';
 import { deriveLogs } from './activityDeriver.js';
+import { summarizeTurn } from './turnSummarizer.js';
 import { getDb } from '../db.js';
 import { randomUUID } from 'node:crypto';
+import { saveAttachment, extForMediaType } from './attachments.js';
+import type { ChatImageInput } from './promptQueue.js';
 
 export interface StreamSocket { send(data: string): void; readyState?: number }
 export interface StartParams { cwd: string; systemPrompt?: string; model?: string; effort?: string; permissionMode?: string; resumeClaudeSessionId?: string }
@@ -33,6 +36,7 @@ interface SessionState {
   seq: number;
   cwd: string;
   createdAt: number;
+  turnActions: string[];
 }
 
 export interface ActiveSdkSession { sessionId: string; cwd: string; createdAt: number; busy: boolean }
@@ -85,7 +89,23 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
             : ev.event === 'thinking' || ev.event === 'assistant' || ev.event === 'tool_use' ? 'assistant'
             : 'system';
           transcript.appendEvent(sessionId, seq, role, ev);
-          for (const log of deriveLogs(ev)) writeActivityLog(sessionId, log.log_type, log.content);
+          for (const log of deriveLogs(ev)) {
+            writeActivityLog(sessionId, log.log_type, log.content);
+            if (log.log_type === 'file_change' || log.log_type === 'commit' || log.log_type === 'info') {
+              (s.turnActions ??= []).push(`${log.log_type}: ${log.content}`);
+            }
+          }
+          if (ev.event === 'result') {
+            const actions = s.turnActions ?? [];
+            s.turnActions = [];
+            if (!ev.data.is_error) {
+              const finalText = ev.data.text;
+              // Non bloquant : n'attend pas la synthèse pour rendre la main.
+              void summarizeTurn(finalText, actions).then((sum) =>
+                writeActivityLog(sessionId, 'summary', sum),
+              );
+            }
+          }
           broadcast(s, { type: 'stream-event', seq, ...ev });
         }
       }
@@ -156,6 +176,7 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
         seq: transcript.nextSeq(sessionId),
         cwd: params.cwd,
         createdAt: Date.now(),
+        turnActions: [],
       };
       const options: Record<string, unknown> = {
         cwd: params.cwd,
@@ -180,17 +201,29 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
       void runLoop(sessionId, s);
     },
 
-    sendUserMessage(sessionId: string, text: string) {
+    sendUserMessage(sessionId: string, text: string, images?: ChatImageInput[]) {
       const s = sessions.get(sessionId);
       if (!s) return;
       s.busy = true;
       // Persiste le tour utilisateur dans le transcript (rejouable au refresh) et
       // l'émet aux clients : c'est l'écho serveur qui fait foi, pas d'optimiste client.
+      // Les pièces jointes sont écrites sur disque ; seuls {name,url} vont en DB (pas de base64).
+      // Type non supporté rejeté une seule fois, en amont : ni persisté, ni transmis au SDK
+      // (un media_type invalide ferait rejeter tout le tour par l'API Anthropic).
+      const validImages = (images ?? []).filter((img) => extForMediaType(img.mediaType) !== null);
+      const saved: { name: string; url: string }[] = [];
+      for (const img of validImages) {
+        const res = saveAttachment(sessionId, img.mediaType, img.data);
+        if (res) saved.push({ name: img.name, url: res.url });
+      }
       const seq = s.seq++;
-      const ev = { event: 'user', data: { text } } as const;
+      const ev = {
+        event: 'user',
+        data: { text, ...(saved.length ? { images: saved } : {}) },
+      } as const;
       transcript.appendEvent(sessionId, seq, 'user', ev);
       broadcast(s, { type: 'stream-event', seq, ...ev });
-      s.queue.push(text);
+      s.queue.push(text, validImages);
     },
     setModel(sessionId: string, model?: string) {
       const s = sessions.get(sessionId);

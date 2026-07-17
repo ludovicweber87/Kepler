@@ -171,12 +171,44 @@
 		"repoCount": "{count, plural, one {# repo} other {# repos}}",
 		"loadViewsError": "Failed to load views"
 	},
+	"appearance": {
+		"title": "Appearance",
+		"variant": "Theme",
+		"customColors": "Custom colors",
+		"modeLight": "Light",
+		"modeDark": "Dark",
+		"typography": "Typography",
+		"appFont": "App font",
+		"appFontSize": "Size (app)",
+		"terminalFont": "Terminal font",
+		"terminalFontSize": "Size (terminal)",
+		"save": "Save",
+		"saved": "Appearance saved",
+		"colors": {
+			"primary": "Primary",
+			"secondary": "Secondary",
+			"error": "Error",
+			"warning": "Warning",
+			"success": "Success",
+			"info": "Info",
+			"backgroundDefault": "Background",
+			"backgroundPaper": "Surface",
+			"textPrimary": "Text primary",
+			"textSecondary": "Text secondary",
+			"divider": "Divider",
+			"cardHover": "Card hover",
+			"cardBorderHover": "Card border (hover)",
+			"drawer": "Sidebar",
+			"drawerBorder": "Sidebar border"
+		}
+	},
 	"header": {
 		"themeSelector": "Theme",
 		"themeDark": "Dark",
 		"themeLightWarm": "Light — Warm",
 		"themeLightSolarized": "Light — Solarized",
 		"themeLightNearWhite": "Light — Bright",
+		"themeCustom": "Custom",
 		"hideAgents": "Hide workers",
 		"showAgents": "Show workers",
 		"openInEditor": "Open in editor…",
@@ -254,7 +286,9 @@
 		"reportPublished": "Report published",
 		"publishReport": "Publish report",
 		"reportPublishedFor": "Report published for {name}",
-		"publishError": "Error publishing report"
+		"publishError": "Error publishing report",
+		"synthesizing": "Synthesizing report…",
+		"synthesizeError": "Could not synthesize, using raw activity"
 	},
 	"agentDiff": {
 		"showRemainingLines": "Show {count} remaining lines",
@@ -307,6 +341,9 @@
 	},
 	"agentChat": {
 		"composerPlaceholder": "Message the agent…",
+		"attachTypeError": "Unsupported image type",
+		"attachSizeError": "Image too large (max 5 MB)",
+		"removeImage": "Remove image",
 		"send": "Send",
 		"stop": "Stop",
 		"model": "Model",

@@ -150,12 +150,44 @@
 		"repoCount": "{count, plural, one {# repositório} other {# repositórios}}",
 		"loadViewsError": "Falha ao carregar as vistas"
 	},
+	"appearance": {
+		"title": "Aparência",
+		"variant": "Tema",
+		"customColors": "Cores personalizadas",
+		"modeLight": "Claro",
+		"modeDark": "Escuro",
+		"typography": "Tipografia",
+		"appFont": "Fonte da app",
+		"appFontSize": "Tamanho (app)",
+		"terminalFont": "Fonte do terminal",
+		"terminalFontSize": "Tamanho (terminal)",
+		"save": "Guardar",
+		"saved": "Aparência guardada",
+		"colors": {
+			"primary": "Primário",
+			"secondary": "Secundário",
+			"error": "Erro",
+			"warning": "Aviso",
+			"success": "Sucesso",
+			"info": "Info",
+			"backgroundDefault": "Fundo",
+			"backgroundPaper": "Superfície",
+			"textPrimary": "Texto principal",
+			"textSecondary": "Texto secundário",
+			"divider": "Divisor",
+			"cardHover": "Hover cartão",
+			"cardBorderHover": "Borda cartão (hover)",
+			"drawer": "Barra lateral",
+			"drawerBorder": "Borda barra lateral"
+		}
+	},
 	"header": {
 		"themeSelector": "Tema",
 		"themeDark": "Escuro",
 		"themeLightWarm": "Claro — Quente",
 		"themeLightSolarized": "Claro — Solarized",
 		"themeLightNearWhite": "Claro — Brilhante",
+		"themeCustom": "Personalizado",
 		"hideAgents": "Ocultar workers",
 		"showAgents": "Mostrar workers",
 		"openInEditor": "Abrir em…",
@@ -233,7 +265,9 @@
 		"reportPublished": "Relatório publicado",
 		"publishReport": "Publicar relatório",
 		"reportPublishedFor": "Relatório publicado para {name}",
-		"publishError": "Erro ao publicar relatório"
+		"publishError": "Erro ao publicar relatório",
+		"synthesizing": "A sintetizar o relatório…",
+		"synthesizeError": "Não foi possível sintetizar, a usar atividade em bruto"
 	},
 	"agentDiff": {
 		"showRemainingLines": "Mostrar {count} linhas restantes",
@@ -286,6 +320,9 @@
 	},
 	"agentChat": {
 		"composerPlaceholder": "Mensagem para o agente…",
+		"attachTypeError": "Tipo de imagem não suportado",
+		"attachSizeError": "Imagem demasiado grande (máx 5 MB)",
+		"removeImage": "Remover imagem",
 		"send": "Enviar",
 		"stop": "Parar",
 		"model": "Model",

@@ -7,6 +7,7 @@ import { handleSessionRoutes } from './routes/sessions.js';
 import { handleChatRoutes } from './routes/chat.js';
 import { handleFilesystemRoutes } from './routes/filesystem.js';
 import { handleRecapRoutes } from './routes/recap.js';
+import { serveAttachment } from './sdk/attachments.js';
 
 const PORT = parseInt(process.env.DEVORA_AGENT_PORT ?? '4001', 10);
 const ALLOWED_ORIGINS = (process.env.DEVORA_ORIGIN ?? 'http://localhost:4000')
@@ -69,6 +70,11 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
 
 		if (path.startsWith('/recap/')) {
 			await handleRecapRoutes(req, res, path);
+			return;
+		}
+
+		if (path.startsWith('/attachments/') && req.method === 'GET') {
+			serveAttachment(req, res, path);
 			return;
 		}
 

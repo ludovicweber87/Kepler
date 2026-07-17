@@ -9,7 +9,14 @@ export function reduceStreamEvent(messages: ChatMessage[], wire: StreamEventWire
 
 	if (event === 'session' || event === 'result') return messages;
 
-	if (event === 'user') return [...messages, userMessage(String(data.text ?? ''))];
+	if (event === 'user')
+		return [
+			...messages,
+			userMessage(
+				String(data.text ?? ''),
+				(data.images as { name: string; url: string }[] | undefined) ?? undefined,
+			),
+		];
 
 	if (event === 'tool_result') {
 		const toolUseId = String(data.tool_use_id ?? '');
@@ -52,6 +59,10 @@ export function reduceStreamEvent(messages: ChatMessage[], wire: StreamEventWire
 	return [...messages, { id: nextId(), role: 'assistant', segments: [segment] }];
 }
 
-export function userMessage(text: string): ChatMessage {
-	return { id: nextId(), role: 'user', segments: [{ kind: 'text', text }] };
+export function userMessage(text: string, images?: { name: string; url: string }[]): ChatMessage {
+	const segments: ChatSegment[] = [];
+	if (text) segments.push({ kind: 'text', text });
+	for (const img of images ?? []) segments.push({ kind: 'image', url: img.url, name: img.name });
+	if (segments.length === 0) segments.push({ kind: 'text', text: '' });
+	return { id: nextId(), role: 'user', segments };
 }
