@@ -62,6 +62,11 @@ export default function AgentActivityTab({
 		try {
 			let report: string;
 			setSynthesizing(true);
+			const rawReport = () =>
+				buildReport(session, visibleLogs, {
+					reportTitle: t('reportTitle'),
+					branch: t('branch'),
+				});
 			try {
 				const synthRes = await localFetch(
 					`/agent-sessions/${session.session_id}/synthesize-report`,
@@ -72,17 +77,11 @@ export default function AgentActivityTab({
 					report = synthData.report;
 				} else {
 					showSnackbar(t('synthesizeError'), 'info');
-					report = buildReport(session, visibleLogs, {
-						reportTitle: t('reportTitle'),
-						branch: t('branch'),
-					});
+					report = rawReport();
 				}
 			} catch {
 				showSnackbar(t('synthesizeError'), 'info');
-				report = buildReport(session, visibleLogs, {
-					reportTitle: t('reportTitle'),
-					branch: t('branch'),
-				});
+				report = rawReport();
 			} finally {
 				setSynthesizing(false);
 			}
