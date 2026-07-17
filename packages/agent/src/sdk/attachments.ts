@@ -58,8 +58,16 @@ export function serveAttachment(_req: IncomingMessage, res: ServerResponse, path
 		res.end();
 		return;
 	}
-	const session = sanitizeSegment(decodeURIComponent(parts[1]));
-	const file = sanitizeSegment(decodeURIComponent(parts[2]));
+	let session: string;
+	let file: string;
+	try {
+		session = sanitizeSegment(decodeURIComponent(parts[1]));
+		file = sanitizeSegment(decodeURIComponent(parts[2]));
+	} catch {
+		res.writeHead(404);
+		res.end();
+		return;
+	}
 	const full = normalize(join(attachmentsDir(), session, file));
 	if (!full.startsWith(attachmentsDir()) || !existsSync(full)) {
 		res.writeHead(404);

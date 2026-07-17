@@ -8,6 +8,8 @@ import * as transcript from './transcriptStore.js';
 import { deriveLogs } from './activityDeriver.js';
 import { getDb } from '../db.js';
 import { randomUUID } from 'node:crypto';
+import { saveAttachment } from './attachments.js';
+import type { ChatImageInput } from './promptQueue.js';
 
 export interface StreamSocket { send(data: string): void; readyState?: number }
 export interface StartParams { cwd: string; systemPrompt?: string; model?: string; effort?: string; permissionMode?: string; resumeClaudeSessionId?: string }
@@ -180,17 +182,26 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
       void runLoop(sessionId, s);
     },
 
-    sendUserMessage(sessionId: string, text: string) {
+    sendUserMessage(sessionId: string, text: string, images?: ChatImageInput[]) {
       const s = sessions.get(sessionId);
       if (!s) return;
       s.busy = true;
       // Persiste le tour utilisateur dans le transcript (rejouable au refresh) et
       // l'émet aux clients : c'est l'écho serveur qui fait foi, pas d'optimiste client.
+      // Les pièces jointes sont écrites sur disque ; seuls {name,url} vont en DB (pas de base64).
+      const saved: { name: string; url: string }[] = [];
+      for (const img of images ?? []) {
+        const res = saveAttachment(sessionId, img.mediaType, img.data);
+        if (res) saved.push({ name: img.name, url: res.url });
+      }
       const seq = s.seq++;
-      const ev = { event: 'user', data: { text } } as const;
+      const ev = {
+        event: 'user',
+        data: { text, ...(saved.length ? { images: saved } : {}) },
+      } as const;
       transcript.appendEvent(sessionId, seq, 'user', ev);
       broadcast(s, { type: 'stream-event', seq, ...ev });
-      s.queue.push(text);
+      s.queue.push(text, images);
     },
     setModel(sessionId: string, model?: string) {
       const s = sessions.get(sessionId);
