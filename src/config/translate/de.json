@@ -140,7 +140,14 @@
 		"createPrPrompt": "Create-PR-Prompt",
 		"createPrPromptDesc": "Nachricht, die an den Agenten gesendet wird, wenn du auf „PR erstellen“ klickst. Der Agent liest sie und erledigt die Arbeit (Commit, Push, PR öffnen).",
 		"createPrPromptSave": "Speichern",
-		"createPrPromptSaved": "Prompt gespeichert"
+		"createPrPromptSaved": "Prompt gespeichert",
+		"filterProjects": "Projekte filtern...",
+		"connected": "Verbunden",
+		"notConnected": "Nicht verbunden",
+		"noProjectsMatch": "Kein Projekt entspricht dem Filter.",
+		"connectedCount": "{count, plural, one {# verbunden} other {# verbunden}}",
+		"repoCount": "{count, plural, one {# Repository} other {# Repositorys}}",
+		"loadViewsError": "Ansichten konnten nicht geladen werden"
 	},
 	"header": {
 		"themeSelector": "Design",

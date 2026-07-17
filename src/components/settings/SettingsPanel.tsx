@@ -8,13 +8,11 @@ import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
-import Switch from '@mui/material/Switch';
 import Chip from '@mui/material/Chip';
 import Skeleton from '@mui/material/Skeleton';
 import CircularProgress from '@mui/material/CircularProgress';
 import Snackbar from '@mui/material/Snackbar';
 import IconButton from '@mui/material/IconButton';
-import Tooltip from '@mui/material/Tooltip';
 import Popover from '@mui/material/Popover';
 import List from '@mui/material/List';
 import ListItemButton from '@mui/material/ListItemButton';
@@ -29,234 +27,18 @@ import TextField from '@mui/material/TextField';
 import { alpha, useTheme } from '@mui/material/styles';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
-import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
-import type { ProjectV2Config, ProjectV2View, ViewRepoMapping } from '@/types';
+import type { OrgWithProjects } from './projectListUtils';
+import { ProjectList } from './ProjectList';
 import { useProjectConfig } from '@/hooks/useProjectConfig';
 import { useTranslations } from 'next-intl';
 import { localFetch } from '@/lib/local-fetch';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useAgentStatus } from '@/hooks/useAgentStatus';
-
-interface OrgProject {
-	id: string;
-	title: string;
-	number: number;
-}
-
-interface OrgWithProjects {
-	org: string;
-	projects: OrgProject[];
-	ownerType: 'organization' | 'user';
-}
-
-interface ProjectViewsData {
-	project: { id: string; title: string; number: number };
-	views: ProjectV2View[];
-	viewRepoMappings: ViewRepoMapping[];
-	statusColumns: string[];
-}
-
-/** Flat project section with lazy-loaded views */
-function ProjectSection({
-	project,
-	org,
-	ownerType,
-	savedConfig,
-	configsLoaded,
-	onSave,
-}: {
-	project: OrgProject;
-	org: string;
-	ownerType: 'organization' | 'user';
-	savedConfig: ProjectV2Config | undefined;
-	configsLoaded: boolean;
-	onSave: (config: ProjectV2Config) => void;
-}) {
-	const t = useTranslations('settings');
-	const [viewsData, setViewsData] = useState<ProjectViewsData | null>(() => {
-		if (savedConfig?.views?.length) {
-			return {
-				project: {
-					id: '',
-					title: savedConfig.projectTitle,
-					number: savedConfig.projectNumber,
-				},
-				views: savedConfig.views,
-				viewRepoMappings: savedConfig.viewRepoMappings,
-				statusColumns: savedConfig.statusColumns,
-			};
-		}
-		return null;
-	});
-	const [loading, setLoading] = useState(false);
-	const [error, setError] = useState<string | null>(null);
-	const [hasFetched, setHasFetched] = useState(!!savedConfig?.views?.length);
-
-	const connected = savedConfig?.connected ?? false;
-
-	const baseConfigFor = (proj: OrgProject): ProjectV2Config => ({
-		org,
-		projectNumber: proj.number,
-		projectTitle: proj.title,
-		selectedViews: [],
-		activeView: null,
-		viewOrder: [],
-		viewRepoMappings: [],
-		statusColumns: [],
-		views: [],
-		ownerType,
-		connected: false,
-	});
-
-	const handleToggleConnected = (next: boolean) => {
-		onSave({
-			...(savedConfig ?? baseConfigFor(project)),
-			connected: next,
-		});
-	};
-
-	const fetchViews = useCallback(async () => {
-		setLoading(true);
-		setError(null);
-		try {
-			const res = await fetch(
-				`/api/github/projects?org=${encodeURIComponent(org)}&projectNumber=${project.number}&ownerType=${ownerType}`,
-			);
-			if (!res.ok) throw new Error(`Failed to load project views: ${res.status}`);
-			const data = await res.json();
-			if (data.error) throw new Error(data.error);
-			const fetched = data as ProjectViewsData;
-			setViewsData(fetched);
-			setHasFetched(true);
-
-			onSave({
-				org,
-				projectNumber: project.number,
-				projectTitle: project.title,
-				selectedViews: savedConfig?.selectedViews ?? [],
-				activeView: savedConfig?.activeView ?? null,
-				viewOrder: savedConfig?.viewOrder ?? [],
-				viewRepoMappings: fetched.viewRepoMappings,
-				statusColumns: fetched.statusColumns ?? [],
-				views: fetched.views,
-				ownerType,
-				connected: savedConfig?.connected ?? false,
-			});
-		} catch (err) {
-			setError(err instanceof Error ? err.message : 'Failed to load views');
-		} finally {
-			setLoading(false);
-		}
-	}, [org, project.number, project.title, ownerType, savedConfig, onSave]);
-
-	// Auto-fetch once configs are loaded and views haven't been fetched yet
-	useEffect(() => {
-		if (configsLoaded && !hasFetched) {
-			fetchViews();
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [configsLoaded]);
-
-	const displayViews = viewsData?.views ?? savedConfig?.views ?? [];
-
-	return (
-		<Accordion
-			disableGutters
-			sx={{
-				bgcolor: 'transparent',
-				boxShadow: 'none',
-				'&:before': { display: 'none' },
-				border: 1,
-				borderColor: 'divider',
-				borderRadius: '8px !important',
-				overflow: 'hidden',
-			}}
-		>
-			<AccordionSummary
-				expandIcon={<ExpandMoreRoundedIcon />}
-				sx={{
-					minHeight: 48,
-					px: 2,
-					'& .MuiAccordionSummary-content': {
-						alignItems: 'center',
-						gap: 1,
-						my: 0,
-					},
-				}}
-			>
-				<Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1 }}>
-					{project.title}
-				</Typography>
-				{!loading && displayViews.length > 0 && (
-					<Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>
-						{t('viewsAvailable', { count: displayViews.length })}
-					</Typography>
-				)}
-				<Tooltip title={t('refreshFromGithub')}>
-					<IconButton
-						size="small"
-						onClick={(e) => {
-							e.stopPropagation();
-							fetchViews();
-						}}
-						disabled={loading}
-						sx={{
-							color: 'text.secondary',
-							animation: loading ? 'spin 1s linear infinite' : 'none',
-							'@keyframes spin': {
-								from: { transform: 'rotate(0deg)' },
-								to: { transform: 'rotate(360deg)' },
-							},
-						}}
-					>
-						<RefreshRoundedIcon fontSize="small" />
-					</IconButton>
-				</Tooltip>
-			</AccordionSummary>
-			<AccordionDetails sx={{ p: 0 }}>
-				{error && (
-					<Alert severity="error" sx={{ mx: 2, mb: 1, borderRadius: 1 }}>
-						{error}
-					</Alert>
-				)}
-
-				{loading && !hasFetched && (
-					<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1 }}>
-						<CircularProgress size={18} />
-						<Typography variant="body2" color="text.secondary">
-							{t('loadingViews')}
-						</Typography>
-					</Box>
-				)}
-
-				<Box
-					sx={{
-						display: 'flex',
-						alignItems: 'center',
-						justifyContent: 'space-between',
-						gap: 1.5,
-						px: 2,
-						py: 1.5,
-					}}
-				>
-					<Typography variant="body2" sx={{ fontWeight: 500 }}>
-						{t('connectBoard')}
-					</Typography>
-					<Switch
-						size="small"
-						checked={connected}
-						onChange={(e) => handleToggleConnected(e.target.checked)}
-					/>
-				</Box>
-			</AccordionDetails>
-		</Accordion>
-	);
-}
 
 /** Repo path card with popover actions */
 function RepoPathCard({
@@ -539,13 +321,6 @@ export default function SettingsPanel() {
 		setToast(true);
 	}, []);
 
-	const findSavedConfig = useCallback(
-		(org: string, projectNumber: number): ProjectV2Config | undefined => {
-			return configs.find((c) => c.org === org && c.projectNumber === projectNumber);
-		},
-		[configs],
-	);
-
 	const pickDirectory = async (repo: string) => {
 		setPickingRepo(repo);
 		try {
@@ -602,10 +377,6 @@ export default function SettingsPanel() {
 		}
 	};
 
-	const totalConfigured = configs.filter((c) => c.connected).length;
-
-	const allProjects = orgProjects;
-
 	return (
 		<Box>
 			<Typography
@@ -622,115 +393,145 @@ export default function SettingsPanel() {
 				{t('title')}
 			</Typography>
 
-			{/* Section: Repo Local Paths */}
-			<Box sx={{ mb: 5 }}>
-				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-					<FolderRoundedIcon sx={{ color: 'text.secondary', fontSize: 22 }} />
-					<Typography variant="h6" sx={{ fontWeight: 600 }}>
-						{t('repoPaths')}
-					</Typography>
-				</Box>
-				<Typography variant="body2" color="text.secondary" sx={{ mb: 3, ml: 4.5 }}>
-					{t('repoPathsDesc')}
-				</Typography>
-
-				<Box
+			<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+				{/* Accordion: Repo Local Paths */}
+				<Accordion
+					defaultExpanded
+					disableGutters
 					sx={{
-						display: 'grid',
-						gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-						gap: 1.5,
-						ml: 4.5,
+						bgcolor: 'transparent',
+						boxShadow: 'none',
+						'&:before': { display: 'none' },
+						border: 1,
+						borderColor: 'divider',
+						borderRadius: '8px !important',
+						overflow: 'hidden',
 					}}
 				>
-					{repoPaths.map((rp) => (
-						<RepoPathCard
-							key={rp.repo_full_name}
-							repoName={rp.repo_full_name}
-							localPath={localPaths[rp.repo_full_name] ?? rp.local_path}
-							onEdit={() => pickDirectory(rp.repo_full_name)}
-							onDelete={() => deletePath(rp.repo_full_name)}
-							isEditing={pickingRepo === rp.repo_full_name}
-						/>
-					))}
-					<AddRepoCard
-						onClick={handleAddRepo}
-						disabled={pickingRepo !== null}
-						label={pickingRepo === '__new__' ? t('selecting') : t('addRepo')}
-					/>
-				</Box>
-			</Box>
-
-			{/* Section: GitHub Project Views */}
-			<Box sx={{ mb: 5 }}>
-				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-					<GitHubIcon sx={{ color: 'text.secondary', fontSize: 22 }} />
-					<Typography variant="h6" sx={{ fontWeight: 600 }}>
-						{t('githubProjects')}
-					</Typography>
-					{totalConfigured > 0 && (
-						<Chip
-							label={t('configured', { count: totalConfigured })}
-							size="small"
-							color="primary"
-							variant="outlined"
-							sx={{ fontSize: '0.75rem' }}
-						/>
-					)}
-				</Box>
-				<Typography variant="body2" color="text.secondary" sx={{ mb: 3, ml: 4.5 }}>
-					{t('selectViewsDesc')}
-				</Typography>
-
-				{error && (
-					<Alert severity="error" sx={{ mb: 2, borderRadius: 1 }}>
-						{error}
-					</Alert>
-				)}
-
-				{loadingProjects && (
-					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, ml: 4.5 }}>
-						<Skeleton variant="rounded" height={120} sx={{ borderRadius: 2 }} />
-						<Skeleton variant="rounded" height={120} sx={{ borderRadius: 2 }} />
-					</Box>
-				)}
-
-				{!loadingProjects && allProjects.length === 0 && !error && (
-					<Alert severity="info" sx={{ mb: 2, borderRadius: 1, ml: 4.5 }}>
-						{t('noProjectsFound')}
-					</Alert>
-				)}
-
-				{!loadingProjects && allProjects.length > 0 && (
-					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, ml: 4.5 }}>
-						{allProjects.map((o) =>
-							o.projects.map((p) => (
-								<ProjectSection
-									key={p.id}
-									project={p}
-									org={o.org}
-									ownerType={o.ownerType}
-									savedConfig={findSavedConfig(o.org, p.number)}
-									configsLoaded={!configsLoading}
-									onSave={saveConfig}
+					<AccordionSummary expandIcon={<ExpandMoreRoundedIcon />} sx={{ px: 2 }}>
+						<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1 }}>
+							<FolderRoundedIcon sx={{ color: 'text.secondary', fontSize: 22 }} />
+							<Typography variant="h6" sx={{ fontWeight: 600 }}>
+								{t('repoPaths')}
+							</Typography>
+							<Chip
+								label={t('repoCount', { count: repoPaths.length })}
+								size="small"
+								variant="outlined"
+								sx={{ fontSize: '0.7rem' }}
+							/>
+						</Box>
+					</AccordionSummary>
+					<AccordionDetails sx={{ px: 2, pb: 2 }}>
+						<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+							{t('repoPathsDesc')}
+						</Typography>
+						<Box
+							sx={{
+								display: 'grid',
+								gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+								gap: 1.5,
+							}}
+						>
+							{repoPaths.map((rp) => (
+								<RepoPathCard
+									key={rp.repo_full_name}
+									repoName={rp.repo_full_name}
+									localPath={localPaths[rp.repo_full_name] ?? rp.local_path}
+									onEdit={() => pickDirectory(rp.repo_full_name)}
+									onDelete={() => deletePath(rp.repo_full_name)}
+									isEditing={pickingRepo === rp.repo_full_name}
 								/>
-							)),
+							))}
+							<AddRepoCard
+								onClick={handleAddRepo}
+								disabled={pickingRepo !== null}
+								label={pickingRepo === '__new__' ? t('selecting') : t('addRepo')}
+							/>
+						</Box>
+					</AccordionDetails>
+				</Accordion>
+
+				{/* Accordion: GitHub Projects (collapsed by default) */}
+				<Accordion
+					disableGutters
+					sx={{
+						bgcolor: 'transparent',
+						boxShadow: 'none',
+						'&:before': { display: 'none' },
+						border: 1,
+						borderColor: 'divider',
+						borderRadius: '8px !important',
+						overflow: 'hidden',
+					}}
+				>
+					<AccordionSummary expandIcon={<ExpandMoreRoundedIcon />} sx={{ px: 2 }}>
+						<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1 }}>
+							<GitHubIcon sx={{ color: 'text.secondary', fontSize: 22 }} />
+							<Typography variant="h6" sx={{ fontWeight: 600 }}>
+								{t('githubProjects')}
+							</Typography>
+							{configs.filter((c) => c.connected).length > 0 && (
+								<Chip
+									label={t('connectedCount', {
+										count: configs.filter((c) => c.connected).length,
+									})}
+									size="small"
+									color="primary"
+									variant="outlined"
+									sx={{ fontSize: '0.7rem' }}
+								/>
+							)}
+						</Box>
+					</AccordionSummary>
+					<AccordionDetails sx={{ px: 2, pb: 2 }}>
+						<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+							{t('selectViewsDesc')}
+						</Typography>
+
+						{error && (
+							<Alert severity="error" sx={{ mb: 2, borderRadius: 1 }}>
+								{error}
+							</Alert>
 						)}
 
-						{totalConfigured > 0 && (
-							<Box>
-								<Button
-									variant="outlined"
-									color="error"
-									size="small"
-									onClick={clearConfig}
-									sx={{ textTransform: 'none' }}
-								>
-									{t('clearAll')}
-								</Button>
+						{loadingProjects && (
+							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+								<Skeleton
+									variant="rounded"
+									height={44}
+									sx={{ borderRadius: 1.5 }}
+								/>
+								<Skeleton
+									variant="rounded"
+									height={44}
+									sx={{ borderRadius: 1.5 }}
+								/>
+								<Skeleton
+									variant="rounded"
+									height={44}
+									sx={{ borderRadius: 1.5 }}
+								/>
 							</Box>
 						)}
-					</Box>
-				)}
+
+						{!loadingProjects && orgProjects.length === 0 && !error && (
+							<Alert severity="info" sx={{ borderRadius: 1 }}>
+								{t('noProjectsFound')}
+							</Alert>
+						)}
+
+						{!loadingProjects && orgProjects.length > 0 && (
+							<ProjectList
+								orgProjects={orgProjects}
+								configs={configs}
+								configsLoading={configsLoading}
+								onSave={saveConfig}
+								onClearAll={clearConfig}
+							/>
+						)}
+					</AccordionDetails>
+				</Accordion>
 			</Box>
 
 			<Dialog

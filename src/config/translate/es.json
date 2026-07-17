@@ -140,7 +140,14 @@
 		"createPrPrompt": "Prompt Crear PR",
 		"createPrPromptDesc": "Mensaje enviado al agente al pulsar «Crear PR». El agente lo lee y realiza el trabajo (commit, push, abrir la PR).",
 		"createPrPromptSave": "Guardar",
-		"createPrPromptSaved": "Prompt guardado"
+		"createPrPromptSaved": "Prompt guardado",
+		"filterProjects": "Filtrar proyectos...",
+		"connected": "Conectado",
+		"notConnected": "No conectado",
+		"noProjectsMatch": "Ningún proyecto coincide con el filtro.",
+		"connectedCount": "{count, plural, one {# conectado} other {# conectados}}",
+		"repoCount": "{count, plural, one {# repositorio} other {# repositorios}}",
+		"loadViewsError": "Error al cargar las vistas"
 	},
 	"header": {
 		"themeSelector": "Tema",
