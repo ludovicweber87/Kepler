@@ -1,15 +1,28 @@
 'use client';
 
-import { createTheme, alpha, type PaletteMode } from '@mui/material/styles';
+import { createTheme, alpha, lighten, darken, type PaletteMode } from '@mui/material/styles';
+import {
+	appFontStack,
+	DEFAULT_CUSTOM_TOKENS,
+	type CustomThemeTokens,
+	type ThemePrefs,
+} from '@/lib/themePrefs';
 
-export type ThemeVariant = 'dark' | 'light-warm' | 'light-solarized' | 'light-near-white';
+export type ThemeVariant =
+	| 'dark'
+	| 'light-warm'
+	| 'light-solarized'
+	| 'light-near-white'
+	| 'custom';
 
-export const THEME_VARIANTS: ThemeVariant[] = [
+export const PRESET_VARIANTS: ThemeVariant[] = [
 	'dark',
 	'light-warm',
 	'light-solarized',
 	'light-near-white',
 ];
+
+export const THEME_VARIANTS: ThemeVariant[] = [...PRESET_VARIANTS, 'custom'];
 
 export const DEFAULT_THEME_VARIANT: ThemeVariant = 'dark';
 
@@ -19,6 +32,7 @@ export const THEME_VARIANT_SWATCH: Record<ThemeVariant, [string, string]> = {
 	'light-warm': ['#5E4FA6', '#3F6D5A'],
 	'light-solarized': ['#1E6FA8', '#1B7A72'],
 	'light-near-white': ['#6E5FB0', '#4F7D6B'],
+	custom: ['#7C5CFF', '#00D4FF'],
 };
 
 type ColorShades = { main: string; light: string; dark: string };
@@ -44,7 +58,7 @@ interface VariantTokens {
 	};
 }
 
-const TOKENS: Record<ThemeVariant, VariantTokens> = {
+const TOKENS: Record<Exclude<ThemeVariant, 'custom'>, VariantTokens> = {
 	dark: {
 		mode: 'dark',
 		chipStyle: 'filled',
@@ -123,9 +137,47 @@ const TOKENS: Record<ThemeVariant, VariantTokens> = {
 	},
 };
 
-export function getTheme(variant: ThemeVariant) {
-	const t = TOKENS[variant] ?? TOKENS[DEFAULT_THEME_VARIANT];
+function tokensFromCustom(c: CustomThemeTokens): VariantTokens {
+	return {
+		mode: c.mode,
+		chipStyle: 'filled',
+		primary: { main: c.primary, light: lighten(c.primary, 0.2), dark: darken(c.primary, 0.15) },
+		secondary: {
+			main: c.secondary,
+			light: lighten(c.secondary, 0.2),
+			dark: darken(c.secondary, 0.15),
+		},
+		error: c.error,
+		warning: c.warning,
+		success: c.success,
+		info: c.info,
+		background: { default: c.backgroundDefault, paper: c.backgroundPaper },
+		text: { primary: c.textPrimary, secondary: c.textSecondary },
+		divider: c.divider,
+		surfaces: {
+			cardHover: c.cardHover,
+			cardBorderHover: c.cardBorderHover,
+			drawer: c.drawer,
+			drawerBorder: c.drawerBorder,
+		},
+	};
+}
+
+function tokensToCustom(): CustomThemeTokens {
+	return DEFAULT_CUSTOM_TOKENS;
+}
+
+export function getTheme(variant: ThemeVariant, prefs?: ThemePrefs) {
+	const t =
+		variant === 'custom'
+			? tokensFromCustom(prefs?.customTokens ?? tokensToCustom())
+			: (TOKENS[variant] ?? TOKENS[DEFAULT_THEME_VARIANT as Exclude<ThemeVariant, 'custom'>]);
 	const tinted = t.chipStyle === 'tinted';
+
+	const fontFamily = prefs
+		? `${appFontStack(prefs.appFont)}`
+		: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif';
+	const fontSize = prefs?.appFontSize ?? 12;
 
 	return createTheme({
 		palette: {
@@ -141,8 +193,8 @@ export function getTheme(variant: ThemeVariant) {
 			divider: t.divider,
 		},
 		typography: {
-			fontSize: 12,
-			fontFamily: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif',
+			fontSize,
+			fontFamily,
 			h4: {
 				fontWeight: 700,
 				letterSpacing: '-0.02em',

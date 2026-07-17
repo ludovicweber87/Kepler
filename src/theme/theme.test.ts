@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { getTheme, THEME_VARIANTS, DEFAULT_THEME_VARIANT, type ThemeVariant } from './theme';
+import {
+	getTheme,
+	THEME_VARIANTS,
+	PRESET_VARIANTS,
+	DEFAULT_THEME_VARIANT,
+	type ThemeVariant,
+} from './theme';
 import { resolveStoredVariant } from '@/hooks/useColorMode';
+import { DEFAULT_THEME_PREFS } from '@/lib/themePrefs';
 
 /** Relative luminance per WCAG 2.1. */
 function luminance(hex: string): number {
@@ -18,7 +25,7 @@ function contrast(a: string, b: string): number {
 }
 
 const AA = 4.5;
-const LIGHT_VARIANTS: ThemeVariant[] = THEME_VARIANTS.filter((v) => v !== 'dark');
+const LIGHT_VARIANTS: ThemeVariant[] = PRESET_VARIANTS.filter((v) => v !== 'dark');
 
 describe('getTheme', () => {
 	it('maps each variant to the expected palette mode', () => {
@@ -34,7 +41,7 @@ describe('getTheme', () => {
 	});
 
 	it('keeps body text readable (AA) on both surfaces for every variant', () => {
-		for (const v of THEME_VARIANTS) {
+		for (const v of PRESET_VARIANTS) {
 			const { palette } = getTheme(v);
 			for (const surface of [palette.background.paper, palette.background.default]) {
 				expect(contrast(palette.text.primary, surface)).toBeGreaterThanOrEqual(AA);
@@ -79,5 +86,42 @@ describe('resolveStoredVariant', () => {
 
 	it('falls back for unknown values', () => {
 		expect(resolveStoredVariant('garbage')).toBe(DEFAULT_THEME_VARIANT);
+	});
+});
+
+describe('getTheme custom variant', () => {
+	it('defaults to the dark seed when no prefs are given', () => {
+		const theme = getTheme('custom');
+		expect(theme.palette.mode).toBe('dark');
+		expect(theme.palette.primary.main).toBe(DEFAULT_THEME_PREFS.customTokens.primary);
+	});
+
+	it('applies the provided custom tokens and mode', () => {
+		const prefs = {
+			...DEFAULT_THEME_PREFS,
+			customTokens: {
+				...DEFAULT_THEME_PREFS.customTokens,
+				mode: 'light' as const,
+				primary: '#112233',
+				backgroundPaper: '#FFFFFF',
+			},
+		};
+		const theme = getTheme('custom', prefs);
+		expect(theme.palette.mode).toBe('light');
+		expect(theme.palette.primary.main).toBe('#112233');
+		expect(theme.palette.background.paper).toBe('#FFFFFF');
+	});
+
+	it('derives distinct light/dark shades for primary', () => {
+		const theme = getTheme('custom');
+		expect(theme.palette.primary.light).not.toBe(theme.palette.primary.main);
+		expect(theme.palette.primary.dark).not.toBe(theme.palette.primary.main);
+	});
+
+	it('applies app typography prefs to any variant', () => {
+		const prefs = { ...DEFAULT_THEME_PREFS, appFont: 'Inter', appFontSize: 15 };
+		const theme = getTheme('dark', prefs);
+		expect(theme.typography.fontFamily).toContain('Inter');
+		expect(theme.typography.fontSize).toBe(15);
 	});
 });
