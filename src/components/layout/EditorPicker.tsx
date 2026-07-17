@@ -1,11 +1,16 @@
 'use client';
 
 import type { ComponentType } from 'react';
+import { useState } from 'react';
 import Box from '@mui/material/Box';
-import Select from '@mui/material/Select';
+import Button from '@mui/material/Button';
+import ButtonGroup from '@mui/material/ButtonGroup';
+import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
-import { alpha, useTheme } from '@mui/material/styles';
+import Tooltip from '@mui/material/Tooltip';
+import ArrowDropDownRoundedIcon from '@mui/icons-material/ArrowDropDownRounded';
 import CodeRoundedIcon from '@mui/icons-material/CodeRounded';
+import { alpha, useTheme } from '@mui/material/styles';
 import { useTranslations } from 'next-intl';
 import {
 	SiCursor,
@@ -47,15 +52,15 @@ function EditorIcon({ id }: { id: string | null }) {
 	);
 }
 
-const PLACEHOLDER = '__none__';
-
 export default function EditorPicker({ worktreePath }: { worktreePath: string }) {
 	const theme = useTheme();
 	const t = useTranslations('header');
 	const { showSnackbar } = useSnackbar();
 	const { value: preferred, save } = useAppSetting('preferred_editor');
 
-	const selected = preferred && getEditorById(preferred) ? preferred : PLACEHOLDER;
+	const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+
+	const current = preferred && getEditorById(preferred) ? getEditorById(preferred) : undefined;
 
 	const openInEditor = (id: string) => {
 		const editor = getEditorById(id);
@@ -66,10 +71,7 @@ export default function EditorPicker({ worktreePath }: { worktreePath: string })
 			body: JSON.stringify({ app: editor.appName, path: worktreePath }),
 		})
 			.then(async (res) => {
-				if (res.ok) {
-					save(id).catch(() => {});
-					return;
-				}
+				if (res.ok) return;
 				const data = (await res.json().catch(() => null)) as { code?: string } | null;
 				showSnackbar(
 					data?.code === 'editor_not_found'
@@ -81,47 +83,71 @@ export default function EditorPicker({ worktreePath }: { worktreePath: string })
 			.catch(() => showSnackbar(t('editorOpenError'), 'error'));
 	};
 
+	const handleSelect = (id: string) => {
+		save(id).catch(() => {});
+		setAnchorEl(null);
+	};
+
 	return (
-		<Select
-			value={selected}
-			onChange={(e) => openInEditor(e.target.value as string)}
-			size="small"
-			aria-label={t('openInEditor')}
-			renderValue={(value) => {
-				const editor = getEditorById(value as string);
-				return (
-					<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-						<EditorIcon id={editor?.id ?? null} />
-						{editor ? editor.label : t('openInEditor')}
+		<>
+			<ButtonGroup
+				variant="outlined"
+				size="small"
+				aria-label={t('openInEditor')}
+				sx={{
+					bgcolor: 'background.paper',
+					borderRadius: 2,
+					'& .MuiButtonGroup-grouped': {
+						borderColor: 'divider',
+						color: 'text.primary',
+						minWidth: 0,
+						py: 0.5,
+						'&:hover': {
+							borderColor: alpha(theme.palette.primary.main, 0.5),
+							bgcolor: alpha(theme.palette.primary.main, 0.08),
+						},
+					},
+				}}
+			>
+				<Tooltip title={current ? current.label : t('openInEditor')}>
+					<Box component="span" sx={{ display: 'inline-flex' }}>
+						<Button
+							onClick={() => current && openInEditor(current.id)}
+							disabled={!current}
+							aria-label={current ? current.label : t('openInEditor')}
+							sx={{ px: 1.25 }}
+						>
+							<EditorIcon id={current?.id ?? null} />
+						</Button>
 					</Box>
-				);
-			}}
-			sx={{
-				color: 'text.primary',
-				fontSize: '0.75rem',
-				bgcolor: 'background.paper',
-				borderRadius: 2,
-				'& .MuiSelect-select': {
-					py: 0.75,
-					pl: 1.25,
-					display: 'flex',
-					alignItems: 'center',
-				},
-				'& .MuiOutlinedInput-notchedOutline': {
-					borderColor: 'divider',
-				},
-				'&:hover .MuiOutlinedInput-notchedOutline': {
-					borderColor: alpha(theme.palette.primary.main, 0.5),
-				},
-			}}
-		>
-			<MenuItem value={PLACEHOLDER} sx={{ display: 'none' }} />
-			{EDITORS.map((editor) => (
-				<MenuItem key={editor.id} value={editor.id} sx={{ fontSize: '0.75rem', gap: 1 }}>
-					<EditorIcon id={editor.id} />
-					{editor.label}
-				</MenuItem>
-			))}
-		</Select>
+				</Tooltip>
+				<Button
+					onClick={(e) => setAnchorEl(e.currentTarget)}
+					aria-label={t('openInEditor')}
+					sx={{ px: 0.5 }}
+				>
+					<ArrowDropDownRoundedIcon sx={{ fontSize: 18 }} />
+				</Button>
+			</ButtonGroup>
+			<Menu
+				anchorEl={anchorEl}
+				open={Boolean(anchorEl)}
+				onClose={() => setAnchorEl(null)}
+				anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+				transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+			>
+				{EDITORS.map((editor) => (
+					<MenuItem
+						key={editor.id}
+						selected={editor.id === current?.id}
+						onClick={() => handleSelect(editor.id)}
+						sx={{ fontSize: '0.75rem', gap: 1 }}
+					>
+						<EditorIcon id={editor.id} />
+						{editor.label}
+					</MenuItem>
+				))}
+			</Menu>
+		</>
 	);
 }
