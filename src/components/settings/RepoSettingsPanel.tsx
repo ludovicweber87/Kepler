@@ -32,8 +32,14 @@ export default function RepoSettingsPanel({ repoFullName }: { repoFullName: stri
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isLoading, repoFullName]);
 
-	const persist = async (patch: Parameters<typeof save>[0]) => {
-		await save(patch);
+	const handleSave = async () => {
+		await save({
+			create_pr_prompt: prPrompt,
+			files_to_copy: filesToCopy,
+			setup_script: setupScript,
+			setup_script_name: setupScriptName,
+			archive_script: archiveScript,
+		});
 		showSnackbar(t('saved'), 'success');
 	};
 
@@ -68,14 +74,6 @@ export default function RepoSettingsPanel({ repoFullName }: { repoFullName: stri
 					placeholder={DEFAULT_CREATE_PR_PROMPT}
 					onChange={(e) => setPrPrompt(e.target.value)}
 				/>
-				<Button
-					sx={{ mt: 1 }}
-					variant="contained"
-					disabled={isSaving}
-					onClick={() => persist({ create_pr_prompt: prPrompt })}
-				>
-					{t('save')}
-				</Button>
 			</Box>
 
 			{/* Files to copy */}
@@ -94,14 +92,6 @@ export default function RepoSettingsPanel({ repoFullName }: { repoFullName: stri
 					onChange={(e) => setFilesToCopy(e.target.value)}
 					placeholder={'.env\n.env.local'}
 				/>
-				<Button
-					sx={{ mt: 1 }}
-					variant="contained"
-					disabled={isSaving}
-					onClick={() => persist({ files_to_copy: filesToCopy })}
-				>
-					{t('save')}
-				</Button>
 			</Box>
 
 			{/* Setup script */}
@@ -130,16 +120,6 @@ export default function RepoSettingsPanel({ repoFullName }: { repoFullName: stri
 					onChange={(e) => setSetupScript(e.target.value)}
 					placeholder="pnpm install"
 				/>
-				<Button
-					sx={{ mt: 1 }}
-					variant="contained"
-					disabled={isSaving}
-					onClick={() =>
-						persist({ setup_script: setupScript, setup_script_name: setupScriptName })
-					}
-				>
-					{t('save')}
-				</Button>
 			</Box>
 
 			{/* Archive script */}
@@ -157,12 +137,10 @@ export default function RepoSettingsPanel({ repoFullName }: { repoFullName: stri
 					value={archiveScript}
 					onChange={(e) => setArchiveScript(e.target.value)}
 				/>
-				<Button
-					sx={{ mt: 1 }}
-					variant="contained"
-					disabled={isSaving}
-					onClick={() => persist({ archive_script: archiveScript })}
-				>
+			</Box>
+
+			<Box>
+				<Button variant="contained" disabled={isSaving} onClick={handleSave}>
 					{t('save')}
 				</Button>
 			</Box>
