@@ -29,8 +29,7 @@ export default function AppearanceSettings() {
 	// Seed the draft from saved prefs once (localStorage is populated at first paint).
 	useEffect(() => {
 		setDraft(prefs);
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+	}, [prefs]);
 
 	// Revert any unsaved live preview when leaving the panel.
 	useEffect(() => () => resetPreview(), [resetPreview]);
@@ -123,6 +122,7 @@ export default function AppearanceSettings() {
 									component="input"
 									type="color"
 									value={draft.customTokens[key]}
+									aria-label={t(`colors.${key}`)}
 									onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
 										setColor(key, e.target.value)
 									}
