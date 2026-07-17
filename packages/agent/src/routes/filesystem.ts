@@ -1,8 +1,8 @@
 import { IncomingMessage, ServerResponse } from 'node:http';
-import { execSync } from 'node:child_process';
+import { execSync, execFileSync } from 'node:child_process';
 import { openSync, readSync, closeSync, statSync } from 'node:fs';
 import { isAbsolute, join } from 'node:path';
-import { sendJson, parseQuery } from '../helpers.js';
+import { sendJson, parseQuery, readBody } from '../helpers.js';
 
 const MAX_BYTES = 1024 * 1024; // 1 Mo
 
@@ -61,6 +61,43 @@ export async function handleFilesystemRoutes(
 			sendJson(res, { content: buf.toString('utf-8'), truncated, path: abs });
 		} catch (err) {
 			sendJson(res, { error: err instanceof Error ? err.message : 'read failed' }, 404);
+		}
+		return;
+	}
+
+	// ── Open a path in a desktop editor (macOS `open -a`) ──
+
+	if (path === '/filesystem/open-in-editor' && method === 'POST') {
+		let body: { app?: string; path?: string };
+		try {
+			body = await readBody(req);
+		} catch {
+			sendJson(res, { error: 'invalid body' }, 400);
+			return;
+		}
+		const app = (body.app ?? '').trim();
+		const target = (body.path ?? '').trim();
+		if (!app || !target || !isAbsolute(target)) {
+			sendJson(res, { error: 'app and absolute path required' }, 400);
+			return;
+		}
+		try {
+			const st = statSync(target);
+			if (!st.isDirectory() && !st.isFile()) {
+				sendJson(res, { error: 'path not found' }, 404);
+				return;
+			}
+		} catch {
+			sendJson(res, { error: 'path not found' }, 404);
+			return;
+		}
+		try {
+			// execFile (no shell) → app/target are args, not interpolated into a command.
+			execFileSync('open', ['-a', app, target], { timeout: 15000 });
+			sendJson(res, { ok: true });
+		} catch {
+			// `open -a` exits non-zero when the application bundle is not installed.
+			sendJson(res, { error: 'editor not found', code: 'editor_not_found' }, 404);
 		}
 		return;
 	}

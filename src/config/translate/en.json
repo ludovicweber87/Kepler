@@ -171,7 +171,10 @@
 		"themeLightSolarized": "Light — Solarized",
 		"themeLightNearWhite": "Light — Bright",
 		"hideAgents": "Hide workers",
-		"showAgents": "Show workers"
+		"showAgents": "Show workers",
+		"openInEditor": "Open in editor…",
+		"editorNotInstalled": "{editor} is not installed",
+		"editorOpenError": "Unable to open the editor"
 	},
 	"common": {
 		"loading": "Loading...",

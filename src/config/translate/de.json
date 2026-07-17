@@ -149,7 +149,10 @@
 		"themeLightSolarized": "Hell — Solarized",
 		"themeLightNearWhite": "Hell — Klar",
 		"hideAgents": "Workers ausblenden",
-		"showAgents": "Workers einblenden"
+		"showAgents": "Workers einblenden",
+		"openInEditor": "Öffnen in…",
+		"editorNotInstalled": "{editor} ist nicht installiert",
+		"editorOpenError": "Editor konnte nicht geöffnet werden"
 	},
 	"common": {
 		"loading": "Wird geladen...",

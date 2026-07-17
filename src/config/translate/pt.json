@@ -150,7 +150,10 @@
 		"themeLightSolarized": "Claro — Solarized",
 		"themeLightNearWhite": "Claro — Brilhante",
 		"hideAgents": "Ocultar workers",
-		"showAgents": "Mostrar workers"
+		"showAgents": "Mostrar workers",
+		"openInEditor": "Abrir em…",
+		"editorNotInstalled": "{editor} não está instalado",
+		"editorOpenError": "Não foi possível abrir o editor"
 	},
 	"common": {
 		"loading": "Carregando...",
