@@ -149,7 +149,10 @@
 		"themeLightSolarized": "Hell — Solarized",
 		"themeLightNearWhite": "Hell — Klar",
 		"hideAgents": "Workers ausblenden",
-		"showAgents": "Workers einblenden"
+		"showAgents": "Workers einblenden",
+		"openInEditor": "Öffnen in…",
+		"editorNotInstalled": "{editor} ist nicht installiert",
+		"editorOpenError": "Editor konnte nicht geöffnet werden"
 	},
 	"common": {
 		"loading": "Wird geladen...",
@@ -312,7 +315,9 @@
 		"questionSkip": "Überspringen",
 		"questionBack": "Zurück",
 		"questionNext": "Weiter",
-		"questionSubmit": "Bestätigen"
+		"questionSubmit": "Bestätigen",
+		"queuedHint": "Wird nach der aktuellen Antwort gesendet",
+		"cancelQueued": "Wartende Nachricht abbrechen"
 	},
 	"archived": {
 		"title": "Archivierte Sitzungen",

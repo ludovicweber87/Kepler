@@ -7,9 +7,13 @@ import Box from '@mui/material/Box';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import { alpha, useTheme } from '@mui/material/styles';
+import { useSearchParams } from 'next/navigation';
 import { SIDEBAR_WIDTH } from './Sidebar';
+import EditorPicker from './EditorPicker';
 import { useColorMode } from '@/hooks/useColorMode';
 import { THEME_VARIANTS, THEME_VARIANT_SWATCH, type ThemeVariant } from '@/theme/theme';
+import { useAgentSession, useAgentSessionHistory } from '@/hooks/useAgentSession';
+import { classifySession } from '@/lib/sessionStatus';
 import { useTranslations } from 'next-intl';
 
 const VARIANT_LABEL_KEY: Record<ThemeVariant, string> = {
@@ -42,6 +46,14 @@ export default function Header() {
 	const { variant, setVariant } = useColorMode();
 	const t = useTranslations('header');
 
+	const searchParams = useSearchParams();
+	const sessionId = searchParams.get('session') ?? undefined;
+	const { session } = useAgentSession(sessionId);
+	const { data: allSessions = [] } = useAgentSessionHistory();
+	const resolved = session ?? allSessions.find((s) => s.session_id === sessionId) ?? null;
+	const activeWorktree =
+		resolved && classifySession(resolved) === 'active' ? resolved.worktree_path : null;
+
 	return (
 		<AppBar
 			position="fixed"
@@ -58,6 +70,9 @@ export default function Header() {
 		>
 			<Toolbar sx={{ px: { xs: 2, md: 4 }, py: 0.5, justifyContent: 'flex-end' }}>
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+					{/* Open worktree in editor (worktree actif uniquement) */}
+					{activeWorktree && <EditorPicker worktreePath={activeWorktree} />}
+
 					{/* Theme picker */}
 					<Select
 						value={variant}

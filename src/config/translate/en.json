@@ -171,7 +171,10 @@
 		"themeLightSolarized": "Light — Solarized",
 		"themeLightNearWhite": "Light — Bright",
 		"hideAgents": "Hide workers",
-		"showAgents": "Show workers"
+		"showAgents": "Show workers",
+		"openInEditor": "Open in editor…",
+		"editorNotInstalled": "{editor} is not installed",
+		"editorOpenError": "Unable to open the editor"
 	},
 	"common": {
 		"loading": "Loading...",
@@ -334,7 +337,9 @@
 		"questionSkip": "Skip",
 		"questionBack": "Back",
 		"questionNext": "Next",
-		"questionSubmit": "Submit"
+		"questionSubmit": "Submit",
+		"queuedHint": "Will be sent after the current response",
+		"cancelQueued": "Cancel queued message"
 	},
 	"archived": {
 		"title": "Archived sessions",

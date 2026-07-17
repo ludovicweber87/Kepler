@@ -171,7 +171,10 @@
 		"themeLightSolarized": "Clair — Solarized",
 		"themeLightNearWhite": "Clair — Éclatant",
 		"hideAgents": "Masquer workers",
-		"showAgents": "Afficher workers"
+		"showAgents": "Afficher workers",
+		"openInEditor": "Ouvrir dans…",
+		"editorNotInstalled": "{editor} n'est pas installé",
+		"editorOpenError": "Impossible d'ouvrir l'éditeur"
 	},
 	"common": {
 		"loading": "Chargement...",
@@ -334,7 +337,9 @@
 		"questionSkip": "Passer",
 		"questionBack": "Précédent",
 		"questionNext": "Suivant",
-		"questionSubmit": "Valider"
+		"questionSubmit": "Valider",
+		"queuedHint": "Sera envoyé après la réponse en cours",
+		"cancelQueued": "Annuler le message en attente"
 	},
 	"archived": {
 		"title": "Sessions archivées",
