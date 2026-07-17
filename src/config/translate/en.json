@@ -162,7 +162,14 @@
 		"createPrPrompt": "Create PR prompt",
 		"createPrPromptDesc": "Message sent to the agent when you click “Create PR”. The agent reads it and does the work (commit, push, open the PR).",
 		"createPrPromptSave": "Save",
-		"createPrPromptSaved": "Prompt saved"
+		"createPrPromptSaved": "Prompt saved",
+		"filterProjects": "Filter projects...",
+		"connected": "Connected",
+		"notConnected": "Not connected",
+		"noProjectsMatch": "No project matches the filter.",
+		"connectedCount": "{count} connected",
+		"repoCount": "{count, plural, one {# repo} other {# repos}}",
+		"loadViewsError": "Failed to load views"
 	},
 	"header": {
 		"themeSelector": "Theme",
