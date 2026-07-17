@@ -194,6 +194,7 @@ const ShellTerminal = forwardRef<ShellTerminalHandle, ShellTerminalProps>(functi
 			fitAddonRef.current = null;
 			initialized.current = false;
 		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [node, ready, cwd, shellSessionId]);
 
 	// Applique le thème à la volée quand le mode clair/sombre change,

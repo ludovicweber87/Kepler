@@ -149,6 +149,7 @@ export default function OverlayTerminal() {
 			wsRef.current = null;
 			fitAddonRef.current = null;
 		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [session, termNode]);
 
 	// Applique police/taille à la volée quand les préférences changent.
