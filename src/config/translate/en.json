@@ -337,7 +337,9 @@
 		"questionSkip": "Skip",
 		"questionBack": "Back",
 		"questionNext": "Next",
-		"questionSubmit": "Submit"
+		"questionSubmit": "Submit",
+		"queuedHint": "Will be sent after the current response",
+		"cancelQueued": "Cancel queued message"
 	},
 	"archived": {
 		"title": "Archived sessions",

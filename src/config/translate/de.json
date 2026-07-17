@@ -315,7 +315,9 @@
 		"questionSkip": "Überspringen",
 		"questionBack": "Zurück",
 		"questionNext": "Weiter",
-		"questionSubmit": "Bestätigen"
+		"questionSubmit": "Bestätigen",
+		"queuedHint": "Wird nach der aktuellen Antwort gesendet",
+		"cancelQueued": "Wartende Nachricht abbrechen"
 	},
 	"archived": {
 		"title": "Archivierte Sitzungen",

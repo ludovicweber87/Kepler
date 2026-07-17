@@ -315,7 +315,9 @@
 		"questionSkip": "Omitir",
 		"questionBack": "Atrás",
 		"questionNext": "Siguiente",
-		"questionSubmit": "Enviar"
+		"questionSubmit": "Enviar",
+		"queuedHint": "Se enviará tras la respuesta actual",
+		"cancelQueued": "Cancelar mensaje en cola"
 	},
 	"archived": {
 		"title": "Sesiones archivadas",

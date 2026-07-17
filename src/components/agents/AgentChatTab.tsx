@@ -13,6 +13,7 @@ import ChatPermissionCard from './chat/ChatPermissionCard';
 import ChatQuestionCard from './chat/ChatQuestionCard';
 import ChatComposer from './chat/ChatComposer';
 import ChatPending from './chat/ChatPending';
+import ChatQueued from './chat/ChatQueued';
 
 interface Props {
 	sessionId: string;
@@ -89,7 +90,7 @@ export default function AgentChatTab({
 		if (!el) return;
 		const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
 		if (nearBottom) el.scrollTop = el.scrollHeight;
-	}, [chat.messages, chat.pendingPermissions, chat.pendingQuestions]);
+	}, [chat.messages, chat.pendingPermissions, chat.pendingQuestions, chat.queued]);
 
 	// Fin de tour de l'agent (busy → idle) : signale au parent pour rafraîchir le diff.
 	useEffect(() => {
@@ -164,6 +165,9 @@ export default function AgentChatTab({
 					<ChatQuestionCard key={q.id} question={q} onSubmit={chat.resolveQuestion} />
 				))}
 				{showPending && <ChatPending />}
+				{chat.queued.map((q) => (
+					<ChatQueued key={q.id} message={q} onCancel={chat.cancelQueued} />
+				))}
 			</Box>
 			{readOnly ? (
 				<Box
@@ -192,7 +196,11 @@ export default function AgentChatTab({
 			) : (
 				<>
 					<ChatComposer
-						disabled={chat.status !== 'idle'}
+						disabled={
+							chat.status === 'connecting' ||
+							chat.status === 'closed' ||
+							chat.status === 'error'
+						}
 						busy={busy}
 						model={chat.model}
 						effort={chat.effort}

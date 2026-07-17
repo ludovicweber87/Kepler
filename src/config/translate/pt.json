@@ -316,7 +316,9 @@
 		"questionSkip": "Pular",
 		"questionBack": "Voltar",
 		"questionNext": "Próximo",
-		"questionSubmit": "Enviar"
+		"questionSubmit": "Enviar",
+		"queuedHint": "Será enviado após a resposta atual",
+		"cancelQueued": "Cancelar mensagem na fila"
 	},
 	"archived": {
 		"title": "Sessões arquivadas",

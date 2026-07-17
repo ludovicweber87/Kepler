@@ -157,6 +157,14 @@ export default function ChatComposer({
 					disabled={disabled}
 					sx={{ fontSize: '0.8rem', mb: 1, alignItems: 'flex-start' }}
 				/>
+				{busy && text.trim() && (
+					<Typography
+						variant="caption"
+						sx={{ display: 'block', color: 'text.secondary', mb: 0.5 }}
+					>
+						{t('queuedHint')}
+					</Typography>
+				)}
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
 					<ButtonBase sx={controlSx} onClick={(e) => setModelAnchor(e.currentTarget)}>
 						<AutoAwesomeRoundedIcon sx={{ fontSize: 15 }} />
@@ -219,20 +227,19 @@ export default function ChatComposer({
 					</ButtonBase>
 
 					<Box sx={{ flex: 1 }} />
-					{busy ? (
+					{busy && (
 						<IconButton size="small" color="error" onClick={onStop}>
 							<StopRoundedIcon />
 						</IconButton>
-					) : (
-						<IconButton
-							size="small"
-							color="primary"
-							onClick={submit}
-							disabled={disabled || !text.trim()}
-						>
-							<SendRoundedIcon />
-						</IconButton>
 					)}
+					<IconButton
+						size="small"
+						color="primary"
+						onClick={submit}
+						disabled={disabled || !text.trim()}
+					>
+						<SendRoundedIcon />
+					</IconButton>
 				</Box>
 			</Box>
 		</Box>
