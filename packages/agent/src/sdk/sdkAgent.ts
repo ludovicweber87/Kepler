@@ -6,6 +6,7 @@ import { createPermissionController, type PermissionController, type PendingPerm
 import type { PermissionDecision } from './types.js';
 import * as transcript from './transcriptStore.js';
 import { deriveLogs } from './activityDeriver.js';
+import { summarizeTurn } from './turnSummarizer.js';
 import { getDb } from '../db.js';
 import { randomUUID } from 'node:crypto';
 import { saveAttachment, extForMediaType } from './attachments.js';
@@ -35,6 +36,7 @@ interface SessionState {
   seq: number;
   cwd: string;
   createdAt: number;
+  turnActions: string[];
 }
 
 export interface ActiveSdkSession { sessionId: string; cwd: string; createdAt: number; busy: boolean }
@@ -87,7 +89,23 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
             : ev.event === 'thinking' || ev.event === 'assistant' || ev.event === 'tool_use' ? 'assistant'
             : 'system';
           transcript.appendEvent(sessionId, seq, role, ev);
-          for (const log of deriveLogs(ev)) writeActivityLog(sessionId, log.log_type, log.content);
+          for (const log of deriveLogs(ev)) {
+            writeActivityLog(sessionId, log.log_type, log.content);
+            if (log.log_type === 'file_change' || log.log_type === 'commit' || log.log_type === 'info') {
+              (s.turnActions ??= []).push(`${log.log_type}: ${log.content}`);
+            }
+          }
+          if (ev.event === 'result') {
+            const actions = s.turnActions ?? [];
+            s.turnActions = [];
+            if (!ev.data.is_error) {
+              const finalText = ev.data.text;
+              // Non bloquant : n'attend pas la synthèse pour rendre la main.
+              void summarizeTurn(finalText, actions).then((sum) =>
+                writeActivityLog(sessionId, 'summary', sum),
+              );
+            }
+          }
           broadcast(s, { type: 'stream-event', seq, ...ev });
         }
       }
@@ -158,6 +176,7 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
         seq: transcript.nextSeq(sessionId),
         cwd: params.cwd,
         createdAt: Date.now(),
+        turnActions: [],
       };
       const options: Record<string, unknown> = {
         cwd: params.cwd,

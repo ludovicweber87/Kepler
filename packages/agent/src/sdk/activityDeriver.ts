@@ -24,7 +24,9 @@ export function deriveLogs(event: StreamEvent): { log_type: string; content: str
     return []; // les erreurs d'outil sont visibles dans le chat ; pas de doublon de log ici
   }
   if (event.event === 'result') {
-    return [{ log_type: event.data.is_error ? 'error' : 'summary', content: event.data.text }];
+    // Le résumé concis de fin de tour est produit séparément (turnSummarizer).
+    // Ici on ne remonte que les erreurs.
+    return event.data.is_error ? [{ log_type: 'error', content: event.data.text }] : [];
   }
   return [];
 }
