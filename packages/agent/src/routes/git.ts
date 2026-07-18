@@ -78,10 +78,14 @@ function copyConfiguredFiles(
 
 function localBranchExists(cwd: string, branch: string): boolean {
 	try {
-		execFileSync('git', ['-C', cwd, 'show-ref', '--verify', '--quiet', `refs/heads/${branch}`], {
-			timeout: 5000,
-			stdio: 'ignore',
-		});
+		execFileSync(
+			'git',
+			['-C', cwd, 'show-ref', '--verify', '--quiet', `refs/heads/${branch}`],
+			{
+				timeout: 5000,
+				stdio: 'ignore',
+			},
+		);
 		return true;
 	} catch {
 		return false;
@@ -323,6 +327,46 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 		return;
 	}
 
+	// POST /git/rename-branch — rename a local branch in place (folder untouched)
+	if (path === '/git/rename-branch' && method === 'POST') {
+		try {
+			const { cwd, oldBranch, newBranch } = await readBody<{
+				cwd: string;
+				oldBranch: string;
+				newBranch: string;
+			}>(req);
+			if (!cwd || !oldBranch || !newBranch?.trim())
+				return sendJson(res, { error: 'cwd, oldBranch and newBranch are required' }, 400);
+
+			const target = newBranch.trim();
+			if (target === oldBranch) return sendJson(res, { branch: oldBranch });
+
+			// Validate the new ref name against git's own rules.
+			try {
+				execFileSync('git', ['check-ref-format', '--branch', target], {
+					cwd,
+					stdio: 'ignore',
+					timeout: 10000,
+				});
+			} catch {
+				return sendJson(res, { error: `Invalid branch name: ${target}` }, 400);
+			}
+
+			if (localBranchExists(cwd, target))
+				return sendJson(res, { error: `Branch already exists: ${target}` }, 409);
+
+			execFileSync('git', ['-C', cwd, 'branch', '-m', oldBranch, target], {
+				encoding: 'utf-8',
+				timeout: 10000,
+			});
+
+			sendJson(res, { branch: target });
+		} catch (err) {
+			sendError(res, err instanceof Error ? err.message : 'Failed to rename branch');
+		}
+		return;
+	}
+
 	// GET /git/branches
 	if (path === '/git/branches' && method === 'GET') {
 		const localPath = query.get('path');
@@ -353,11 +397,14 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 
 			let current = '';
 			try {
-				current = execSync(`git -C ${JSON.stringify(localPath)} rev-parse --abbrev-ref HEAD`, {
-					encoding: 'utf-8',
-					timeout: 5_000,
-					stdio: ['pipe', 'pipe', 'ignore'],
-				}).trim();
+				current = execSync(
+					`git -C ${JSON.stringify(localPath)} rev-parse --abbrev-ref HEAD`,
+					{
+						encoding: 'utf-8',
+						timeout: 5_000,
+						stdio: ['pipe', 'pipe', 'ignore'],
+					},
+				).trim();
 			} catch {
 				// ignore
 			}
@@ -377,11 +424,14 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 					// pas de remote / offline
 				}
 				try {
-					const wtRaw = execSync(`git -C ${JSON.stringify(localPath)} worktree list --porcelain`, {
-						encoding: 'utf-8',
-						timeout: 10_000,
-						stdio: ['pipe', 'pipe', 'ignore'],
-					});
+					const wtRaw = execSync(
+						`git -C ${JSON.stringify(localPath)} worktree list --porcelain`,
+						{
+							encoding: 'utf-8',
+							timeout: 10_000,
+							stdio: ['pipe', 'pipe', 'ignore'],
+						},
+					);
 					checkedOut = wtRaw
 						.split('\n')
 						.filter((l) => l.startsWith('branch refs/heads/'))

@@ -16,6 +16,11 @@ import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import TextField from '@mui/material/TextField';
 import Badge from '@mui/material/Badge';
 import { alpha, useTheme } from '@mui/material/styles';
 import MergeTypeRoundedIcon from '@mui/icons-material/MergeTypeRounded';
@@ -27,6 +32,7 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined';
@@ -72,9 +78,9 @@ export default function Sidebar() {
 		return map;
 	}, [allSessions]);
 	const { views } = useAgentViews();
-	const { byPath, deleteWorktree } = useAllWorktrees(views.map((v) => v.path));
+	const { byPath, deleteWorktree, renameBranch } = useAllWorktrees(views.map((v) => v.path));
 	const { mergedForRepo } = useMergedBranches(views.map((v) => v.repoFullName));
-	const { archive, remove } = useSessionActions();
+	const { archive, remove, rename } = useSessionActions();
 	const { repoPaths } = useRepoPaths();
 	const { showSnackbar } = useSnackbar();
 
@@ -113,7 +119,16 @@ export default function Sidebar() {
 		projectPath: string;
 		worktreePath: string;
 		sessionId: string | null;
+		branch: string;
+		currentName: string;
 	} | null>(null);
+	const [renameDialog, setRenameDialog] = useState<{
+		projectPath: string;
+		sessionId: string | null;
+		branch: string;
+		value: string;
+	} | null>(null);
+	const [renameBusy, setRenameBusy] = useState(false);
 	const [modalConfig, setModalConfig] = useState<{
 		projectPath?: string;
 		existingSessionId?: string;
@@ -178,6 +193,29 @@ export default function Sidebar() {
 					'error',
 				),
 			);
+	};
+
+	const handleRename = async () => {
+		if (!renameDialog) return;
+		const { projectPath, sessionId, branch, value } = renameDialog;
+		const name = value.trim();
+		if (!name) return;
+		setRenameBusy(true);
+		try {
+			// A session's display name lives on agent_name; without a session we
+			// rename the underlying git branch (the folder stays untouched).
+			if (sessionId) await rename(sessionId, name);
+			else await renameBranch(projectPath, branch, name);
+			showSnackbar(t('renamed'), 'success');
+			setRenameDialog(null);
+		} catch (err) {
+			showSnackbar(
+				`${t('renameError')}: ${err instanceof Error ? err.message : ''}`,
+				'error',
+			);
+		} finally {
+			setRenameBusy(false);
+		}
 	};
 	const mainItems = [
 		{ label: t('issues'), href: '/issues', icon: <BugReportRoundedIcon /> },
@@ -428,6 +466,17 @@ export default function Sidebar() {
 													return (
 														<Box
 															key={wt.path}
+															onContextMenu={(e) => {
+																e.preventDefault();
+																setActionsMenu({
+																	el: e.currentTarget,
+																	projectPath: view.path,
+																	worktreePath: wt.path,
+																	sessionId: sessionIdForWt,
+																	branch: wt.branch,
+																	currentName: displayName,
+																});
+															}}
 															onClick={() =>
 																wtSession
 																	? router.push(
@@ -528,6 +577,9 @@ export default function Sidebar() {
 																			worktreePath: wt.path,
 																			sessionId:
 																				sessionIdForWt,
+																			branch: wt.branch,
+																			currentName:
+																				displayName,
 																		});
 																	}}
 																	sx={{
@@ -652,6 +704,22 @@ export default function Sidebar() {
 				transformOrigin={{ vertical: 'top', horizontal: 'right' }}
 			>
 				<MenuItem
+					onClick={() => {
+						if (!actionsMenu) return;
+						setRenameDialog({
+							projectPath: actionsMenu.projectPath,
+							sessionId: actionsMenu.sessionId,
+							branch: actionsMenu.branch,
+							value: actionsMenu.currentName,
+						});
+						setActionsMenu(null);
+					}}
+					sx={{ fontSize: '0.8rem', gap: 1 }}
+				>
+					<EditRoundedIcon sx={{ fontSize: 16 }} />
+					{t('rename')}
+				</MenuItem>
+				<MenuItem
 					onClick={handleArchive}
 					disabled={!actionsMenu?.sessionId}
 					sx={{ fontSize: '0.8rem', gap: 1 }}
@@ -693,6 +761,48 @@ export default function Sidebar() {
 					{t('deleteWorktreeAndBranch')}
 				</MenuItem>
 			</Menu>
+
+			<Dialog
+				open={!!renameDialog}
+				onClose={() => (renameBusy ? null : setRenameDialog(null))}
+				maxWidth="xs"
+				fullWidth
+			>
+				<DialogTitle sx={{ fontSize: '1rem' }}>{t('renameWorktreeTitle')}</DialogTitle>
+				<DialogContent>
+					<TextField
+						autoFocus
+						fullWidth
+						size="small"
+						margin="dense"
+						label={t('newNameLabel')}
+						value={renameDialog?.value ?? ''}
+						onChange={(e) =>
+							setRenameDialog((prev) =>
+								prev ? { ...prev, value: e.target.value } : prev,
+							)
+						}
+						onKeyDown={(e) => {
+							if (e.key === 'Enter' && !renameBusy) {
+								e.preventDefault();
+								void handleRename();
+							}
+						}}
+					/>
+				</DialogContent>
+				<DialogActions>
+					<Button onClick={() => setRenameDialog(null)} disabled={renameBusy}>
+						{t('cancel')}
+					</Button>
+					<Button
+						variant="contained"
+						onClick={() => void handleRename()}
+						disabled={renameBusy || !renameDialog?.value.trim()}
+					>
+						{t('rename')}
+					</Button>
+				</DialogActions>
+			</Dialog>
 
 			<AgentTerminalModal
 				open={!!modalConfig}

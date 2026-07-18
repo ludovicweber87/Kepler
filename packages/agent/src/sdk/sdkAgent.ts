@@ -5,6 +5,7 @@ import { mapMessage } from './mapMessage.js';
 import { createPermissionController, type PermissionController, type PendingPermission, type PendingQuestion, type QuestionAnswers } from './permissions.js';
 import type { PermissionDecision } from './types.js';
 import * as transcript from './transcriptStore.js';
+import { extractLastUserText } from './retryLastUser.js';
 import { deriveLogs } from './activityDeriver.js';
 import { summarizeTurn } from './turnSummarizer.js';
 import { getDb } from '../db.js';
@@ -15,7 +16,7 @@ import { saveAttachment, extForMediaType } from './attachments.js';
 import type { ChatImageInput } from './promptQueue.js';
 
 export interface StreamSocket { send(data: string): void; readyState?: number }
-export interface StartParams { cwd: string; systemPrompt?: string; model?: string; effort?: string; permissionMode?: string; resumeClaudeSessionId?: string; mcpServers?: Record<string, unknown> }
+export interface StartParams { cwd: string; systemPrompt?: string; model?: string; effort?: string; permissionMode?: string; resumeClaudeSessionId?: string; mcpServers?: Record<string, unknown>; retryLastUser?: boolean }
 export type QueryFn = typeof realQuery;
 
 interface QueryLike extends AsyncIterable<unknown> {
@@ -75,6 +76,18 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
       pendingPermissions: s.perms.snapshot(),
       pendingQuestions: s.perms.snapshotQuestions(),
     };
+  }
+
+  // Reprise d'un run interrompu : si le dernier event persisté est un message
+  // user resté sans réponse, on re-pousse son texte dans la queue SDK. Pas
+  // d'appendEvent ni de broadcast 'user' → aucune bulle dupliquée (elle est déjà
+  // dans le transcript rejoué). No-op si l'agent est déjà occupé.
+  function maybeRetryLastUser(s: SessionState, history: { seq: number; event: import('./types.js').StreamEvent }[]) {
+    if (s.busy) return;
+    const text = extractLastUserText(history);
+    if (!text) return;
+    s.busy = true;
+    s.queue.push(text);
   }
 
   async function runLoop(sessionId: string, s: SessionState) {
@@ -172,7 +185,9 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
       const existing = sessions.get(sessionId);
       if (existing) {
         existing.clients.add(ws);
-        send(ws, { type: 'stream-history', events: transcript.loadTranscript(sessionId) });
+        const history = transcript.loadTranscript(sessionId);
+        if (params.retryLastUser) maybeRetryLastUser(existing, history);
+        send(ws, { type: 'stream-history', events: history });
         send(ws, readyPayload(existing, true));
         return;
       }
@@ -222,7 +237,9 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
 
       s.q = queryFn({ prompt: queue.iterable, options } as never) as unknown as QueryLike;
       sessions.set(sessionId, s);
-      send(ws, { type: 'stream-history', events: transcript.loadTranscript(sessionId) });
+      const history = transcript.loadTranscript(sessionId);
+      if (params.retryLastUser) maybeRetryLastUser(s, history);
+      send(ws, { type: 'stream-history', events: history });
       send(ws, readyPayload(s, false));
       void runLoop(sessionId, s);
     },

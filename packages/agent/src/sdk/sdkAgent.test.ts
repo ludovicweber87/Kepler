@@ -239,3 +239,58 @@ test('Task 4 : persistClaudeSessionId et writeActivityLog écrivent dans la DB i
     __resetDbForTests();
   }
 });
+
+// Consomme le prompt-iterable du SDK et enregistre le texte de chaque tour user reçu.
+function captureQueryFactory() {
+  const received: string[] = [];
+  const queryFn = ((params: { prompt: AsyncIterable<{ message?: { content?: unknown } }> }) => {
+    async function* gen() {
+      for await (const m of params.prompt) {
+        const content = m?.message?.content;
+        received.push(typeof content === 'string' ? content : JSON.stringify(content));
+      }
+    }
+    const q = gen() as AsyncGenerator<unknown> & Record<string, unknown>;
+    q.interrupt = async () => {}; q.setModel = async () => {}; q.setPermissionMode = async () => {};
+    return q;
+  }) as unknown as QueryFn;
+  return { queryFn, received };
+}
+
+test('reprise: retryLastUser relance le dernier prompt user via la queue, sans dupliquer le transcript', async () => {
+  transcript.appendEvent('sess-retry', 1, 'user', { event: 'user', data: { text: 'continue le travail' } });
+  const { queryFn, received } = captureQueryFactory();
+  const mgr = createSdkAgentManager({ queryFn });
+  const ws = fakeSocket();
+  mgr.startOrAttach('sess-retry', ws, { cwd: '/tmp', retryLastUser: true });
+  await new Promise((r) => setTimeout(r, 30));
+
+  assert.deepEqual(received, ['continue le travail']);
+  // Pas de bulle dupliquée : aucun stream-event 'user' émis, transcript inchangé.
+  const userEvents = ws.messages.filter((m) => m.type === 'stream-event' && m.event === 'user');
+  assert.equal(userEvents.length, 0);
+  const persisted = transcript.loadTranscript('sess-retry');
+  assert.equal(persisted.filter((p) => p.event.event === 'user').length, 1);
+  mgr.stop('sess-retry');
+});
+
+test('reprise: sans le flag retryLastUser, aucun prompt n’est relancé', async () => {
+  transcript.appendEvent('sess-noretry', 1, 'user', { event: 'user', data: { text: 'ne pas relancer' } });
+  const { queryFn, received } = captureQueryFactory();
+  const mgr = createSdkAgentManager({ queryFn });
+  mgr.startOrAttach('sess-noretry', fakeSocket(), { cwd: '/tmp' });
+  await new Promise((r) => setTimeout(r, 30));
+  assert.deepEqual(received, []);
+  mgr.stop('sess-noretry');
+});
+
+test('reprise: retryLastUser mais dernier event = assistant → aucune relance', async () => {
+  transcript.appendEvent('sess-answered', 1, 'user', { event: 'user', data: { text: 'demande' } });
+  transcript.appendEvent('sess-answered', 2, 'assistant', { event: 'assistant', data: { text: 'réponse' } });
+  const { queryFn, received } = captureQueryFactory();
+  const mgr = createSdkAgentManager({ queryFn });
+  mgr.startOrAttach('sess-answered', fakeSocket(), { cwd: '/tmp', retryLastUser: true });
+  await new Promise((r) => setTimeout(r, 30));
+  assert.deepEqual(received, []);
+  mgr.stop('sess-answered');
+});
