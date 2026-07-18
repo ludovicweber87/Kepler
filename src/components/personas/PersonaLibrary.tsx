@@ -115,7 +115,12 @@ export default function PersonaLibrary() {
 										{p.name}
 									</Typography>
 									{p.role && (
-										<Typography noWrap variant="caption" color="text.secondary">
+										<Typography
+											noWrap
+											variant="caption"
+											color="text.secondary"
+											sx={{ display: 'block' }}
+										>
 											{p.role}
 										</Typography>
 									)}
