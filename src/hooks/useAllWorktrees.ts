@@ -66,5 +66,40 @@ export function useAllWorktrees(paths: string[]) {
 		}
 	};
 
-	return { byPath: combined.byPath, isLoading: combined.isLoading, deleteWorktree };
+	const renameBranch = async (cwd: string, oldBranch: string, newBranch: string) => {
+		await queryClient.cancelQueries({ queryKey: ['git-worktrees', cwd] });
+		const previous = queryClient.getQueryData<WorktreeInfo[]>(['git-worktrees', cwd]);
+		queryClient.setQueryData<WorktreeInfo[]>(['git-worktrees', cwd], (old = []) =>
+			old.map((wt) => (wt.branch === oldBranch ? { ...wt, branch: newBranch } : wt)),
+		);
+		try {
+			const res = await localFetch('/git/rename-branch', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ cwd, oldBranch, newBranch }),
+			});
+			if (!res.ok) {
+				let detail = `HTTP ${res.status}`;
+				try {
+					const data = await res.json();
+					if (data?.error) detail = data.error;
+				} catch {
+					/* non-JSON body */
+				}
+				throw new Error(detail);
+			}
+		} catch (err) {
+			if (previous) queryClient.setQueryData(['git-worktrees', cwd], previous);
+			throw err;
+		} finally {
+			queryClient.invalidateQueries({ queryKey: ['git-worktrees', cwd] });
+		}
+	};
+
+	return {
+		byPath: combined.byPath,
+		isLoading: combined.isLoading,
+		deleteWorktree,
+		renameBranch,
+	};
 }
