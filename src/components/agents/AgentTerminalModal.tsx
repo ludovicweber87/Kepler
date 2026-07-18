@@ -529,10 +529,10 @@ export default function AgentTerminalModal({
 	const titleText = agentFile
 		? agentFile.name
 		: issueContext
-			? `Agent — #${issueContext.issueNumber}`
+			? tl('titleWithIssue', { number: issueContext.issueNumber })
 			: existingSessionId
-				? 'Session active'
-				: 'Nouvelle session';
+				? tl('activeSession')
+				: tl('newSession');
 
 	const subtitleText = issueContext?.issueTitle;
 

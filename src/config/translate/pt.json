@@ -131,7 +131,9 @@
 		"merge": "Merge",
 		"squashAndMerge": "Squash and Merge",
 		"merging": "Fazendo merge...",
-		"confirmMerge": "Confirmar Merge"
+		"confirmMerge": "Confirmar Merge",
+		"mergeSuccess": "PR #{number} mesclada",
+		"mergeError": "Falha ao mesclar: {message}"
 	},
 	"settings": {
 		"title": "Configurações",
@@ -149,7 +151,8 @@
 		"noProjectsMatch": "Nenhum projeto corresponde ao filtro.",
 		"connectedCount": "{count, plural, one {# conectado} other {# conectados}}",
 		"repoCount": "{count, plural, one {# repositório} other {# repositórios}}",
-		"loadViewsError": "Falha ao carregar as vistas"
+		"loadViewsError": "Falha ao carregar as vistas",
+		"loadProjectsError": "Falha ao carregar os projetos"
 	},
 	"appearance": {
 		"title": "Aparência",
@@ -224,7 +227,11 @@
 		"refresh5min": "5 min",
 		"refresh10min": "10 min",
 		"refresh1h": "1 h",
-		"refresh24h": "24 h"
+		"refresh24h": "24 h",
+		"someone": "alguém",
+		"notFoundTitle": "Página não encontrada",
+		"notFoundDesc": "A tarefa que procura não existe ou foi eliminada.",
+		"backToDashboard": "Voltar ao painel"
 	},
 	"launchModal": {
 		"selectProject": "Selecionar projeto",
@@ -257,7 +264,10 @@
 		"confirmCloseTitle": "Fechar a sessao?",
 		"confirmCloseBody": "A sessao atual sera encerrada. Voce podera relanca-la mais tarde.",
 		"stopSession": "Parar a sessão",
-		"configurePathFirst": "Configure primeiro a pasta local de {repo} nas Configurações"
+		"configurePathFirst": "Configure primeiro a pasta local de {repo} nas Configurações",
+		"titleWithIssue": "Agente — #{number}",
+		"activeSession": "Sessão ativa",
+		"newSession": "Nova sessão"
 	},
 	"agentActivity": {
 		"reportTitle": "Relatório do agente",
@@ -297,7 +307,11 @@
 		"createBranchDesc": "Crie uma branch a partir de uma issue para comecar.",
 		"deleteBranch": "Excluir {branch}",
 		"worktreeOnly": "Apenas worktree",
-		"worktreeAndBranch": "Worktree + branch"
+		"worktreeAndBranch": "Worktree + branch",
+		"startAgent": "Iniciar agente",
+		"agentSessions": "Sessões de agente",
+		"commits": "Commits",
+		"noCommits": "Nenhum commit encontrado"
 	},
 	"sessionCard": {
 		"active": "Ativo",
@@ -319,7 +333,26 @@
 		"send": "Enviar",
 		"editComment": "Editar comentario",
 		"deleteComment": "Excluir comentario",
-		"deleteCommentConfirm": "Este comentario sera excluido permanentemente da issue do GitHub."
+		"deleteCommentConfirm": "Este comentario sera excluido permanentemente da issue do GitHub.",
+		"timeline": {
+			"titleWithNumber": "Cronologia — #{number}",
+			"empty": "Nenhum evento encontrado na cronologia.",
+			"justNow": "agora mesmo",
+			"minutesAgo": "há {count} min",
+			"hoursAgo": "há {count} h",
+			"daysAgo": "há {count} d",
+			"commented": "comentou",
+			"added": "adicionou",
+			"removed": "removeu",
+			"assigned": "atribuiu",
+			"unassigned": "removeu a atribuição",
+			"closed": "fechou",
+			"closedAsCompleted": "fechou como concluído",
+			"reopened": "reabriu",
+			"renamed": "renomeou",
+			"referencedThis": "referenciou isto",
+			"referencedIn": "em {ref}"
+		}
 	},
 	"agentChat": {
 		"composerPlaceholder": "Mensagem para o agente…",

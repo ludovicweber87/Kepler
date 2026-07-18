@@ -430,16 +430,16 @@ export default function PullRequestsList() {
 			{ repo: mergeTarget.repo_full_name, pullNumber: mergeTarget.number },
 			{
 				onSuccess: () => {
-					showSnackbar(`PR #${mergeTarget.number} merged`, 'success');
+					showSnackbar(t('mergeSuccess', { number: mergeTarget.number }), 'success');
 					setMergeTarget(null);
 				},
 				onError: (err) => {
-					showSnackbar(`Merge failed: ${err.message}`, 'error');
+					showSnackbar(t('mergeError', { message: err.message }), 'error');
 					setMergeTarget(null);
 				},
 			},
 		);
-	}, [mergeTarget, mergeMutation, showSnackbar]);
+	}, [mergeTarget, mergeMutation, showSnackbar, t]);
 
 	// No views
 	if (views.length === 0) {

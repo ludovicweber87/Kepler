@@ -131,7 +131,9 @@
 		"merge": "Merge",
 		"squashAndMerge": "Squash and Merge",
 		"merging": "Merge en cours...",
-		"confirmMerge": "Confirmer le merge"
+		"confirmMerge": "Confirmer le merge",
+		"mergeSuccess": "PR #{number} mergée",
+		"mergeError": "Échec de la fusion : {message}"
 	},
 	"settings": {
 		"title": "Parametres",
@@ -170,7 +172,8 @@
 		"noProjectsMatch": "Aucun projet ne correspond au filtre.",
 		"connectedCount": "{count} connecté{count, plural, one {} other {s}}",
 		"repoCount": "{count} dépôt{count, plural, one {} other {s}}",
-		"loadViewsError": "Échec du chargement des vues"
+		"loadViewsError": "Échec du chargement des vues",
+		"loadProjectsError": "Échec du chargement des projets"
 	},
 	"appearance": {
 		"title": "Apparence",
@@ -245,7 +248,11 @@
 		"refresh5min": "5 min",
 		"refresh10min": "10 min",
 		"refresh1h": "1 h",
-		"refresh24h": "24 h"
+		"refresh24h": "24 h",
+		"someone": "quelqu'un",
+		"notFoundTitle": "Page introuvable",
+		"notFoundDesc": "La tâche que vous cherchez n'existe pas ou a été supprimée.",
+		"backToDashboard": "Retour au tableau de bord"
 	},
 	"launchModal": {
 		"selectProject": "Choisir un projet",
@@ -278,7 +285,10 @@
 		"confirmCloseTitle": "Fermer la session ?",
 		"confirmCloseBody": "La session en cours sera arretee. Tu pourras la relancer plus tard.",
 		"stopSession": "Arrêter la session",
-		"configurePathFirst": "Configure d'abord le dossier local de {repo} dans les Réglages"
+		"configurePathFirst": "Configure d'abord le dossier local de {repo} dans les Réglages",
+		"titleWithIssue": "Agent — #{number}",
+		"activeSession": "Session active",
+		"newSession": "Nouvelle session"
 	},
 	"agentActivity": {
 		"reportTitle": "Rapport agent",
@@ -318,7 +328,11 @@
 		"createBranchDesc": "Creez une branche depuis une issue pour commencer.",
 		"deleteBranch": "Supprimer {branch}",
 		"worktreeOnly": "Worktree uniquement",
-		"worktreeAndBranch": "Worktree + branche"
+		"worktreeAndBranch": "Worktree + branche",
+		"startAgent": "Démarrer un agent",
+		"agentSessions": "Sessions d'agent",
+		"commits": "Commits",
+		"noCommits": "Aucun commit trouvé"
 	},
 	"sessionCard": {
 		"active": "Actif",
@@ -340,7 +354,26 @@
 		"send": "Envoyer",
 		"editComment": "Modifier le commentaire",
 		"deleteComment": "Supprimer le commentaire",
-		"deleteCommentConfirm": "Ce commentaire sera definitivement supprime de l'issue GitHub."
+		"deleteCommentConfirm": "Ce commentaire sera definitivement supprime de l'issue GitHub.",
+		"timeline": {
+			"titleWithNumber": "Chronologie — #{number}",
+			"empty": "Aucun événement dans la chronologie.",
+			"justNow": "à l'instant",
+			"minutesAgo": "il y a {count} min",
+			"hoursAgo": "il y a {count} h",
+			"daysAgo": "il y a {count} j",
+			"commented": "a commenté",
+			"added": "a ajouté",
+			"removed": "a retiré",
+			"assigned": "a assigné",
+			"unassigned": "a désassigné",
+			"closed": "a fermé",
+			"closedAsCompleted": "a fermé comme terminé",
+			"reopened": "a rouvert",
+			"renamed": "a renommé",
+			"referencedThis": "a référencé ceci",
+			"referencedIn": "dans {ref}"
+		}
 	},
 	"agentChat": {
 		"composerPlaceholder": "Message à l'agent…",

@@ -301,7 +301,7 @@ export default function SettingsPanel() {
 		(async () => {
 			try {
 				const res = await fetch('/api/github/projects');
-				if (!res.ok) throw new Error(`Failed to load projects: ${res.status}`);
+				if (!res.ok) throw new Error(t('loadProjectsError'));
 				const data = await res.json();
 				if (data.error) throw new Error(data.error);
 				if (!cancelled) {
@@ -309,7 +309,7 @@ export default function SettingsPanel() {
 				}
 			} catch (err) {
 				if (!cancelled)
-					setError(err instanceof Error ? err.message : 'Failed to load projects');
+					setError(err instanceof Error ? err.message : t('loadProjectsError'));
 			} finally {
 				if (!cancelled) setLoadingProjects(false);
 			}
@@ -317,7 +317,7 @@ export default function SettingsPanel() {
 		return () => {
 			cancelled = true;
 		};
-	}, []);
+	}, [t]);
 
 	const showToast = useCallback((msg: string) => {
 		setToastMessage(msg);
