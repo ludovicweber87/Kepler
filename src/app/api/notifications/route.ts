@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 			return NextResponse.json({ unread: row?.c ?? 0 });
 		}
 
-		const limit = Math.min(Number(searchParams.get('limit') ?? 50), 200);
+		const limit = Math.max(1, Math.min(Number(searchParams.get('limit')) || 50, 200));
 
 		const rows =
 			searchParams.get('unread') === '1'
