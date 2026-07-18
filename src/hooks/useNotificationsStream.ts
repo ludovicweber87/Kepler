@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { getAgentSseUrl } from '@/lib/local-fetch';
 import { prependNotification } from '@/lib/notificationsReducer';
+import { isNotificationSoundMuted, playNotificationChime } from '@/lib/notificationSound';
 import { NOTIFICATIONS_QUERY_KEY } from '@/hooks/useNotifications';
 import type { AppNotification } from '@/types';
 
@@ -23,6 +24,8 @@ export function useNotificationsStream(): void {
 				queryClient.setQueryData<AppNotification[]>(NOTIFICATIONS_QUERY_KEY, (prev) =>
 					prependNotification(prev ?? [], incoming),
 				);
+				// Le SSE ne pousse que les nouvelles notifs (pas de backlog au connect) → 1 son/notif.
+				if (!isNotificationSoundMuted()) playNotificationChime();
 			} catch {
 				// Ignore malformed events (e.g. comment/ping lines already filtered by EventSource).
 			}

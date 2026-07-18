@@ -8,6 +8,7 @@ function defaults(repo: string) {
 	return {
 		repo_full_name: repo,
 		create_pr_prompt: '',
+		commit_push_prompt: '',
 		files_to_copy: '',
 		setup_script: '',
 		setup_script_name: '',
@@ -50,6 +51,7 @@ export async function PUT(req: NextRequest) {
 		const values = {
 			repo_full_name: repo,
 			create_pr_prompt: body.create_pr_prompt ?? '',
+			commit_push_prompt: body.commit_push_prompt ?? '',
 			files_to_copy: body.files_to_copy ?? '',
 			setup_script: body.setup_script ?? '',
 			setup_script_name: body.setup_script_name ?? '',

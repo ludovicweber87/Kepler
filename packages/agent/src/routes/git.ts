@@ -1,5 +1,6 @@
 import { IncomingMessage, ServerResponse } from 'node:http';
 import { execSync, execFileSync, exec, execFile, spawn } from 'node:child_process';
+import { parsePorcelain } from './parsePorcelain.js';
 import { promisify } from 'node:util';
 import { readdirSync, copyFileSync, existsSync, symlinkSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -566,6 +567,26 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 			sendJson(res, { diff, stats });
 		} catch (err) {
 			sendError(res, err instanceof Error ? err.message : 'Failed to get diff');
+		}
+		return;
+	}
+
+	// GET /git/status — présence de changements non commités dans le worktree
+	if (path === '/git/status' && method === 'GET') {
+		const cwd = query.get('cwd');
+		if (!cwd) return sendJson(res, { error: 'cwd is required' }, 400);
+		if (!existsSync(cwd)) return sendJson(res, { dirty: false, count: 0 });
+
+		try {
+			const out = execFileSync('git', ['status', '--porcelain'], {
+				cwd,
+				encoding: 'utf-8',
+				timeout: 5000,
+				maxBuffer: 5 * 1024 * 1024,
+			});
+			sendJson(res, parsePorcelain(out));
+		} catch (err) {
+			sendError(res, err instanceof Error ? err.message : 'Failed to get status');
 		}
 		return;
 	}

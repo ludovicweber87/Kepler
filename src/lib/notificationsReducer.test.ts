@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { prependNotification, titleFor, unreadCount, groupByDay } from './notificationsReducer';
+import { prependNotification, titleFor, unreadCount, groupByDay, dbTimestampToDate } from './notificationsReducer';
 import type { AppNotification } from '@/types';
 
 const mk = (over: Partial<AppNotification> = {}): AppNotification => ({
@@ -33,11 +33,32 @@ describe('titleFor', () => {
 		const t = (k: string, v?: Record<string, string>) => `${k}:${v?.repo ?? ''}`;
 		expect(titleFor(mk({ type: 'ci_failed', payload: { repo: 'o/r' } }), t)).toBe('ci_failed:o/r');
 	});
+	it('forwards title/repo/number to the template', () => {
+		const t = (_k: string, v?: Record<string, string>) => `${v?.title}|${v?.repo}|${v?.number}`;
+		expect(titleFor(mk({ type: 'pr_merged', payload: { repo: 'o/r', number: '42', title: 'Fix login redirect' } }), t)).toBe('Fix login redirect|o/r|42');
+	});
+	it('defaults missing placeholders to empty (no throw on absent number)', () => {
+		const t = (_k: string, v?: Record<string, string>) => `${v?.title}#${v?.number}`;
+		expect(titleFor(mk({ type: 'mention', payload: { repo: 'o/r', title: 'Hi' } }), t)).toBe('Hi#');
+	});
 });
 
 describe('groupByDay', () => {
 	it('groups by calendar day, newest first', () => {
 		const g = groupByDay([mk({ id: '1', created_at: '2026-07-18 09:00:00' }), mk({ id: '2', created_at: '2026-07-17 09:00:00' })]);
 		expect(g.map(x => x.day)).toEqual(['2026-07-18', '2026-07-17']);
+	});
+});
+
+describe('dbTimestampToDate', () => {
+	it('parses a naive SQLite timestamp (space, no tz) as UTC', () => {
+		expect(dbTimestampToDate('2026-07-18 10:00:00').getTime()).toBe(Date.UTC(2026, 6, 18, 10, 0, 0));
+	});
+	it('leaves an ISO string with Z intact', () => {
+		expect(dbTimestampToDate('2026-07-18T10:00:00Z').getTime()).toBe(Date.UTC(2026, 6, 18, 10, 0, 0));
+	});
+	it('returns an invalid Date for empty/nullish input', () => {
+		expect(Number.isNaN(dbTimestampToDate('').getTime())).toBe(true);
+		expect(Number.isNaN(dbTimestampToDate(null).getTime())).toBe(true);
 	});
 });

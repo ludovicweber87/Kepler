@@ -6,6 +6,7 @@ function defaults(repo: string): RepoSettings {
 	return {
 		repo_full_name: repo,
 		create_pr_prompt: '',
+		commit_push_prompt: '',
 		files_to_copy: '',
 		setup_script: '',
 		setup_script_name: '',

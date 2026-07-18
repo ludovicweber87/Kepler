@@ -28,6 +28,7 @@ import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
 import StopCircleRoundedIcon from '@mui/icons-material/StopCircleRounded';
 import PictureInPictureAltRoundedIcon from '@mui/icons-material/PictureInPictureAltRounded';
 import CallMergeRoundedIcon from '@mui/icons-material/CallMergeRounded';
+import PublishRoundedIcon from '@mui/icons-material/PublishRounded';
 import { useTranslations } from 'next-intl';
 import { useAgentSessionHistory, useAgentSession } from '@/hooks/useAgentSession';
 import { useSessionActions } from '@/hooks/useSessionActions';
@@ -41,6 +42,7 @@ import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useRepoSettings } from '@/hooks/useRepoSettings';
 import { LIGHT_SHADOW_LEFT } from '@/theme/theme';
 import { useGitDiff } from '@/hooks/useGitDiff';
+import { useGitStatus } from '@/hooks/useGitStatus';
 import { usePullRequests } from '@/hooks/usePullRequests';
 import { findOpenPrForBranch } from '@/lib/pullRequests';
 import AgentChatTab from '@/components/agents/AgentChatTab';
@@ -114,6 +116,7 @@ export default function Workbench() {
 
 	const diffPath = resolved?.worktree_path ?? resolved?.project_path ?? null;
 	const { files: changedFiles } = useGitDiff(diffPath, resolved?.branch ?? null);
+	const { dirty: hasUncommitted } = useGitStatus(diffPath);
 
 	const openChanges = useCallback((filePath: string) => {
 		if (!filePath) return;
@@ -141,6 +144,10 @@ export default function Workbench() {
 	// Resize vertical de la zone terminal (px depuis le bas).
 	const [termHeight, setTermHeight] = useState(340);
 	const [prState, setPrState] = useState<{ available: boolean; trigger: () => void }>({
+		available: false,
+		trigger: () => {},
+	});
+	const [commitPushState, setCommitPushState] = useState<{ available: boolean; trigger: () => void }>({
 		available: false,
 		trigger: () => {},
 	});
@@ -312,45 +319,66 @@ export default function Workbench() {
 					/>
 				)}
 				<Box sx={{ flex: 1 }} />
-				{openPr
-					? !isArchived && (
-							<Button
-								component="a"
-								href={openPr.html_url}
-								target="_blank"
-								rel="noopener noreferrer"
-								variant="outlined"
-								color="primary"
-								startIcon={<CallMergeRoundedIcon sx={{ fontSize: 18 }} />}
-								sx={{
-									textTransform: 'none',
-									fontWeight: 600,
-									borderRadius: 999,
-									px: 2,
-								}}
-							>
-								{tAgentChat('viewPr', { number: openPr.number })}
-							</Button>
-						)
-					: prState.available &&
-						!isArchived && (
-							<Button
-								variant="contained"
-								color="primary"
-								startIcon={<CallMergeRoundedIcon sx={{ fontSize: 18 }} />}
-								onClick={() => prState.trigger()}
-								sx={{
-									textTransform: 'none',
-									fontWeight: 600,
-									borderRadius: 999,
-									px: 2,
-									boxShadow: 'none',
-									'&:hover': { boxShadow: 'none', bgcolor: 'primary.dark' },
-								}}
-							>
-								{tAgentChat('createPr')}
-							</Button>
-						)}
+				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+					{hasUncommitted && commitPushState.available && !isArchived && (
+						<Button
+							variant="outlined"
+							color="primary"
+							size="small"
+							startIcon={<PublishRoundedIcon sx={{ fontSize: 16 }} />}
+							onClick={() => commitPushState.trigger()}
+							sx={{
+								textTransform: 'none',
+								fontWeight: 600,
+								borderRadius: 1,
+								px: 1.25,
+							}}
+						>
+							{tAgentChat('commitPush')}
+						</Button>
+					)}
+					{openPr
+						? !isArchived && (
+								<Button
+									component="a"
+									href={openPr.html_url}
+									target="_blank"
+									rel="noopener noreferrer"
+									variant="outlined"
+									color="primary"
+									size="small"
+									startIcon={<CallMergeRoundedIcon sx={{ fontSize: 16 }} />}
+									sx={{
+										textTransform: 'none',
+										fontWeight: 600,
+										borderRadius: 1,
+										px: 1.25,
+									}}
+								>
+									{tAgentChat('viewPr', { number: openPr.number })}
+								</Button>
+							)
+						: prState.available &&
+							!isArchived && (
+								<Button
+									variant="contained"
+									color="primary"
+									size="small"
+									startIcon={<CallMergeRoundedIcon sx={{ fontSize: 16 }} />}
+									onClick={() => prState.trigger()}
+									sx={{
+										textTransform: 'none',
+										fontWeight: 600,
+										borderRadius: 1,
+										px: 1.25,
+										boxShadow: 'none',
+										'&:hover': { boxShadow: 'none', bgcolor: 'primary.dark' },
+									}}
+								>
+									{tAgentChat('createPr')}
+								</Button>
+							)}
+				</Box>
 				<Chip
 					icon={<FolderOpenRoundedIcon sx={{ fontSize: '14px !important' }} />}
 					label={repoLabel}
@@ -469,13 +497,16 @@ export default function Workbench() {
 								systemPrompt={resolved?.system_prompt ?? undefined}
 								readOnly={chatReadOnly}
 								createPrPrompt={repoSettings.create_pr_prompt}
+								commitPushPrompt={repoSettings.commit_push_prompt}
 								onResume={() => {
 									resume(sessionId).catch(() => {});
 								}}
 								onOpenChanges={openChanges}
 								onCreatePrStateChange={setPrState}
+								onCommitPushStateChange={setCommitPushState}
 								onTurnComplete={() => {
 									queryClient.invalidateQueries({ queryKey: ['git-diff'] });
+									queryClient.invalidateQueries({ queryKey: ['git-status'] });
 									queryClient.invalidateQueries({ queryKey: ['github', 'prs'] });
 								}}
 								onFirstUserMessage={(text) => {

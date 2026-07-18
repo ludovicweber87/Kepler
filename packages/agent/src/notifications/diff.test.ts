@@ -83,4 +83,25 @@ describe('diffGithubState', () => {
 		const s: GithubState = { prs: { 'o/r#42': pr({ checkStatus: 'failure', headSha: 'sha1' }) }, threads: {} };
 		expect(diffGithubState(s, s)).toEqual([]);
 	});
+
+	it('points a PR notif at the internal Devora route, not github.com', () => {
+		const prev: GithubState = { prs: { 'o/r#42': pr({ checkStatus: 'pending' }) }, threads: {} };
+		const next: GithubState = { prs: { 'o/r#42': pr({ checkStatus: 'failure' }) }, threads: {} };
+		expect(diffGithubState(prev, next)[0].url).toBe('/task/o/r/42');
+	});
+
+	it('derives the internal route for a thread from its html pull URL', () => {
+		const next: GithubState = { prs: {}, threads: { t1: { id: 't1', reason: 'mention', title: 'hi', url: 'https://github.com/o/r/pull/7', repo: 'o/r' } } };
+		expect(diffGithubState(empty, next)[0].url).toBe('/task/o/r/7');
+	});
+
+	it('derives the internal route for a thread from its html issues URL', () => {
+		const next: GithubState = { prs: {}, threads: { t1: { id: 't1', reason: 'mention', title: 'hi', url: 'https://github.com/o/r/issues/9', repo: 'o/r' } } };
+		expect(diffGithubState(empty, next)[0].url).toBe('/task/o/r/9');
+	});
+
+	it('falls back to the external URL when a thread URL has no issue/PR number', () => {
+		const next: GithubState = { prs: {}, threads: { t1: { id: 't1', reason: 'mention', title: 'hi', url: 'https://github.com/o/r/releases/tag/v1', repo: 'o/r' } } };
+		expect(diffGithubState(empty, next)[0].url).toBe('https://github.com/o/r/releases/tag/v1');
+	});
 });

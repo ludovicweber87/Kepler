@@ -7,7 +7,7 @@ import Typography from '@mui/material/Typography';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import { useTranslations } from 'next-intl';
 import { useAgentChat } from '@/hooks/useAgentChat';
-import { DEFAULT_CREATE_PR_PROMPT } from '@/lib/prompts';
+import { DEFAULT_CREATE_PR_PROMPT, DEFAULT_COMMIT_PUSH_PROMPT } from '@/lib/prompts';
 import type { ChatImageInput } from '@/types';
 import ChatBubble from './chat/ChatBubble';
 import ChatPermissionCard from './chat/ChatPermissionCard';
@@ -26,6 +26,7 @@ interface Props {
 	initialEffort?: string;
 	initialMode?: string;
 	createPrPrompt?: string;
+	commitPushPrompt?: string;
 	onFirstUserMessage?: (text: string) => void;
 	onResume?: () => void;
 	/** Ouvre l'onglet Changes centré sur le fichier (clic sur une tool card). */
@@ -34,6 +35,8 @@ interface Props {
 	onTurnComplete?: () => void;
 	/** Remonte au parent la disponibilité + l'action « Create PR » (rendue dans le header). */
 	onCreatePrStateChange?: (state: { available: boolean; trigger: () => void }) => void;
+	/** Remonte au parent la disponibilité + l'action « Commit and push » (rendue dans le header). */
+	onCommitPushStateChange?: (state: { available: boolean; trigger: () => void }) => void;
 }
 
 export default function AgentChatTab({
@@ -45,11 +48,13 @@ export default function AgentChatTab({
 	initialEffort,
 	initialMode,
 	createPrPrompt,
+	commitPushPrompt,
 	onFirstUserMessage,
 	onResume,
 	onOpenChanges,
 	onTurnComplete,
 	onCreatePrStateChange,
+	onCommitPushStateChange,
 }: Props) {
 	const t = useTranslations('agentChat');
 	const firstSent = useRef(false);
@@ -100,6 +105,7 @@ export default function AgentChatTab({
 	}, [chat.status, onTurnComplete]);
 
 	const prPrompt = createPrPrompt || DEFAULT_CREATE_PR_PROMPT;
+	const commitPrompt = commitPushPrompt || DEFAULT_COMMIT_PUSH_PROMPT;
 
 	const handleSend = (text: string, images?: ChatImageInput[]) => {
 		if (!firstSent.current) {
@@ -131,6 +137,17 @@ export default function AgentChatTab({
 			trigger: triggerCreatePr,
 		});
 	}, [readOnly, canCreatePr, triggerCreatePr, onCreatePrStateChange]);
+
+	// "Commit and push" : dispo dès que l'agent est idle (la visibilité selon les
+	// changements non commités est gérée côté Workbench via useGitStatus).
+	const canCommitPush = chat.status === 'idle';
+	const triggerCommitPush = useCallback(() => sendRef.current(commitPrompt), [commitPrompt]);
+	useEffect(() => {
+		onCommitPushStateChange?.({
+			available: !readOnly && canCommitPush,
+			trigger: triggerCommitPush,
+		});
+	}, [readOnly, canCommitPush, triggerCommitPush, onCommitPushStateChange]);
 
 	return (
 		<Box
