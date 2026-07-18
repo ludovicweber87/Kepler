@@ -25,7 +25,9 @@ function ghHeaders(token: string) {
 function toHtmlUrl(apiUrl: string | undefined, repoHtmlUrl: string | undefined): string {
 	const prefix = 'https://api.github.com/repos/';
 	if (apiUrl && apiUrl.startsWith(prefix)) {
-		return apiUrl.replace(prefix, 'https://github.com/').replace('/pulls/', '/pull/');
+		// Anchor the pulls→pull rewrite to the trailing resource segment so an
+		// owner/repo literally named "pulls" can't be mangled.
+		return apiUrl.replace(prefix, 'https://github.com/').replace(/\/pulls\/(\d+)(\/|$)/, '/pull/$1$2');
 	}
 	return repoHtmlUrl ?? '';
 }
