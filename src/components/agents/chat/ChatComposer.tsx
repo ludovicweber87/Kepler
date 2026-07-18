@@ -20,6 +20,7 @@ import { alpha, keyframes, type Theme } from '@mui/material/styles';
 import { useTranslations } from 'next-intl';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { validateImageFile, readFileAsDataUrl, stripDataUrlPrefix } from '@/lib/imageAttach';
+import { LIGHT_INPUT_SHADOW } from '@/theme/theme';
 import type { ChatImageInput } from '@/types';
 
 const MODELS = [
@@ -199,6 +200,7 @@ export default function ChatComposer({
 					px: 1.5,
 					py: 1,
 					bgcolor: (th) => alpha(th.palette.text.primary, 0.03),
+					boxShadow: (th) => (th.palette.mode === 'light' ? LIGHT_INPUT_SHADOW : 'none'),
 				}}
 			>
 				{attachments.length > 0 && (

@@ -30,6 +30,12 @@ export const THEME_VARIANTS: ThemeVariant[] = [...PRESET_VARIANTS, 'custom'];
 
 export const DEFAULT_THEME_VARIANT: ThemeVariant = 'dark';
 
+/** Shadows appliquées uniquement en thème clair pour décoller les panneaux du fond
+ * (les thèmes sombres restent volontairement plats). */
+export const LIGHT_SHADOW_RIGHT = '6px 0 24px -14px rgba(0,0,0,0.14), 1px 0 2px rgba(0,0,0,0.04)';
+export const LIGHT_SHADOW_LEFT = '-6px 0 24px -14px rgba(0,0,0,0.14), -1px 0 2px rgba(0,0,0,0.04)';
+export const LIGHT_INPUT_SHADOW = '0 2px 14px -6px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.05)';
+
 /** [background, primary] pair used to render the variant swatch: left half signals
  * dark/light mode (the surface), right half shows the primary accent. */
 export const THEME_VARIANT_SWATCH: Record<ThemeVariant, [string, string]> = {
@@ -313,6 +319,7 @@ export function getTheme(variant: ThemeVariant, prefs?: ThemePrefs) {
 						backgroundImage: 'none',
 						backgroundColor: t.surfaces.drawer,
 						borderRight: `1px solid ${t.surfaces.drawerBorder}`,
+						boxShadow: t.mode === 'light' ? LIGHT_SHADOW_RIGHT : 'none',
 					},
 				},
 			},
