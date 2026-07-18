@@ -121,9 +121,11 @@ export function getToken(req: IncomingMessage): string | null {
 	return auth.slice(7);
 }
 
-export function resolveGitHubToken(req: IncomingMessage): string | null {
-	const header = getToken(req);
-	if (header) return header;
+/**
+ * Résout un token GitHub sans requête HTTP : session `gh` CLI, puis fallback `GITHUB_TOKEN`.
+ * Utilisé par les callers qui n'ont pas de `req` (ex. le poller GitHub en arrière-plan).
+ */
+export function getLocalGithubToken(): string | null {
 	try {
 		const token = execFileSync(findGh(), ['auth', 'token'], {
 			encoding: 'utf-8',
@@ -134,4 +136,10 @@ export function resolveGitHubToken(req: IncomingMessage): string | null {
 		/* gh absent ou non authentifié — on tente le fallback env */
 	}
 	return process.env.GITHUB_TOKEN ?? null;
+}
+
+export function resolveGitHubToken(req: IncomingMessage): string | null {
+	const header = getToken(req);
+	if (header) return header;
+	return getLocalGithubToken();
 }
