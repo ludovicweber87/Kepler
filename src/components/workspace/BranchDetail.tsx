@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
@@ -47,6 +48,7 @@ interface BranchDetailProps {
 
 export default function BranchDetail({ branch, localPath, repoFullName: _repoFullName }: BranchDetailProps) {
 	const theme = useTheme();
+	const t = useTranslations('workspace');
 	const { data: commits = [], isLoading: loadingCommits } = useBranchLog(localPath, branch.name);
 	const { data: sessions = [], isLoading: loadingSessions } = useBranchSessions(branch.name);
 	const [terminalOpen, setTerminalOpen] = useState(false);
@@ -67,7 +69,7 @@ export default function BranchDetail({ branch, localPath, repoFullName: _repoFul
 						borderRadius: 1,
 					}}
 				>
-					Start Agent
+					{t('startAgent')}
 				</Button>
 			</Box>
 
@@ -85,7 +87,7 @@ export default function BranchDetail({ branch, localPath, repoFullName: _repoFul
 							textTransform: 'uppercase',
 						}}
 					>
-						Agent Sessions
+						{t('agentSessions')}
 					</Typography>
 					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
 						{sessions.map((session) => {
@@ -193,7 +195,7 @@ export default function BranchDetail({ branch, localPath, repoFullName: _repoFul
 						textTransform: 'uppercase',
 					}}
 				>
-					Commits
+					{t('commits')}
 				</Typography>
 
 				{loadingCommits && (
@@ -204,7 +206,7 @@ export default function BranchDetail({ branch, localPath, repoFullName: _repoFul
 
 				{!loadingCommits && commits.length === 0 && (
 					<Typography variant="body2" color="text.disabled">
-						No commits found
+						{t('noCommits')}
 					</Typography>
 				)}
 

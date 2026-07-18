@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -33,7 +34,9 @@ interface IssueTimelineModalProps {
 	issueTitle: string;
 }
 
-function formatRelativeDate(dateStr: string): string {
+type TimelineT = (key: string, values?: Record<string, string | number>) => string;
+
+function formatRelativeDate(dateStr: string, t: TimelineT, locale: string): string {
 	const date = new Date(dateStr);
 	const now = new Date();
 	const diffMs = now.getTime() - date.getTime();
@@ -41,11 +44,11 @@ function formatRelativeDate(dateStr: string): string {
 	const diffHours = Math.floor(diffMs / 3600000);
 	const diffDays = Math.floor(diffMs / 86400000);
 
-	if (diffMins < 1) return 'just now';
-	if (diffMins < 60) return `${diffMins}m ago`;
-	if (diffHours < 24) return `${diffHours}h ago`;
-	if (diffDays < 30) return `${diffDays}d ago`;
-	return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+	if (diffMins < 1) return t('issueDetail.timeline.justNow');
+	if (diffMins < 60) return t('issueDetail.timeline.minutesAgo', { count: diffMins });
+	if (diffHours < 24) return t('issueDetail.timeline.hoursAgo', { count: diffHours });
+	if (diffDays < 30) return t('issueDetail.timeline.daysAgo', { count: diffDays });
+	return date.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 interface EventConfig {
@@ -54,7 +57,11 @@ interface EventConfig {
 	text: React.ReactNode;
 }
 
-function getEventConfig(event: GitHubTimelineEvent, theme: Theme): EventConfig | null {
+function getEventConfig(
+	event: GitHubTimelineEvent,
+	theme: Theme,
+	t: TimelineT,
+): EventConfig | null {
 	switch (event.event) {
 		case 'commented': {
 			const e = event as GitHubTimelineEvent & {
@@ -69,11 +76,11 @@ function getEventConfig(event: GitHubTimelineEvent, theme: Theme): EventConfig |
 				text: (
 					<Box>
 						<Typography variant="body2" component="span" sx={{ fontWeight: 600 }}>
-							{e.user?.login ?? e.actor?.login ?? 'someone'}
+							{e.user?.login ?? e.actor?.login ?? t('common.someone')}
 						</Typography>
 						<Typography variant="body2" component="span">
 							{' '}
-							commented
+							{t('issueDetail.timeline.commented')}
 						</Typography>
 						<Typography
 							variant="body2"
@@ -105,11 +112,11 @@ function getEventConfig(event: GitHubTimelineEvent, theme: Theme): EventConfig |
 				text: (
 					<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
 						<Typography variant="body2" component="span" sx={{ fontWeight: 600 }}>
-							{e.actor?.login ?? 'someone'}
+							{e.actor?.login ?? t('common.someone')}
 						</Typography>
 						<Typography variant="body2" component="span">
 							{' '}
-							added
+							{t('issueDetail.timeline.added')}
 						</Typography>
 						<Chip
 							label={e.label.name}
@@ -136,11 +143,11 @@ function getEventConfig(event: GitHubTimelineEvent, theme: Theme): EventConfig |
 				text: (
 					<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
 						<Typography variant="body2" component="span" sx={{ fontWeight: 600 }}>
-							{e.actor?.login ?? 'someone'}
+							{e.actor?.login ?? t('common.someone')}
 						</Typography>
 						<Typography variant="body2" component="span">
 							{' '}
-							removed
+							{t('issueDetail.timeline.removed')}
 						</Typography>
 						<Chip
 							label={e.label.name}
@@ -167,11 +174,11 @@ function getEventConfig(event: GitHubTimelineEvent, theme: Theme): EventConfig |
 				text: (
 					<>
 						<Typography variant="body2" component="span" sx={{ fontWeight: 600 }}>
-							{e.actor?.login ?? 'someone'}
+							{e.actor?.login ?? t('common.someone')}
 						</Typography>
 						<Typography variant="body2" component="span">
 							{' '}
-							assigned{' '}
+							{t('issueDetail.timeline.assigned')}{' '}
 						</Typography>
 						<Typography variant="body2" component="span" sx={{ fontWeight: 600 }}>
 							{e.assignee.login}
@@ -191,11 +198,11 @@ function getEventConfig(event: GitHubTimelineEvent, theme: Theme): EventConfig |
 				text: (
 					<>
 						<Typography variant="body2" component="span" sx={{ fontWeight: 600 }}>
-							{e.actor?.login ?? 'someone'}
+							{e.actor?.login ?? t('common.someone')}
 						</Typography>
 						<Typography variant="body2" component="span">
 							{' '}
-							unassigned{' '}
+							{t('issueDetail.timeline.unassigned')}{' '}
 						</Typography>
 						<Typography variant="body2" component="span" sx={{ fontWeight: 600 }}>
 							{e.assignee.login}
@@ -209,18 +216,21 @@ function getEventConfig(event: GitHubTimelineEvent, theme: Theme): EventConfig |
 				event: 'closed';
 				state_reason?: string | null;
 			};
-			const reason = e.state_reason === 'completed' ? ' as completed' : '';
+			const closedText =
+				e.state_reason === 'completed'
+					? t('issueDetail.timeline.closedAsCompleted')
+					: t('issueDetail.timeline.closed');
 			return {
 				icon: <CheckCircleRoundedIcon sx={{ fontSize: 16 }} />,
 				color: theme.palette.primary.main,
 				text: (
 					<>
 						<Typography variant="body2" component="span" sx={{ fontWeight: 600 }}>
-							{e.actor?.login ?? 'someone'}
+							{e.actor?.login ?? t('common.someone')}
 						</Typography>
 						<Typography variant="body2" component="span">
 							{' '}
-							closed{reason}
+							{closedText}
 						</Typography>
 					</>
 				),
@@ -233,11 +243,11 @@ function getEventConfig(event: GitHubTimelineEvent, theme: Theme): EventConfig |
 				text: (
 					<>
 						<Typography variant="body2" component="span" sx={{ fontWeight: 600 }}>
-							{event.actor?.login ?? 'someone'}
+							{event.actor?.login ?? t('common.someone')}
 						</Typography>
 						<Typography variant="body2" component="span">
 							{' '}
-							reopened
+							{t('issueDetail.timeline.reopened')}
 						</Typography>
 					</>
 				),
@@ -253,11 +263,11 @@ function getEventConfig(event: GitHubTimelineEvent, theme: Theme): EventConfig |
 				text: (
 					<Box>
 						<Typography variant="body2" component="span" sx={{ fontWeight: 600 }}>
-							{e.actor?.login ?? 'someone'}
+							{e.actor?.login ?? t('common.someone')}
 						</Typography>
 						<Typography variant="body2" component="span">
 							{' '}
-							renamed
+							{t('issueDetail.timeline.renamed')}
 						</Typography>
 						<Typography
 							variant="body2"
@@ -289,11 +299,11 @@ function getEventConfig(event: GitHubTimelineEvent, theme: Theme): EventConfig |
 				text: (
 					<>
 						<Typography variant="body2" component="span" sx={{ fontWeight: 600 }}>
-							{event.actor?.login ?? 'someone'}
+							{event.actor?.login ?? t('common.someone')}
 						</Typography>
 						<Typography variant="body2" component="span">
 							{' '}
-							referenced this
+							{t('issueDetail.timeline.referencedThis')}
 							{(
 								event as GitHubTimelineEvent & {
 									source?: {
@@ -304,7 +314,7 @@ function getEventConfig(event: GitHubTimelineEvent, theme: Theme): EventConfig |
 									};
 								}
 							).source?.issue
-								? ` in ${(event as GitHubTimelineEvent & { source: { issue: { repository?: { full_name: string }; number: number } } }).source.issue.repository?.full_name ?? ''}#${(event as GitHubTimelineEvent & { source: { issue: { number: number } } }).source.issue.number}`
+								? ` ${t('issueDetail.timeline.referencedIn', { ref: `${(event as GitHubTimelineEvent & { source: { issue: { repository?: { full_name: string }; number: number } } }).source.issue.repository?.full_name ?? ''}#${(event as GitHubTimelineEvent & { source: { issue: { number: number } } }).source.issue.number}` })}`
 								: ''}
 						</Typography>
 					</>
@@ -318,7 +328,7 @@ function getEventConfig(event: GitHubTimelineEvent, theme: Theme): EventConfig |
 				text: (
 					<>
 						<Typography variant="body2" component="span" sx={{ fontWeight: 600 }}>
-							{event.actor?.login ?? 'someone'}
+							{event.actor?.login ?? t('common.someone')}
 						</Typography>
 						<Typography variant="body2" component="span">
 							{' '}
@@ -332,7 +342,9 @@ function getEventConfig(event: GitHubTimelineEvent, theme: Theme): EventConfig |
 
 function TimelineItem({ event, isLast }: { event: GitHubTimelineEvent; isLast: boolean }) {
 	const theme = useTheme();
-	const config = getEventConfig(event, theme);
+	const t = useTranslations();
+	const locale = useLocale();
+	const config = getEventConfig(event, theme, t);
 	if (!config) return null;
 
 	return (
@@ -388,7 +400,7 @@ function TimelineItem({ event, isLast }: { event: GitHubTimelineEvent; isLast: b
 								mt: 0.2,
 							}}
 						>
-							{formatRelativeDate(event.created_at)}
+							{formatRelativeDate(event.created_at, t, locale)}
 						</Typography>
 					)}
 				</Box>
@@ -421,6 +433,7 @@ export default function IssueTimelineModal({
 	number,
 	issueTitle,
 }: IssueTimelineModalProps) {
+	const t = useTranslations('issueDetail');
 	const { data: events, isLoading, refetch } = useIssueTimeline(owner, repo, number);
 
 	useEffect(() => {
@@ -454,7 +467,7 @@ export default function IssueTimelineModal({
 				<HistoryRoundedIcon sx={{ color: 'primary.main' }} />
 				<Box sx={{ flex: 1, minWidth: 0 }}>
 					<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-						Timeline — #{number}
+						{t('timeline.titleWithNumber', { number })}
 					</Typography>
 					<Typography
 						variant="body2"
@@ -490,7 +503,7 @@ export default function IssueTimelineModal({
 						variant="body2"
 						sx={{ color: 'text.secondary', py: 4, textAlign: 'center' }}
 					>
-						No timeline events found.
+						{t('timeline.empty')}
 					</Typography>
 				)}
 			</DialogContent>

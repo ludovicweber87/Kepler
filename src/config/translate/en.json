@@ -131,7 +131,9 @@
 		"merge": "Merge",
 		"squashAndMerge": "Squash and Merge",
 		"merging": "Merging...",
-		"confirmMerge": "Confirm Merge"
+		"confirmMerge": "Confirm Merge",
+		"mergeSuccess": "PR #{number} merged",
+		"mergeError": "Merge failed: {message}"
 	},
 	"settings": {
 		"title": "Settings",
@@ -170,7 +172,8 @@
 		"noProjectsMatch": "No project matches the filter.",
 		"connectedCount": "{count} connected",
 		"repoCount": "{count, plural, one {# repo} other {# repos}}",
-		"loadViewsError": "Failed to load views"
+		"loadViewsError": "Failed to load views",
+		"loadProjectsError": "Failed to load projects"
 	},
 	"appearance": {
 		"title": "Appearance",
@@ -245,7 +248,11 @@
 		"refresh5min": "5 min",
 		"refresh10min": "10 min",
 		"refresh1h": "1 h",
-		"refresh24h": "24 h"
+		"refresh24h": "24 h",
+		"someone": "someone",
+		"notFoundTitle": "Page not found",
+		"notFoundDesc": "The task you're looking for doesn't exist or has been deleted.",
+		"backToDashboard": "Back to dashboard"
 	},
 	"launchModal": {
 		"selectProject": "Select a project",
@@ -278,7 +285,10 @@
 		"confirmCloseTitle": "Close session?",
 		"confirmCloseBody": "The current session will be stopped. You can relaunch it later.",
 		"stopSession": "Stop session",
-		"configurePathFirst": "Configure the local folder for {repo} in Settings first"
+		"configurePathFirst": "Configure the local folder for {repo} in Settings first",
+		"titleWithIssue": "Agent — #{number}",
+		"activeSession": "Active session",
+		"newSession": "New session"
 	},
 	"agentActivity": {
 		"reportTitle": "Agent report",
@@ -318,7 +328,11 @@
 		"createBranchDesc": "Create a branch from an issue to get started.",
 		"deleteBranch": "Delete {branch}",
 		"worktreeOnly": "Worktree only",
-		"worktreeAndBranch": "Worktree + branch"
+		"worktreeAndBranch": "Worktree + branch",
+		"startAgent": "Start agent",
+		"agentSessions": "Agent sessions",
+		"commits": "Commits",
+		"noCommits": "No commits found"
 	},
 	"sessionCard": {
 		"active": "Active",
@@ -340,7 +354,26 @@
 		"send": "Send",
 		"editComment": "Edit comment",
 		"deleteComment": "Delete comment",
-		"deleteCommentConfirm": "This comment will be permanently deleted from the GitHub issue."
+		"deleteCommentConfirm": "This comment will be permanently deleted from the GitHub issue.",
+		"timeline": {
+			"titleWithNumber": "Timeline — #{number}",
+			"empty": "No timeline events found.",
+			"justNow": "just now",
+			"minutesAgo": "{count}m ago",
+			"hoursAgo": "{count}h ago",
+			"daysAgo": "{count}d ago",
+			"commented": "commented",
+			"added": "added",
+			"removed": "removed",
+			"assigned": "assigned",
+			"unassigned": "unassigned",
+			"closed": "closed",
+			"closedAsCompleted": "closed as completed",
+			"reopened": "reopened",
+			"renamed": "renamed",
+			"referencedThis": "referenced this",
+			"referencedIn": "in {ref}"
+		}
 	},
 	"agentChat": {
 		"composerPlaceholder": "Message the agent…",

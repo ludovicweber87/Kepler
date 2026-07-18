@@ -131,7 +131,9 @@
 		"merge": "Merge",
 		"squashAndMerge": "Squash and Merge",
 		"merging": "Wird gemergt...",
-		"confirmMerge": "Merge bestätigen"
+		"confirmMerge": "Merge bestätigen",
+		"mergeSuccess": "PR #{number} zusammengeführt",
+		"mergeError": "Zusammenführen fehlgeschlagen: {message}"
 	},
 	"settings": {
 		"title": "Einstellungen",
@@ -148,7 +150,8 @@
 		"noProjectsMatch": "Kein Projekt entspricht dem Filter.",
 		"connectedCount": "{count, plural, one {# verbunden} other {# verbunden}}",
 		"repoCount": "{count, plural, one {# Repository} other {# Repositorys}}",
-		"loadViewsError": "Ansichten konnten nicht geladen werden"
+		"loadViewsError": "Ansichten konnten nicht geladen werden",
+		"loadProjectsError": "Projekte konnten nicht geladen werden"
 	},
 	"appearance": {
 		"title": "Erscheinungsbild",
@@ -223,7 +226,11 @@
 		"refresh5min": "5 Min",
 		"refresh10min": "10 Min",
 		"refresh1h": "1 Std",
-		"refresh24h": "24 Std"
+		"refresh24h": "24 Std",
+		"someone": "jemand",
+		"notFoundTitle": "Seite nicht gefunden",
+		"notFoundDesc": "Die gesuchte Aufgabe existiert nicht oder wurde gelöscht.",
+		"backToDashboard": "Zurück zum Dashboard"
 	},
 	"launchModal": {
 		"selectProject": "Projekt auswahlen",
@@ -256,7 +263,10 @@
 		"confirmCloseTitle": "Sitzung schließen?",
 		"confirmCloseBody": "Die aktuelle Sitzung wird beendet. Du kannst sie später erneut starten.",
 		"stopSession": "Sitzung beenden",
-		"configurePathFirst": "Konfiguriere zuerst den lokalen Ordner für {repo} in den Einstellungen"
+		"configurePathFirst": "Konfiguriere zuerst den lokalen Ordner für {repo} in den Einstellungen",
+		"titleWithIssue": "Agent — #{number}",
+		"activeSession": "Aktive Sitzung",
+		"newSession": "Neue Sitzung"
 	},
 	"agentActivity": {
 		"reportTitle": "Agent-Bericht",
@@ -296,7 +306,11 @@
 		"createBranchDesc": "Erstelle einen Branch aus einem Issue, um zu starten.",
 		"deleteBranch": "{branch} loschen",
 		"worktreeOnly": "Nur Worktree",
-		"worktreeAndBranch": "Worktree + Branch"
+		"worktreeAndBranch": "Worktree + Branch",
+		"startAgent": "Agent starten",
+		"agentSessions": "Agent-Sitzungen",
+		"commits": "Commits",
+		"noCommits": "Keine Commits gefunden"
 	},
 	"sessionCard": {
 		"active": "Aktiv",
@@ -318,7 +332,26 @@
 		"send": "Senden",
 		"editComment": "Kommentar bearbeiten",
 		"deleteComment": "Kommentar loschen",
-		"deleteCommentConfirm": "Dieser Kommentar wird dauerhaft aus dem GitHub-Issue geloscht."
+		"deleteCommentConfirm": "Dieser Kommentar wird dauerhaft aus dem GitHub-Issue geloscht.",
+		"timeline": {
+			"titleWithNumber": "Verlauf — #{number}",
+			"empty": "Keine Verlaufsereignisse gefunden.",
+			"justNow": "gerade eben",
+			"minutesAgo": "vor {count} Min.",
+			"hoursAgo": "vor {count} Std.",
+			"daysAgo": "vor {count} T.",
+			"commented": "hat kommentiert",
+			"added": "hat hinzugefügt",
+			"removed": "hat entfernt",
+			"assigned": "hat zugewiesen",
+			"unassigned": "hat die Zuweisung entfernt",
+			"closed": "hat geschlossen",
+			"closedAsCompleted": "hat als erledigt geschlossen",
+			"reopened": "hat wieder geöffnet",
+			"renamed": "hat umbenannt",
+			"referencedThis": "hat darauf verwiesen",
+			"referencedIn": "in {ref}"
+		}
 	},
 	"agentChat": {
 		"composerPlaceholder": "Nachricht an den Agenten…",
