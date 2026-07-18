@@ -8,7 +8,7 @@ import Button from '@mui/material/Button';
 import { useTranslations } from 'next-intl';
 import { useRepoSettings } from '@/hooks/useRepoSettings';
 import { useSnackbar } from '@/hooks/useSnackbar';
-import { DEFAULT_CREATE_PR_PROMPT } from '@/lib/prompts';
+import { DEFAULT_CREATE_PR_PROMPT, DEFAULT_COMMIT_PUSH_PROMPT } from '@/lib/prompts';
 
 export default function RepoSettingsPanel({ repoFullName }: { repoFullName: string }) {
 	const t = useTranslations('repoSettings');
@@ -16,6 +16,7 @@ export default function RepoSettingsPanel({ repoFullName }: { repoFullName: stri
 	const { showSnackbar } = useSnackbar();
 
 	const [prPrompt, setPrPrompt] = useState('');
+	const [commitPushPrompt, setCommitPushPrompt] = useState('');
 	const [filesToCopy, setFilesToCopy] = useState('');
 	const [setupScript, setSetupScript] = useState('');
 	const [setupScriptName, setSetupScriptName] = useState('');
@@ -25,6 +26,7 @@ export default function RepoSettingsPanel({ repoFullName }: { repoFullName: stri
 	useEffect(() => {
 		if (isLoading) return;
 		setPrPrompt(settings.create_pr_prompt);
+		setCommitPushPrompt(settings.commit_push_prompt);
 		setFilesToCopy(settings.files_to_copy);
 		setSetupScript(settings.setup_script);
 		setSetupScriptName(settings.setup_script_name);
@@ -35,6 +37,7 @@ export default function RepoSettingsPanel({ repoFullName }: { repoFullName: stri
 	const handleSave = async () => {
 		await save({
 			create_pr_prompt: prPrompt,
+			commit_push_prompt: commitPushPrompt,
 			files_to_copy: filesToCopy,
 			setup_script: setupScript,
 			setup_script_name: setupScriptName,
@@ -73,6 +76,24 @@ export default function RepoSettingsPanel({ repoFullName }: { repoFullName: stri
 					value={prPrompt}
 					placeholder={DEFAULT_CREATE_PR_PROMPT}
 					onChange={(e) => setPrPrompt(e.target.value)}
+				/>
+			</Box>
+
+			{/* Commit and push prompt */}
+			<Box>
+				<Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+					{t('commitPushPrompt')}
+				</Typography>
+				<Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+					{t('commitPushPromptDesc')}
+				</Typography>
+				<TextField
+					fullWidth
+					multiline
+					minRows={2}
+					value={commitPushPrompt}
+					placeholder={DEFAULT_COMMIT_PUSH_PROMPT}
+					onChange={(e) => setCommitPushPrompt(e.target.value)}
 				/>
 			</Box>
 

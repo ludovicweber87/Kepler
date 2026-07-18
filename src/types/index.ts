@@ -369,6 +369,7 @@ export interface StreamEventWire {
 export interface RepoSettings {
 	repo_full_name: string;
 	create_pr_prompt: string;
+	commit_push_prompt: string;
 	files_to_copy: string;
 	setup_script: string;
 	setup_script_name: string;

@@ -103,6 +103,7 @@ export const repoSettings = sqliteTable('repo_settings', {
 	id: uuid(),
 	repo_full_name: text().notNull().unique(),
 	create_pr_prompt: text().default(''),
+	commit_push_prompt: text().default(''),
 	files_to_copy: text().default(''),
 	setup_script: text().default(''),
 	setup_script_name: text().default(''),
