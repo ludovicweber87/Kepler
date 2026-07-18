@@ -29,7 +29,8 @@
 		"archived": "Archived",
 		"sessionArchived": "Session archived",
 		"archiveError": "Failed to archive",
-		"archiveScriptFailed": "Archive script failed, archiving anyway"
+		"archiveScriptFailed": "Archive script failed, archiving anyway",
+		"notifications": "Notifications"
 	},
 	"landing": {
 		"nav": {
@@ -441,5 +442,26 @@
 		"generatedSuccess": "Report generated",
 		"generateError": "Generation failed",
 		"deletedSuccess": "Report deleted"
+	},
+	"notifications": {
+		"title": "Notifications",
+		"empty": "No notifications",
+		"markAllRead": "Mark all read",
+		"seeAll": "See all",
+		"filterAll": "All",
+		"filterAgents": "Agents",
+		"filterCi": "CI",
+		"filterGithub": "GitHub",
+		"filterPr": "PR",
+		"agent_done": "Agent finished",
+		"agent_error": "Agent failed",
+		"agent_blocked": "Agent is waiting for you",
+		"ci_failed": "CI failed — {repo} #{number}",
+		"ci_passed": "CI passed — {repo} #{number}",
+		"mention": "Mention — {repo}",
+		"review_requested": "Review requested — {repo}",
+		"pr_merged": "PR merged — {repo} #{number}",
+		"pr_approved": "PR approved — {repo} #{number}",
+		"changes_requested": "Changes requested — {repo} #{number}"
 	}
 }

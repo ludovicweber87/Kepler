@@ -7,7 +7,9 @@ import { handleSessionRoutes } from './routes/sessions.js';
 import { handleChatRoutes } from './routes/chat.js';
 import { handleFilesystemRoutes } from './routes/filesystem.js';
 import { handleRecapRoutes } from './routes/recap.js';
+import { handleNotificationsStream } from './routes/notifications.js';
 import { serveAttachment } from './sdk/attachments.js';
+import { startGithubPoller } from './notifications/githubPoller.js';
 
 const PORT = parseInt(process.env.DEVORA_AGENT_PORT ?? '4001', 10);
 const ALLOWED_ORIGINS = (process.env.DEVORA_ORIGIN ?? 'http://localhost:4000')
@@ -78,6 +80,11 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
 			return;
 		}
 
+		if (path === '/notifications/stream' && req.method === 'GET') {
+			handleNotificationsStream(req, res);
+			return;
+		}
+
 		sendJson(res, { error: 'Not found' }, 404);
 	} catch (err) {
 		console.error('[agent] Unhandled error:', err);
@@ -123,4 +130,13 @@ server.listen(PORT, () => {
 	listenRetries = 0;
 	console.log(`[devora-agent] Running on http://localhost:${PORT}`);
 	console.log(`[devora-agent] CORS origins: ${ALLOWED_ORIGINS.join(', ')}`);
+});
+
+// ── Notifications: server-side GitHub poller (CI/PR/notifs → SSE) ──
+const stopGithubPoller = startGithubPoller();
+process.on('SIGTERM', () => {
+	stopGithubPoller();
+});
+process.on('SIGINT', () => {
+	stopGithubPoller();
 });

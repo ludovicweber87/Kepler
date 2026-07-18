@@ -29,7 +29,8 @@
 		"archived": "Arquivadas",
 		"sessionArchived": "Sessão arquivada",
 		"archiveError": "Falha ao arquivar",
-		"archiveScriptFailed": "Falha no script de arquivamento, arquivado mesmo assim"
+		"archiveScriptFailed": "Falha no script de arquivamento, arquivado mesmo assim",
+		"notifications": "Notificações"
 	},
 	"landing": {
 		"nav": {
@@ -420,5 +421,26 @@
 		"generatedSuccess": "Relatório gerado",
 		"generateError": "Falha na geração",
 		"deletedSuccess": "Relatório eliminado"
+	},
+	"notifications": {
+		"title": "Notificações",
+		"empty": "Sem notificações",
+		"markAllRead": "Marcar tudo como lido",
+		"seeAll": "Ver tudo",
+		"filterAll": "Tudo",
+		"filterAgents": "Agentes",
+		"filterCi": "CI",
+		"filterGithub": "GitHub",
+		"filterPr": "PR",
+		"agent_done": "O agente terminou",
+		"agent_error": "O agente falhou",
+		"agent_blocked": "O agente aguarda a sua resposta",
+		"ci_failed": "CI falhou — {repo} #{number}",
+		"ci_passed": "CI passou — {repo} #{number}",
+		"mention": "Menção — {repo}",
+		"review_requested": "Revisão solicitada — {repo}",
+		"pr_merged": "PR mesclada — {repo} #{number}",
+		"pr_approved": "PR aprovada — {repo} #{number}",
+		"changes_requested": "Alterações solicitadas — {repo} #{number}"
 	}
 }

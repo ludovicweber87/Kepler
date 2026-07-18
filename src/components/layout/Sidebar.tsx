@@ -16,9 +16,11 @@ import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
+import Badge from '@mui/material/Badge';
 import { alpha, useTheme } from '@mui/material/styles';
 import MergeTypeRoundedIcon from '@mui/icons-material/MergeTypeRounded';
 import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
+import NotificationsRoundedIcon from '@mui/icons-material/NotificationsRounded';
 import TodayRoundedIcon from '@mui/icons-material/TodayRounded';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
@@ -34,6 +36,7 @@ import Image from 'next/image';
 import { useMe } from '@/hooks/useMe';
 import { useTranslations } from 'next-intl';
 import { useAgentSessionHistory } from '@/hooks/useAgentSession';
+import { useNotifications } from '@/hooks/useNotifications';
 import { useSessionActions } from '@/hooks/useSessionActions';
 import { classifySession } from '@/lib/sessionStatus';
 import { useAgentViews } from '@/hooks/useAgentViews';
@@ -57,6 +60,7 @@ export default function Sidebar() {
 	const router = useRouter();
 	const { me } = useMe();
 	const t = useTranslations('sidebar');
+	const { unread } = useNotifications();
 	const { data: allSessions = [] } = useAgentSessionHistory();
 	// Most recent session per worktree path (list is ordered started_at desc).
 	const sessionByWorktree = useMemo(() => {
@@ -179,6 +183,15 @@ export default function Sidebar() {
 		{ label: t('prs'), href: '/prs', icon: <MergeTypeRoundedIcon /> },
 		// "Daily" reste non traduit dans toutes les locales (choix produit).
 		{ label: 'Daily', href: '/daily', icon: <TodayRoundedIcon /> },
+		{
+			label: t('notifications'),
+			href: '/notifications',
+			icon: (
+				<Badge badgeContent={unread} color="error" max={99}>
+					<NotificationsRoundedIcon />
+				</Badge>
+			),
+		},
 	];
 
 	const bottomItems = [

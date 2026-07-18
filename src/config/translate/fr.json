@@ -29,7 +29,8 @@
 		"archived": "Archivées",
 		"sessionArchived": "Session archivée",
 		"archiveError": "Échec de l’archivage",
-		"archiveScriptFailed": "Échec du script d’archivage, archivage effectué quand même"
+		"archiveScriptFailed": "Échec du script d’archivage, archivage effectué quand même",
+		"notifications": "Notifications"
 	},
 	"landing": {
 		"nav": {
@@ -441,5 +442,26 @@
 		"generatedSuccess": "Rapport généré",
 		"generateError": "Échec de la génération",
 		"deletedSuccess": "Rapport supprimé"
+	},
+	"notifications": {
+		"title": "Notifications",
+		"empty": "Aucune notification",
+		"markAllRead": "Tout marquer lu",
+		"seeAll": "Tout voir",
+		"filterAll": "Tout",
+		"filterAgents": "Agents",
+		"filterCi": "CI",
+		"filterGithub": "GitHub",
+		"filterPr": "PR",
+		"agent_done": "L'agent a terminé",
+		"agent_error": "L'agent a échoué",
+		"agent_blocked": "L'agent attend ta réponse",
+		"ci_failed": "CI échouée — {repo} #{number}",
+		"ci_passed": "CI réussie — {repo} #{number}",
+		"mention": "Mention — {repo}",
+		"review_requested": "Review demandée — {repo}",
+		"pr_merged": "PR mergée — {repo} #{number}",
+		"pr_approved": "PR approuvée — {repo} #{number}",
+		"changes_requested": "Changements demandés — {repo} #{number}"
 	}
 }

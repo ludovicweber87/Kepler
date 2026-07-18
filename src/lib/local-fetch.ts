@@ -28,6 +28,10 @@ export function getAgentHttpUrl(): string {
 	return AGENT_BASE_URL;
 }
 
+export function getAgentSseUrl(): string {
+	return AGENT_BASE_URL.replace(/\/$/, '') + '/notifications/stream';
+}
+
 /** Thrown when the devora-agent is unreachable (offline / wrong port / CORS). */
 export class AgentOfflineError extends Error {
 	constructor(public path: string) {

@@ -29,7 +29,8 @@
 		"archived": "Archiviert",
 		"sessionArchived": "Sitzung archiviert",
 		"archiveError": "Archivieren fehlgeschlagen",
-		"archiveScriptFailed": "Archivierungsskript fehlgeschlagen, trotzdem archiviert"
+		"archiveScriptFailed": "Archivierungsskript fehlgeschlagen, trotzdem archiviert",
+		"notifications": "Benachrichtigungen"
 	},
 	"landing": {
 		"nav": {
@@ -419,5 +420,26 @@
 		"generatedSuccess": "Bericht erstellt",
 		"generateError": "Erstellung fehlgeschlagen",
 		"deletedSuccess": "Bericht gelöscht"
+	},
+	"notifications": {
+		"title": "Benachrichtigungen",
+		"empty": "Keine Benachrichtigungen",
+		"markAllRead": "Alle als gelesen markieren",
+		"seeAll": "Alle anzeigen",
+		"filterAll": "Alle",
+		"filterAgents": "Agents",
+		"filterCi": "CI",
+		"filterGithub": "GitHub",
+		"filterPr": "PR",
+		"agent_done": "Agent fertig",
+		"agent_error": "Agent fehlgeschlagen",
+		"agent_blocked": "Agent wartet auf dich",
+		"ci_failed": "CI fehlgeschlagen — {repo} #{number}",
+		"ci_passed": "CI erfolgreich — {repo} #{number}",
+		"mention": "Erwähnung — {repo}",
+		"review_requested": "Review angefragt — {repo}",
+		"pr_merged": "PR gemergt — {repo} #{number}",
+		"pr_approved": "PR genehmigt — {repo} #{number}",
+		"changes_requested": "Änderungen angefragt — {repo} #{number}"
 	}
 }

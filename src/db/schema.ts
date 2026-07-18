@@ -1,5 +1,6 @@
-import { sqliteTable, text, integer, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, uniqueIndex, index } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
+import type { NotificationSource, NotificationType, EntityRef } from '@/types';
 
 const timestamp = () => text().default(sql`(datetime('now'))`);
 const uuid = () =>
@@ -136,3 +137,27 @@ export const dailyRecaps = sqliteTable('daily_recaps', {
 	trigger_type: text().default('manual'), // 'manual'
 	created_at: timestamp(),
 });
+
+// ─── Notifications ───────────────────────────────────────
+
+export const notifications = sqliteTable(
+	'notifications',
+	{
+		id: uuid(),
+		source: text().$type<NotificationSource>().notNull(),
+		type: text().$type<NotificationType>().notNull(),
+		priority: text().$type<'high' | 'normal'>().notNull().default('normal'),
+		title: text().default(''),
+		body: text().default(''),
+		url: text().default(''),
+		entity_ref: text({ mode: 'json' }).$type<EntityRef | null>(),
+		payload: text({ mode: 'json' }).$type<Record<string, string>>().default({}),
+		dedupe_key: text().notNull().unique(),
+		read_at: text(),
+		created_at: timestamp(),
+	},
+	(t) => ({
+		readIdx: index('notifications_read_at_idx').on(t.read_at),
+		createdIdx: index('notifications_created_at_idx').on(t.created_at),
+	}),
+);
