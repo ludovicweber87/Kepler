@@ -22,6 +22,13 @@ interface Params {
 	model?: string;
 	effort?: string;
 	permissionMode?: string;
+	/**
+	 * Ref one-shot : quand `true` à l'ouverture du WS, on demande au serveur de
+	 * relancer le dernier prompt user (reprise d'un run interrompu). Consommée
+	 * (remise à `false`) au premier `stream-init` pour ne pas rejouer sur les
+	 * simples reconnexions.
+	 */
+	resumeRetryRef?: { current: boolean };
 }
 
 type Status = 'connecting' | 'idle' | 'busy' | 'error' | 'closed';
@@ -67,6 +74,8 @@ export function useAgentChat(p: Params) {
 		setQueued([]);
 
 		ws.onopen = () => {
+			const retryLastUser = p.resumeRetryRef?.current ?? false;
+			if (p.resumeRetryRef) p.resumeRetryRef.current = false;
 			ws.send(
 				JSON.stringify({
 					type: 'stream-init',
@@ -76,6 +85,7 @@ export function useAgentChat(p: Params) {
 					model: p.model,
 					effort: p.effort,
 					permissionMode: p.permissionMode,
+					retryLastUser,
 				}),
 			);
 		};
