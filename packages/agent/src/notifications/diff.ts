@@ -24,12 +24,12 @@ export function diffGithubState(prev: GithubState, next: GithubState): NewNotifi
 		const payload = { repo: pr.repo, number: String(pr.number), title: pr.title };
 
 		// CI transitions (dedupe includes sha → stable across reboots, re-fires on new sha)
-		if (before && before.checkStatus !== pr.checkStatus) {
-			if (pr.checkStatus === 'failure') {
-				out.push(buildNotification({ type: 'ci_failed', title: '', url: pr.url, entityRef, payload, dedupeParts: [ref, pr.headSha] }));
-			} else if (pr.checkStatus === 'success' && before.checkStatus === 'failure') {
-				out.push(buildNotification({ type: 'ci_passed', title: '', url: pr.url, entityRef, payload, dedupeParts: [ref, pr.headSha] }));
-			}
+		const statusChanged = before && before.checkStatus !== pr.checkStatus;
+		const shaChanged = before && before.headSha !== pr.headSha;
+		if (before && pr.checkStatus === 'failure' && (statusChanged || shaChanged)) {
+			out.push(buildNotification({ type: 'ci_failed', title: '', url: pr.url, entityRef, payload, dedupeParts: [ref, pr.headSha] }));
+		} else if (before && statusChanged && before.checkStatus === 'failure' && pr.checkStatus === 'success') {
+			out.push(buildNotification({ type: 'ci_passed', title: '', url: pr.url, entityRef, payload, dedupeParts: [ref, pr.headSha] }));
 		}
 		// Merge
 		if (before && !before.merged && pr.merged) {

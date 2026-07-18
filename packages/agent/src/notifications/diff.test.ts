@@ -61,4 +61,26 @@ describe('diffGithubState', () => {
 		const s: GithubState = { prs: {}, threads: { t1: { id: 't1', reason: 'mention', title: 'hi', url: 'u', repo: 'o/r' } } };
 		expect(diffGithubState(s, s)).toEqual([]);
 	});
+
+	it('emits ci_failed when same failure status but new sha', () => {
+		const prev: GithubState = { prs: { 'o/r#42': pr({ checkStatus: 'failure', headSha: 'sha1' }) }, threads: {} };
+		const next: GithubState = { prs: { 'o/r#42': pr({ checkStatus: 'failure', headSha: 'sha2' }) }, threads: {} };
+		const out = diffGithubState(prev, next);
+		expect(out).toHaveLength(1);
+		expect(out[0].type).toBe('ci_failed');
+		expect(out[0].dedupe_key).toBe('ci_failed:o/r#42:sha2');
+	});
+
+	it('emits ci_passed on failure -> success even with sha change', () => {
+		const prev: GithubState = { prs: { 'o/r#42': pr({ checkStatus: 'failure', headSha: 'sha1' }) }, threads: {} };
+		const next: GithubState = { prs: { 'o/r#42': pr({ checkStatus: 'success', headSha: 'sha2' }) }, threads: {} };
+		const out = diffGithubState(prev, next);
+		expect(out).toHaveLength(1);
+		expect(out[0].type).toBe('ci_passed');
+	});
+
+	it('does not emit for identical failure states with same sha (idempotency)', () => {
+		const s: GithubState = { prs: { 'o/r#42': pr({ checkStatus: 'failure', headSha: 'sha1' }) }, threads: {} };
+		expect(diffGithubState(s, s)).toEqual([]);
+	});
 });
