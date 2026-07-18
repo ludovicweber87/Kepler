@@ -29,6 +29,8 @@ interface Props {
 	commitPushPrompt?: string;
 	onFirstUserMessage?: (text: string) => void;
 	onResume?: () => void;
+	/** Ref one-shot armée par le parent au clic « reprendre » : relance le dernier prompt user. */
+	resumeRetryRef?: { current: boolean };
 	/** Ouvre l'onglet Changes centré sur le fichier (clic sur une tool card). */
 	onOpenChanges?: (filePath: string) => void;
 	/** Appelé à la fin d'un tour de l'agent (transition busy → idle). */
@@ -51,6 +53,7 @@ export default function AgentChatTab({
 	commitPushPrompt,
 	onFirstUserMessage,
 	onResume,
+	resumeRetryRef,
 	onOpenChanges,
 	onTurnComplete,
 	onCreatePrStateChange,
@@ -69,6 +72,7 @@ export default function AgentChatTab({
 		model: initialModel ?? 'opus',
 		effort: initialEffort ?? 'high',
 		permissionMode: initialMode ?? 'bypassPermissions',
+		resumeRetryRef,
 	});
 
 	const scrollRef = useRef<HTMLDivElement>(null);

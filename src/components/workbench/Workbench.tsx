@@ -74,6 +74,9 @@ export default function Workbench() {
 	const [confirmClose, setConfirmClose] = useState(false);
 	const [closing, setClosing] = useState(false);
 	const firstPromptSent = useRef(false);
+	// Armé au clic « reprendre » : demande la relance du dernier prompt user à
+	// la réouverture du WS. Consommé (one-shot) par useAgentChat.
+	const resumeRetryRef = useRef(false);
 
 	// Fallback : la session peut deja etre dans l'historique avant que useAgentSession resolve.
 	const resolved = useMemo(
@@ -112,6 +115,7 @@ export default function Workbench() {
 		setActiveTab(CHAT_TAB);
 		setRightTab('activity');
 		setFocusNonce(0);
+		resumeRetryRef.current = false;
 	}, [sessionId]);
 
 	const diffPath = resolved?.worktree_path ?? resolved?.project_path ?? null;
@@ -498,8 +502,12 @@ export default function Workbench() {
 								readOnly={chatReadOnly}
 								createPrPrompt={repoSettings.create_pr_prompt}
 								commitPushPrompt={repoSettings.commit_push_prompt}
+								resumeRetryRef={resumeRetryRef}
 								onResume={() => {
-									resume(sessionId).catch(() => {});
+									resumeRetryRef.current = true;
+									resume(sessionId).catch(() => {
+										resumeRetryRef.current = false;
+									});
 								}}
 								onOpenChanges={openChanges}
 								onCreatePrStateChange={setPrState}
