@@ -7,6 +7,7 @@ import { handleSessionRoutes } from './routes/sessions.js';
 import { handleChatRoutes } from './routes/chat.js';
 import { handleFilesystemRoutes } from './routes/filesystem.js';
 import { handleRecapRoutes } from './routes/recap.js';
+import { handleNotificationsStream } from './routes/notifications.js';
 import { serveAttachment } from './sdk/attachments.js';
 
 const PORT = parseInt(process.env.DEVORA_AGENT_PORT ?? '4001', 10);
@@ -75,6 +76,11 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
 
 		if (path.startsWith('/attachments/') && req.method === 'GET') {
 			serveAttachment(req, res, path);
+			return;
+		}
+
+		if (path === '/notifications/stream' && req.method === 'GET') {
+			handleNotificationsStream(req, res);
 			return;
 		}
 
