@@ -18,9 +18,11 @@ import { useTranslations } from 'next-intl';
 
 const VARIANT_LABEL_KEY: Record<ThemeVariant, string> = {
 	dark: 'themeDark',
+	'dark-teal': 'themeDarkTeal',
+	'dark-amber': 'themeDarkAmber',
 	'light-warm': 'themeLightWarm',
-	'light-solarized': 'themeLightSolarized',
-	'light-near-white': 'themeLightNearWhite',
+	'light-cool': 'themeLightCool',
+	'light-bright': 'themeLightBright',
 	custom: 'themeCustom',
 };
 
@@ -34,7 +36,7 @@ function Swatch({ variant }: { variant: ThemeVariant }) {
 				height: 14,
 				borderRadius: '4px',
 				flexShrink: 0,
-				background: `linear-gradient(135deg, ${a}, ${b})`,
+				background: `linear-gradient(135deg, ${a} 50%, ${b} 50%)`,
 				border: '1px solid',
 				borderColor: 'divider',
 			}}

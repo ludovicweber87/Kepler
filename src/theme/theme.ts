@@ -10,29 +10,36 @@ import {
 
 export type ThemeVariant =
 	| 'dark'
+	| 'dark-teal'
+	| 'dark-amber'
 	| 'light-warm'
-	| 'light-solarized'
-	| 'light-near-white'
+	| 'light-cool'
+	| 'light-bright'
 	| 'custom';
 
 export const PRESET_VARIANTS: ThemeVariant[] = [
 	'dark',
+	'dark-teal',
+	'dark-amber',
 	'light-warm',
-	'light-solarized',
-	'light-near-white',
+	'light-cool',
+	'light-bright',
 ];
 
 export const THEME_VARIANTS: ThemeVariant[] = [...PRESET_VARIANTS, 'custom'];
 
 export const DEFAULT_THEME_VARIANT: ThemeVariant = 'dark';
 
-/** [primary, secondary] pair used to render the variant swatch in the theme picker. */
+/** [background, primary] pair used to render the variant swatch: left half signals
+ * dark/light mode (the surface), right half shows the primary accent. */
 export const THEME_VARIANT_SWATCH: Record<ThemeVariant, [string, string]> = {
-	dark: ['#7C5CFF', '#00D4FF'],
-	'light-warm': ['#5E4FA6', '#3F6D5A'],
-	'light-solarized': ['#1E6FA8', '#1B7A72'],
-	'light-near-white': ['#6E5FB0', '#4F7D6B'],
-	custom: ['#7C5CFF', '#00D4FF'],
+	dark: ['#1A1A1A', '#7C5CFF'],
+	'dark-teal': ['#0F1E1B', '#2DD4BF'],
+	'dark-amber': ['#1B1611', '#FFB74D'],
+	'light-warm': ['#F4EEE2', '#B0552F'],
+	'light-cool': ['#ECEEF1', '#2563EB'],
+	'light-bright': ['#FCFCFD', '#6E5FB0'],
+	custom: ['#222222', '#7C5CFF'],
 };
 
 type ColorShades = { main: string; light: string; dark: string };
@@ -78,45 +85,83 @@ const TOKENS: Record<Exclude<ThemeVariant, 'custom'>, VariantTokens> = {
 			drawerBorder: '#3A3A3A',
 		},
 	},
+	'dark-teal': {
+		mode: 'dark',
+		chipStyle: 'filled',
+		primary: { main: '#2DD4BF', light: '#5EEAD4', dark: '#14B8A6' },
+		secondary: { main: '#FBB562', light: '#FDD09A', dark: '#E0954A' },
+		error: '#F87171',
+		warning: '#FBBF24',
+		success: '#34D399',
+		info: '#38BDF8',
+		background: { default: '#0F1E1B', paper: '#16302B' },
+		text: { primary: '#E6F4F1', secondary: '#94B0AB' },
+		divider: '#26443E',
+		surfaces: {
+			cardHover: '#1B352F',
+			cardBorderHover: '#34544D',
+			drawer: '#0F1E1B',
+			drawerBorder: '#26443E',
+		},
+	},
+	'dark-amber': {
+		mode: 'dark',
+		chipStyle: 'filled',
+		primary: { main: '#FFB74D', light: '#FFCC80', dark: '#FB8C00' },
+		secondary: { main: '#4FC3F7', light: '#81D4FA', dark: '#0EA5E9' },
+		error: '#EF5350',
+		warning: '#FFA726',
+		success: '#66BB6A',
+		info: '#4FC3F7',
+		background: { default: '#1B1611', paper: '#292019' },
+		text: { primary: '#F4ECE1', secondary: '#B4A692' },
+		divider: '#3B3123',
+		surfaces: {
+			cardHover: '#2B2219',
+			cardBorderHover: '#4B3B29',
+			drawer: '#1B1611',
+			drawerBorder: '#3B3123',
+		},
+	},
 	'light-warm': {
 		mode: 'light',
 		chipStyle: 'tinted',
-		primary: { main: '#5E4FA6', light: '#8B7EC8', dark: '#493C82' },
-		secondary: { main: '#3F6D5A', light: '#5E8C7A', dark: '#2E5040' },
+		primary: { main: '#B0552F', light: '#CC7757', dark: '#8C4123' },
+		secondary: { main: '#636D36', light: '#8B9755', dark: '#4A5228' },
 		error: '#A5382A',
 		warning: '#8A6416',
 		success: '#4A7546',
 		info: '#356F8C',
-		background: { default: '#F3EEE4', paper: '#FBF7EF' },
+		background: { default: '#F4EEE2', paper: '#FCF8F0' },
 		text: { primary: '#33302A', secondary: '#6E685C' },
-		divider: '#E4DDD0',
+		divider: '#E4DDCE',
 		surfaces: {
-			cardHover: '#F6F1E8',
-			cardBorderHover: '#D8D0C1',
-			drawer: '#EDE7DB',
-			drawerBorder: '#E4DDD0',
+			cardHover: '#F7F1E7',
+			cardBorderHover: '#DCD2C0',
+			drawer: '#EDE6D9',
+			drawerBorder: '#E4DDCE',
 		},
 	},
-	'light-solarized': {
+	'light-cool': {
 		mode: 'light',
 		chipStyle: 'tinted',
-		primary: { main: '#1E6FA8', light: '#4A97CE', dark: '#155680' },
-		secondary: { main: '#1B7A72', light: '#2AA198', dark: '#125952' },
+		primary: { main: '#2563EB', light: '#5B8DEF', dark: '#1D4FBF' },
+		secondary: { main: '#0F766E', light: '#2A9187', dark: '#0B564F' },
 		error: '#C42B27',
-		warning: '#8A6800',
-		success: '#5F6E00',
-		info: '#1E6FA8',
-		background: { default: '#EEE8D5', paper: '#FDF6E3' },
-		text: { primary: '#4A5C63', secondary: '#556B72' },
-		divider: '#E3DCC6',
+		warning: '#92660A',
+		success: '#3F7A46',
+		info: '#2563EB',
+		background: { default: '#ECEEF1', paper: '#F8F9FB' },
+		text: { primary: '#2B2F36', secondary: '#5C636E' },
+		divider: '#DDE1E7',
 		surfaces: {
-			cardHover: '#F7F0DC',
-			cardBorderHover: '#D8CFB6',
-			drawer: '#E4DDC8',
-			drawerBorder: '#E3DCC6',
+			cardHover: '#F1F3F6',
+			cardBorderHover: '#CDD3DB',
+			drawer: '#E6E8EC',
+			drawerBorder: '#DDE1E7',
 		},
 	},
-	'light-near-white': {
+	'light-bright': {
 		mode: 'light',
 		chipStyle: 'filled',
 		primary: { main: '#6E5FB0', light: '#8B7EC8', dark: '#564A8C' },
@@ -125,14 +170,14 @@ const TOKENS: Record<Exclude<ThemeVariant, 'custom'>, VariantTokens> = {
 		warning: '#8A6416',
 		success: '#4F7D4C',
 		info: '#3F7A99',
-		background: { default: '#F7F4EE', paper: '#FDFCFA' },
-		text: { primary: '#33302A', secondary: '#6E685C' },
-		divider: '#ECE7DE',
+		background: { default: '#FCFCFD', paper: '#FFFFFF' },
+		text: { primary: '#1F2430', secondary: '#616875' },
+		divider: '#ECEEF2',
 		surfaces: {
-			cardHover: '#F6F2EB',
-			cardBorderHover: '#DFD8CC',
-			drawer: '#EFEAE1',
-			drawerBorder: '#ECE7DE',
+			cardHover: '#F6F7F9',
+			cardBorderHover: '#E0E3E9',
+			drawer: '#F7F8FA',
+			drawerBorder: '#ECEEF2',
 		},
 	},
 };

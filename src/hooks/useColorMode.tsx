@@ -34,11 +34,14 @@ export function resolveStoredVariant(stored: string | null): ThemeVariant {
 	}
 	if (stored === 'light') return 'light-warm';
 	if (stored === 'dark') return 'dark';
+	// Legacy variant ids renamed in the theme refresh.
+	if (stored === 'light-solarized') return 'light-cool';
+	if (stored === 'light-near-white') return 'light-bright';
 	return DEFAULT_THEME_VARIANT;
 }
 
 const modeForVariant = (variant: ThemeVariant): PaletteMode =>
-	variant === 'dark' ? 'dark' : 'light';
+	variant.startsWith('dark') ? 'dark' : 'light';
 
 function subscribe(callback: () => void) {
 	window.addEventListener('storage', callback);

@@ -25,7 +25,9 @@ function contrast(a: string, b: string): number {
 }
 
 const AA = 4.5;
-const LIGHT_VARIANTS: ThemeVariant[] = PRESET_VARIANTS.filter((v) => v !== 'dark');
+const LIGHT_VARIANTS: ThemeVariant[] = PRESET_VARIANTS.filter(
+	(v) => getTheme(v).palette.mode === 'light',
+);
 
 describe('getTheme', () => {
 	it('maps each variant to the expected palette mode', () => {
