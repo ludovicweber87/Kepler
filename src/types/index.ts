@@ -391,3 +391,38 @@ export interface DailyRecap {
 	trigger_type: 'manual';
 	created_at: string;
 }
+
+// ─── Notifications ───────────────────────────────────────────
+export type NotificationSource = 'agent' | 'github' | 'ci' | 'pr';
+export type NotificationType =
+	| 'agent_done'
+	| 'agent_error'
+	| 'agent_blocked'
+	| 'ci_failed'
+	| 'ci_passed'
+	| 'mention'
+	| 'review_requested'
+	| 'pr_merged'
+	| 'pr_approved'
+	| 'changes_requested';
+export interface EntityRef {
+	kind: 'session' | 'issue' | 'pr';
+	id: string;
+	repo?: string;
+}
+export interface AppNotification {
+	id: string;
+	source: NotificationSource;
+	type: NotificationType;
+	priority: 'high' | 'normal';
+	title: string;
+	body: string;
+	url: string;
+	entity_ref: EntityRef | null;
+	payload: Record<string, string>;
+	read_at: string | null;
+	created_at: string;
+}
+export type NewNotification = Omit<AppNotification, 'id' | 'read_at' | 'created_at'> & {
+	dedupe_key: string;
+};
