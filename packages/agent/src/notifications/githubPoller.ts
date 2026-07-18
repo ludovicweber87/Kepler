@@ -5,6 +5,7 @@ import { diffGithubState, type GithubState, type PrSnapshot } from './diff.js';
 
 const GH = 'https://api.github.com';
 const DEFAULT_INTERVAL = 60_000;
+const MAX_INTERVAL = 300_000;
 const BOOT_DELAY = 3_000;
 
 function ghHeaders(token: string) {
@@ -155,14 +156,14 @@ export function startGithubPoller(): () => void {
 			const token = getLocalGithubToken();
 			if (token) {
 				const { state: next, pollIntervalMs, rateLimited } = await fetchState(token);
-				if (pollIntervalMs) interval = Math.max(DEFAULT_INTERVAL, pollIntervalMs);
+				if (pollIntervalMs) interval = Math.min(MAX_INTERVAL, Math.max(DEFAULT_INTERVAL, pollIntervalMs));
 				if (rateLimited) {
 					console.warn('[notifications] github poller rate-limited, backing off');
 				} else {
 					const delta = diffGithubState(prev, next);
 					const db = getDb();
 					for (const n of delta) insertAndEmit(db, n); // INSERT OR IGNORE absorbe les doublons au boot
-					prev = next;
+					if (db) prev = next;
 				}
 			}
 		} catch (err) {
