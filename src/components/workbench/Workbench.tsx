@@ -320,7 +320,7 @@ export default function Workbench() {
 				)}
 				<Box sx={{ flex: 1 }} />
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-					{hasUncommitted && commitPushState.available && !isArchived && (
+					{hasUncommitted && commitPushState.available && !isArchived && openPr && (
 						<Button
 							variant="outlined"
 							color="primary"
