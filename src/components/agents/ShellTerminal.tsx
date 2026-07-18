@@ -59,9 +59,15 @@ const ShellTerminal = forwardRef<ShellTerminalHandle, ShellTerminalProps>(functi
 			brightMagenta: '#EA80FC',
 			brightCyan: '#84FFFF',
 			brightWhite: '#FFFFFF',
-			black: '#1A1A1A',
+			black: theme.palette.mode === 'light' ? theme.palette.text.secondary : '#1A1A1A',
 		}),
-		[theme.palette.background.default, theme.palette.text.primary, theme.palette.primary.main],
+		[
+			theme.palette.background.default,
+			theme.palette.text.primary,
+			theme.palette.primary.main,
+			theme.palette.mode,
+			theme.palette.text.secondary,
+		],
 	);
 	// Thème initial figé au montage (le terminal n'est créé qu'une fois) ;
 	// les changements de mode ultérieurs sont appliqués par l'effet dédié plus bas.

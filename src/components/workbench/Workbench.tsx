@@ -39,6 +39,7 @@ import { resolveEffectivePath } from '@/lib/effectivePath';
 import { resolveRepoFullName } from '@/lib/resolveRepoFullName';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useRepoSettings } from '@/hooks/useRepoSettings';
+import { LIGHT_SHADOW_LEFT } from '@/theme/theme';
 import { useGitDiff } from '@/hooks/useGitDiff';
 import { usePullRequests } from '@/hooks/usePullRequests';
 import { findOpenPrForBranch } from '@/lib/pullRequests';
@@ -508,6 +509,8 @@ export default function Workbench() {
 						minWidth: 0,
 						borderLeft: 1,
 						borderColor: 'divider',
+						boxShadow: (th) =>
+							th.palette.mode === 'light' ? LIGHT_SHADOW_LEFT : 'none',
 						display: 'flex',
 						flexDirection: 'column',
 						minHeight: 0,
