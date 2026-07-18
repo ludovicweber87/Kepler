@@ -1,10 +1,13 @@
 'use client';
 
-import { Menu, Box, Button, Divider, List, Typography } from '@mui/material';
+import { Menu, Box, Button, Divider, IconButton, List, Tooltip, Typography } from '@mui/material';
+import VolumeUpOutlinedIcon from '@mui/icons-material/VolumeUpOutlined';
+import VolumeOffOutlinedIcon from '@mui/icons-material/VolumeOffOutlined';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useMarkNotifications } from '@/hooks/useMarkNotifications';
+import { useNotificationSoundMuted } from '@/hooks/useNotificationSoundMuted';
 import { NotificationItem } from './NotificationItem';
 
 export function NotificationsMenu({
@@ -18,6 +21,7 @@ export function NotificationsMenu({
 	const router = useRouter();
 	const { notifications } = useNotifications();
 	const { markRead, markAllRead } = useMarkNotifications();
+	const { muted, toggle } = useNotificationSoundMuted();
 	const recent = notifications.slice(0, 10);
 
 	return (
@@ -39,9 +43,24 @@ export function NotificationsMenu({
 				}}
 			>
 				<Typography variant="subtitle2">{t('title')}</Typography>
-				<Button size="small" onClick={() => markAllRead()}>
-					{t('markAllRead')}
-				</Button>
+				<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+					<Tooltip title={muted ? t('unmuteSound') : t('muteSound')}>
+						<IconButton
+							size="small"
+							onClick={toggle}
+							aria-label={muted ? t('unmuteSound') : t('muteSound')}
+						>
+							{muted ? (
+								<VolumeOffOutlinedIcon fontSize="small" />
+							) : (
+								<VolumeUpOutlinedIcon fontSize="small" />
+							)}
+						</IconButton>
+					</Tooltip>
+					<Button size="small" onClick={() => markAllRead()}>
+						{t('markAllRead')}
+					</Button>
+				</Box>
 			</Box>
 			<Divider />
 			{recent.length === 0 ? (
