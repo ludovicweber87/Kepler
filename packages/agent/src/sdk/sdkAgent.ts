@@ -8,6 +8,8 @@ import * as transcript from './transcriptStore.js';
 import { deriveLogs } from './activityDeriver.js';
 import { summarizeTurn } from './turnSummarizer.js';
 import { getDb } from '../db.js';
+import { buildNotification } from '../notifications/build.js';
+import { insertAndEmit } from '../notifications/insert.js';
 import { randomUUID } from 'node:crypto';
 import { saveAttachment, extForMediaType } from './attachments.js';
 import type { ChatImageInput } from './promptQueue.js';
@@ -105,6 +107,17 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
                 writeActivityLog(sessionId, 'summary', sum),
               );
             }
+            try {
+              const type = ev.data.is_error ? 'agent_error' : 'agent_done';
+              insertAndEmit(getDb(), buildNotification({
+                type,
+                title: '',
+                url: `/workbench?session=${sessionId}`,
+                entityRef: { kind: 'session', id: sessionId },
+                payload: { session: sessionId },
+                dedupeParts: [sessionId, String(ev.data.num_turns)],
+              }));
+            } catch (err) { console.error('[notifications] agent result notif failed', err); }
           }
           broadcast(s, { type: 'stream-event', seq, ...ev });
         }
@@ -167,7 +180,19 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
       const s: SessionState = {
         q: undefined as unknown as QueryLike,
         queue,
-        perms: createPermissionController((req: PendingPermission) => broadcast(s, { type: 'stream-permission-request', ...req }), () => s.permissionMode, (req: PendingQuestion) => broadcast(s, { type: 'stream-question-request', ...req })),
+        perms: createPermissionController((req: PendingPermission) => broadcast(s, { type: 'stream-permission-request', ...req }), () => s.permissionMode, (req: PendingQuestion) => {
+          broadcast(s, { type: 'stream-question-request', ...req });
+          try {
+            insertAndEmit(getDb(), buildNotification({
+              type: 'agent_blocked',
+              title: '',
+              url: `/workbench?session=${sessionId}`,
+              entityRef: { kind: 'session', id: sessionId },
+              payload: { session: sessionId },
+              dedupeParts: [sessionId, req.id],
+            }));
+          } catch (err) { console.error('[notifications] agent_blocked notif failed', err); }
+        }),
         clients: new Set([ws]),
         claudeSessionId: null,
         model: params.model ?? '', effort: params.effort ?? '', permissionMode: params.permissionMode ?? 'bypassPermissions',
