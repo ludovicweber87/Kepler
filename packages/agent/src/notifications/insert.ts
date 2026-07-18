@@ -34,5 +34,7 @@ export function insertNotification(db: Database.Database, n: NewNotification): I
 export function insertAndEmit(db: Database.Database | null, n: NewNotification): void {
 	if (!db) return;
 	const row = insertNotification(db, n);
-	if (row) notificationStore.emit(row);
+	if (!row) return;
+	const { dedupe_key: _dedupe_key, ...emitted } = row;
+	notificationStore.emit(emitted);
 }

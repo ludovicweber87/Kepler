@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { insertNotification } from './insert.js';
+import { insertNotification, insertAndEmit } from './insert.js';
+import { notificationStore } from './store.js';
 import type { NewNotification } from './types.js';
 
 let db: Database.Database;
@@ -35,5 +36,43 @@ describe('insertNotification', () => {
 		const row = insertNotification(db, notif({ payload: { a: 'b' } }));
 		expect(row!.payload).toEqual({ a: 'b' });
 		expect(row!.entity_ref).toEqual({ kind: 'session', id: 's1' });
+	});
+});
+
+describe('insertAndEmit', () => {
+	let chunks: string[] = [];
+	let unsubscribe: (() => void) | null = null;
+
+	beforeEach(() => {
+		chunks = [];
+		const fake = { write: (s: string) => { chunks.push(s); } } as unknown as import('node:http').ServerResponse;
+		unsubscribe = notificationStore.subscribe(fake);
+	});
+
+	afterEach(() => {
+		if (unsubscribe) unsubscribe();
+	});
+
+	it('does nothing if db is null', () => {
+		insertAndEmit(null, notif());
+		expect(chunks).toHaveLength(0);
+		expect(db.prepare('SELECT COUNT(*) c FROM notifications').get()).toEqual({ c: 0 });
+	});
+
+	it('emits exactly one SSE data chunk with no dedupe_key', () => {
+		insertAndEmit(db, notif());
+		expect(chunks).toHaveLength(1);
+		const emitted = JSON.parse(chunks[0].replace(/^data: /, '').replace(/\n\n$/, ''));
+		expect(emitted).toHaveProperty('id');
+		expect(emitted).toHaveProperty('type', 'agent_done');
+		expect(emitted).toHaveProperty('read_at', null);
+		expect(emitted).not.toHaveProperty('dedupe_key');
+	});
+
+	it('deduplicates on dedupe_key (second call emits nothing)', () => {
+		insertAndEmit(db, notif());
+		expect(chunks).toHaveLength(1);
+		insertAndEmit(db, notif());
+		expect(chunks).toHaveLength(1);
 	});
 });
