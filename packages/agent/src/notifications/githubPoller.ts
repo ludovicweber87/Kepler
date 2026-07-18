@@ -16,6 +16,20 @@ function ghHeaders(token: string) {
 	};
 }
 
+/**
+ * Convertit une URL `subject.url` de l'API notifications GitHub
+ * (`https://api.github.com/repos/{O}/{R}/issues|pulls/{N}`) en URL HTML navigable
+ * (`https://github.com/{O}/{R}/issues|pull/{N}`) — cliquer l'URL API ouvrirait du JSON brut.
+ * Fallback sur `repoHtmlUrl` (ou chaîne vide) si `apiUrl` est absente ou ne matche pas le pattern.
+ */
+function toHtmlUrl(apiUrl: string | undefined, repoHtmlUrl: string | undefined): string {
+	const prefix = 'https://api.github.com/repos/';
+	if (apiUrl && apiUrl.startsWith(prefix)) {
+		return apiUrl.replace(prefix, 'https://github.com/').replace('/pulls/', '/pull/');
+	}
+	return repoHtmlUrl ?? '';
+}
+
 function watchedRepos(): string[] {
 	const db = getDb();
 	if (!db) return [];
@@ -87,7 +101,7 @@ async function fetchState(token: string): Promise<FetchResult> {
 				id,
 				reason: t.reason,
 				title: t.subject?.title ?? '',
-				url: t.subject?.url ?? t.repository?.html_url ?? '',
+				url: toHtmlUrl(t.subject?.url, t.repository?.html_url),
 				repo: t.repository?.full_name ?? '',
 			};
 		}
@@ -136,6 +150,40 @@ async function fetchState(token: string): Promise<FetchResult> {
 				headSha: sha,
 				checkStatus,
 				reviewDecision,
+				merged: !!pr.merged_at,
+			};
+		}
+	}
+
+	// Recently-updated closed PRs, per watched repo — a merged PR drops out of the
+	// `state=open` list, so without this the merged:false→true transition that
+	// `diffGithubState` needs to fire `pr_merged` can never be observed.
+	// No check-runs/reviews fetched here (those signals only matter while open) —
+	// bounds the request cost. Runs AFTER the open-PR loop so that if the same PR
+	// number appears in both results in one tick (open→closed race), the closed
+	// entry — the newer state — deterministically overwrites the open one.
+	for (const repo of watchedRepos()) {
+		const [owner, name] = repo.split('/');
+		if (!owner || !name) continue;
+		const cres = await fetch(
+			`${GH}/repos/${owner}/${name}/pulls?state=closed&sort=updated&direction=desc&per_page=20`,
+			{ headers: ghHeaders(token) },
+		);
+		if (cres.status === 403 || cres.status === 429) {
+			rateLimited = true;
+			continue;
+		}
+		if (!cres.ok) continue;
+		const prs = (await cres.json()) as Array<Record<string, any>>;
+		for (const pr of prs) {
+			state.prs[`${repo}#${pr.number}`] = {
+				repo,
+				number: pr.number,
+				url: pr.html_url,
+				title: pr.title,
+				headSha: pr.head?.sha ?? '',
+				checkStatus: null,
+				reviewDecision: null,
 				merged: !!pr.merged_at,
 			};
 		}
