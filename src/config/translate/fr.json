@@ -447,6 +447,8 @@
 		"title": "Notifications",
 		"empty": "Aucune notification",
 		"markAllRead": "Tout marquer lu",
+		"muteSound": "Couper le son",
+		"unmuteSound": "Activer le son",
 		"seeAll": "Tout voir",
 		"filterAll": "Tout",
 		"filterAgents": "Agents",
@@ -456,12 +458,12 @@
 		"agent_done": "L'agent a terminé",
 		"agent_error": "L'agent a échoué",
 		"agent_blocked": "L'agent attend ta réponse",
-		"ci_failed": "CI échouée — {repo} #{number}",
-		"ci_passed": "CI réussie — {repo} #{number}",
-		"mention": "Mention — {repo}",
-		"review_requested": "Review demandée — {repo}",
-		"pr_merged": "PR mergée — {repo} #{number}",
-		"pr_approved": "PR approuvée — {repo} #{number}",
-		"changes_requested": "Changements demandés — {repo} #{number}"
+		"ci_failed": "CI échouée — {title} ({repo} #{number})",
+		"ci_passed": "CI réussie — {title} ({repo} #{number})",
+		"mention": "Mention — {title} ({repo})",
+		"review_requested": "Review demandée — {title} ({repo})",
+		"pr_merged": "PR mergée — {title} ({repo} #{number})",
+		"pr_approved": "PR approuvée — {title} ({repo} #{number})",
+		"changes_requested": "Changements demandés — {title} ({repo} #{number})"
 	}
 }

@@ -33,6 +33,14 @@ describe('titleFor', () => {
 		const t = (k: string, v?: Record<string, string>) => `${k}:${v?.repo ?? ''}`;
 		expect(titleFor(mk({ type: 'ci_failed', payload: { repo: 'o/r' } }), t)).toBe('ci_failed:o/r');
 	});
+	it('forwards title/repo/number to the template', () => {
+		const t = (_k: string, v?: Record<string, string>) => `${v?.title}|${v?.repo}|${v?.number}`;
+		expect(titleFor(mk({ type: 'pr_merged', payload: { repo: 'o/r', number: '42', title: 'Fix login redirect' } }), t)).toBe('Fix login redirect|o/r|42');
+	});
+	it('defaults missing placeholders to empty (no throw on absent number)', () => {
+		const t = (_k: string, v?: Record<string, string>) => `${v?.title}#${v?.number}`;
+		expect(titleFor(mk({ type: 'mention', payload: { repo: 'o/r', title: 'Hi' } }), t)).toBe('Hi#');
+	});
 });
 
 describe('groupByDay', () => {

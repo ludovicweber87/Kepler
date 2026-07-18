@@ -10,7 +10,10 @@ export function unreadCount(list: AppNotification[]): number {
 }
 
 export function titleFor(n: AppNotification, t: (key: string, vars?: Record<string, string>) => string): string {
-	const translated = t(n.type, n.payload);
+	// Défauts pour tout placeholder du template ({title}/{repo}/{number}) absent du
+	// payload — next-intl throw si une variable du message n'a pas de valeur.
+	const vars = { title: '', repo: '', number: '', ...n.payload };
+	const translated = t(n.type, vars);
 	if (translated && translated !== n.type) return translated;
 	return n.title || n.type;
 }

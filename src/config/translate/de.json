@@ -425,6 +425,8 @@
 		"title": "Benachrichtigungen",
 		"empty": "Keine Benachrichtigungen",
 		"markAllRead": "Alle als gelesen markieren",
+		"muteSound": "Ton stummschalten",
+		"unmuteSound": "Ton aktivieren",
 		"seeAll": "Alle anzeigen",
 		"filterAll": "Alle",
 		"filterAgents": "Agents",
@@ -434,12 +436,12 @@
 		"agent_done": "Agent fertig",
 		"agent_error": "Agent fehlgeschlagen",
 		"agent_blocked": "Agent wartet auf dich",
-		"ci_failed": "CI fehlgeschlagen — {repo} #{number}",
-		"ci_passed": "CI erfolgreich — {repo} #{number}",
-		"mention": "Erwähnung — {repo}",
-		"review_requested": "Review angefragt — {repo}",
-		"pr_merged": "PR gemergt — {repo} #{number}",
-		"pr_approved": "PR genehmigt — {repo} #{number}",
-		"changes_requested": "Änderungen angefragt — {repo} #{number}"
+		"ci_failed": "CI fehlgeschlagen — {title} ({repo} #{number})",
+		"ci_passed": "CI erfolgreich — {title} ({repo} #{number})",
+		"mention": "Erwähnung — {title} ({repo})",
+		"review_requested": "Review angefragt — {title} ({repo})",
+		"pr_merged": "PR gemergt — {title} ({repo} #{number})",
+		"pr_approved": "PR genehmigt — {title} ({repo} #{number})",
+		"changes_requested": "Änderungen angefragt — {title} ({repo} #{number})"
 	}
 }

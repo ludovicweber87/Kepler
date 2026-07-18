@@ -67,7 +67,7 @@ export function diffGithubState(prev: GithubState, next: GithubState): NewNotifi
 		out.push(buildNotification({
 			type, title: th.title, url,
 			entityRef: { kind: 'issue', id, repo: th.repo },
-			payload: { repo: th.repo, title: th.title }, dedupeParts: [id],
+			payload: { repo: th.repo, title: th.title || th.repo }, dedupeParts: [id],
 		}));
 	}
 
