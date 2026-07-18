@@ -24,6 +24,7 @@ import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
 import AltRouteRoundedIcon from '@mui/icons-material/AltRouteRounded';
+import Diversity3RoundedIcon from '@mui/icons-material/Diversity3Rounded';
 import Tooltip from '@mui/material/Tooltip';
 interface AgentFile {
 	filename: string;
@@ -35,6 +36,7 @@ import { useSnackbar } from '@/hooks/useSnackbar';
 import { useAgentSession } from '@/hooks/useAgentSession';
 import { useWorktrees } from '@/hooks/useWorktrees';
 import { useBranches, type Branch } from '@/hooks/useBranches';
+import { usePersonaGroups } from '@/hooks/usePersonaGroups';
 import { useTranslations } from 'next-intl';
 import { localFetch } from '@/lib/local-fetch';
 import { apiFetch } from '@/lib/api-fetch';
@@ -135,7 +137,7 @@ export default function AgentTerminalModal({
 	const tc = useTranslations('common');
 	// Step management: 'project' → 'launch-mode' → 'branch'
 	const [step, setStep] = useState<
-		'project' | 'launch-mode' | 'branch' | 'existing-branch' | 'linking-issue'
+		'project' | 'launch-mode' | 'branch' | 'existing-branch' | 'linking-issue' | 'select-group'
 	>('project');
 	const [branchInput, setBranchInput] = useState('');
 	// F2 — optional GitHub issue linked at launch, injected into the agent prompt as context
@@ -150,9 +152,11 @@ export default function AgentTerminalModal({
 	const [, setCurrentBranch] = useState<string | null>(null);
 	const [fetchingBranch, setFetchingBranch] = useState(false);
 	const [launchMode, setLaunchMode] = useState<
-		'worktree' | 'current-branch' | 'existing-branch' | null
+		'worktree' | 'current-branch' | 'existing-branch' | 'group' | null
 	>(null);
 	const [selectedExistingBranch, setSelectedExistingBranch] = useState<Branch | null>(null);
+	const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+	const { groups: personaGroups } = usePersonaGroups();
 
 	// Path resolution for issue context
 	const { repoPaths, getLocalPath } = useRepoPaths();
@@ -361,6 +365,50 @@ export default function AgentTerminalModal({
 
 		const name = trimmedName || (linked ? issueBranchName(linked) : randomWorktreeName());
 
+		// Persona-group pipeline: create the worktree, start a run, redirect to ?run=.
+		if (launchMode === 'group' && selectedGroupId) {
+			try {
+				const projectName = projectPath.split('/').filter(Boolean).pop() ?? 'unknown';
+				const wtRes = await localFetch('/git/worktrees', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ cwd: projectPath, branch: name }),
+				});
+				if (!wtRes.ok) throw new Error('worktree creation failed');
+				const { worktreePath, branch } = (await wtRes.json()) as {
+					worktreePath: string;
+					branch: string;
+				};
+				const initialPrompt = linked?.issueTitle
+					? `Résous l'issue #${linked.issueNumber} : ${linked.issueTitle}`
+					: `Objectif : travailler sur la branche ${branch}.`;
+				const runRes = await localFetch('/pipeline-runs', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						groupId: selectedGroupId,
+						projectPath,
+						projectName,
+						branch,
+						worktreePath,
+						initialPrompt,
+						issueOwner: linked?.owner ?? null,
+						issueRepo: linked?.repo ?? null,
+						issueNumber: linked?.issueNumber ?? null,
+						issueTitle: linked?.issueTitle ?? null,
+					}),
+				});
+				if (!runRes.ok) throw new Error('run start failed');
+				const { runId } = (await runRes.json()) as { runId: string };
+				router.push(`/workbench?run=${encodeURIComponent(runId)}`);
+				onClose();
+			} catch (err) {
+				setWorktreeError(err instanceof Error ? err.message : 'Erreur au lancement');
+				setStep('branch');
+			}
+			return;
+		}
+
 		try {
 			const projectName = projectPath.split('/').filter(Boolean).pop() ?? 'unknown';
 			ensureSession({
@@ -394,6 +442,10 @@ export default function AgentTerminalModal({
 		composeSystemPrompt,
 		ensureSession,
 		goToWorkbench,
+		launchMode,
+		selectedGroupId,
+		router,
+		onClose,
 	]);
 
 	// Launching from an issue: skip the launch-mode cards AND the branch-name step.
@@ -506,6 +558,8 @@ export default function AgentTerminalModal({
 		if (!launchMode) return;
 		if (launchMode === 'worktree') {
 			setStep('branch');
+		} else if (launchMode === 'group') {
+			setStep('select-group');
 		} else if (launchMode === 'existing-branch') {
 			setStep('existing-branch');
 		} else {
@@ -881,6 +935,43 @@ export default function AgentTerminalModal({
 								</Typography>
 							</Box>
 						</Tooltip>
+
+						{/* Persona group (pipeline) option */}
+						<Box
+							onClick={() => setLaunchMode('group')}
+							sx={{
+								flex: 1,
+								p: 3,
+								borderRadius: 1,
+								border: 2,
+								borderColor: launchMode === 'group' ? 'primary.main' : 'divider',
+								bgcolor:
+									launchMode === 'group'
+										? (theme) => alpha(theme.palette.primary.main, 0.08)
+										: 'transparent',
+								cursor: 'pointer',
+								textAlign: 'center',
+								transition: 'all 0.15s',
+								'&:hover': {
+									borderColor: 'primary.main',
+									bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
+									transform: 'translateY(-2px)',
+								},
+							}}
+						>
+							<Diversity3RoundedIcon
+								sx={{ fontSize: 36, color: 'primary.main', mb: 1 }}
+							/>
+							<Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
+								{tl('groupMode')}
+							</Typography>
+							<Typography
+								variant="body2"
+								sx={{ color: 'text.secondary', fontSize: '0.75rem' }}
+							>
+								{tl('groupModeDesc')}
+							</Typography>
+						</Box>
 					</Box>
 
 					<Box sx={{ display: 'flex', gap: 2 }}>
@@ -909,6 +1000,93 @@ export default function AgentTerminalModal({
 								px: 4,
 								'&:hover': { bgcolor: 'primary.dark' },
 							}}
+						>
+							{tc('next')}
+						</Button>
+					</Box>
+				</Box>
+			)}
+
+			{/* Step 2b: Select persona group (pipeline mode) */}
+			{step === 'select-group' && (
+				<Box
+					sx={{
+						flex: 1,
+						display: 'flex',
+						flexDirection: 'column',
+						alignItems: 'center',
+						gap: 3,
+						px: 4,
+						py: 4,
+						overflowY: 'auto',
+					}}
+				>
+					<Diversity3RoundedIcon
+						sx={{ fontSize: 48, color: 'primary.main', opacity: 0.7 }}
+					/>
+					<Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+						{tl('selectGroupTitle')}
+					</Typography>
+
+					{personaGroups.length === 0 ? (
+						<Typography variant="body2" color="text.secondary">
+							{tl('noGroups')}
+						</Typography>
+					) : (
+						<Box
+							sx={{
+								display: 'grid',
+								gap: 1.5,
+								gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+								maxWidth: 720,
+								width: '100%',
+							}}
+						>
+							{personaGroups.map((g) => (
+								<Box
+									key={g.id}
+									onClick={() => setSelectedGroupId(g.id)}
+									sx={{
+										p: 2,
+										borderRadius: 1,
+										border: 2,
+										borderColor:
+											selectedGroupId === g.id ? 'primary.main' : 'divider',
+										bgcolor:
+											selectedGroupId === g.id
+												? (theme) => alpha(theme.palette.primary.main, 0.08)
+												: 'transparent',
+										cursor: 'pointer',
+										transition: 'all 0.15s',
+										'&:hover': { borderColor: 'primary.main' },
+									}}
+								>
+									<Typography variant="subtitle2" sx={{ fontWeight: 700 }} noWrap>
+										{g.name}
+									</Typography>
+									<Typography variant="caption" color="text.secondary">
+										{(g.nodes ?? []).length} · {(g.edges ?? []).length}
+									</Typography>
+								</Box>
+							))}
+						</Box>
+					)}
+
+					<Box sx={{ display: 'flex', gap: 2 }}>
+						<Button
+							variant="outlined"
+							startIcon={<ArrowBackRoundedIcon />}
+							onClick={() => setStep('launch-mode')}
+							sx={{ textTransform: 'none', fontWeight: 600 }}
+						>
+							{tc('back')}
+						</Button>
+						<Button
+							variant="contained"
+							disabled={!selectedGroupId}
+							endIcon={<ArrowForwardRoundedIcon />}
+							onClick={() => setStep('branch')}
+							sx={{ textTransform: 'none', fontWeight: 600, px: 4 }}
 						>
 							{tc('next')}
 						</Button>

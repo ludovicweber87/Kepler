@@ -36,7 +36,8 @@
 		"sessionArchived": "Sitzung archiviert",
 		"archiveError": "Archivieren fehlgeschlagen",
 		"archiveScriptFailed": "Archivierungsskript fehlgeschlagen, trotzdem archiviert",
-		"notifications": "Benachrichtigungen"
+		"notifications": "Benachrichtigungen",
+		"personas": "Personas"
 	},
 	"landing": {
 		"nav": {
@@ -272,7 +273,11 @@
 		"configurePathFirst": "Konfiguriere zuerst den lokalen Ordner für {repo} in den Einstellungen",
 		"titleWithIssue": "Agent — #{number}",
 		"activeSession": "Aktive Sitzung",
-		"newSession": "Neue Sitzung"
+		"newSession": "Neue Sitzung",
+		"groupMode": "Persona-Gruppe",
+		"groupModeDesc": "Eine Persona-Pipeline in einem neuen Worktree ausführen",
+		"selectGroupTitle": "Wähle eine Persona-Gruppe",
+		"noGroups": "Noch keine Gruppen — erstelle eine auf der Personas-Seite."
 	},
 	"agentActivity": {
 		"reportTitle": "Agent-Bericht",
@@ -485,5 +490,54 @@
 		"pr_merged": "PR gemergt — {title} ({repo} #{number})",
 		"pr_approved": "PR genehmigt — {title} ({repo} #{number})",
 		"changes_requested": "Änderungen angefragt — {title} ({repo} #{number})"
+	},
+	"personas": {
+		"title": "Personas",
+		"tabLibrary": "Bibliothek",
+		"tabGroups": "Gruppen",
+		"newPersona": "Neue Persona",
+		"editPersona": "Persona bearbeiten",
+		"name": "Name",
+		"namePlaceholder": "Name der Persona",
+		"role": "Rolle",
+		"roleHint": "Kurze Beschreibung der Rolle",
+		"systemPrompt": "System-Prompt",
+		"model": "Modell",
+		"effort": "Aufwand",
+		"permissionMode": "Berechtigungen",
+		"color": "Farbe",
+		"save": "Speichern",
+		"cancel": "Abbrechen",
+		"delete": "Löschen",
+		"deleteConfirm": "Diese Persona löschen?",
+		"inUseError": "Diese Persona wird verwendet in: {groups}",
+		"emptyLibrary": "Noch keine Personas. Erstelle die erste.",
+		"emptyGroups": "Noch keine Gruppen.",
+		"newGroup": "Neue Gruppe",
+		"groupNamePlaceholder": "Gruppenname",
+		"defaultOption": "Standard",
+		"saveError": "Persona konnte nicht gespeichert werden",
+		"deleteError": "Persona konnte nicht gelöscht werden",
+		"editorSave": "Speichern",
+		"editorSaved": "Gespeichert",
+		"addCheckpoint": "Checkpoint",
+		"addEnd": "Ende",
+		"paletteHint": "Auf die Fläche ziehen",
+		"nodeStart": "Start",
+		"nodeCheckpoint": "Checkpoint",
+		"nodeEnd": "Ende",
+		"selectPersona": "Persona",
+		"outputs": "Ausgänge",
+		"addOutput": "Ausgang hinzufügen",
+		"outputPlaceholder": "Name des Ausgangs",
+		"endAction": "Endaktion",
+		"endActionNone": "Keine",
+		"endActionCreatePr": "PR erstellen",
+		"deleteNode": "Knoten löschen",
+		"configTitle": "Knoten-Einstellungen",
+		"configEmpty": "Wähle einen Knoten zum Konfigurieren.",
+		"unknownPersona": "Unbekannte Persona",
+		"runContinue": "Fortsetzen",
+		"runStop": "Run stoppen"
 	}
 }

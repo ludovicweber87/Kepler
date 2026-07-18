@@ -36,7 +36,8 @@
 		"sessionArchived": "Session archivée",
 		"archiveError": "Échec de l’archivage",
 		"archiveScriptFailed": "Échec du script d’archivage, archivage effectué quand même",
-		"notifications": "Notifications"
+		"notifications": "Notifications",
+		"personas": "Personas"
 	},
 	"landing": {
 		"nav": {
@@ -294,7 +295,11 @@
 		"configurePathFirst": "Configure d'abord le dossier local de {repo} dans les Réglages",
 		"titleWithIssue": "Agent — #{number}",
 		"activeSession": "Session active",
-		"newSession": "Nouvelle session"
+		"newSession": "Nouvelle session",
+		"groupMode": "Groupe de personas",
+		"groupModeDesc": "Lance un pipeline de personas dans un nouveau worktree",
+		"selectGroupTitle": "Choisis un groupe de personas",
+		"noGroups": "Aucun groupe — crée-en un sur la page Personas."
 	},
 	"agentActivity": {
 		"reportTitle": "Rapport agent",
@@ -507,5 +512,54 @@
 		"pr_merged": "PR mergée — {title} ({repo} #{number})",
 		"pr_approved": "PR approuvée — {title} ({repo} #{number})",
 		"changes_requested": "Changements demandés — {title} ({repo} #{number})"
+	},
+	"personas": {
+		"title": "Personas",
+		"tabLibrary": "Bibliothèque",
+		"tabGroups": "Groupes",
+		"newPersona": "Nouvelle persona",
+		"editPersona": "Éditer la persona",
+		"name": "Nom",
+		"namePlaceholder": "Nom de la persona",
+		"role": "Rôle",
+		"roleHint": "Courte description du rôle",
+		"systemPrompt": "Prompt système",
+		"model": "Modèle",
+		"effort": "Effort",
+		"permissionMode": "Permissions",
+		"color": "Couleur",
+		"save": "Enregistrer",
+		"cancel": "Annuler",
+		"delete": "Supprimer",
+		"deleteConfirm": "Supprimer cette persona ?",
+		"inUseError": "Cette persona est utilisée dans : {groups}",
+		"emptyLibrary": "Aucune persona pour l'instant. Crée la première.",
+		"emptyGroups": "Aucun groupe pour l'instant.",
+		"newGroup": "Nouveau groupe",
+		"groupNamePlaceholder": "Nom du groupe",
+		"defaultOption": "Défaut",
+		"saveError": "Échec de l'enregistrement de la persona",
+		"deleteError": "Échec de la suppression de la persona",
+		"editorSave": "Enregistrer",
+		"editorSaved": "Enregistré",
+		"addCheckpoint": "Checkpoint",
+		"addEnd": "Fin",
+		"paletteHint": "Glisse sur le canvas",
+		"nodeStart": "Début",
+		"nodeCheckpoint": "Checkpoint",
+		"nodeEnd": "Fin",
+		"selectPersona": "Persona",
+		"outputs": "Sorties",
+		"addOutput": "Ajouter une sortie",
+		"outputPlaceholder": "nom de la sortie",
+		"endAction": "Action de fin",
+		"endActionNone": "Aucune",
+		"endActionCreatePr": "Créer une PR",
+		"deleteNode": "Supprimer le nœud",
+		"configTitle": "Réglages du nœud",
+		"configEmpty": "Sélectionne un nœud pour le configurer.",
+		"unknownPersona": "Persona inconnue",
+		"runContinue": "Continuer",
+		"runStop": "Arrêter le run"
 	}
 }

@@ -36,7 +36,8 @@
 		"sessionArchived": "Sesión archivada",
 		"archiveError": "Error al archivar",
 		"archiveScriptFailed": "El script de archivado falló, se archivó de todos modos",
-		"notifications": "Notificaciones"
+		"notifications": "Notificaciones",
+		"personas": "Personas"
 	},
 	"landing": {
 		"nav": {
@@ -272,7 +273,11 @@
 		"configurePathFirst": "Configura primero la carpeta local de {repo} en Ajustes",
 		"titleWithIssue": "Agente — #{number}",
 		"activeSession": "Sesión activa",
-		"newSession": "Nueva sesión"
+		"newSession": "Nueva sesión",
+		"groupMode": "Grupo de personas",
+		"groupModeDesc": "Ejecuta un pipeline de personas en un nuevo worktree",
+		"selectGroupTitle": "Elige un grupo de personas",
+		"noGroups": "Aún no hay grupos — crea uno en la página Personas."
 	},
 	"agentActivity": {
 		"reportTitle": "Informe del agente",
@@ -485,5 +490,54 @@
 		"pr_merged": "PR fusionada — {title} ({repo} #{number})",
 		"pr_approved": "PR aprobada — {title} ({repo} #{number})",
 		"changes_requested": "Cambios solicitados — {title} ({repo} #{number})"
+	},
+	"personas": {
+		"title": "Personas",
+		"tabLibrary": "Biblioteca",
+		"tabGroups": "Grupos",
+		"newPersona": "Nueva persona",
+		"editPersona": "Editar persona",
+		"name": "Nombre",
+		"namePlaceholder": "Nombre de la persona",
+		"role": "Rol",
+		"roleHint": "Breve descripción del rol",
+		"systemPrompt": "Prompt de sistema",
+		"model": "Modelo",
+		"effort": "Esfuerzo",
+		"permissionMode": "Permisos",
+		"color": "Color",
+		"save": "Guardar",
+		"cancel": "Cancelar",
+		"delete": "Eliminar",
+		"deleteConfirm": "¿Eliminar esta persona?",
+		"inUseError": "Esta persona se usa en: {groups}",
+		"emptyLibrary": "Aún no hay personas. Crea la primera.",
+		"emptyGroups": "Aún no hay grupos.",
+		"newGroup": "Nuevo grupo",
+		"groupNamePlaceholder": "Nombre del grupo",
+		"defaultOption": "Predeterminado",
+		"saveError": "No se pudo guardar la persona",
+		"deleteError": "No se pudo eliminar la persona",
+		"editorSave": "Guardar",
+		"editorSaved": "Guardado",
+		"addCheckpoint": "Checkpoint",
+		"addEnd": "Fin",
+		"paletteHint": "Arrastra al lienzo",
+		"nodeStart": "Inicio",
+		"nodeCheckpoint": "Checkpoint",
+		"nodeEnd": "Fin",
+		"selectPersona": "Persona",
+		"outputs": "Salidas",
+		"addOutput": "Añadir salida",
+		"outputPlaceholder": "nombre de la salida",
+		"endAction": "Acción final",
+		"endActionNone": "Ninguna",
+		"endActionCreatePr": "Crear PR",
+		"deleteNode": "Eliminar nodo",
+		"configTitle": "Ajustes del nodo",
+		"configEmpty": "Selecciona un nodo para configurarlo.",
+		"unknownPersona": "Persona desconocida",
+		"runContinue": "Continuar",
+		"runStop": "Detener el run"
 	}
 }

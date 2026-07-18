@@ -6,6 +6,7 @@ import { handleGitRoutes } from './routes/git.js';
 import { handleSessionRoutes } from './routes/sessions.js';
 import { handleChatRoutes } from './routes/chat.js';
 import { handleFilesystemRoutes } from './routes/filesystem.js';
+import { handlePipelineRoutes } from './routes/pipeline.js';
 import { handleRecapRoutes } from './routes/recap.js';
 import { handleNotificationsStream } from './routes/notifications.js';
 import { serveAttachment } from './sdk/attachments.js';
@@ -67,6 +68,11 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
 
 		if (path.startsWith('/filesystem/')) {
 			await handleFilesystemRoutes(req, res, path);
+			return;
+		}
+
+		if (path.startsWith('/pipeline-runs')) {
+			await handlePipelineRoutes(req, res, path);
 			return;
 		}
 
