@@ -14,9 +14,11 @@ import AppLoadingSplash from './AppLoadingSplash';
 import SettingsPanel from '@/components/settings/SettingsPanel';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useProjectConfig } from '@/hooks/useProjectConfig';
+import { useNotificationsStream } from '@/hooks/useNotificationsStream';
 import { OverlayTerminalContext, type OverlaySession } from '@/hooks/useOverlayTerminal';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
+	useNotificationsStream();
 	const { repoPaths, repoPathsLoading } = useRepoPaths();
 	const { configs } = useProjectConfig();
 	const t = useTranslations('onboarding');
