@@ -274,9 +274,10 @@
 		"titleWithIssue": "Agent — #{number}",
 		"activeSession": "Aktive Sitzung",
 		"newSession": "Neue Sitzung",
-		"groupMode": "Persona-Gruppe",
-		"groupModeDesc": "Eine Persona-Pipeline in einem neuen Worktree ausführen",
+		"groupNone": "Keine (Solo-Agent)",
+		"groupNoneDesc": "Einen einzelnen Agenten starten, ohne Persona-Pipeline",
 		"selectGroupTitle": "Wähle eine Persona-Gruppe",
+		"selectGroupSubtitle": "Oder starte einen Solo-Agenten",
 		"noGroups": "Noch keine Gruppen — erstelle eine auf der Personas-Seite."
 	},
 	"agentActivity": {

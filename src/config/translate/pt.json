@@ -275,9 +275,10 @@
 		"titleWithIssue": "Agente — #{number}",
 		"activeSession": "Sessão ativa",
 		"newSession": "Nova sessão",
-		"groupMode": "Grupo de personas",
-		"groupModeDesc": "Executa um pipeline de personas num novo worktree",
+		"groupNone": "Nenhum (agente solo)",
+		"groupNoneDesc": "Inicia um único agente, sem pipeline de personas",
 		"selectGroupTitle": "Escolhe um grupo de personas",
+		"selectGroupSubtitle": "Ou inicia um agente solo",
 		"noGroups": "Ainda não há grupos — cria um na página Personas."
 	},
 	"agentActivity": {
