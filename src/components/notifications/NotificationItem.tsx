@@ -3,7 +3,7 @@
 import { Box, ListItemButton, Typography } from '@mui/material';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import { titleFor } from '@/lib/notificationsReducer';
+import { dbTimestampToDate, titleFor } from '@/lib/notificationsReducer';
 import { SourceIcon } from './sourceIcon';
 import type { AppNotification } from '@/types';
 
@@ -20,7 +20,7 @@ const RTF_UNITS: Array<[Intl.RelativeTimeFormatUnit, number]> = [
  * package.json vs node_modules mismatch). Uses the built-in Intl.RelativeTimeFormat,
  * which needs no extra dependency and already carries locale-aware wording. */
 function relativeTime(isoDate: string, locale: string): string {
-	const date = new Date(isoDate);
+	const date = dbTimestampToDate(isoDate);
 	if (Number.isNaN(date.getTime())) return '';
 	const diffSeconds = Math.round((date.getTime() - Date.now()) / 1000);
 	const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { prependNotification, titleFor, unreadCount, groupByDay } from './notificationsReducer';
+import { prependNotification, titleFor, unreadCount, groupByDay, dbTimestampToDate } from './notificationsReducer';
 import type { AppNotification } from '@/types';
 
 const mk = (over: Partial<AppNotification> = {}): AppNotification => ({
@@ -39,5 +39,18 @@ describe('groupByDay', () => {
 	it('groups by calendar day, newest first', () => {
 		const g = groupByDay([mk({ id: '1', created_at: '2026-07-18 09:00:00' }), mk({ id: '2', created_at: '2026-07-17 09:00:00' })]);
 		expect(g.map(x => x.day)).toEqual(['2026-07-18', '2026-07-17']);
+	});
+});
+
+describe('dbTimestampToDate', () => {
+	it('parses a naive SQLite timestamp (space, no tz) as UTC', () => {
+		expect(dbTimestampToDate('2026-07-18 10:00:00').getTime()).toBe(Date.UTC(2026, 6, 18, 10, 0, 0));
+	});
+	it('leaves an ISO string with Z intact', () => {
+		expect(dbTimestampToDate('2026-07-18T10:00:00Z').getTime()).toBe(Date.UTC(2026, 6, 18, 10, 0, 0));
+	});
+	it('returns an invalid Date for empty/nullish input', () => {
+		expect(Number.isNaN(dbTimestampToDate('').getTime())).toBe(true);
+		expect(Number.isNaN(dbTimestampToDate(null).getTime())).toBe(true);
 	});
 });

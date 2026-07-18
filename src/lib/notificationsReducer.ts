@@ -19,10 +19,32 @@ export function iconKeyFor(source: NotificationSource): string {
 	return source; // mappé en composant côté UI
 }
 
+/**
+ * Convertit un timestamp SQLite (`datetime('now')` → "YYYY-MM-DD HH:MM:SS", UTC
+ * sans suffixe de fuseau) en `Date`. Sans normalisation, `new Date()` interprète
+ * cette chaîne (espace + pas de `Z`) comme de l'heure locale en V8 → décalage de
+ * l'offset UTC. On force donc l'interprétation UTC. Laisse les chaînes déjà ISO
+ * (avec `T`/`Z`) intactes.
+ */
+export function dbTimestampToDate(s: string | null | undefined): Date {
+	if (!s) return new Date(NaN);
+	const iso = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(s) ? `${s.replace(' ', 'T')}Z` : s;
+	return new Date(iso);
+}
+
+/** Clé de jour locale (YYYY-MM-DD) d'une Date ; chaîne vide si invalide. */
+function localDayKey(d: Date): string {
+	if (Number.isNaN(d.getTime())) return '';
+	const y = d.getFullYear();
+	const m = String(d.getMonth() + 1).padStart(2, '0');
+	const day = String(d.getDate()).padStart(2, '0');
+	return `${y}-${m}-${day}`;
+}
+
 export function groupByDay(list: AppNotification[]): Array<{ day: string; items: AppNotification[] }> {
 	const groups = new Map<string, AppNotification[]>();
 	for (const n of list) {
-		const day = (n.created_at ?? '').slice(0, 10);
+		const day = localDayKey(dbTimestampToDate(n.created_at));
 		if (!groups.has(day)) groups.set(day, []);
 		groups.get(day)!.push(n);
 	}
