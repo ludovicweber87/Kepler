@@ -46,6 +46,7 @@ import { useGitStatus } from '@/hooks/useGitStatus';
 import { usePullRequests } from '@/hooks/usePullRequests';
 import { findOpenPrForBranch } from '@/lib/pullRequests';
 import AgentChatTab from '@/components/agents/AgentChatTab';
+import RunView from '@/components/workbench/RunView';
 import { FileDiffView } from '@/components/agents/AgentDiffTab';
 import ChangedFilesList from '@/components/agents/ChangedFilesList';
 import SessionRecap from '@/components/agents/SessionRecap';
@@ -63,6 +64,7 @@ export default function Workbench() {
 	const searchParams = useSearchParams();
 	const router = useRouter();
 	const sessionId = searchParams.get('session') ?? undefined;
+	const runId = searchParams.get('run') ?? undefined;
 
 	const { data: allSessions = [] } = useAgentSessionHistory();
 	const { session, logs } = useAgentSession(sessionId);
@@ -147,7 +149,10 @@ export default function Workbench() {
 		available: false,
 		trigger: () => {},
 	});
-	const [commitPushState, setCommitPushState] = useState<{ available: boolean; trigger: () => void }>({
+	const [commitPushState, setCommitPushState] = useState<{
+		available: boolean;
+		trigger: () => void;
+	}>({
 		available: false,
 		trigger: () => {},
 	});
@@ -236,6 +241,11 @@ export default function Workbench() {
 			setClosing(false);
 		}
 	}, [sessionId, stop, showSnackbar, tc, router]);
+
+	// Pipeline-run view: a run is a graph traversal, not a single session.
+	if (runId) {
+		return <RunView runId={runId} />;
+	}
 
 	if (!sessionId) {
 		return (

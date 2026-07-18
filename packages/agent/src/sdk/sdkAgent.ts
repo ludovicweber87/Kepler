@@ -15,7 +15,7 @@ import { saveAttachment, extForMediaType } from './attachments.js';
 import type { ChatImageInput } from './promptQueue.js';
 
 export interface StreamSocket { send(data: string): void; readyState?: number }
-export interface StartParams { cwd: string; systemPrompt?: string; model?: string; effort?: string; permissionMode?: string; resumeClaudeSessionId?: string }
+export interface StartParams { cwd: string; systemPrompt?: string; model?: string; effort?: string; permissionMode?: string; resumeClaudeSessionId?: string; mcpServers?: Record<string, unknown> }
 export type QueryFn = typeof realQuery;
 
 interface QueryLike extends AsyncIterable<unknown> {
@@ -216,6 +216,7 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
       if (params.model) options.model = params.model;
       if (params.effort) options.effort = params.effort;
       if (params.systemPrompt) options.systemPrompt = params.systemPrompt;
+      if (params.mcpServers) options.mcpServers = params.mcpServers;
       const resumeId = params.resumeClaudeSessionId ?? readClaudeSessionId(sessionId);
       if (resumeId) options.resume = resumeId;
 

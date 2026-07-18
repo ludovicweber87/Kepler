@@ -32,6 +32,7 @@ import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined';
 import Collapse from '@mui/material/Collapse';
 import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
+import TheaterComedyRoundedIcon from '@mui/icons-material/TheaterComedyRounded';
 import Image from 'next/image';
 import { useMe } from '@/hooks/useMe';
 import { useTranslations } from 'next-intl';
@@ -195,6 +196,7 @@ export default function Sidebar() {
 	];
 
 	const bottomItems = [
+		{ label: t('personas'), href: '/personas', icon: <TheaterComedyRoundedIcon /> },
 		{ label: t('archived'), href: '/archived', icon: <Inventory2OutlinedIcon /> },
 		{ label: t('settings'), href: '/settings', icon: <SettingsRoundedIcon /> },
 	];

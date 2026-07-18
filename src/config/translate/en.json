@@ -30,7 +30,8 @@
 		"sessionArchived": "Session archived",
 		"archiveError": "Failed to archive",
 		"archiveScriptFailed": "Archive script failed, archiving anyway",
-		"notifications": "Notifications"
+		"notifications": "Notifications",
+		"personas": "Personas"
 	},
 	"landing": {
 		"nav": {
@@ -288,7 +289,11 @@
 		"configurePathFirst": "Configure the local folder for {repo} in Settings first",
 		"titleWithIssue": "Agent — #{number}",
 		"activeSession": "Active session",
-		"newSession": "New session"
+		"newSession": "New session",
+		"groupMode": "Persona group",
+		"groupModeDesc": "Run a pipeline of personas in a new worktree",
+		"selectGroupTitle": "Choose a persona group",
+		"noGroups": "No groups yet — create one on the Personas page."
 	},
 	"agentActivity": {
 		"reportTitle": "Agent report",
@@ -501,5 +506,54 @@
 		"pr_merged": "PR merged — {title} ({repo} #{number})",
 		"pr_approved": "PR approved — {title} ({repo} #{number})",
 		"changes_requested": "Changes requested — {title} ({repo} #{number})"
+	},
+	"personas": {
+		"title": "Personas",
+		"tabLibrary": "Library",
+		"tabGroups": "Groups",
+		"newPersona": "New persona",
+		"editPersona": "Edit persona",
+		"name": "Name",
+		"namePlaceholder": "Persona name",
+		"role": "Role",
+		"roleHint": "Short description of the role",
+		"systemPrompt": "System prompt",
+		"model": "Model",
+		"effort": "Effort",
+		"permissionMode": "Permissions",
+		"color": "Color",
+		"save": "Save",
+		"cancel": "Cancel",
+		"delete": "Delete",
+		"deleteConfirm": "Delete this persona?",
+		"inUseError": "This persona is used in: {groups}",
+		"emptyLibrary": "No personas yet. Create your first one.",
+		"emptyGroups": "No groups yet.",
+		"newGroup": "New group",
+		"groupNamePlaceholder": "Group name",
+		"defaultOption": "Default",
+		"saveError": "Failed to save persona",
+		"deleteError": "Failed to delete persona",
+		"editorSave": "Save",
+		"editorSaved": "Saved",
+		"addCheckpoint": "Checkpoint",
+		"addEnd": "End",
+		"paletteHint": "Drag onto the canvas",
+		"nodeStart": "Start",
+		"nodeCheckpoint": "Checkpoint",
+		"nodeEnd": "End",
+		"selectPersona": "Persona",
+		"outputs": "Outputs",
+		"addOutput": "Add output",
+		"outputPlaceholder": "output name",
+		"endAction": "End action",
+		"endActionNone": "None",
+		"endActionCreatePr": "Create PR",
+		"deleteNode": "Delete node",
+		"configTitle": "Node settings",
+		"configEmpty": "Select a node to configure it.",
+		"unknownPersona": "Unknown persona",
+		"runContinue": "Continue",
+		"runStop": "Stop run"
 	}
 }
