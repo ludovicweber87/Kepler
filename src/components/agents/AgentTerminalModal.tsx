@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import Box from '@mui/material/Box';
@@ -133,6 +134,7 @@ export default function AgentTerminalModal({
 	existingWorktree,
 }: AgentTerminalModalProps) {
 	const router = useRouter();
+	const queryClient = useQueryClient();
 	const tl = useTranslations('launchModal');
 	const tc = useTranslations('common');
 	// Step management: 'project' → 'launch-mode' → 'branch'
@@ -401,6 +403,9 @@ export default function AgentTerminalModal({
 				});
 				if (!runRes.ok) throw new Error('run start failed');
 				const { runId } = (await runRes.json()) as { runId: string };
+				// Refresh the Sidebar worktree list so the new worktree shows up
+				// immediately (no hard refresh) — mirrors CreationProgress for the solo path.
+				queryClient.invalidateQueries({ queryKey: ['git-worktrees', projectPath] });
 				router.push(`/workbench?run=${encodeURIComponent(runId)}`);
 				onClose();
 			} catch (err) {
@@ -445,6 +450,7 @@ export default function AgentTerminalModal({
 		goToWorkbench,
 		selectedGroupId,
 		router,
+		queryClient,
 		onClose,
 	]);
 
