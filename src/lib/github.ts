@@ -1,6 +1,7 @@
 import {
 	GitHubRepo,
 	GitHubIssue,
+	GitHubLabel,
 	GitHubComment,
 	GitHubTimelineEvent,
 	GitHubPullRequest,
@@ -436,6 +437,98 @@ export async function createPullRequest(
 	return res.json();
 }
 
+// --- Issue creation ---
+
+export interface CreateIssueFields {
+	title: string;
+	body?: string;
+	labels?: string[];
+	assignees?: string[];
+	milestone?: number;
+}
+
+export async function createIssue(
+	owner: string,
+	repo: string,
+	fields: CreateIssueFields,
+	token: string,
+): Promise<{ number: number; node_id: string; html_url: string }> {
+	const res = await fetch(`${GITHUB_API}/repos/${owner}/${repo}/issues`, {
+		method: 'POST',
+		headers: { ...getHeaders(token), 'Content-Type': 'application/json' },
+		body: JSON.stringify({
+			title: fields.title,
+			body: fields.body ?? '',
+			labels: fields.labels?.length ? fields.labels : undefined,
+			assignees: fields.assignees?.length ? fields.assignees : undefined,
+			milestone: fields.milestone ?? undefined,
+		}),
+	});
+	if (!res.ok) {
+		const err = await res.json().catch(() => ({}));
+		const details = err.errors?.map((e: { message?: string }) => e.message).join(', ') ?? '';
+		throw new Error(
+			(err.message ?? '') + (details ? `: ${details}` : '') ||
+				`GitHub create issue failed: ${res.status}`,
+		);
+	}
+	const data = await res.json();
+	return { number: data.number, node_id: data.node_id, html_url: data.html_url };
+}
+
+// --- Repo metadata for the issue-creation form ---
+
+export interface RepoMilestone {
+	number: number;
+	title: string;
+}
+
+export async function fetchRepoLabels(
+	owner: string,
+	repo: string,
+	token: string,
+): Promise<GitHubLabel[]> {
+	const labels: GitHubLabel[] = [];
+	for (let page = 1; page <= 5; page++) {
+		const res = await fetch(
+			`${GITHUB_API}/repos/${owner}/${repo}/labels?per_page=100&page=${page}`,
+			{ headers: getHeaders(token) },
+		);
+		if (!res.ok) throw new Error(`GitHub /labels failed: ${res.status}`);
+		const data: { name: string; color: string }[] = await res.json();
+		labels.push(...data.map((l) => ({ name: l.name, color: l.color })));
+		if (data.length < 100) break;
+	}
+	return labels;
+}
+
+export async function fetchRepoMilestones(
+	owner: string,
+	repo: string,
+	token: string,
+): Promise<RepoMilestone[]> {
+	const res = await fetch(
+		`${GITHUB_API}/repos/${owner}/${repo}/milestones?state=open&per_page=100&sort=due_on`,
+		{ headers: getHeaders(token) },
+	);
+	if (!res.ok) throw new Error(`GitHub /milestones failed: ${res.status}`);
+	const data: { number: number; title: string }[] = await res.json();
+	return data.map((m) => ({ number: m.number, title: m.title }));
+}
+
+export async function fetchRepoAssignees(
+	owner: string,
+	repo: string,
+	token: string,
+): Promise<{ login: string; avatar_url: string }[]> {
+	const res = await fetch(`${GITHUB_API}/repos/${owner}/${repo}/assignees?per_page=100`, {
+		headers: getHeaders(token),
+	});
+	if (!res.ok) throw new Error(`GitHub /assignees failed: ${res.status}`);
+	const data: { login: string; avatar_url: string }[] = await res.json();
+	return data.map((u) => ({ login: u.login, avatar_url: u.avatar_url }));
+}
+
 // --- Pull Requests ---
 
 export async function fetchRepoPullRequests(
@@ -781,6 +874,22 @@ export async function findProjectItemId(
 	);
 	if (!match) throw new Error('Issue not found in project');
 	return match.id;
+}
+
+export async function addProjectV2ItemById(
+	projectId: string,
+	contentId: string,
+	token: string,
+): Promise<string> {
+	const mutation = `
+    mutation($projectId: ID!, $contentId: ID!) {
+      addProjectV2ItemById(input: { projectId: $projectId, contentId: $contentId }) {
+        item { id }
+      }
+    }
+  `;
+	const data = await graphqlRequest(mutation, { projectId, contentId }, token);
+	return data.addProjectV2ItemById.item.id;
 }
 
 export async function updateProjectItemStatus(

@@ -16,9 +16,11 @@ import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import ClearRoundedIcon from '@mui/icons-material/ClearRounded';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import Dialog from '@mui/material/Dialog';
 import Link from 'next/link';
 import KanbanColumn from './KanbanColumn';
+import CreateIssueModal from './CreateIssueModal';
 import IssueDetail from '@/components/dashboard/IssueDetail';
 import RefetchIntervalSelect from '@/components/shared/RefetchIntervalSelect';
 import { useProjectConfig } from '@/hooks/useProjectConfig';
@@ -87,6 +89,7 @@ export default function IssuesList() {
 	}, [refetchMs]);
 
 	const [search, setSearch] = useState('');
+	const [createOpen, setCreateOpen] = useState(false);
 	const mutation = useUpdateIssueStatus();
 
 	// Issue detail modal state
@@ -256,6 +259,15 @@ export default function IssuesList() {
 							</IconButton>
 						</span>
 					</Tooltip>
+					<Button
+						variant="contained"
+						startIcon={<AddRoundedIcon />}
+						onClick={() => setCreateOpen(true)}
+						disabled={!effectiveRepo}
+						sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+					>
+						{t('createIssue')}
+					</Button>
 				</Box>
 			</Box>
 
@@ -386,6 +398,13 @@ export default function IssuesList() {
 					</Box>
 				)}
 			</Dialog>
+
+			<CreateIssueModal
+				open={createOpen}
+				onClose={() => setCreateOpen(false)}
+				repo={effectiveRepo}
+				statusColumns={statusColumns}
+			/>
 		</Box>
 	);
 }
