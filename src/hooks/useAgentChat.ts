@@ -35,6 +35,12 @@ interface Params {
 	 * de nouvelle session SDK. Utilisé par le chat de run (step actif).
 	 */
 	observeOnly?: boolean;
+	/**
+	 * Prompt initial auto-envoyé comme premier message utilisateur au démarrage
+	 * d'une session lancée depuis une issue. Le serveur ne l'injecte qu'une fois
+	 * (garde transcript vide), donc l'envoyer à chaque `stream-init` est sans risque.
+	 */
+	initialPrompt?: string;
 }
 
 type Status = 'connecting' | 'idle' | 'busy' | 'error' | 'closed';
@@ -93,6 +99,7 @@ export function useAgentChat(p: Params) {
 					permissionMode: p.permissionMode,
 					retryLastUser,
 					observeOnly: p.observeOnly,
+					initialPrompt: p.initialPrompt,
 				}),
 			);
 		};
