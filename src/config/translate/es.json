@@ -76,6 +76,10 @@
 		"emptyDesc": "Selecciona una sesión en la barra lateral o lanza un nuevo worktree desde un proyecto.",
 		"chipActivity": "Actividad",
 		"tabChat": "Chat",
+		"tabRunChat": "Chat",
+		"tabWorkflow": "Workflow",
+		"runChatEmpty": "Aún no hay pasos.",
+		"runChatPersonaFallback": "Persona",
 		"tabRecap": "Resumen",
 		"tabChanges": "Changes",
 		"chipIssue": "Issue",
@@ -274,9 +278,10 @@
 		"titleWithIssue": "Agente — #{number}",
 		"activeSession": "Sesión activa",
 		"newSession": "Nueva sesión",
-		"groupMode": "Grupo de personas",
-		"groupModeDesc": "Ejecuta un pipeline de personas en un nuevo worktree",
+		"groupNone": "Ninguno (agente solo)",
+		"groupNoneDesc": "Lanza un solo agente, sin pipeline de personas",
 		"selectGroupTitle": "Elige un grupo de personas",
+		"selectGroupSubtitle": "O lanza un agente solo",
 		"noGroups": "Aún no hay grupos — crea uno en la página Personas."
 	},
 	"agentActivity": {

@@ -152,7 +152,7 @@ export default function AgentTerminalModal({
 	const [, setCurrentBranch] = useState<string | null>(null);
 	const [fetchingBranch, setFetchingBranch] = useState(false);
 	const [launchMode, setLaunchMode] = useState<
-		'worktree' | 'current-branch' | 'existing-branch' | 'group' | null
+		'worktree' | 'current-branch' | 'existing-branch' | null
 	>(null);
 	const [selectedExistingBranch, setSelectedExistingBranch] = useState<Branch | null>(null);
 	const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
@@ -235,6 +235,7 @@ export default function AgentTerminalModal({
 			setCurrentBranch(null);
 			setFetchingBranch(false);
 			setLaunchMode(null);
+			setSelectedGroupId(null);
 			setSelectedExistingBranch(null);
 			setIssueUrl('');
 			setIssueLoaded(null);
@@ -366,7 +367,7 @@ export default function AgentTerminalModal({
 		const name = trimmedName || (linked ? issueBranchName(linked) : randomWorktreeName());
 
 		// Persona-group pipeline: create the worktree, start a run, redirect to ?run=.
-		if (launchMode === 'group' && selectedGroupId) {
+		if (selectedGroupId) {
 			try {
 				const projectName = projectPath.split('/').filter(Boolean).pop() ?? 'unknown';
 				const wtRes = await localFetch('/git/worktrees', {
@@ -442,15 +443,16 @@ export default function AgentTerminalModal({
 		composeSystemPrompt,
 		ensureSession,
 		goToWorkbench,
-		launchMode,
 		selectedGroupId,
 		router,
 		onClose,
 	]);
 
-	// Launching from an issue: skip the launch-mode cards AND the branch-name step.
-	// Force worktree mode with an auto `wip-` name and redirect straight to the Workbench.
-	// The Karma rename happens later, on the agent's first activity.
+	// Launching from an issue: skip the launch-mode cards AND the branch-name step,
+	// but still let the user pick a persona group (or "None" for a solo agent)
+	// before launching. The actual launch happens from the select-group step.
+	// The branch name is auto-generated in handleLaunch; the Karma rename happens
+	// later, on the agent's first activity.
 	useEffect(() => {
 		if (
 			open &&
@@ -461,11 +463,9 @@ export default function AgentTerminalModal({
 			!autoLaunchedRef.current
 		) {
 			autoLaunchedRef.current = true;
-			setLinkingNumber(issueContext.issueNumber);
-			setStep('linking-issue');
-			handleLaunch();
+			setStep('select-group');
 		}
-	}, [open, issueContext, existingSessionId, existingWorktree, projectPath, handleLaunch]);
+	}, [open, issueContext, existingSessionId, existingWorktree, projectPath]);
 
 	const handleLaunchExistingBranch = useCallback(() => {
 		if (!projectPath || !selectedExistingBranch) return;
@@ -558,8 +558,6 @@ export default function AgentTerminalModal({
 		if (!launchMode) return;
 		if (launchMode === 'worktree') {
 			setStep('branch');
-		} else if (launchMode === 'group') {
-			setStep('select-group');
 		} else if (launchMode === 'existing-branch') {
 			setStep('existing-branch');
 		} else {
@@ -935,43 +933,6 @@ export default function AgentTerminalModal({
 								</Typography>
 							</Box>
 						</Tooltip>
-
-						{/* Persona group (pipeline) option */}
-						<Box
-							onClick={() => setLaunchMode('group')}
-							sx={{
-								flex: 1,
-								p: 3,
-								borderRadius: 1,
-								border: 2,
-								borderColor: launchMode === 'group' ? 'primary.main' : 'divider',
-								bgcolor:
-									launchMode === 'group'
-										? (theme) => alpha(theme.palette.primary.main, 0.08)
-										: 'transparent',
-								cursor: 'pointer',
-								textAlign: 'center',
-								transition: 'all 0.15s',
-								'&:hover': {
-									borderColor: 'primary.main',
-									bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
-									transform: 'translateY(-2px)',
-								},
-							}}
-						>
-							<Diversity3RoundedIcon
-								sx={{ fontSize: 36, color: 'primary.main', mb: 1 }}
-							/>
-							<Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
-								{tl('groupMode')}
-							</Typography>
-							<Typography
-								variant="body2"
-								sx={{ color: 'text.secondary', fontSize: '0.75rem' }}
-							>
-								{tl('groupModeDesc')}
-							</Typography>
-						</Box>
 					</Box>
 
 					<Box sx={{ display: 'flex', gap: 2 }}>
@@ -1027,68 +988,102 @@ export default function AgentTerminalModal({
 					<Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
 						{tl('selectGroupTitle')}
 					</Typography>
+					<Typography variant="body2" sx={{ color: 'text.secondary', mt: -1.5 }}>
+						{tl('selectGroupSubtitle')}
+					</Typography>
 
-					{personaGroups.length === 0 ? (
+					<Box
+						sx={{
+							display: 'grid',
+							gap: 1.5,
+							gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+							maxWidth: 720,
+							width: '100%',
+						}}
+					>
+						{/* "None" — solo agent, no pipeline (default) */}
+						<Box
+							onClick={() => setSelectedGroupId(null)}
+							sx={{
+								p: 2,
+								borderRadius: 1,
+								border: 2,
+								borderColor: selectedGroupId === null ? 'primary.main' : 'divider',
+								bgcolor:
+									selectedGroupId === null
+										? (theme) => alpha(theme.palette.primary.main, 0.08)
+										: 'transparent',
+								cursor: 'pointer',
+								transition: 'all 0.15s',
+								'&:hover': { borderColor: 'primary.main' },
+							}}
+						>
+							<Typography variant="subtitle2" sx={{ fontWeight: 700 }} noWrap>
+								{tl('groupNone')}
+							</Typography>
+							<Typography variant="caption" color="text.secondary">
+								{tl('groupNoneDesc')}
+							</Typography>
+						</Box>
+
+						{personaGroups.map((g) => (
+							<Box
+								key={g.id}
+								onClick={() => setSelectedGroupId(g.id)}
+								sx={{
+									p: 2,
+									borderRadius: 1,
+									border: 2,
+									borderColor:
+										selectedGroupId === g.id ? 'primary.main' : 'divider',
+									bgcolor:
+										selectedGroupId === g.id
+											? (theme) => alpha(theme.palette.primary.main, 0.08)
+											: 'transparent',
+									cursor: 'pointer',
+									transition: 'all 0.15s',
+									'&:hover': { borderColor: 'primary.main' },
+								}}
+							>
+								<Typography variant="subtitle2" sx={{ fontWeight: 700 }} noWrap>
+									{g.name}
+								</Typography>
+								<Typography variant="caption" color="text.secondary">
+									{(g.nodes ?? []).length} · {(g.edges ?? []).length}
+								</Typography>
+							</Box>
+						))}
+					</Box>
+
+					{personaGroups.length === 0 && (
 						<Typography variant="body2" color="text.secondary">
 							{tl('noGroups')}
 						</Typography>
-					) : (
-						<Box
-							sx={{
-								display: 'grid',
-								gap: 1.5,
-								gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-								maxWidth: 720,
-								width: '100%',
-							}}
-						>
-							{personaGroups.map((g) => (
-								<Box
-									key={g.id}
-									onClick={() => setSelectedGroupId(g.id)}
-									sx={{
-										p: 2,
-										borderRadius: 1,
-										border: 2,
-										borderColor:
-											selectedGroupId === g.id ? 'primary.main' : 'divider',
-										bgcolor:
-											selectedGroupId === g.id
-												? (theme) => alpha(theme.palette.primary.main, 0.08)
-												: 'transparent',
-										cursor: 'pointer',
-										transition: 'all 0.15s',
-										'&:hover': { borderColor: 'primary.main' },
-									}}
-								>
-									<Typography variant="subtitle2" sx={{ fontWeight: 700 }} noWrap>
-										{g.name}
-									</Typography>
-									<Typography variant="caption" color="text.secondary">
-										{(g.nodes ?? []).length} · {(g.edges ?? []).length}
-									</Typography>
-								</Box>
-							))}
-						</Box>
+					)}
+
+					{worktreeError && (
+						<Alert severity="error" sx={{ maxWidth: 500, width: '100%' }}>
+							{worktreeError}
+						</Alert>
 					)}
 
 					<Box sx={{ display: 'flex', gap: 2 }}>
 						<Button
 							variant="outlined"
 							startIcon={<ArrowBackRoundedIcon />}
-							onClick={() => setStep('launch-mode')}
+							onClick={() => (issueContext ? onClose() : setStep('branch'))}
 							sx={{ textTransform: 'none', fontWeight: 600 }}
 						>
 							{tc('back')}
 						</Button>
 						<Button
 							variant="contained"
-							disabled={!selectedGroupId}
-							endIcon={<ArrowForwardRoundedIcon />}
-							onClick={() => setStep('branch')}
+							disabled={!projectPath}
+							startIcon={<RocketLaunchRoundedIcon sx={{ fontSize: 18 }} />}
+							onClick={handleLaunch}
 							sx={{ textTransform: 'none', fontWeight: 600, px: 4 }}
 						>
-							{tc('next')}
+							{tl('launch')}
 						</Button>
 					</Box>
 				</Box>
@@ -1150,7 +1145,7 @@ export default function AgentTerminalModal({
 						component="form"
 						onSubmit={(e) => {
 							e.preventDefault();
-							handleLaunch();
+							setStep('select-group');
 						}}
 						sx={{
 							display: 'flex',
@@ -1186,14 +1181,8 @@ export default function AgentTerminalModal({
 						<Button
 							type="submit"
 							variant="contained"
-							disabled={isCreating || !projectPath}
-							startIcon={
-								isCreating ? (
-									<CircularProgress size={16} color="inherit" />
-								) : (
-									<RocketLaunchRoundedIcon sx={{ fontSize: 18 }} />
-								)
-							}
+							disabled={!projectPath}
+							endIcon={<ArrowForwardRoundedIcon />}
 							sx={{
 								bgcolor: 'primary.main',
 								textTransform: 'none',
@@ -1203,7 +1192,7 @@ export default function AgentTerminalModal({
 								'&:hover': { bgcolor: 'primary.dark' },
 							}}
 						>
-							{isCreating ? tl('creating') : tl('launch')}
+							{tc('next')}
 						</Button>
 					</Box>
 

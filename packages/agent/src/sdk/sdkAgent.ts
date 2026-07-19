@@ -16,7 +16,7 @@ import { saveAttachment, extForMediaType } from './attachments.js';
 import type { ChatImageInput } from './promptQueue.js';
 
 export interface StreamSocket { send(data: string): void; readyState?: number }
-export interface StartParams { cwd: string; systemPrompt?: string; model?: string; effort?: string; permissionMode?: string; resumeClaudeSessionId?: string; mcpServers?: Record<string, unknown>; retryLastUser?: boolean }
+export interface StartParams { cwd: string; systemPrompt?: string; model?: string; effort?: string; permissionMode?: string; resumeClaudeSessionId?: string; mcpServers?: Record<string, unknown>; retryLastUser?: boolean; observeOnly?: boolean }
 export type QueryFn = typeof realQuery;
 
 interface QueryLike extends AsyncIterable<unknown> {
@@ -189,6 +189,14 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
         if (params.retryLastUser) maybeRetryLastUser(existing, history);
         send(ws, { type: 'stream-history', events: history });
         send(ws, readyPayload(existing, true));
+        return;
+      }
+      // Observer attaching to a session that no longer lives (e.g. a pipeline
+      // step just finished): replay the persisted transcript then close. Never
+      // spin up a fresh SDK agent for a read-only observer.
+      if (params.observeOnly) {
+        send(ws, { type: 'stream-history', events: transcript.loadTranscript(sessionId) });
+        send(ws, { type: 'stream-closed' });
         return;
       }
       const queue = makePromptQueue();

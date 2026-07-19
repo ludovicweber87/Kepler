@@ -29,6 +29,12 @@ interface Params {
 	 * simples reconnexions.
 	 */
 	resumeRetryRef?: { current: boolean };
+	/**
+	 * Attache un client observateur : si la session n'est plus vivante côté
+	 * serveur, il rejoue le transcript persisté puis ferme, sans jamais créer
+	 * de nouvelle session SDK. Utilisé par le chat de run (step actif).
+	 */
+	observeOnly?: boolean;
 }
 
 type Status = 'connecting' | 'idle' | 'busy' | 'error' | 'closed';
@@ -86,6 +92,7 @@ export function useAgentChat(p: Params) {
 					effort: p.effort,
 					permissionMode: p.permissionMode,
 					retryLastUser,
+					observeOnly: p.observeOnly,
 				}),
 			);
 		};

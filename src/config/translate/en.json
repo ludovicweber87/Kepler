@@ -76,6 +76,10 @@
 		"emptyDesc": "Select a session in the sidebar or launch a new worktree from a project.",
 		"chipActivity": "Activity",
 		"tabChat": "Chat",
+		"tabRunChat": "Chat",
+		"tabWorkflow": "Workflow",
+		"runChatEmpty": "No steps yet.",
+		"runChatPersonaFallback": "Persona",
 		"tabRecap": "Recap",
 		"tabChanges": "Changes",
 		"chipIssue": "Issue",
@@ -296,9 +300,10 @@
 		"titleWithIssue": "Agent — #{number}",
 		"activeSession": "Active session",
 		"newSession": "New session",
-		"groupMode": "Persona group",
-		"groupModeDesc": "Run a pipeline of personas in a new worktree",
+		"groupNone": "None (solo agent)",
+		"groupNoneDesc": "Launch a single agent, no persona pipeline",
 		"selectGroupTitle": "Choose a persona group",
+		"selectGroupSubtitle": "Or launch a solo agent",
 		"noGroups": "No groups yet — create one on the Personas page."
 	},
 	"agentActivity": {
