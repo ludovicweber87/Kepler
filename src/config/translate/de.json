@@ -94,7 +94,8 @@
 		"stopSession": "Sitzung beenden",
 		"closeFile": "Datei schließen",
 		"fileError": "Datei kann nicht gelesen werden",
-		"fileTruncated": "Datei gekürzt (zu groß zur vollständigen Anzeige)"
+		"fileTruncated": "Datei gekürzt (zu groß zur vollständigen Anzeige)",
+		"runComposerDisabled": "Du kannst dich nur einbringen, während eine Persona arbeitet."
 	},
 	"creationProgress": {
 		"title": "Arbeitsbereich wird vorbereitet",

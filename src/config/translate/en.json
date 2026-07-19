@@ -94,7 +94,8 @@
 		"stopSession": "Stop session",
 		"closeFile": "Close file",
 		"fileError": "Unable to read file",
-		"fileTruncated": "File truncated (too large to display fully)"
+		"fileTruncated": "File truncated (too large to display fully)",
+		"runComposerDisabled": "You can only chime in while a persona is working."
 	},
 	"creationProgress": {
 		"title": "Preparing the workspace",
