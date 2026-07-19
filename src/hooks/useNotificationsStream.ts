@@ -1,11 +1,14 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { getAgentSseUrl } from '@/lib/local-fetch';
-import { prependNotification } from '@/lib/notificationsReducer';
+import { prependNotification, titleFor } from '@/lib/notificationsReducer';
 import { isNotificationSoundMuted, playNotificationChime } from '@/lib/notificationSound';
 import { NOTIFICATIONS_QUERY_KEY } from '@/hooks/useNotifications';
+import { useSnackbar } from '@/hooks/useSnackbar';
 import type { AppNotification } from '@/types';
 
 /** Subscribes once to the agent's global notifications SSE stream and keeps
@@ -14,6 +17,15 @@ import type { AppNotification } from '@/types';
  * server's unauthenticated `/notifications/stream` endpoint. */
 export function useNotificationsStream(): void {
 	const queryClient = useQueryClient();
+	const router = useRouter();
+	const { showSnackbar } = useSnackbar();
+	const t = useTranslations('notifications');
+
+	// Refs pour garder les derniers handlers sans re-souscrire l'EventSource à chaque render.
+	const handlersRef = useRef({ router, showSnackbar, t });
+	useEffect(() => {
+		handlersRef.current = { router, showSnackbar, t };
+	});
 
 	useEffect(() => {
 		const es = new EventSource(getAgentSseUrl());
@@ -26,6 +38,18 @@ export function useNotificationsStream(): void {
 				);
 				// Le SSE ne pousse que les nouvelles notifs (pas de backlog au connect) → 1 son/notif.
 				if (!isNotificationSoundMuted()) playNotificationChime();
+				// Snackbar de fin d'agent, visible quelle que soit la page ouverte.
+				if (incoming.type === 'agent_done' || incoming.type === 'agent_error') {
+					const { router: r, showSnackbar: snack, t: translate } = handlersRef.current;
+					const title = titleFor(incoming, (k, v) => translate(k, v));
+					const severity = incoming.type === 'agent_error' ? 'error' : 'success';
+					const url = incoming.url;
+					snack(
+						title,
+						severity,
+						url?.startsWith('/') ? { onClick: () => r.push(url) } : undefined,
+					);
+				}
 			} catch {
 				// Ignore malformed events (e.g. comment/ping lines already filtered by EventSource).
 			}

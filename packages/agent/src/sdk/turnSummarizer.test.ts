@@ -9,11 +9,18 @@ test('buildTurnSummaryPrompt includes final text and actions', () => {
 	assert.match(p, /fix/);
 });
 
-test('fallbackSummary truncates long text', () => {
-	const long = 'x'.repeat(500);
+test('fallbackSummary keeps medium text untouched', () => {
+	const medium = 'x'.repeat(500);
+	assert.equal(fallbackSummary(medium), medium);
+});
+
+test('fallbackSummary truncates very long text on a boundary', () => {
+	const long = `${'mot '.repeat(400)}fin`;
 	const out = fallbackSummary(long);
-	assert.ok(out.length <= 281);
+	assert.ok(out.length <= 1201);
 	assert.match(out, /…$/);
+	// Coupe sur une frontière → ne finit pas par un mot tronqué en plein milieu.
+	assert.doesNotMatch(out, /mo…$/);
 });
 
 test('summarizeTurn returns runner output when non-empty', async () => {
