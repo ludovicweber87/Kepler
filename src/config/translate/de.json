@@ -37,7 +37,8 @@
 		"archiveError": "Archivieren fehlgeschlagen",
 		"archiveScriptFailed": "Archivierungsskript fehlgeschlagen, trotzdem archiviert",
 		"notifications": "Benachrichtigungen",
-		"personas": "Personas"
+		"personas": "Personas",
+		"unreadAgentNotification": "Ungelesene Agent-Benachrichtigung"
 	},
 	"landing": {
 		"nav": {
@@ -126,7 +127,24 @@
 		"updated": "Aktualisiert um {time}",
 		"noReposConfigured": "Kein Repository konfiguriert",
 		"noReposConfiguredDesc": "Füge in den Einstellungen ein Repository hinzu, um dessen Issues hier zu sehen.",
-		"configureRepos": "Repositories konfigurieren"
+		"configureRepos": "Repositories konfigurieren",
+		"createIssue": "Issue erstellen",
+		"newIssue": "Neue Issue",
+		"issueTitle": "Titel",
+		"issueTitlePlaceholder": "Titel der Issue",
+		"issueBody": "Beschreibung",
+		"issueBodyPlaceholder": "Beschreibe die Issue (Markdown unterstützt)...",
+		"labels": "Labels",
+		"assignees": "Zuständige",
+		"milestone": "Milestone",
+		"noMilestone": "Kein Milestone",
+		"initialStatus": "Anfangsspalte",
+		"noStatus": "Kein Status",
+		"create": "Erstellen",
+		"cancel": "Abbrechen",
+		"issueCreated": "Issue #{number} erstellt",
+		"issueCreateError": "Issue konnte nicht erstellt werden",
+		"boardAddWarning": "Issue erstellt, aber nicht zum Board hinzugefügt (Projekt oder Status nicht gefunden)"
 	},
 	"prs": {
 		"title": "Pull Requests",
