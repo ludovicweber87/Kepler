@@ -162,7 +162,11 @@
 		"merging": "Fusionando...",
 		"confirmMerge": "Confirmar fusión",
 		"mergeSuccess": "PR #{number} fusionada",
-		"mergeError": "Error al fusionar: {message}"
+		"mergeError": "Error al fusionar: {message}",
+		"issueMovedToColumn": "Issue #{number} movida a {column}",
+		"issueMoveFailed": "No se pudo mover la issue #{number}",
+		"worktreeArchived": "Worktree archivado",
+		"worktreeArchiveFailed": "Error al archivar el worktree"
 	},
 	"settings": {
 		"title": "Ajustes",
@@ -465,7 +469,11 @@
 		"shareHint": "¿Compartir con tu equipo? Crea un archivo .devora/settings.toml.",
 		"setupScriptName": "Nombre del paso",
 		"setupScriptNameDesc": "Etiqueta mostrada para este paso durante la creación del worktree (opcional).",
-		"setupScriptNamePlaceholder": "Script de configuración"
+		"setupScriptNamePlaceholder": "Script de configuración",
+		"qaColumn": "Columna QA (al fusionar)",
+		"qaColumnDesc": "Al fusionar una PR vinculada a una issue, la issue se mueve a esta columna y el worktree se archiva.",
+		"qaColumnNone": "— No hacer nada",
+		"qaColumnNoBoard": "Ningún proyecto cubre este repo — configura un Project V2 en los ajustes."
 	},
 	"daily": {
 		"title": "Daily",

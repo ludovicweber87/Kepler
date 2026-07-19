@@ -162,7 +162,11 @@
 		"merging": "Fazendo merge...",
 		"confirmMerge": "Confirmar Merge",
 		"mergeSuccess": "PR #{number} mesclada",
-		"mergeError": "Falha ao mesclar: {message}"
+		"mergeError": "Falha ao mesclar: {message}",
+		"issueMovedToColumn": "Issue #{number} movida para {column}",
+		"issueMoveFailed": "Não foi possível mover a issue #{number}",
+		"worktreeArchived": "Worktree arquivado",
+		"worktreeArchiveFailed": "Falha ao arquivar o worktree"
 	},
 	"settings": {
 		"title": "Configurações",
@@ -466,7 +470,11 @@
 		"shareHint": "Compartilhar com sua equipe? Crie um arquivo .devora/settings.toml.",
 		"setupScriptName": "Nome da etapa",
 		"setupScriptNameDesc": "Rótulo exibido para esta etapa durante a criação do worktree (opcional).",
-		"setupScriptNamePlaceholder": "Script de configuração"
+		"setupScriptNamePlaceholder": "Script de configuração",
+		"qaColumn": "Coluna QA (ao mesclar)",
+		"qaColumnDesc": "Ao mesclar uma PR vinculada a uma issue, a issue é movida para esta coluna e o worktree é arquivado.",
+		"qaColumnNone": "— Não fazer nada",
+		"qaColumnNoBoard": "Nenhum projeto cobre este repo — configure um Project V2 nas configurações."
 	},
 	"daily": {
 		"title": "Daily",

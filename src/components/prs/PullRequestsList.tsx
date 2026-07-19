@@ -29,6 +29,7 @@ import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
 import DraggableTabs from '@/components/shared/DraggableTabs';
 import { useAgentViews } from '@/hooks/useAgentViews';
 import { usePullRequests, useMergePR } from '@/hooks/usePullRequests';
+import { usePostMergeTriage } from '@/hooks/usePostMergeTriage';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useTranslations } from 'next-intl';
 import type { GitHubPullRequest, CheckRun } from '@/types';
@@ -411,6 +412,7 @@ export default function PullRequestsList() {
 	const allRepos = useMemo(() => views.map((v) => v.repoFullName), [views]);
 	const { data: allPrs, isLoading, refetch, isFetching } = usePullRequests(allRepos);
 	const mergeMutation = useMergePR();
+	const { runForMergedPr } = usePostMergeTriage();
 	const { showSnackbar } = useSnackbar();
 
 	const [tabIndex, setTabIndex] = useState(0);
@@ -426,12 +428,16 @@ export default function PullRequestsList() {
 
 	const handleMerge = useCallback(() => {
 		if (!mergeTarget) return;
+		const pr = mergeTarget;
 		mergeMutation.mutate(
-			{ repo: mergeTarget.repo_full_name, pullNumber: mergeTarget.number },
+			{ repo: pr.repo_full_name, pullNumber: pr.number },
 			{
 				onSuccess: () => {
-					showSnackbar(t('mergeSuccess', { number: mergeTarget.number }), 'success');
+					showSnackbar(t('mergeSuccess', { number: pr.number }), 'success');
 					setMergeTarget(null);
+					// Triage post-merge (issue → colonne QA + archivage du worktree lié).
+					// Best-effort : n'affecte pas le succès du merge.
+					void runForMergedPr(pr);
 				},
 				onError: (err) => {
 					showSnackbar(t('mergeError', { message: err.message }), 'error');
@@ -439,7 +445,7 @@ export default function PullRequestsList() {
 				},
 			},
 		);
-	}, [mergeTarget, mergeMutation, showSnackbar, t]);
+	}, [mergeTarget, mergeMutation, showSnackbar, t, runForMergedPr]);
 
 	// No views
 	if (views.length === 0) {

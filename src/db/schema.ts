@@ -183,6 +183,7 @@ export const repoSettings = sqliteTable('repo_settings', {
 	setup_script: text().default(''),
 	setup_script_name: text().default(''),
 	archive_script: text().default(''),
+	qa_column: text().default(''),
 	updated_at: timestamp(),
 });
 

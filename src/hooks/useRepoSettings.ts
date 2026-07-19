@@ -11,6 +11,7 @@ function defaults(repo: string): RepoSettings {
 		setup_script: '',
 		setup_script_name: '',
 		archive_script: '',
+		qa_column: '',
 	};
 }
 

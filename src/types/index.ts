@@ -374,6 +374,8 @@ export interface RepoSettings {
 	setup_script: string;
 	setup_script_name: string;
 	archive_script: string;
+	/** Colonne du board vers laquelle déplacer l'issue au merge d'une PR liée. Vide = ne rien faire. */
+	qa_column: string;
 }
 
 // ─── Daily Recaps ───────────────────────────────────────────
