@@ -20,7 +20,9 @@ export interface AgentSession {
 	issue_number: number | null;
 	issue_title: string | null;
 	system_prompt: string | null;
-	launch_mode: 'worktree' | 'current-branch' | 'existing-branch' | null;
+	launch_mode: 'worktree' | 'current-branch' | 'existing-branch' | 'pipeline' | null;
+	pipeline_run_id: string | null;
+	pipeline_node_id: string | null;
 }
 
 export interface AgentActivityLog {
