@@ -37,7 +37,8 @@
 		"archiveError": "Error al archivar",
 		"archiveScriptFailed": "El script de archivado falló, se archivó de todos modos",
 		"notifications": "Notificaciones",
-		"personas": "Personas"
+		"personas": "Personas",
+		"unreadAgentNotification": "Notificación de agente sin leer"
 	},
 	"landing": {
 		"nav": {

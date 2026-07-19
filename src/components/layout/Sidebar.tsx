@@ -44,6 +44,8 @@ import { useMe } from '@/hooks/useMe';
 import { useTranslations } from 'next-intl';
 import { useAgentSessionHistory } from '@/hooks/useAgentSession';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useMarkNotifications } from '@/hooks/useMarkNotifications';
+import { unreadAgentIdsBySession } from '@/lib/notificationsReducer';
 import { useSessionActions } from '@/hooks/useSessionActions';
 import { classifySession } from '@/lib/sessionStatus';
 import { useAgentViews } from '@/hooks/useAgentViews';
@@ -67,7 +69,10 @@ export default function Sidebar() {
 	const router = useRouter();
 	const { me } = useMe();
 	const t = useTranslations('sidebar');
-	const { unread } = useNotifications();
+	const { unread, notifications } = useNotifications();
+	const { markRead } = useMarkNotifications();
+	// Ids des notifs d'agent non lues, groupés par session → pastille sur le worktree.
+	const unreadBySession = useMemo(() => unreadAgentIdsBySession(notifications), [notifications]);
 	const { data: allSessions = [] } = useAgentSessionHistory();
 	// Most recent session per worktree path (list is ordered started_at desc).
 	const sessionByWorktree = useMemo(() => {
@@ -463,6 +468,12 @@ export default function Sidebar() {
 														!!currentSessionId &&
 														sessionIdForWt === currentSessionId;
 													const isMerged = mergedBranches.has(wt.branch);
+													// Notifs d'agent non lues de cette session.
+													const unreadIds = sessionIdForWt
+														? (unreadBySession.get(sessionIdForWt) ??
+															[])
+														: [];
+													const hasUnread = unreadIds.length > 0;
 													return (
 														<Box
 															key={wt.path}
@@ -477,20 +488,23 @@ export default function Sidebar() {
 																	currentName: displayName,
 																});
 															}}
-															onClick={() =>
-																wtSession
-																	? router.push(
-																			`/workbench?session=${encodeURIComponent(wtSession.session_id)}`,
-																		)
-																	: setModalConfig({
-																			projectPath: view.path,
-																			existingWorktree: {
-																				branch: wt.branch,
-																				worktreePath:
-																					wt.path,
-																			},
-																		})
-															}
+															onClick={() => {
+																if (wtSession) {
+																	if (unreadIds.length)
+																		markRead(unreadIds);
+																	router.push(
+																		`/workbench?session=${encodeURIComponent(wtSession.session_id)}`,
+																	);
+																} else {
+																	setModalConfig({
+																		projectPath: view.path,
+																		existingWorktree: {
+																			branch: wt.branch,
+																			worktreePath: wt.path,
+																		},
+																	});
+																}
+															}}
 															sx={{
 																display: 'flex',
 																alignItems: 'center',
@@ -537,6 +551,24 @@ export default function Sidebar() {
 																			: 'text.disabled',
 																}}
 															/>
+															{hasUnread && (
+																<Tooltip
+																	title={t(
+																		'unreadAgentNotification',
+																	)}
+																>
+																	<Box
+																		component="span"
+																		sx={{
+																			width: 8,
+																			height: 8,
+																			borderRadius: '50%',
+																			bgcolor: 'error.main',
+																			flexShrink: 0,
+																		}}
+																	/>
+																</Tooltip>
+															)}
 															<Tooltip
 																title={isMerged ? t('merged') : ''}
 																disableHoverListener={!isMerged}

@@ -37,7 +37,8 @@
 		"archiveError": "Archivieren fehlgeschlagen",
 		"archiveScriptFailed": "Archivierungsskript fehlgeschlagen, trotzdem archiviert",
 		"notifications": "Benachrichtigungen",
-		"personas": "Personas"
+		"personas": "Personas",
+		"unreadAgentNotification": "Ungelesene Agent-Benachrichtigung"
 	},
 	"landing": {
 		"nav": {
