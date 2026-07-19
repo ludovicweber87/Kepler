@@ -138,10 +138,16 @@ export function localSlug(text: string): string | null {
 	else if (/(^|\s)(chore|config|bump|dépendance|dependance|dependency|dependencies)/.test(t))
 		type = 'chore';
 
+	const seen = new Set<string>();
 	const body = t
 		.replace(/[^a-z0-9\s-]/g, ' ')
 		.split(/\s+/)
 		.filter((w) => w.length > 2 && !STOP_WORDS.has(w))
+		.filter((w) => {
+			if (seen.has(w)) return false;
+			seen.add(w);
+			return true;
+		})
 		.slice(0, 3)
 		.join('-');
 
@@ -202,7 +208,17 @@ export async function renameBranchFromText(
  */
 function generateNameViaClaude(text: string): string | null {
 	try {
-		const prompt = `Transforme cette demande en un nom de branche git court, convention Karma (format: type suivi de 3 mots MAXIMUM en kebab, ex: "feat-add-google-auth"). Types autorisés: feat, fix, docs, refactor, test, chore. Réponds UNIQUEMENT le nom, sans guillemets ni autre texte.\n\nDemande: ${text.slice(0, 500)}`;
+		const prompt = `Voici le début d'une conversation entre un développeur et un agent de code. Déduis la TÂCHE réelle et génère un nom de branche git qui la RÉSUME, en convention Karma.
+Format STRICT: <type>-<2 à 3 mots-clés en kebab-case>, ex: "feat-google-auth", "fix-stale-branch-header".
+Types autorisés: feat, fix, docs, refactor, test, chore.
+Règles:
+- En anglais, minuscules, mots séparés par des tirets.
+- Choisis des mots PORTEURS DE SENS (le domaine et l'action), jamais de mots vides ni de salutations.
+- Ignore le bavardage, les politesses et le contexte non pertinent.
+- Réponds UNIQUEMENT le nom, sans guillemets ni ponctuation ni explication.
+
+Conversation:
+${text.slice(0, 1500)}`;
 		const escaped = prompt.replace(/'/g, "'\\''");
 		const out = execSync(`${CLAUDE_BIN} --print '${escaped}'`, {
 			encoding: 'utf-8',
@@ -223,15 +239,4 @@ function generateNameViaClaude(text: string): string | null {
 		);
 		return null;
 	}
-}
-
-/**
- * Fire-and-forget wrapper: renames the branch from `activity` without blocking the
- * caller (used from the activity-log endpoint as a safety net). Never throws.
- */
-export function maybeAutoRenameBranch(
-	session: { id: string; branch: string | null; worktree_path: string | null },
-	activity: string,
-): void {
-	void renameBranchFromText(session, activity);
 }
