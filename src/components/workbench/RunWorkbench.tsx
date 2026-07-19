@@ -6,8 +6,6 @@ import Chip from '@mui/material/Chip';
 import Tab from '@mui/material/Tab';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
-import Tooltip from '@mui/material/Tooltip';
-import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
 import TimelineRoundedIcon from '@mui/icons-material/TimelineRounded';
 import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
@@ -23,6 +21,7 @@ import { useAgentSession } from '@/hooks/useAgentSession';
 import { useGitDiff } from '@/hooks/useGitDiff';
 import { matchFileDiff, resolveTabAfterClose, addOpenFile, CHAT_TAB } from '@/lib/workbenchTabs';
 import WorkbenchShell from '@/components/workbench/WorkbenchShell';
+import FileTabLabel from '@/components/shared/FileTab';
 import RunChatTab from '@/components/workbench/RunChatTab';
 import RunWorkflowGraph from '@/components/workbench/RunWorkflowGraph';
 import ChatComposer from '@/components/agents/chat/ChatComposer';
@@ -186,38 +185,12 @@ export default function RunWorkbench({ runId }: { runId: string }) {
 								key={path}
 								value={path}
 								label={
-									<Box
-										component="span"
-										sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-									>
-										<Tooltip title={path} arrow>
-											<Box component="span">{name}</Box>
-										</Tooltip>
-										<Box
-											component="span"
-											role="button"
-											tabIndex={0}
-											aria-label={t('closeFile')}
-											onClick={(e) => {
-												e.stopPropagation();
-												closeFile(path);
-											}}
-											onKeyDown={(e) => {
-												if (e.key === 'Enter' || e.key === ' ') {
-													e.stopPropagation();
-													e.preventDefault();
-													closeFile(path);
-												}
-											}}
-											sx={{
-												display: 'inline-flex',
-												borderRadius: '50%',
-												'&:hover': { color: 'error.main' },
-											}}
-										>
-											<CloseRoundedIcon sx={{ fontSize: 14 }} />
-										</Box>
-									</Box>
+									<FileTabLabel
+										name={name}
+										path={path}
+										onClose={() => closeFile(path)}
+										closeLabel={t('closeFile')}
+									/>
 								}
 							/>
 						);

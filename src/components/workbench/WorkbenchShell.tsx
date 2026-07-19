@@ -11,6 +11,7 @@ import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
 import StopCircleRoundedIcon from '@mui/icons-material/StopCircleRounded';
 import PictureInPictureAltRoundedIcon from '@mui/icons-material/PictureInPictureAltRounded';
 import { LIGHT_SHADOW_LEFT } from '@/theme/theme';
+import { FILE_TAB_WIDTH } from '@/components/shared/FileTab';
 
 interface WorkbenchShellProps {
 	/** Left side of the header: title + branch/status chips. */
@@ -161,7 +162,16 @@ export default function WorkbenchShell({
 							borderBottom: 1,
 							borderColor: 'divider',
 							flexShrink: 0,
-							'& .MuiTab-root': { textTransform: 'none', minHeight: 40 },
+							'& .MuiTab-root': {
+								textTransform: 'none',
+								minHeight: 40,
+								width: FILE_TAB_WIDTH,
+								minWidth: FILE_TAB_WIDTH,
+								maxWidth: FILE_TAB_WIDTH,
+								whiteSpace: 'nowrap',
+								overflow: 'hidden',
+								textOverflow: 'ellipsis',
+							},
 						}}
 					>
 						{leftTabs}
