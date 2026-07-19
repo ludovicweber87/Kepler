@@ -213,6 +213,9 @@ export default function Workbench() {
 							});
 						queryClient.invalidateQueries({ queryKey: ['sessions', 'active'] });
 						queryClient.invalidateQueries({ queryKey: ['agent-sessions', 'history'] });
+						// Le header lit `resolved` qui privilégie cette query : sans invalidation,
+						// il resterait sur l'ancien nom `wip-...` jusqu'à ~5 min (staleTime global).
+						queryClient.invalidateQueries({ queryKey: ['agent-session', sessionId] });
 					}
 				})
 				.catch(() => {});
@@ -527,10 +530,13 @@ export default function Workbench() {
 									queryClient.invalidateQueries({ queryKey: ['git-status'] });
 									queryClient.invalidateQueries({ queryKey: ['github', 'prs'] });
 								}}
-								onFirstUserMessage={(text) => {
+								onFirstTurnComplete={(userText, assistantText) => {
 									if (isAutoNamed && !firstPromptSent.current) {
 										firstPromptSent.current = true;
-										submitRenameFromPrompt(text);
+										const context = assistantText
+											? `${userText}\n\n[Réponse de l'agent]\n${assistantText}`
+											: userText;
+										submitRenameFromPrompt(context);
 									}
 								}}
 							/>
