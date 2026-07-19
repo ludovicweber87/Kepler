@@ -1,0 +1,1 @@
+ALTER TABLE `repo_settings` ADD `qa_column` text DEFAULT '';

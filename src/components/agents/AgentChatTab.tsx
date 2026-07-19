@@ -20,6 +20,11 @@ interface Props {
 	sessionId: string;
 	cwd: string | null;
 	systemPrompt?: string;
+	/**
+	 * Prompt initial auto-envoyé une fois au démarrage d'une session lancée depuis
+	 * une issue (le serveur garde-fou « transcript vide » assure l'unicité).
+	 */
+	initialPrompt?: string;
 	/** Controlled by the parent from the session's DB status. */
 	readOnly?: boolean;
 	initialModel?: string;
@@ -51,6 +56,7 @@ export default function AgentChatTab({
 	sessionId,
 	cwd,
 	systemPrompt,
+	initialPrompt,
 	readOnly = false,
 	initialModel,
 	initialEffort,
@@ -76,6 +82,7 @@ export default function AgentChatTab({
 		sessionId,
 		cwd,
 		systemPrompt,
+		initialPrompt,
 		enabled: true,
 		readOnly,
 		model: initialModel ?? 'opus',

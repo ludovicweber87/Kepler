@@ -162,7 +162,11 @@
 		"merging": "Merge en cours...",
 		"confirmMerge": "Confirmer le merge",
 		"mergeSuccess": "PR #{number} mergée",
-		"mergeError": "Échec de la fusion : {message}"
+		"mergeError": "Échec de la fusion : {message}",
+		"issueMovedToColumn": "Issue #{number} déplacée vers {column}",
+		"issueMoveFailed": "Impossible de déplacer l'issue #{number}",
+		"worktreeArchived": "Worktree archivé",
+		"worktreeArchiveFailed": "Échec de l'archivage du worktree"
 	},
 	"settings": {
 		"title": "Parametres",
@@ -487,7 +491,11 @@
 		"shareHint": "Partager avec ton équipe ? Crée un fichier .devora/settings.toml.",
 		"setupScriptName": "Nom de la step",
 		"setupScriptNameDesc": "Libellé affiché pour cette step pendant la création du worktree (optionnel).",
-		"setupScriptNamePlaceholder": "Script de configuration"
+		"setupScriptNamePlaceholder": "Script de configuration",
+		"qaColumn": "Colonne QA (au merge)",
+		"qaColumnDesc": "Au merge d'une PR liée à une issue, l'issue est déplacée vers cette colonne et le worktree est archivé.",
+		"qaColumnNone": "— Ne rien faire",
+		"qaColumnNoBoard": "Aucun projet ne couvre ce repo — configure un Project V2 dans les réglages."
 	},
 	"daily": {
 		"title": "Daily",

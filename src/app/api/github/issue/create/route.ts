@@ -36,6 +36,10 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
+		// Le board ne montre que les issues assignées à l'utilisateur courant :
+		// à défaut d'assignee explicite, on s'auto-assigne pour qu'elle y apparaisse.
+		const finalAssignees = assignees && assignees.length > 0 ? assignees : [auth.login];
+
 		const issue = await createIssue(
 			owner,
 			repo,
@@ -43,7 +47,7 @@ export async function POST(req: NextRequest) {
 				title: title.trim(),
 				body,
 				labels,
-				assignees,
+				assignees: finalAssignees,
 				milestone: milestone ?? undefined,
 			},
 			auth.accessToken,

@@ -36,6 +36,12 @@ export function useCreateIssue() {
 		onSettled: () => {
 			queryClient.invalidateQueries({ queryKey: ['repo-issues'] });
 			queryClient.invalidateQueries({ queryKey: ['github', 'dashboard'] });
+			// Project V2 indexe l'item de façon asynchrone : un second refetch différé
+			// laisse le temps à l'issue de se placer dans sa colonne (sinon « No Status »).
+			setTimeout(() => {
+				queryClient.invalidateQueries({ queryKey: ['repo-issues'] });
+				queryClient.invalidateQueries({ queryKey: ['github', 'dashboard'] });
+			}, 2000);
 		},
 	});
 }

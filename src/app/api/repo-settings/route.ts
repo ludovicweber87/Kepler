@@ -13,6 +13,7 @@ function defaults(repo: string) {
 		setup_script: '',
 		setup_script_name: '',
 		archive_script: '',
+		qa_column: '',
 	};
 }
 
@@ -56,6 +57,7 @@ export async function PUT(req: NextRequest) {
 			setup_script: body.setup_script ?? '',
 			setup_script_name: body.setup_script_name ?? '',
 			archive_script: body.archive_script ?? '',
+			qa_column: body.qa_column ?? '',
 		};
 		const [row] = db
 			.insert(repoSettings)

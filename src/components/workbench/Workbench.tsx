@@ -100,6 +100,17 @@ export default function Workbench() {
 
 	const hasIssue = !!(resolved?.issue_owner && resolved?.issue_repo && resolved?.issue_number);
 
+	// Session lancée depuis une issue (hors pipeline) : premier message auto-envoyé
+	// au démarrage du chat. Le serveur ne l'injecte qu'une fois (transcript vide),
+	// donc c'est sans effet sur une session qui a déjà une conversation.
+	const initialPrompt = useMemo(() => {
+		if (!hasIssue || resolved?.pipeline_run_id) return undefined;
+		const title = resolved?.issue_title?.trim();
+		return title
+			? `Résous l'issue #${resolved!.issue_number} : ${title}`
+			: `Résous l'issue #${resolved!.issue_number}.`;
+	}, [hasIssue, resolved]);
+
 	type RightTab = 'changes' | 'activity' | 'issue';
 	const [rightTab, setRightTab] = useState<RightTab>('activity');
 
@@ -512,6 +523,7 @@ export default function Workbench() {
 								sessionId={sessionId}
 								cwd={effectivePath}
 								systemPrompt={resolved?.system_prompt ?? undefined}
+								initialPrompt={initialPrompt}
 								readOnly={chatReadOnly}
 								createPrPrompt={repoSettings.create_pr_prompt}
 								commitPushPrompt={repoSettings.commit_push_prompt}

@@ -1,19 +1,29 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
+import MenuItem from '@mui/material/MenuItem';
 import Button from '@mui/material/Button';
 import { useTranslations } from 'next-intl';
 import { useRepoSettings } from '@/hooks/useRepoSettings';
+import { useProjectConfig } from '@/hooks/useProjectConfig';
+import { resolveConfigForRepo } from '@/lib/repoIssueBoard';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { DEFAULT_CREATE_PR_PROMPT, DEFAULT_COMMIT_PUSH_PROMPT } from '@/lib/prompts';
 
 export default function RepoSettingsPanel({ repoFullName }: { repoFullName: string }) {
 	const t = useTranslations('repoSettings');
 	const { settings, save, isLoading, isSaving } = useRepoSettings(repoFullName);
+	const { configs } = useProjectConfig();
 	const { showSnackbar } = useSnackbar();
+
+	// Colonnes du board Project V2 couvrant ce repo (pour le select « colonne QA »).
+	const boardColumns = useMemo(() => {
+		const covering = resolveConfigForRepo(repoFullName, configs);
+		return covering?.statusColumns ?? [];
+	}, [repoFullName, configs]);
 
 	const [prPrompt, setPrPrompt] = useState('');
 	const [commitPushPrompt, setCommitPushPrompt] = useState('');
@@ -21,6 +31,15 @@ export default function RepoSettingsPanel({ repoFullName }: { repoFullName: stri
 	const [setupScript, setSetupScript] = useState('');
 	const [setupScriptName, setSetupScriptName] = useState('');
 	const [archiveScript, setArchiveScript] = useState('');
+	const [qaColumn, setQaColumn] = useState('');
+
+	// La valeur enregistrée reste sélectionnable même si le board a changé entre-temps
+	// (évite un warning MUI « value out of range »).
+	const qaColumnOptions = useMemo(() => {
+		const set = new Set(boardColumns);
+		if (qaColumn) set.add(qaColumn);
+		return [...set];
+	}, [boardColumns, qaColumn]);
 
 	// Hydrate local state from server once loaded.
 	useEffect(() => {
@@ -31,6 +50,7 @@ export default function RepoSettingsPanel({ repoFullName }: { repoFullName: stri
 		setSetupScript(settings.setup_script);
 		setSetupScriptName(settings.setup_script_name);
 		setArchiveScript(settings.archive_script);
+		setQaColumn(settings.qa_column ?? '');
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isLoading, repoFullName]);
 
@@ -42,6 +62,7 @@ export default function RepoSettingsPanel({ repoFullName }: { repoFullName: stri
 			setup_script: setupScript,
 			setup_script_name: setupScriptName,
 			archive_script: archiveScript,
+			qa_column: qaColumn,
 		});
 		showSnackbar(t('saved'), 'success');
 	};
@@ -158,6 +179,33 @@ export default function RepoSettingsPanel({ repoFullName }: { repoFullName: stri
 					value={archiveScript}
 					onChange={(e) => setArchiveScript(e.target.value)}
 				/>
+			</Box>
+
+			{/* QA column — where a linked issue moves after its PR is merged */}
+			<Box>
+				<Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+					{t('qaColumn')}
+				</Typography>
+				<Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+					{t('qaColumnDesc')}
+				</Typography>
+				<TextField
+					select
+					fullWidth
+					size="small"
+					value={qaColumn}
+					onChange={(e) => setQaColumn(e.target.value)}
+					helperText={boardColumns.length === 0 ? t('qaColumnNoBoard') : undefined}
+				>
+					<MenuItem value="">
+						<em>{t('qaColumnNone')}</em>
+					</MenuItem>
+					{qaColumnOptions.map((col) => (
+						<MenuItem key={col} value={col}>
+							{col}
+						</MenuItem>
+					))}
+				</TextField>
 			</Box>
 
 			<Box>

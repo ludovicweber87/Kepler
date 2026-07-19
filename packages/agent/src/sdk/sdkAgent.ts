@@ -16,7 +16,7 @@ import { saveAttachment, extForMediaType } from './attachments.js';
 import type { ChatImageInput } from './promptQueue.js';
 
 export interface StreamSocket { send(data: string): void; readyState?: number }
-export interface StartParams { cwd: string; systemPrompt?: string; model?: string; effort?: string; permissionMode?: string; resumeClaudeSessionId?: string; mcpServers?: Record<string, unknown>; retryLastUser?: boolean; observeOnly?: boolean }
+export interface StartParams { cwd: string; systemPrompt?: string; model?: string; effort?: string; permissionMode?: string; resumeClaudeSessionId?: string; mcpServers?: Record<string, unknown>; retryLastUser?: boolean; observeOnly?: boolean; initialPrompt?: string }
 export type QueryFn = typeof realQuery;
 
 interface QueryLike extends AsyncIterable<unknown> {
@@ -250,6 +250,17 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
       send(ws, { type: 'stream-history', events: history });
       send(ws, readyPayload(s, false));
       void runLoop(sessionId, s);
+      // Démarrage depuis une issue : injecte le prompt initial comme premier message
+      // utilisateur, une seule fois (garde transcript vide → idempotent aux reconnexions
+      // WS et aux redémarrages serveur, le message étant persisté dès l'envoi).
+      if (params.initialPrompt && history.length === 0) {
+        s.busy = true;
+        const seq = s.seq++;
+        const ev = { event: 'user', data: { text: params.initialPrompt } } as const;
+        transcript.appendEvent(sessionId, seq, 'user', ev);
+        broadcast(s, { type: 'stream-event', seq, ...ev });
+        s.queue.push(params.initialPrompt, []);
+      }
     },
 
     sendUserMessage(sessionId: string, text: string, images?: ChatImageInput[]) {
