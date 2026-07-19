@@ -7,7 +7,6 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 import Chip from '@mui/material/Chip';
-import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -15,7 +14,6 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
-import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import { alpha } from '@mui/material/styles';
@@ -24,9 +22,7 @@ import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
 import TimelineRoundedIcon from '@mui/icons-material/TimelineRounded';
 import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
-import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
 import StopCircleRoundedIcon from '@mui/icons-material/StopCircleRounded';
-import PictureInPictureAltRoundedIcon from '@mui/icons-material/PictureInPictureAltRounded';
 import CallMergeRoundedIcon from '@mui/icons-material/CallMergeRounded';
 import PublishRoundedIcon from '@mui/icons-material/PublishRounded';
 import { useTranslations } from 'next-intl';
@@ -40,13 +36,13 @@ import { resolveEffectivePath } from '@/lib/effectivePath';
 import { resolveRepoFullName } from '@/lib/resolveRepoFullName';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useRepoSettings } from '@/hooks/useRepoSettings';
-import { LIGHT_SHADOW_LEFT } from '@/theme/theme';
 import { useGitDiff } from '@/hooks/useGitDiff';
 import { useGitStatus } from '@/hooks/useGitStatus';
 import { usePullRequests } from '@/hooks/usePullRequests';
 import { findOpenPrForBranch } from '@/lib/pullRequests';
 import AgentChatTab from '@/components/agents/AgentChatTab';
-import RunView from '@/components/workbench/RunView';
+import RunWorkbench from '@/components/workbench/RunWorkbench';
+import WorkbenchShell from '@/components/workbench/WorkbenchShell';
 import { FileDiffView } from '@/components/agents/AgentDiffTab';
 import ChangedFilesList from '@/components/agents/ChangedFilesList';
 import SessionRecap from '@/components/agents/SessionRecap';
@@ -158,8 +154,6 @@ export default function Workbench() {
 	const effectiveRightTab: RightTab =
 		isArchived && rightTab === 'activity' ? 'changes' : rightTab;
 
-	// Resize vertical de la zone terminal (px depuis le bas).
-	const [termHeight, setTermHeight] = useState(340);
 	const [prState, setPrState] = useState<{ available: boolean; trigger: () => void }>({
 		available: false,
 		trigger: () => {},
@@ -171,25 +165,6 @@ export default function Workbench() {
 		available: false,
 		trigger: () => {},
 	});
-	const resizing = useRef(false);
-	const startResize = useCallback((e: React.MouseEvent) => {
-		resizing.current = true;
-		e.preventDefault();
-		const onMove = (ev: MouseEvent) => {
-			if (!resizing.current) return;
-			const fromBottom = window.innerHeight - ev.clientY;
-			setTermHeight(Math.max(120, Math.min(window.innerHeight - 200, fromBottom)));
-		};
-		const onUp = () => {
-			resizing.current = false;
-			document.removeEventListener('mousemove', onMove);
-			document.removeEventListener('mouseup', onUp);
-			document.body.style.userSelect = '';
-		};
-		document.body.style.userSelect = 'none';
-		document.addEventListener('mousemove', onMove);
-		document.addEventListener('mouseup', onUp);
-	}, []);
 
 	const effectivePath = useMemo(
 		() =>
@@ -260,9 +235,10 @@ export default function Workbench() {
 		}
 	}, [sessionId, stop, showSnackbar, tc, router]);
 
-	// Pipeline-run view: a run is a graph traversal, not a single session.
+	// Pipeline-run view: same Workbench chrome, with a Workflow tab.
+	// `key` remounts on run change → internal tab/file state resets naturally.
 	if (runId) {
-		return <RunView runId={runId} />;
+		return <RunWorkbench key={runId} runId={runId} />;
 	}
 
 	if (!sessionId) {
@@ -313,150 +289,107 @@ export default function Workbench() {
 	}
 
 	return (
-		<Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-			{/* Header session */}
-			<Box
-				sx={{
-					display: 'flex',
-					alignItems: 'center',
-					gap: 1,
-					px: 2,
-					py: 1,
-					borderBottom: 1,
-					borderColor: 'divider',
-					flexShrink: 0,
-				}}
-			>
-				<Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-					{resolved?.agent_name ??
-						(bucket === 'active' ? t('activeSession') : t('newSession'))}
-				</Typography>
-				{branch && (
-					<Chip
-						icon={<AccountTreeRoundedIcon sx={{ fontSize: '14px !important' }} />}
-						label={branch}
-						size="small"
-						sx={{
-							height: 22,
-							fontSize: '0.65rem',
-							bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
-							color: 'primary.main',
-							fontWeight: 600,
-							'& .MuiChip-icon': { color: 'primary.main' },
-						}}
-					/>
-				)}
-				<Box sx={{ flex: 1 }} />
-				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-					{hasUncommitted && commitPushState.available && !isArchived && openPr && (
-						<Button
-							variant="outlined"
-							color="primary"
-							size="small"
-							startIcon={<PublishRoundedIcon sx={{ fontSize: 16 }} />}
-							onClick={() => commitPushState.trigger()}
-							sx={{
-								textTransform: 'none',
-								fontWeight: 600,
-								borderRadius: 1,
-								px: 1.25,
-							}}
-						>
-							{tAgentChat('commitPush')}
-						</Button>
-					)}
-					{openPr
-						? !isArchived && (
-								<Button
-									component="a"
-									href={openPr.html_url}
-									target="_blank"
-									rel="noopener noreferrer"
-									variant="outlined"
-									color="primary"
-									size="small"
-									startIcon={<CallMergeRoundedIcon sx={{ fontSize: 16 }} />}
-									sx={{
-										textTransform: 'none',
-										fontWeight: 600,
-										borderRadius: 1,
-										px: 1.25,
-									}}
-								>
-									{tAgentChat('viewPr', { number: openPr.number })}
-								</Button>
-							)
-						: prState.available &&
-							!isArchived && (
-								<Button
-									variant="contained"
-									color="primary"
-									size="small"
-									startIcon={<CallMergeRoundedIcon sx={{ fontSize: 16 }} />}
-									onClick={() => prState.trigger()}
-									sx={{
-										textTransform: 'none',
-										fontWeight: 600,
-										borderRadius: 1,
-										px: 1.25,
-										boxShadow: 'none',
-										'&:hover': { boxShadow: 'none', bgcolor: 'primary.dark' },
-									}}
-								>
-									{tAgentChat('createPr')}
-								</Button>
-							)}
-				</Box>
-				<Chip
-					icon={<FolderOpenRoundedIcon sx={{ fontSize: '14px !important' }} />}
-					label={repoLabel}
-					size="small"
-					sx={{
-						height: 24,
-						fontSize: '0.7rem',
-						bgcolor: (theme) => alpha(theme.palette.text.primary, 0.05),
-					}}
-				/>
-				{bucket === 'active' && (
-					<Tooltip title={t('stopSession')} arrow>
-						<IconButton
-							size="small"
-							onClick={() => setConfirmClose(true)}
-							sx={{ color: 'text.disabled', '&:hover': { color: 'error.main' } }}
-						>
-							<StopCircleRoundedIcon sx={{ fontSize: 18 }} />
-						</IconButton>
-					</Tooltip>
-				)}
-				<IconButton
-					size="small"
-					onClick={handlePip}
-					sx={{ color: 'text.disabled', '&:hover': { color: 'primary.main' } }}
-				>
-					<PictureInPictureAltRoundedIcon sx={{ fontSize: 18 }} />
-				</IconButton>
-			</Box>
-
-			{/* Split gauche/droite */}
-			<Box sx={{ flex: 1, display: 'flex', minHeight: 0 }}>
-				{/* Gauche : conversation + changes 75% */}
-				<Box
-					sx={{ flex: '0 0 68%', minWidth: 0, display: 'flex', flexDirection: 'column' }}
-				>
-					{/* Onglets : Chat + un onglet par fichier ouvert */}
-					<Tabs
-						value={activeTab}
-						onChange={(_, val) => setActiveTab(val as string)}
-						variant="scrollable"
-						scrollButtons="auto"
-						sx={{
-							minHeight: 40,
-							borderBottom: 1,
-							borderColor: 'divider',
-							flexShrink: 0,
-							'& .MuiTab-root': { textTransform: 'none', minHeight: 40 },
-						}}
-					>
+		<>
+			<WorkbenchShell
+				headerLeft={
+					<>
+						<Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+							{resolved?.agent_name ??
+								(bucket === 'active' ? t('activeSession') : t('newSession'))}
+						</Typography>
+						{branch && (
+							<Chip
+								icon={
+									<AccountTreeRoundedIcon sx={{ fontSize: '14px !important' }} />
+								}
+								label={branch}
+								size="small"
+								sx={{
+									height: 22,
+									fontSize: '0.65rem',
+									bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
+									color: 'primary.main',
+									fontWeight: 600,
+									'& .MuiChip-icon': { color: 'primary.main' },
+								}}
+							/>
+						)}
+					</>
+				}
+				headerActions={
+					<>
+						{hasUncommitted && commitPushState.available && !isArchived && openPr && (
+							<Button
+								variant="outlined"
+								color="primary"
+								size="small"
+								startIcon={<PublishRoundedIcon sx={{ fontSize: 16 }} />}
+								onClick={() => commitPushState.trigger()}
+								sx={{
+									textTransform: 'none',
+									fontWeight: 600,
+									borderRadius: 1,
+									px: 1.25,
+								}}
+							>
+								{tAgentChat('commitPush')}
+							</Button>
+						)}
+						{openPr
+							? !isArchived && (
+									<Button
+										component="a"
+										href={openPr.html_url}
+										target="_blank"
+										rel="noopener noreferrer"
+										variant="outlined"
+										color="primary"
+										size="small"
+										startIcon={<CallMergeRoundedIcon sx={{ fontSize: 16 }} />}
+										sx={{
+											textTransform: 'none',
+											fontWeight: 600,
+											borderRadius: 1,
+											px: 1.25,
+										}}
+									>
+										{tAgentChat('viewPr', { number: openPr.number })}
+									</Button>
+								)
+							: prState.available &&
+								!isArchived && (
+									<Button
+										variant="contained"
+										color="primary"
+										size="small"
+										startIcon={<CallMergeRoundedIcon sx={{ fontSize: 16 }} />}
+										onClick={() => prState.trigger()}
+										sx={{
+											textTransform: 'none',
+											fontWeight: 600,
+											borderRadius: 1,
+											px: 1.25,
+											boxShadow: 'none',
+											'&:hover': {
+												boxShadow: 'none',
+												bgcolor: 'primary.dark',
+											},
+										}}
+									>
+										{tAgentChat('createPr')}
+									</Button>
+								)}
+					</>
+				}
+				repoLabel={repoLabel}
+				stoppable={bucket === 'active'}
+				onStop={() => setConfirmClose(true)}
+				stopTitle={t('stopSession')}
+				onPip={handlePip}
+				leftTabValue={activeTab}
+				onLeftTabChange={setActiveTab}
+				leftTabs={
+					<>
 						<Tab value={CHAT_TAB} label={isArchived ? t('tabRecap') : t('tabChat')} />
 						{openFiles.map((path) => {
 							const name = path.split('/').filter(Boolean).pop() ?? path;
@@ -501,102 +434,87 @@ export default function Workbench() {
 								/>
 							);
 						})}
-					</Tabs>
-
-					{/* Contenu de l'onglet de base : récap (archivé) ou chat (sinon). */}
-					{isArchived ? (
-						activeTab === CHAT_TAB && (
-							<Box sx={{ flex: 1, minHeight: 0 }}>
-								<SessionRecap session={resolved} logs={logs} />
-							</Box>
-						)
-					) : (
-						<Box
-							sx={{
-								flex: 1,
-								minHeight: 0,
-								display: activeTab === CHAT_TAB ? 'flex' : 'none',
-								flexDirection: 'column',
-							}}
-						>
-							<AgentChatTab
-								sessionId={sessionId}
-								cwd={effectivePath}
-								systemPrompt={resolved?.system_prompt ?? undefined}
-								initialPrompt={initialPrompt}
-								readOnly={chatReadOnly}
-								createPrPrompt={repoSettings.create_pr_prompt}
-								commitPushPrompt={repoSettings.commit_push_prompt}
-								resumeRetryRef={resumeRetryRef}
-								onResume={() => {
-									resumeRetryRef.current = true;
-									resume(sessionId).catch(() => {
-										resumeRetryRef.current = false;
-									});
+					</>
+				}
+				leftContent={
+					<>
+						{/* Contenu de l'onglet de base : récap (archivé) ou chat (sinon). */}
+						{isArchived ? (
+							activeTab === CHAT_TAB && (
+								<Box sx={{ flex: 1, minHeight: 0 }}>
+									<SessionRecap session={resolved} logs={logs} />
+								</Box>
+							)
+						) : (
+							<Box
+								sx={{
+									flex: 1,
+									minHeight: 0,
+									display: activeTab === CHAT_TAB ? 'flex' : 'none',
+									flexDirection: 'column',
 								}}
-								onOpenChanges={openChanges}
-								onCreatePrStateChange={setPrState}
-								onCommitPushStateChange={setCommitPushState}
-								onTurnComplete={() => {
-									queryClient.invalidateQueries({ queryKey: ['git-diff'] });
-									queryClient.invalidateQueries({ queryKey: ['git-status'] });
-									queryClient.invalidateQueries({ queryKey: ['github', 'prs'] });
-								}}
-								onFirstTurnComplete={(userText, assistantText) => {
-									if (isAutoNamed && !firstPromptSent.current) {
-										firstPromptSent.current = true;
-										const context = assistantText
-											? `${userText}\n\n[Réponse de l'agent]\n${assistantText}`
-											: userText;
-										submitRenameFromPrompt(context);
-									}
-								}}
-							/>
-						</Box>
-					)}
-					{activeTab !== CHAT_TAB && (
-						<Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-							{activeFileDiff ? (
-								<FileDiffView
-									key={activeTab}
-									file={activeFileDiff}
-									focused
-									focusNonce={focusNonce}
+							>
+								<AgentChatTab
+									sessionId={sessionId}
+									cwd={effectivePath}
+									systemPrompt={resolved?.system_prompt ?? undefined}
+									initialPrompt={initialPrompt}
+									readOnly={chatReadOnly}
+									createPrPrompt={repoSettings.create_pr_prompt}
+									commitPushPrompt={repoSettings.commit_push_prompt}
+									resumeRetryRef={resumeRetryRef}
+									onResume={() => {
+										resumeRetryRef.current = true;
+										resume(sessionId).catch(() => {
+											resumeRetryRef.current = false;
+										});
+									}}
+									onOpenChanges={openChanges}
+									onCreatePrStateChange={setPrState}
+									onCommitPushStateChange={setCommitPushState}
+									onTurnComplete={() => {
+										queryClient.invalidateQueries({ queryKey: ['git-diff'] });
+										queryClient.invalidateQueries({ queryKey: ['git-status'] });
+										queryClient.invalidateQueries({
+											queryKey: ['github', 'prs'],
+										});
+									}}
+									onFirstTurnComplete={(userText, assistantText) => {
+										if (isAutoNamed && !firstPromptSent.current) {
+											firstPromptSent.current = true;
+											const context = assistantText
+												? `${userText}\n\n[Réponse de l'agent]\n${assistantText}`
+												: userText;
+											submitRenameFromPrompt(context);
+										}
+									}}
 								/>
-							) : (
-								<FileContentView key={activeTab} cwd={diffPath} path={activeTab} />
-							)}
-						</Box>
-					)}
-				</Box>
-				{/* Droite : sidebar (Task 4) */}
-				<Box
-					sx={{
-						flex: 1,
-						minWidth: 0,
-						borderLeft: 1,
-						borderColor: 'divider',
-						boxShadow: (th) =>
-							th.palette.mode === 'light' ? LIGHT_SHADOW_LEFT : 'none',
-						display: 'flex',
-						flexDirection: 'column',
-						minHeight: 0,
-					}}
-				>
-					{/* Onglets droite : Changes | Activity | Issue */}
-					<Tabs
-						value={effectiveRightTab}
-						onChange={(_, val) => setRightTab(val as RightTab)}
-						variant="scrollable"
-						scrollButtons="auto"
-						sx={{
-							minHeight: 40,
-							borderBottom: 1,
-							borderColor: 'divider',
-							flexShrink: 0,
-							'& .MuiTab-root': { textTransform: 'none', minHeight: 40 },
-						}}
-					>
+							</Box>
+						)}
+						{activeTab !== CHAT_TAB && (
+							<Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+								{activeFileDiff ? (
+									<FileDiffView
+										key={activeTab}
+										file={activeFileDiff}
+										focused
+										focusNonce={focusNonce}
+									/>
+								) : (
+									<FileContentView
+										key={activeTab}
+										cwd={diffPath}
+										path={activeTab}
+									/>
+								)}
+							</Box>
+						)}
+					</>
+				}
+				rightTabValue={effectiveRightTab}
+				onRightTabChange={(val) => setRightTab(val as RightTab)}
+				rightTabs={
+					<>
 						<Tab
 							value="changes"
 							iconPosition="start"
@@ -623,10 +541,10 @@ export default function Workbench() {
 								label={t('chipIssue')}
 							/>
 						)}
-					</Tabs>
-
-					{/* Panneau droit */}
-					<Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+					</>
+				}
+				rightContent={
+					<>
 						{effectiveRightTab === 'changes' && (
 							<ChangedFilesList
 								changedFiles={changedFiles}
@@ -643,40 +561,18 @@ export default function Workbench() {
 								issueNumber={resolved!.issue_number!}
 							/>
 						)}
-					</Box>
-
-					{/* Handle de resize */}
-					<Box
-						onMouseDown={startResize}
-						sx={{
-							height: 6,
-							flexShrink: 0,
-							cursor: 'row-resize',
-							bgcolor: 'divider',
-							'&:hover': { bgcolor: 'primary.main' },
-						}}
+					</>
+				}
+				terminal={
+					<TerminalTabs
+						key={sessionId}
+						sessionId={sessionId}
+						cwd={effectivePath}
+						ready={!!resolved}
+						autoStart={!isArchived}
 					/>
-
-					{/* Terminaux (onglets multiples) empilés */}
-					<Box
-						sx={{
-							height: termHeight,
-							flexShrink: 0,
-							display: 'flex',
-							flexDirection: 'column',
-							minHeight: 0,
-						}}
-					>
-						<TerminalTabs
-							key={sessionId}
-							sessionId={sessionId}
-							cwd={effectivePath}
-							ready={!!resolved}
-							autoStart={!isArchived}
-						/>
-					</Box>
-				</Box>
-			</Box>
+				}
+			/>
 
 			{/* Confirm stop */}
 			<Dialog
@@ -710,6 +606,6 @@ export default function Workbench() {
 					</Button>
 				</DialogActions>
 			</Dialog>
-		</Box>
+		</>
 	);
 }

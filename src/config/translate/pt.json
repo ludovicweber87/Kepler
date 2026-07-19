@@ -94,7 +94,8 @@
 		"stopSession": "Parar a sessão",
 		"closeFile": "Fechar ficheiro",
 		"fileError": "Não foi possível ler o arquivo",
-		"fileTruncated": "Arquivo truncado (muito grande para exibir por completo)"
+		"fileTruncated": "Arquivo truncado (muito grande para exibir por completo)",
+		"runComposerDisabled": "Só podes intervir enquanto uma persona estiver a trabalhar."
 	},
 	"creationProgress": {
 		"title": "Preparando o espaço de trabalho",
