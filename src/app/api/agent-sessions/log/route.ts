@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { agentSessions, agentActivityLogs } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { maybeAutoRenameBranch } from '@/lib/autoRenameBranch';
 
 export async function POST(req: NextRequest) {
 	try {
@@ -56,7 +55,6 @@ export async function POST(req: NextRequest) {
 					.where(eq(agentSessions.id, session.id))
 					.run();
 			}
-			maybeAutoRenameBranch(session, content);
 			return NextResponse.json({ ok: true });
 		}
 
@@ -68,9 +66,6 @@ export async function POST(req: NextRequest) {
 				log_type: logType,
 			})
 			.run();
-
-		// First real activity → rename an auto-generated `wip-` worktree branch (graceful)
-		maybeAutoRenameBranch(session, content);
 
 		// Update branch and status
 		const updates: Record<string, unknown> = {};
