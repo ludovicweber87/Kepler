@@ -5,6 +5,7 @@ import { readBody, sendJson, sendError, findTmux, findClaude } from '../helpers.
 import { getActiveSessions, sdkAgent } from '../terminal.js';
 import { getDb } from '../db.js';
 import { synthesizeReport } from '../sdk/reportSynth.js';
+import { loadTranscript } from '../sdk/transcriptStore.js';
 
 const TMUX = findTmux();
 
@@ -165,6 +166,19 @@ export async function handleSessionRoutes(
 			}
 
 			sendJson(res, { ok: true });
+		} catch (err) {
+			sendError(res, err instanceof Error ? err.message : 'Unknown error');
+		}
+		return;
+	}
+
+	// GET /agent-sessions/:sessionId/transcript — stored chat events for replay
+	// (used by the aggregated run chat to render completed persona steps).
+	const transcriptMatch = path.match(/^\/agent-sessions\/([^/]+)\/transcript$/);
+	if (transcriptMatch && method === 'GET') {
+		const sessionId = decodeURIComponent(transcriptMatch[1]);
+		try {
+			sendJson(res, { events: loadTranscript(sessionId) });
 		} catch (err) {
 			sendError(res, err instanceof Error ? err.message : 'Unknown error');
 		}

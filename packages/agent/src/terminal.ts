@@ -55,6 +55,7 @@ interface StreamInitMessage {
 	permissionMode?: string;
 	resumeClaudeSessionId?: string;
 	retryLastUser?: boolean;
+	observeOnly?: boolean;
 }
 interface StreamUserMessage {
 	type: 'stream-user-message';
@@ -330,6 +331,7 @@ export function startTerminalServer(httpServer: HttpServer) {
 					permissionMode: msg.permissionMode,
 					resumeClaudeSessionId: msg.resumeClaudeSessionId,
 					retryLastUser: msg.retryLastUser,
+					observeOnly: msg.observeOnly,
 				});
 				return;
 			}

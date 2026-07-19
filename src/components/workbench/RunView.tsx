@@ -16,7 +16,8 @@ import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
-import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import StopRoundedIcon from '@mui/icons-material/StopRounded';
 import { useTranslations } from 'next-intl';
@@ -25,7 +26,7 @@ import { usePersonaGroup } from '@/hooks/usePersonaGroups';
 import { usePersonas } from '@/hooks/usePersonas';
 import { PersonaFlowContext } from '@/components/personas/flow/PersonaFlowContext';
 import { nodeTypes } from '@/components/personas/flow/nodes';
-import AgentChatTab from '@/components/agents/AgentChatTab';
+import RunChatTab from './RunChatTab';
 import type { Persona, PipelineRunStep } from '@/types';
 
 const STATUS_COLOR: Record<string, string> = {
@@ -49,12 +50,16 @@ function nodeStatus(
 	return 'idle';
 }
 
+type RunTab = 'chat' | 'workflow';
+
 export default function RunView({ runId }: { runId: string }) {
 	const t = useTranslations('personas');
+	const tw = useTranslations('workbench');
 	const { run, continueRun, stopRun } = usePipelineRun(runId);
 	const { data: group } = usePersonaGroup(run?.group_id);
 	const { personas } = usePersonas();
-	const [selectedSession, setSelectedSession] = useState<string | null>(null);
+	const [tab, setTab] = useState<RunTab>('chat');
+	const [focusNodeId, setFocusNodeId] = useState<string | null>(null);
 
 	const personasById = useMemo(() => {
 		const m = new Map<string, Persona>();
@@ -63,11 +68,6 @@ export default function RunView({ runId }: { runId: string }) {
 	}, [personas]);
 
 	const steps = useMemo(() => run?.steps ?? [], [run?.steps]);
-	const stepByNode = useMemo(() => {
-		const m = new Map<string, PipelineRunStep>();
-		for (const s of steps) m.set(s.node_id, s); // last wins (seq asc)
-		return m;
-	}, [steps]);
 
 	const rfNodes = useMemo<Node[]>(() => {
 		if (!group) return [];
@@ -148,8 +148,29 @@ export default function RunView({ runId }: { runId: string }) {
 				)}
 			</Stack>
 
-			<Box sx={{ flex: 1, display: 'flex', minHeight: 0 }}>
-				<Box sx={{ flex: selectedSession ? 1.2 : 1, minWidth: 0 }}>
+			<Tabs
+				value={tab}
+				onChange={(_, v) => setTab(v as RunTab)}
+				sx={{ px: 1, minHeight: 40, borderBottom: '1px solid', borderColor: 'divider' }}
+			>
+				<Tab
+					value="chat"
+					label={tw('tabRunChat')}
+					sx={{ textTransform: 'none', minHeight: 40 }}
+				/>
+				<Tab
+					value="workflow"
+					label={tw('tabWorkflow')}
+					sx={{ textTransform: 'none', minHeight: 40 }}
+				/>
+			</Tabs>
+
+			<Box sx={{ flex: 1, minHeight: 0 }}>
+				{/* Keep both mounted so the live WS/flow state survives tab switches. */}
+				<Box sx={{ height: '100%', display: tab === 'chat' ? 'block' : 'none' }}>
+					<RunChatTab run={run} cwd={cwd} focusNodeId={focusNodeId} />
+				</Box>
+				<Box sx={{ height: '100%', display: tab === 'workflow' ? 'block' : 'none' }}>
 					<ReactFlowProvider>
 						<PersonaFlowContext.Provider value={personasById}>
 							<ReactFlow
@@ -161,8 +182,8 @@ export default function RunView({ runId }: { runId: string }) {
 								nodesConnectable={false}
 								proOptions={{ hideAttribution: true }}
 								onNodeClick={(_, node) => {
-									const step = stepByNode.get(node.id);
-									if (step?.session_id) setSelectedSession(step.session_id);
+									setFocusNodeId(node.id);
+									setTab('chat');
 								}}
 							>
 								<Background />
@@ -171,38 +192,6 @@ export default function RunView({ runId }: { runId: string }) {
 						</PersonaFlowContext.Provider>
 					</ReactFlowProvider>
 				</Box>
-
-				{selectedSession && (
-					<Box
-						sx={{
-							width: '45%',
-							minWidth: 380,
-							borderLeft: '1px solid',
-							borderColor: 'divider',
-							display: 'flex',
-							flexDirection: 'column',
-						}}
-					>
-						<Stack
-							direction="row"
-							alignItems="center"
-							justifyContent="flex-end"
-							sx={{ px: 1, py: 0.5 }}
-						>
-							<IconButton size="small" onClick={() => setSelectedSession(null)}>
-								<CloseRoundedIcon fontSize="small" />
-							</IconButton>
-						</Stack>
-						<Box sx={{ flex: 1, minHeight: 0 }}>
-							<AgentChatTab
-								key={selectedSession}
-								sessionId={selectedSession}
-								cwd={cwd}
-								readOnly
-							/>
-						</Box>
-					</Box>
-				)}
 			</Box>
 		</Box>
 	);
