@@ -75,6 +75,11 @@ plus `typography.fontSize` mais alimente le `<GlobalStyles>`.
   menus : les **convertir en `rem`** pour qu'elles suivent le scale.
 - Les tailles d'**icônes en px** (`fontSize: 22`…) : **laissées en px** (ne scalent pas) pour
   éviter les débordements de layout. (Décision : on unifie le **texte**, pas les icônes.)
+- **Méthode d'audit** (à exécuter au moment du plan) : grep `fontSize:\s*\d+` (et
+  `fontSize:\s*['"]\d` pour les `px` en string) sur `src/components`, puis **règle de décision**
+  par occurrence : si la taille s'applique à du **texte** (Typography, Button, MenuItem, label)
+  → convertir en `rem` ; si elle s'applique à une **icône** (SvgIcon, `*Icon`, `<... Icon>`)
+  → laisser en `px`. Enumérer les fichiers touchés dans le plan.
 
 ### Bornes
 
@@ -89,10 +94,13 @@ plus `typography.fontSize` mais alimente le `<GlobalStyles>`.
 
 ### UI / interaction
 
-- Ajouter une **poignée de resize verticale** (`cursor: col-resize`) entre la colonne gauche
-  (conversation, ~68%) et la colonne droite (panneau + terminal, ~32%) dans `WorkbenchShell.tsx`.
+- Ajouter une **poignée verticale (resize horizontal)** (`cursor: col-resize`) entre la colonne
+  gauche (conversation, ~68%) et la colonne droite (panneau + terminal, ~32%) dans
+  `WorkbenchShell.tsx`.
 - Réutiliser le **même pattern** que le resize existant du terminal (`termHeight`) :
-  `onMouseDown` → listeners `mousemove` / `mouseup` sur `window` → `setLeftPct(clamp(...))`.
+  `onMouseDown` → listeners `mousemove` / `mouseup` sur **`document`** (comme l'existant), avec
+  un **ref** (`resizing.current`, à l'image du pattern actuel) plutôt qu'une lecture de state —
+  pour éviter les stale-closures pendant `mousemove` → `setLeftPct(clamp(...))`.
 - État local `leftPct` (number, pourcentage) pilote le layout en live via `flex`.
 - **Clamp** entre **40%** et **80%**.
 
@@ -103,7 +111,13 @@ plus `typography.fontSize` mais alimente le `<GlobalStyles>`.
 - **Pas de migration** (nouvelle clé dans la table clé/valeur existante).
 - Écriture DB **au relâchement de la souris** (`mouseup`) uniquement — pas à chaque `mousemove`
   (évite de spammer l'API).
-- Au montage, `leftPct` initialisé depuis `valueOrDefault` du hook (parse en number, fallback 68).
+- **Chargement de la valeur persistée (point critique)** : `useAppSetting` lit via React Query,
+  donc `valueOrDefault` renvoie le fallback `'68'` tant que le fetch async n'est pas résolu.
+  Initialiser `leftPct` une seule fois dans un `useState` initializer **ne restaurerait jamais**
+  la valeur DB après reload. → Il faut un **`useEffect` qui synchronise `leftPct` depuis
+  `valueOrDefault`** quand la query se résout, **gardé** pour ne pas écraser un drag en cours
+  (ex. ne sync que si `!resizing.current` et tant qu'aucune interaction utilisateur n'a eu lieu,
+  via un flag `hydrated`). Parse `parseFloat` + fallback 68 + clamp 40–80.
 
 ## Composants / fichiers impactés
 
@@ -132,7 +146,7 @@ Feature 2 (split)
   WorkbenchShell resize handle → setLeftPct(clamp) [live]
     → mouseup → useAppSetting('workbench_split_pct').save(pct)
       → PUT /api/settings → app_settings
-  Montage → useAppSetting.valueOrDefault → leftPct initial
+  Query résolue → useEffect (guard hydrated + !resizing) → leftPct restauré
 ```
 
 ## Gestion d'erreurs / cas limites
@@ -140,8 +154,9 @@ Feature 2 (split)
 - Persistance split : si le `PUT` échoue, le layout live reste correct (state local) ; on peut
   ignorer silencieusement ou afficher un snackbar d'erreur (optionnel, non bloquant).
 - Valeur DB corrompue (`workbench_split_pct` non numérique) : `parseFloat` + fallback 68 + clamp.
-- Taille typo extrême : bornée à 10–20 côté UI ; le scale reste tolérant si une valeur hors
-  borne existe déjà en DB (clamp au calcul du scale conseillé).
+- Taille typo extrême : bornée à 10–20 côté UI. **Exigence** : le calcul du `scale` doit
+  **clamper `appFontSize` dans [10, 20]** avant de dériver le ratio — une valeur DB hors borne
+  (l'ancien range 8–32 autorisait jusqu'à 32) est un cas réaliste pour les données existantes.
 - SSR : `useThemePrefs` est déjà SSR-safe (localStorage + défaut) ; `GlobalStyles` s'applique
   côté client au premier paint effectif.
 
