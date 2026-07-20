@@ -1,3 +1,5 @@
+import { clampAppFontSize } from './appFontScale';
+
 export type CustomThemeTokens = {
 	mode: 'light' | 'dark';
 	primary: string;
@@ -108,7 +110,7 @@ export function normalizeThemePrefs(raw: unknown): ThemePrefs {
 	return {
 		customTokens: normalizeTokens(r.customTokens),
 		appFont: pick(r.appFont, APP_FONTS, DEFAULT_THEME_PREFS.appFont),
-		appFontSize: clampSize(r.appFontSize, DEFAULT_THEME_PREFS.appFontSize),
+		appFontSize: clampAppFontSize(r.appFontSize),
 		terminalFont: pick(r.terminalFont, TERMINAL_FONTS, DEFAULT_THEME_PREFS.terminalFont),
 		terminalFontSize: clampSize(r.terminalFontSize, DEFAULT_THEME_PREFS.terminalFontSize),
 	};

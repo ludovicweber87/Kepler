@@ -36,7 +36,7 @@ describe('normalizeThemePrefs', () => {
 	it('rejects an unknown font and clamps out-of-range sizes', () => {
 		const out = normalizeThemePrefs({ appFont: 'ComicSans', appFontSize: 999, terminalFontSize: 2 });
 		expect(out.appFont).toBe(DEFAULT_THEME_PREFS.appFont);
-		expect(out.appFontSize).toBe(32);
+		expect(out.appFontSize).toBe(20);
 		expect(out.terminalFontSize).toBe(8);
 	});
 
@@ -74,5 +74,20 @@ describe('curated lists', () => {
 	it('expose the agreed families', () => {
 		expect(APP_FONTS).toEqual(['Poppins', 'Inter', 'Roboto', 'System UI', 'Nunito']);
 		expect(TERMINAL_FONTS).toEqual(['JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Source Code Pro', 'Menlo']);
+	});
+});
+
+describe('normalizeThemePrefs — appFontSize', () => {
+	it('clampe une valeur trop grande (ancien range) à 20', () => {
+		const out = normalizeThemePrefs({ ...DEFAULT_THEME_PREFS, appFontSize: 32 });
+		expect(out.appFontSize).toBe(20);
+	});
+	it('clampe une valeur trop petite à 10', () => {
+		const out = normalizeThemePrefs({ ...DEFAULT_THEME_PREFS, appFontSize: 8 });
+		expect(out.appFontSize).toBe(10);
+	});
+	it('laisse le terminal dans son range large', () => {
+		const out = normalizeThemePrefs({ ...DEFAULT_THEME_PREFS, terminalFontSize: 28 });
+		expect(out.terminalFontSize).toBe(28);
 	});
 });
