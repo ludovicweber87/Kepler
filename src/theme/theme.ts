@@ -224,7 +224,10 @@ export function getTheme(variant: ThemeVariant, prefs?: ThemePrefs) {
 	const fontFamily = prefs
 		? `${appFontStack(prefs.appFont)}`
 		: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif';
-	const fontSize = prefs?.appFontSize ?? 12;
+	// Baseline de design figée : le scaling se fait au niveau du root <html>
+	// (voir ThemeRegistry / rootFontSizePx), pas via typography.fontSize,
+	// sinon la typo scalerait deux fois.
+	const fontSize = 12;
 
 	return createTheme({
 		palette: {
