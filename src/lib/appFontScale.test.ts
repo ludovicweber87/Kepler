@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-	clampAppFontSize,
-	appFontScale,
-	rootFontSizePx,
-	APP_FONT_BASE,
-} from './appFontScale';
+import { clampAppFontSize, appFontScale, rootFontSizePx, APP_FONT_BASE } from './appFontScale';
 
 describe('clampAppFontSize', () => {
 	it('renvoie la baseline pour une entrée non numérique', () => {

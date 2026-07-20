@@ -34,7 +34,11 @@ describe('normalizeThemePrefs', () => {
 	});
 
 	it('rejects an unknown font and clamps out-of-range sizes', () => {
-		const out = normalizeThemePrefs({ appFont: 'ComicSans', appFontSize: 999, terminalFontSize: 2 });
+		const out = normalizeThemePrefs({
+			appFont: 'ComicSans',
+			appFontSize: 999,
+			terminalFontSize: 2,
+		});
 		expect(out.appFont).toBe(DEFAULT_THEME_PREFS.appFont);
 		expect(out.appFontSize).toBe(20);
 		expect(out.terminalFontSize).toBe(8);
@@ -73,7 +77,13 @@ describe('googleFontsHref', () => {
 describe('curated lists', () => {
 	it('expose the agreed families', () => {
 		expect(APP_FONTS).toEqual(['Poppins', 'Inter', 'Roboto', 'System UI', 'Nunito']);
-		expect(TERMINAL_FONTS).toEqual(['JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Source Code Pro', 'Menlo']);
+		expect(TERMINAL_FONTS).toEqual([
+			'JetBrains Mono',
+			'Fira Code',
+			'Cascadia Code',
+			'Source Code Pro',
+			'Menlo',
+		]);
 	});
 });
 
