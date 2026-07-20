@@ -13,6 +13,7 @@ import ListItemText from '@mui/material/ListItemText';
 import Avatar from '@mui/material/Avatar';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
+import SvgIcon, { type SvgIconProps } from '@mui/material/SvgIcon';
 import Tooltip from '@mui/material/Tooltip';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
@@ -49,6 +50,7 @@ import { classifySession } from '@/lib/sessionStatus';
 import { useAgentViews } from '@/hooks/useAgentViews';
 import { useAllWorktrees } from '@/hooks/useAllWorktrees';
 import { useMergedBranches } from '@/hooks/useMergedBranches';
+import { usePullRequests } from '@/hooks/usePullRequests';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { resolveRepoFullName } from '@/lib/resolveRepoFullName';
@@ -57,7 +59,16 @@ import { localFetch } from '@/lib/local-fetch';
 import LocaleSwitcher from '@/components/LocaleSwitcher';
 import AgentTerminalModal from '@/components/agents/AgentTerminalModal';
 
-export const SIDEBAR_WIDTH = 220;
+export const SIDEBAR_WIDTH = 260;
+
+// Logo GitHub "pull-request" (octicon 16px) rendu en SvgIcon MUI.
+function PullRequestIcon(props: SvgIconProps) {
+	return (
+		<SvgIcon viewBox="0 0 16 16" {...props}>
+			<path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354ZM3.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm0 9.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm8.25.75a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Z" />
+		</SvgIcon>
+	);
+}
 
 export default function Sidebar() {
 	const theme = useTheme();
@@ -84,6 +95,16 @@ export default function Sidebar() {
 	const { views } = useAgentViews();
 	const { byPath, deleteWorktree, renameBranch } = useAllWorktrees(views.map((v) => v.path));
 	const { mergedForRepo } = useMergedBranches(views.map((v) => v.repoFullName));
+	const { data: openPrs = [] } = usePullRequests(views.map((v) => v.repoFullName));
+	// Branches avec une PR ouverte, groupées par repo (match par head.ref).
+	const openPrBranchesByRepo = useMemo(() => {
+		const map = new Map<string, Set<string>>();
+		for (const pr of openPrs) {
+			if (!map.has(pr.repo_full_name)) map.set(pr.repo_full_name, new Set());
+			map.get(pr.repo_full_name)!.add(pr.head.ref);
+		}
+		return map;
+	}, [openPrs]);
 	const { archive, remove, rename } = useSessionActions();
 	const { repoPaths } = useRepoPaths();
 	const { showSnackbar } = useSnackbar();
@@ -355,6 +376,8 @@ export default function Sidebar() {
 							});
 							const expanded = !collapsedProjects.has(view.path);
 							const mergedBranches = mergedForRepo(view.repoFullName);
+							const openPrBranches =
+								openPrBranchesByRepo.get(view.repoFullName) ?? new Set<string>();
 							return (
 								<Box key={view.path}>
 									<Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -462,6 +485,8 @@ export default function Sidebar() {
 														(!!currentRunId &&
 															runIdForWt === currentRunId);
 													const isMerged = mergedBranches.has(wt.branch);
+													const hasOpenPr =
+														!isMerged && openPrBranches.has(wt.branch);
 													// Notifs d'agent non lues de cette session.
 													const unreadIds = sessionIdForWt
 														? (unreadBySession.get(sessionIdForWt) ??
@@ -537,33 +562,33 @@ export default function Sidebar() {
 																},
 															}}
 														>
-															<AccountTreeRoundedIcon
-																sx={{
-																	fontSize: 13,
-																	color: isMerged
-																		? 'success.main'
-																		: isActiveWt
-																			? 'success.main'
-																			: 'text.disabled',
-																}}
-															/>
-															{hasUnread && (
+															{isMerged || hasOpenPr ? (
 																<Tooltip
-																	title={t(
-																		'unreadAgentNotification',
-																	)}
+																	title={
+																		isMerged
+																			? t('merged')
+																			: t('prOpen')
+																	}
 																>
-																	<Box
-																		component="span"
+																	<PullRequestIcon
 																		sx={{
-																			width: 8,
-																			height: 8,
-																			borderRadius: '50%',
-																			bgcolor: 'error.main',
+																			fontSize: 14,
 																			flexShrink: 0,
+																			color: isMerged
+																				? 'primary.main'
+																				: 'success.main',
 																		}}
 																	/>
 																</Tooltip>
+															) : (
+																<AccountTreeRoundedIcon
+																	sx={{
+																		fontSize: 13,
+																		color: isActiveWt
+																			? 'success.main'
+																			: 'text.disabled',
+																	}}
+																/>
 															)}
 															<Tooltip
 																title={isMerged ? t('merged') : ''}
@@ -573,6 +598,7 @@ export default function Sidebar() {
 																	variant="caption"
 																	sx={{
 																		flex: 1,
+																		fontSize: '0.85rem',
 																		overflow: 'hidden',
 																		textOverflow: 'ellipsis',
 																		whiteSpace: 'nowrap',
@@ -593,6 +619,24 @@ export default function Sidebar() {
 																	{displayName}
 																</Typography>
 															</Tooltip>
+															{hasUnread && (
+																<Tooltip
+																	title={t(
+																		'unreadAgentNotification',
+																	)}
+																>
+																	<Box
+																		component="span"
+																		sx={{
+																			width: 8,
+																			height: 8,
+																			borderRadius: '50%',
+																			bgcolor: 'error.main',
+																			flexShrink: 0,
+																		}}
+																	/>
+																</Tooltip>
+															)}
 															<Tooltip title={t('worktreeActions')}>
 																<IconButton
 																	className="wt-delete"

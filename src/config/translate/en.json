@@ -37,7 +37,8 @@
 		"archiveError": "Failed to archive",
 		"archiveScriptFailed": "Archive script failed, archiving anyway",
 		"personas": "Personas",
-		"unreadAgentNotification": "Unread agent notification"
+		"unreadAgentNotification": "Unread agent notification",
+		"prOpen": "Open PR"
 	},
 	"landing": {
 		"nav": {
