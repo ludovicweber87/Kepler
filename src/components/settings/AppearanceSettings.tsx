@@ -15,6 +15,7 @@ import { useThemePrefs } from '@/hooks/useThemePrefs';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { THEME_VARIANTS, THEME_VARIANT_SWATCH, type ThemeVariant } from '@/theme/theme';
 import { APP_FONTS, TERMINAL_FONTS, COLOR_TOKEN_KEYS, type ThemePrefs } from '@/lib/themePrefs';
+import { APP_FONT_MIN, APP_FONT_MAX } from '@/lib/appFontScale';
 
 export default function AppearanceSettings() {
 	const t = useTranslations('appearance');
@@ -179,6 +180,8 @@ export default function AppearanceSettings() {
 						size={draft.appFontSize}
 						onFont={(appFont) => update({ ...draft, appFont })}
 						onSize={(appFontSize) => update({ ...draft, appFontSize })}
+						min={APP_FONT_MIN}
+						max={APP_FONT_MAX}
 					/>
 					<FontControl
 						label={t('terminalFont')}
@@ -209,6 +212,8 @@ function FontControl({
 	size,
 	onFont,
 	onSize,
+	min = 8,
+	max = 32,
 }: {
 	label: string;
 	sizeLabel: string;
@@ -217,6 +222,8 @@ function FontControl({
 	size: number;
 	onFont: (v: string) => void;
 	onSize: (v: number) => void;
+	min?: number;
+	max?: number;
 }) {
 	return (
 		<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -239,7 +246,7 @@ function FontControl({
 					const n = Number(e.target.value);
 					if (!Number.isNaN(n)) onSize(n);
 				}}
-				slotProps={{ htmlInput: { min: 8, max: 32 } }}
+				slotProps={{ htmlInput: { min, max } }}
 			/>
 		</Box>
 	);

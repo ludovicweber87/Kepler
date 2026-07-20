@@ -120,10 +120,18 @@ describe('getTheme custom variant', () => {
 		expect(theme.palette.primary.dark).not.toBe(theme.palette.primary.main);
 	});
 
-	it('applies app typography prefs to any variant', () => {
+	it('applies the app font family to any variant', () => {
 		const prefs = { ...DEFAULT_THEME_PREFS, appFont: 'Inter', appFontSize: 15 };
 		const theme = getTheme('dark', prefs);
 		expect(theme.typography.fontFamily).toContain('Inter');
-		expect(theme.typography.fontSize).toBe(15);
+	});
+
+	it('keeps typography.fontSize at the fixed baseline (scaling is done at the html root)', () => {
+		// appFontSize no longer drives typography.fontSize (would double-scale with
+		// the root font-size set in ThemeRegistry) — it stays at the design baseline.
+		const small = getTheme('dark', { ...DEFAULT_THEME_PREFS, appFontSize: 10 });
+		const large = getTheme('dark', { ...DEFAULT_THEME_PREFS, appFontSize: 20 });
+		expect(small.typography.fontSize).toBe(12);
+		expect(large.typography.fontSize).toBe(12);
 	});
 });
