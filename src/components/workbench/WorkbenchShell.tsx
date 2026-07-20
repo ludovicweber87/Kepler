@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import IconButton from '@mui/material/IconButton';
@@ -12,6 +12,8 @@ import StopCircleRoundedIcon from '@mui/icons-material/StopCircleRounded';
 import PictureInPictureAltRoundedIcon from '@mui/icons-material/PictureInPictureAltRounded';
 import { LIGHT_SHADOW_LEFT } from '@/theme/theme';
 import { FILE_TAB_WIDTH } from '@/components/shared/FileTab';
+import { useAppSetting } from '@/hooks/useAppSetting';
+import { clampSplitPct, parseSplitPct, SPLIT_DEFAULT } from '@/lib/workbenchSplit';
 
 interface WorkbenchShellProps {
 	/** Left side of the header: title + branch/status chips. */
@@ -94,6 +96,54 @@ export default function WorkbenchShell({
 		document.addEventListener('mouseup', onUp);
 	}, []);
 
+	// Resize horizontal du split gauche/droite (pourcentage de largeur gauche).
+	const {
+		valueOrDefault: splitRaw,
+		isLoading: splitLoading,
+		save: saveSplit,
+	} = useAppSetting('workbench_split_pct', String(SPLIT_DEFAULT));
+	const splitRef = useRef<HTMLDivElement>(null);
+	const [leftPct, setLeftPct] = useState(SPLIT_DEFAULT);
+	const leftPctRef = useRef(SPLIT_DEFAULT);
+	const hydrated = useRef(false);
+	const hResizing = useRef(false);
+
+	// Hydrate depuis la DB une fois la query résolue (React Query renvoie le
+	// défaut tant qu'elle charge : attendre !isLoading évite de figer le défaut).
+	useEffect(() => {
+		if (splitLoading || hydrated.current || hResizing.current) return;
+		const next = parseSplitPct(splitRaw);
+		leftPctRef.current = next;
+		// eslint-disable-next-line react-hooks/set-state-in-effect -- hydratation unique depuis la DB (React Query), pas une boucle de sync
+		setLeftPct(next);
+		hydrated.current = true;
+	}, [splitLoading, splitRaw]);
+
+	const startHResize = useCallback(
+		(e: React.MouseEvent) => {
+			hResizing.current = true;
+			e.preventDefault();
+			const onMove = (ev: MouseEvent) => {
+				if (!hResizing.current || !splitRef.current) return;
+				const rect = splitRef.current.getBoundingClientRect();
+				const pct = clampSplitPct(((ev.clientX - rect.left) / rect.width) * 100);
+				leftPctRef.current = pct;
+				setLeftPct(pct);
+			};
+			const onUp = () => {
+				hResizing.current = false;
+				document.removeEventListener('mousemove', onMove);
+				document.removeEventListener('mouseup', onUp);
+				document.body.style.userSelect = '';
+				void saveSplit(String(Math.round(leftPctRef.current)));
+			};
+			document.body.style.userSelect = 'none';
+			document.addEventListener('mousemove', onMove);
+			document.addEventListener('mouseup', onUp);
+		},
+		[saveSplit],
+	);
+
 	return (
 		<Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
 			{/* Header session */}
@@ -151,10 +201,15 @@ export default function WorkbenchShell({
 			</Box>
 
 			{/* Split gauche/droite */}
-			<Box sx={{ flex: 1, display: 'flex', minHeight: 0 }}>
+			<Box ref={splitRef} sx={{ flex: 1, display: 'flex', minHeight: 0 }}>
 				{/* Gauche : conversation + fichiers (~68%) */}
 				<Box
-					sx={{ flex: '0 0 68%', minWidth: 0, display: 'flex', flexDirection: 'column' }}
+					sx={{
+						flex: `0 0 ${leftPct}%`,
+						minWidth: 0,
+						display: 'flex',
+						flexDirection: 'column',
+					}}
 				>
 					<Tabs
 						value={leftTabValue}
@@ -182,6 +237,18 @@ export default function WorkbenchShell({
 					</Tabs>
 					{leftContent}
 				</Box>
+
+				{/* Poignée verticale — resize horizontal du split */}
+				<Box
+					onMouseDown={startHResize}
+					sx={{
+						width: 6,
+						flexShrink: 0,
+						cursor: 'col-resize',
+						bgcolor: 'divider',
+						'&:hover': { bgcolor: 'primary.main' },
+					}}
+				/>
 
 				{/* Droite : panneau + terminal */}
 				<Box
