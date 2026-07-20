@@ -1,15 +1,11 @@
 'use client';
 
-import { useState } from 'react';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
-import IconButton from '@mui/material/IconButton';
-import Badge from '@mui/material/Badge';
-import NotificationsRoundedIcon from '@mui/icons-material/NotificationsRounded';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useSearchParams } from 'next/navigation';
 import { SIDEBAR_WIDTH } from './Sidebar';
@@ -18,8 +14,6 @@ import { useColorMode } from '@/hooks/useColorMode';
 import { THEME_VARIANTS, THEME_VARIANT_SWATCH, type ThemeVariant } from '@/theme/theme';
 import { useAgentSession, useAgentSessionHistory } from '@/hooks/useAgentSession';
 import { classifySession } from '@/lib/sessionStatus';
-import { useNotifications } from '@/hooks/useNotifications';
-import { NotificationsMenu } from '@/components/notifications/NotificationsMenu';
 import { useTranslations } from 'next-intl';
 
 const VARIANT_LABEL_KEY: Record<ThemeVariant, string> = {
@@ -54,9 +48,6 @@ export default function Header() {
 	const theme = useTheme();
 	const { variant, setVariant } = useColorMode();
 	const t = useTranslations('header');
-	const tNotifications = useTranslations('notifications');
-	const { unread } = useNotifications();
-	const [bellAnchor, setBellAnchor] = useState<HTMLElement | null>(null);
 
 	const searchParams = useSearchParams();
 	const sessionId = searchParams.get('session') ?? undefined;
@@ -123,17 +114,6 @@ export default function Header() {
 							</MenuItem>
 						))}
 					</Select>
-
-					<IconButton
-						onClick={(e) => setBellAnchor(e.currentTarget)}
-						aria-label={tNotifications('title')}
-						sx={{ color: 'text.primary' }}
-					>
-						<Badge badgeContent={unread} color="error" max={99}>
-							<NotificationsRoundedIcon />
-						</Badge>
-					</IconButton>
-					<NotificationsMenu anchorEl={bellAnchor} onClose={() => setBellAnchor(null)} />
 
 					<Avatar
 						sx={{

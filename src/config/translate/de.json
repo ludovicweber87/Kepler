@@ -36,7 +36,6 @@
 		"sessionArchived": "Sitzung archiviert",
 		"archiveError": "Archivieren fehlgeschlagen",
 		"archiveScriptFailed": "Archivierungsskript fehlgeschlagen, trotzdem archiviert",
-		"notifications": "Benachrichtigungen",
 		"personas": "Personas",
 		"unreadAgentNotification": "Ungelesene Agent-Benachrichtigung"
 	},
@@ -501,27 +500,9 @@
 		"deletedSuccess": "Bericht gelöscht"
 	},
 	"notifications": {
-		"title": "Benachrichtigungen",
-		"empty": "Keine Benachrichtigungen",
-		"markAllRead": "Alle als gelesen markieren",
-		"muteSound": "Ton stummschalten",
-		"unmuteSound": "Ton aktivieren",
-		"seeAll": "Alle anzeigen",
-		"filterAll": "Alle",
-		"filterAgents": "Agents",
-		"filterCi": "CI",
-		"filterGithub": "GitHub",
-		"filterPr": "PR",
 		"agent_done": "Agent fertig",
 		"agent_error": "Agent fehlgeschlagen",
-		"agent_blocked": "Agent wartet auf dich",
-		"ci_failed": "CI fehlgeschlagen — {title} ({repo} #{number})",
-		"ci_passed": "CI erfolgreich — {title} ({repo} #{number})",
-		"mention": "Erwähnung — {title} ({repo})",
-		"review_requested": "Review angefragt — {title} ({repo})",
-		"pr_merged": "PR gemergt — {title} ({repo} #{number})",
-		"pr_approved": "PR genehmigt — {title} ({repo} #{number})",
-		"changes_requested": "Änderungen angefragt — {title} ({repo} #{number})"
+		"agent_blocked": "Agent wartet auf dich"
 	},
 	"personas": {
 		"title": "Personas",

@@ -36,7 +36,6 @@
 		"sessionArchived": "Sessão arquivada",
 		"archiveError": "Falha ao arquivar",
 		"archiveScriptFailed": "Falha no script de arquivamento, arquivado mesmo assim",
-		"notifications": "Notificações",
 		"personas": "Personas",
 		"unreadAgentNotification": "Notificação de agente não lida"
 	},
@@ -502,27 +501,9 @@
 		"deletedSuccess": "Relatório eliminado"
 	},
 	"notifications": {
-		"title": "Notificações",
-		"empty": "Sem notificações",
-		"markAllRead": "Marcar tudo como lido",
-		"muteSound": "Silenciar som",
-		"unmuteSound": "Ativar som",
-		"seeAll": "Ver tudo",
-		"filterAll": "Tudo",
-		"filterAgents": "Agentes",
-		"filterCi": "CI",
-		"filterGithub": "GitHub",
-		"filterPr": "PR",
 		"agent_done": "O agente terminou",
 		"agent_error": "O agente falhou",
-		"agent_blocked": "O agente aguarda a sua resposta",
-		"ci_failed": "CI falhou — {title} ({repo} #{number})",
-		"ci_passed": "CI passou — {title} ({repo} #{number})",
-		"mention": "Menção — {title} ({repo})",
-		"review_requested": "Revisão solicitada — {title} ({repo})",
-		"pr_merged": "PR mesclada — {title} ({repo} #{number})",
-		"pr_approved": "PR aprovada — {title} ({repo} #{number})",
-		"changes_requested": "Alterações solicitadas — {title} ({repo} #{number})"
+		"agent_blocked": "O agente aguarda a sua resposta"
 	},
 	"personas": {
 		"title": "Personas",
