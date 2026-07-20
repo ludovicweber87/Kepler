@@ -387,28 +387,30 @@ export default function Workbench() {
 				onPip={handlePip}
 				leftTabValue={activeTab}
 				onLeftTabChange={setActiveTab}
-				leftTabs={
-					<>
-						<Tab value={CHAT_TAB} label={isArchived ? t('tabRecap') : t('tabChat')} />
-						{openFiles.map((path) => {
-							const name = path.split('/').filter(Boolean).pop() ?? path;
-							return (
-								<Tab
-									key={path}
-									value={path}
-									label={
-										<FileTabLabel
-											name={name}
-											path={path}
-											onClose={() => closeFile(path)}
-											closeLabel={t('closeFile')}
-										/>
-									}
-								/>
-							);
-						})}
-					</>
-				}
+				leftTabs={[
+					<Tab
+						key={CHAT_TAB}
+						value={CHAT_TAB}
+						label={isArchived ? t('tabRecap') : t('tabChat')}
+					/>,
+					...openFiles.map((path) => {
+						const name = path.split('/').filter(Boolean).pop() ?? path;
+						return (
+							<Tab
+								key={path}
+								value={path}
+								label={
+									<FileTabLabel
+										name={name}
+										path={path}
+										onClose={() => closeFile(path)}
+										closeLabel={t('closeFile')}
+									/>
+								}
+							/>
+						);
+					}),
+				]}
 				leftContent={
 					<>
 						{/* Contenu de l'onglet de base : récap (archivé) ou chat (sinon). */}
@@ -486,36 +488,37 @@ export default function Workbench() {
 				}
 				rightTabValue={effectiveRightTab}
 				onRightTabChange={(val) => setRightTab(val as RightTab)}
-				rightTabs={
-					<>
+				rightTabs={[
+					<Tab
+						key="changes"
+						value="changes"
+						iconPosition="start"
+						icon={<DescriptionRoundedIcon sx={{ fontSize: 16 }} />}
+						label={
+							changedFiles.length > 0
+								? `${t('tabChanges')} (${changedFiles.length})`
+								: t('tabChanges')
+						}
+					/>,
+					!isArchived && (
 						<Tab
-							value="changes"
+							key="activity"
+							value="activity"
 							iconPosition="start"
-							icon={<DescriptionRoundedIcon sx={{ fontSize: 16 }} />}
-							label={
-								changedFiles.length > 0
-									? `${t('tabChanges')} (${changedFiles.length})`
-									: t('tabChanges')
-							}
+							icon={<TimelineRoundedIcon sx={{ fontSize: 16 }} />}
+							label={t('chipActivity')}
 						/>
-						{!isArchived && (
-							<Tab
-								value="activity"
-								iconPosition="start"
-								icon={<TimelineRoundedIcon sx={{ fontSize: 16 }} />}
-								label={t('chipActivity')}
-							/>
-						)}
-						{hasIssue && (
-							<Tab
-								value="issue"
-								iconPosition="start"
-								icon={<BugReportRoundedIcon sx={{ fontSize: 16 }} />}
-								label={t('chipIssue')}
-							/>
-						)}
-					</>
-				}
+					),
+					hasIssue && (
+						<Tab
+							key="issue"
+							value="issue"
+							iconPosition="start"
+							icon={<BugReportRoundedIcon sx={{ fontSize: 16 }} />}
+							label={t('chipIssue')}
+						/>
+					),
+				]}
 				rightContent={
 					<>
 						{effectiveRightTab === 'changes' && (

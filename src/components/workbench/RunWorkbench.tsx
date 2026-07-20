@@ -174,29 +174,27 @@ export default function RunWorkbench({ runId }: { runId: string }) {
 			stopTitle={tp('runStop')}
 			leftTabValue={activeTab}
 			onLeftTabChange={setActiveTab}
-			leftTabs={
-				<>
-					<Tab value={CHAT_TAB} label={t('tabRunChat')} />
-					<Tab value={WORKFLOW_TAB} label={t('tabWorkflow')} />
-					{openFiles.map((path) => {
-						const name = path.split('/').filter(Boolean).pop() ?? path;
-						return (
-							<Tab
-								key={path}
-								value={path}
-								label={
-									<FileTabLabel
-										name={name}
-										path={path}
-										onClose={() => closeFile(path)}
-										closeLabel={t('closeFile')}
-									/>
-								}
-							/>
-						);
-					})}
-				</>
-			}
+			leftTabs={[
+				<Tab key={CHAT_TAB} value={CHAT_TAB} label={t('tabRunChat')} />,
+				<Tab key={WORKFLOW_TAB} value={WORKFLOW_TAB} label={t('tabWorkflow')} />,
+				...openFiles.map((path) => {
+					const name = path.split('/').filter(Boolean).pop() ?? path;
+					return (
+						<Tab
+							key={path}
+							value={path}
+							label={
+								<FileTabLabel
+									name={name}
+									path={path}
+									onClose={() => closeFile(path)}
+									closeLabel={t('closeFile')}
+								/>
+							}
+						/>
+					);
+				}),
+			]}
 			leftContent={
 				<>
 					{/* Chat agrégé multi-persona + composer (injection sur la persona active). */}
@@ -285,34 +283,35 @@ export default function RunWorkbench({ runId }: { runId: string }) {
 			}
 			rightTabValue={effectiveRightTab}
 			onRightTabChange={(val) => setRightTab(val as RightTab)}
-			rightTabs={
-				<>
+			rightTabs={[
+				<Tab
+					key="changes"
+					value="changes"
+					iconPosition="start"
+					icon={<DescriptionRoundedIcon sx={{ fontSize: 16 }} />}
+					label={
+						changedFiles.length > 0
+							? `${t('tabChanges')} (${changedFiles.length})`
+							: t('tabChanges')
+					}
+				/>,
+				<Tab
+					key="activity"
+					value="activity"
+					iconPosition="start"
+					icon={<TimelineRoundedIcon sx={{ fontSize: 16 }} />}
+					label={t('chipActivity')}
+				/>,
+				hasIssue && (
 					<Tab
-						value="changes"
+						key="issue"
+						value="issue"
 						iconPosition="start"
-						icon={<DescriptionRoundedIcon sx={{ fontSize: 16 }} />}
-						label={
-							changedFiles.length > 0
-								? `${t('tabChanges')} (${changedFiles.length})`
-								: t('tabChanges')
-						}
+						icon={<BugReportRoundedIcon sx={{ fontSize: 16 }} />}
+						label={t('chipIssue')}
 					/>
-					<Tab
-						value="activity"
-						iconPosition="start"
-						icon={<TimelineRoundedIcon sx={{ fontSize: 16 }} />}
-						label={t('chipActivity')}
-					/>
-					{hasIssue && (
-						<Tab
-							value="issue"
-							iconPosition="start"
-							icon={<BugReportRoundedIcon sx={{ fontSize: 16 }} />}
-							label={t('chipIssue')}
-						/>
-					)}
-				</>
-			}
+				),
+			]}
 			rightContent={
 				<>
 					{effectiveRightTab === 'changes' && (
