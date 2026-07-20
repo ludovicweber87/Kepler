@@ -37,7 +37,8 @@
 		"archiveError": "Échec de l’archivage",
 		"archiveScriptFailed": "Échec du script d’archivage, archivage effectué quand même",
 		"personas": "Personas",
-		"unreadAgentNotification": "Notification d’agent non lue"
+		"unreadAgentNotification": "Notification d’agent non lue",
+		"prOpen": "PR ouverte"
 	},
 	"landing": {
 		"nav": {
