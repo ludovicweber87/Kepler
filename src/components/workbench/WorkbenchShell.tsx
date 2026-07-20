@@ -135,7 +135,8 @@ export default function WorkbenchShell({
 				document.removeEventListener('mousemove', onMove);
 				document.removeEventListener('mouseup', onUp);
 				document.body.style.userSelect = '';
-				void saveSplit(String(Math.round(leftPctRef.current)));
+				// Persistance best-effort : ne pas propager d'unhandled rejection si l'API est offline.
+				void saveSplit(String(Math.round(leftPctRef.current))).catch(() => {});
 			};
 			document.body.style.userSelect = 'none';
 			document.addEventListener('mousemove', onMove);
