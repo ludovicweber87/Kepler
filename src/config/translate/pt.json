@@ -80,6 +80,7 @@
 		"tabWorkflow": "Workflow",
 		"runChatEmpty": "Ainda não há etapas.",
 		"runChatPersonaFallback": "Persona",
+		"personaWorking": "{name} está a trabalhar",
 		"tabRecap": "Resumo",
 		"tabChanges": "Changes",
 		"chipIssue": "Issue",
@@ -165,6 +166,8 @@
 		"mergeError": "Falha ao mesclar: {message}",
 		"issueMovedToColumn": "Issue #{number} movida para {column}",
 		"issueMoveFailed": "Não foi possível mover a issue #{number}",
+		"mergeTriageNoLink": "PR mesclada — nenhuma issue Devora vinculada, nada a mover",
+		"mergeTriageNoColumn": "Issue #{number} não movida — configure a coluna de destino nas definições do repo",
 		"worktreeArchived": "Worktree arquivado",
 		"worktreeArchiveFailed": "Falha ao arquivar o worktree"
 	},

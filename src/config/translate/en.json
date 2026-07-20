@@ -80,6 +80,7 @@
 		"tabWorkflow": "Workflow",
 		"runChatEmpty": "No steps yet.",
 		"runChatPersonaFallback": "Persona",
+		"personaWorking": "{name} is working",
 		"tabRecap": "Recap",
 		"tabChanges": "Changes",
 		"chipIssue": "Issue",
@@ -165,6 +166,8 @@
 		"mergeError": "Merge failed: {message}",
 		"issueMovedToColumn": "Issue #{number} moved to {column}",
 		"issueMoveFailed": "Couldn't move issue #{number}",
+		"mergeTriageNoLink": "PR merged — no linked Devora issue, nothing to move",
+		"mergeTriageNoColumn": "Issue #{number} not moved — set the target column in the repo settings",
 		"worktreeArchived": "Worktree archived",
 		"worktreeArchiveFailed": "Failed to archive worktree"
 	},

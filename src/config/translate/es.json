@@ -80,6 +80,7 @@
 		"tabWorkflow": "Workflow",
 		"runChatEmpty": "Aún no hay pasos.",
 		"runChatPersonaFallback": "Persona",
+		"personaWorking": "{name} está trabajando",
 		"tabRecap": "Resumen",
 		"tabChanges": "Changes",
 		"chipIssue": "Issue",
@@ -165,6 +166,8 @@
 		"mergeError": "Error al fusionar: {message}",
 		"issueMovedToColumn": "Issue #{number} movida a {column}",
 		"issueMoveFailed": "No se pudo mover la issue #{number}",
+		"mergeTriageNoLink": "PR fusionada — sin issue de Devora vinculada, nada que mover",
+		"mergeTriageNoColumn": "Issue #{number} no movida — configura la columna destino en los ajustes del repo",
 		"worktreeArchived": "Worktree archivado",
 		"worktreeArchiveFailed": "Error al archivar el worktree"
 	},

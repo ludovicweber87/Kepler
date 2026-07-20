@@ -80,6 +80,7 @@
 		"tabWorkflow": "Workflow",
 		"runChatEmpty": "Noch keine Schritte.",
 		"runChatPersonaFallback": "Persona",
+		"personaWorking": "{name} arbeitet",
 		"tabRecap": "Zusammenfassung",
 		"tabChanges": "Changes",
 		"chipIssue": "Issue",
@@ -165,6 +166,8 @@
 		"mergeError": "Zusammenführen fehlgeschlagen: {message}",
 		"issueMovedToColumn": "Issue #{number} nach {column} verschoben",
 		"issueMoveFailed": "Issue #{number} konnte nicht verschoben werden",
+		"mergeTriageNoLink": "PR gemergt — keine verknüpfte Devora-Issue, nichts zu verschieben",
+		"mergeTriageNoColumn": "Issue #{number} nicht verschoben — Zielspalte in den Repo-Einstellungen festlegen",
 		"worktreeArchived": "Worktree archiviert",
 		"worktreeArchiveFailed": "Archivierung des Worktrees fehlgeschlagen"
 	},
