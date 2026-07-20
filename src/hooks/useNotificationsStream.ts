@@ -38,11 +38,20 @@ export function useNotificationsStream(): void {
 				);
 				// Le SSE ne pousse que les nouvelles notifs (pas de backlog au connect) → 1 son/notif.
 				if (!isNotificationSoundMuted()) playNotificationChime();
-				// Snackbar de fin d'agent, visible quelle que soit la page ouverte.
-				if (incoming.type === 'agent_done' || incoming.type === 'agent_error') {
+				// Snackbar de fin d'agent / de question posée, visible quelle que soit la page ouverte.
+				if (
+					incoming.type === 'agent_done' ||
+					incoming.type === 'agent_error' ||
+					incoming.type === 'agent_blocked'
+				) {
 					const { router: r, showSnackbar: snack, t: translate } = handlersRef.current;
 					const title = titleFor(incoming, (k, v) => translate(k, v));
-					const severity = incoming.type === 'agent_error' ? 'error' : 'success';
+					const severity =
+						incoming.type === 'agent_error'
+							? 'error'
+							: incoming.type === 'agent_blocked'
+								? 'info'
+								: 'success';
 					const url = incoming.url;
 					snack(
 						title,

@@ -10,7 +10,6 @@ import { handlePipelineRoutes } from './routes/pipeline.js';
 import { handleRecapRoutes } from './routes/recap.js';
 import { handleNotificationsStream } from './routes/notifications.js';
 import { serveAttachment } from './sdk/attachments.js';
-import { startGithubPoller } from './notifications/githubPoller.js';
 
 const PORT = parseInt(process.env.DEVORA_AGENT_PORT ?? '4001', 10);
 const ALLOWED_ORIGINS = (process.env.DEVORA_ORIGIN ?? 'http://localhost:4000')
@@ -138,11 +137,3 @@ server.listen(PORT, () => {
 	console.log(`[devora-agent] CORS origins: ${ALLOWED_ORIGINS.join(', ')}`);
 });
 
-// ── Notifications: server-side GitHub poller (CI/PR/notifs → SSE) ──
-const stopGithubPoller = startGithubPoller();
-process.on('SIGTERM', () => {
-	stopGithubPoller();
-});
-process.on('SIGINT', () => {
-	stopGithubPoller();
-});

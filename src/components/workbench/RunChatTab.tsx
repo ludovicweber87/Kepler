@@ -9,6 +9,7 @@ import type { PipelineRunWithSteps } from '@/hooks/usePipelineRun';
 import { usePersonas } from '@/hooks/usePersonas';
 import { buildRunTimeline } from '@/lib/runTimeline';
 import PersonaTurnBadge from '@/components/agents/chat/PersonaTurnBadge';
+import PersonaWorkingChip from '@/components/agents/chat/PersonaWorkingChip';
 import StaticStepChat from './StaticStepChat';
 import LiveStepChat from './LiveStepChat';
 
@@ -34,6 +35,18 @@ export default function RunChatTab({ run, cwd, focusNodeId }: Props) {
 	}, [personas]);
 
 	const blocks = useMemo(() => buildRunTimeline(run.steps, run), [run]);
+
+	// Persona en cours de travail → chip « X travaille » sticky en haut du chat.
+	const workingStep = useMemo(
+		() =>
+			run.status === 'running'
+				? (run.steps.find((s) => s.status === 'running' && s.session_id) ?? null)
+				: null,
+		[run.status, run.steps],
+	);
+	const workingPersona = workingStep?.persona_id ? personasById.get(workingStep.persona_id) : null;
+	const workingName = workingPersona?.name ?? t('runChatPersonaFallback');
+	const workingColor = workingPersona?.color ?? FALLBACK_COLOR;
 
 	// Follow the bottom while the live step streams, but only if the user is
 	// already near it (never yank them up from scrollback).
@@ -67,6 +80,22 @@ export default function RunChatTab({ run, cwd, focusNodeId }: Props) {
 			ref={scrollRef}
 			sx={{ height: '100%', overflowY: 'auto', py: 1, bgcolor: 'background.default' }}
 		>
+			{workingStep && (
+				<Box
+					sx={{
+						position: 'sticky',
+						top: 0,
+						zIndex: 2,
+						bgcolor: 'background.default',
+						pt: 0.5,
+					}}
+				>
+					<PersonaWorkingChip
+						label={t('personaWorking', { name: workingName })}
+						color={workingColor}
+					/>
+				</Box>
+			)}
 			{blocks.map(({ step, isActive }) => {
 				const persona = step.persona_id ? personasById.get(step.persona_id) : null;
 				return (

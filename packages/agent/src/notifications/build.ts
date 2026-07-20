@@ -1,19 +1,12 @@
 import type { NotificationType, NotificationSource, EntityRef, NewNotification } from './types.js';
 
-const HIGH: ReadonlySet<NotificationType> = new Set(['agent_blocked', 'agent_error', 'ci_failed', 'changes_requested']);
-
-const SOURCE: Record<NotificationType, NotificationSource> = {
-	agent_done: 'agent', agent_error: 'agent', agent_blocked: 'agent',
-	ci_failed: 'ci', ci_passed: 'ci',
-	mention: 'github', review_requested: 'github',
-	pr_merged: 'pr', pr_approved: 'pr', changes_requested: 'pr',
-};
+const HIGH: ReadonlySet<NotificationType> = new Set(['agent_blocked', 'agent_error']);
 
 export function priorityFor(type: NotificationType): 'high' | 'normal' {
 	return HIGH.has(type) ? 'high' : 'normal';
 }
-export function sourceFor(type: NotificationType): NotificationSource {
-	return SOURCE[type];
+export function sourceFor(_type: NotificationType): NotificationSource {
+	return 'agent';
 }
 export function buildDedupeKey(type: NotificationType, parts: string[]): string {
 	return [type, ...parts].join(':');

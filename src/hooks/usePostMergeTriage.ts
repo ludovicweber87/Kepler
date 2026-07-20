@@ -40,6 +40,21 @@ export function usePostMergeTriage() {
 
 				const plan = planMergeTriage(session, settings?.qa_column);
 
+				// Feedback explicite quand aucun déplacement n'aura lieu (sinon silence trompeur).
+				const hasIssue = !!(
+					session?.issue_owner &&
+					session?.issue_repo &&
+					session?.issue_number
+				);
+				if (!session || !hasIssue) {
+					showSnackbar(t('mergeTriageNoLink'), 'info');
+				} else if (!plan.issueMove) {
+					showSnackbar(
+						t('mergeTriageNoColumn', { number: session.issue_number as number }),
+						'info',
+					);
+				}
+
 				// 3. Déplacer l'issue vers la colonne QA.
 				if (plan.issueMove) {
 					try {

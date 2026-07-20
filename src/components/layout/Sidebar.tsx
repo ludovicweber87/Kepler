@@ -21,11 +21,9 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
-import Badge from '@mui/material/Badge';
 import { alpha, useTheme } from '@mui/material/styles';
 import MergeTypeRoundedIcon from '@mui/icons-material/MergeTypeRounded';
 import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
-import NotificationsRoundedIcon from '@mui/icons-material/NotificationsRounded';
 import TodayRoundedIcon from '@mui/icons-material/TodayRounded';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
@@ -70,7 +68,7 @@ export default function Sidebar() {
 	const router = useRouter();
 	const { me } = useMe();
 	const t = useTranslations('sidebar');
-	const { unread, notifications } = useNotifications();
+	const { notifications } = useNotifications();
 	const { markRead } = useMarkNotifications();
 	// Ids des notifs d'agent non lues, groupés par session → pastille sur le worktree.
 	const unreadBySession = useMemo(() => unreadAgentIdsBySession(notifications), [notifications]);
@@ -228,15 +226,6 @@ export default function Sidebar() {
 		{ label: t('prs'), href: '/prs', icon: <MergeTypeRoundedIcon /> },
 		// "Daily" reste non traduit dans toutes les locales (choix produit).
 		{ label: 'Daily', href: '/daily', icon: <TodayRoundedIcon /> },
-		{
-			label: t('notifications'),
-			href: '/notifications',
-			icon: (
-				<Badge badgeContent={unread} color="error" max={99}>
-					<NotificationsRoundedIcon />
-				</Badge>
-			),
-		},
 	];
 
 	const bottomItems = [

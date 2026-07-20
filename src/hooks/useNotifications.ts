@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-fetch';
-import { unreadCount } from '@/lib/notificationsReducer';
 import type { AppNotification } from '@/types';
 
 export const NOTIFICATIONS_QUERY_KEY = ['notifications'];
@@ -16,5 +15,5 @@ export function useNotifications() {
 		staleTime: 30_000,
 	});
 
-	return { notifications, unread: unreadCount(notifications), isLoading };
+	return { notifications, isLoading };
 }

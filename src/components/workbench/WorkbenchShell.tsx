@@ -29,15 +29,19 @@ interface WorkbenchShellProps {
 
 	leftTabValue: string;
 	onLeftTabChange: (value: string) => void;
-	/** `<Tab />` nodes for the left column. */
-	leftTabs: ReactNode;
+	/**
+	 * `<Tab />` nodes for the left column. Must be an ARRAY, not a Fragment:
+	 * MUI `<Tabs>` clones its direct children to wire `onChange`/`value` and
+	 * does not descend into a Fragment (clicks would become no-ops).
+	 */
+	leftTabs: ReactNode[];
 	/** Content below the left tabs (caller toggles per active tab). */
 	leftContent: ReactNode;
 
 	rightTabValue: string;
 	onRightTabChange: (value: string) => void;
-	/** `<Tab />` nodes for the right column. */
-	rightTabs: ReactNode;
+	/** `<Tab />` nodes for the right column. Must be an ARRAY (see `leftTabs`). */
+	rightTabs: ReactNode[];
 	/** Content below the right tabs (caller toggles per active tab). */
 	rightContent: ReactNode;
 

@@ -4,6 +4,8 @@ import { createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
 import { getDb } from '../db.js';
 import { sdkAgent } from '../terminal.js';
+import { getLocalGithubToken } from '../helpers.js';
+import { fetchIssueContextBlock } from '../issueContext.js';
 import {
 	findStartNode,
 	getNode,
@@ -205,6 +207,17 @@ async function driveRun(runId: string, resumeReason = ''): Promise<void> {
 
 	const worktree = String(runRow.worktree_path);
 	const initialPrompt = String(runRow.initial_prompt ?? '');
+	// Parité avec le solo : injecter le contexte complet de l'issue (body + commentaires)
+	// dans le system_prompt de chaque persona. Récupéré une seule fois par run.
+	let issueContext = '';
+	if (runRow.issue_owner && runRow.issue_repo && runRow.issue_number) {
+		issueContext = await fetchIssueContextBlock(
+			String(runRow.issue_owner),
+			String(runRow.issue_repo),
+			Number(runRow.issue_number),
+			getLocalGithubToken(),
+		);
+	}
 	const maxSteps = Number(runRow.max_steps ?? DEFAULT_MAX_STEPS);
 	let stepCount = Number(runRow.step_count ?? 0);
 	let lastSummary: string | null = null;
@@ -262,6 +275,7 @@ async function driveRun(runId: string, resumeReason = ''): Promise<void> {
 				initialPrompt,
 				handoffSummary: lastSummary,
 				handoffFrom: lastPersonaName,
+				issueContext,
 				seq: stepCount,
 				handle,
 			});
@@ -300,6 +314,8 @@ interface RunStepArgs {
 	initialPrompt: string;
 	handoffSummary: string | null;
 	handoffFrom: string | null;
+	/** Contexte de l'issue (body + commentaires) à préfixer au system_prompt du persona. */
+	issueContext: string;
 	seq: number;
 	handle: RunHandle;
 }
@@ -315,7 +331,9 @@ async function runPersonaStep(args: RunStepArgs): Promise<StepOutcome> {
 	const stepId = randomUUID();
 
 	// Register a session row so the Workbench can drill into this step's chat.
-	const systemPrompt = buildStepSystemPrompt(persona?.system_prompt ?? '', outputs);
+	const personaBase = persona?.system_prompt ?? '';
+	const withIssue = args.issueContext ? `${personaBase}\n\n${args.issueContext}`.trim() : personaBase;
+	const systemPrompt = buildStepSystemPrompt(withIssue, outputs);
 	d.prepare(
 		`INSERT INTO agent_sessions
 		 (id, session_id, project_path, project_name, branch, worktree_path, agent_name, status,

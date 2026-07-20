@@ -42,33 +42,10 @@ export function useMarkNotifications() {
 		},
 	});
 
-	const markAllReadMutation = useMutation({
-		mutationFn: async () => {
-			const res = await apiFetch('/api/notifications/mark-all-read', { method: 'POST' });
-			if (!res.ok) throw new Error('Failed to mark all notifications as read');
-		},
-		onMutate: async () => {
-			await queryClient.cancelQueries({ queryKey: NOTIFICATIONS_QUERY_KEY });
-			const previous = queryClient.getQueryData<AppNotification[]>(NOTIFICATIONS_QUERY_KEY);
-			const now = new Date().toISOString();
-			patch((n) => (n.read_at ? n : { ...n, read_at: now }));
-			return { previous };
-		},
-		onError: (_err, _vars, context) => {
-			if (context?.previous) {
-				queryClient.setQueryData(NOTIFICATIONS_QUERY_KEY, context.previous);
-			}
-		},
-		onSettled: () => {
-			queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY });
-		},
-	});
-
 	const markRead = useCallback(
 		(ids: string[]) => markReadMutation.mutate(ids),
 		[markReadMutation],
 	);
-	const markAllRead = useCallback(() => markAllReadMutation.mutate(), [markAllReadMutation]);
 
-	return { markRead, markAllRead };
+	return { markRead };
 }

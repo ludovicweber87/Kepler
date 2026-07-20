@@ -36,7 +36,6 @@
 		"sessionArchived": "Session archivée",
 		"archiveError": "Échec de l’archivage",
 		"archiveScriptFailed": "Échec du script d’archivage, archivage effectué quand même",
-		"notifications": "Notifications",
 		"personas": "Personas",
 		"unreadAgentNotification": "Notification d’agent non lue"
 	},
@@ -81,6 +80,7 @@
 		"tabWorkflow": "Workflow",
 		"runChatEmpty": "Aucune étape pour l'instant.",
 		"runChatPersonaFallback": "Persona",
+		"personaWorking": "{name} travaille",
 		"tabRecap": "Récap",
 		"tabChanges": "Changes",
 		"chipIssue": "Issue",
@@ -166,6 +166,8 @@
 		"mergeError": "Échec de la fusion : {message}",
 		"issueMovedToColumn": "Issue #{number} déplacée vers {column}",
 		"issueMoveFailed": "Impossible de déplacer l'issue #{number}",
+		"mergeTriageNoLink": "PR mergée — aucune issue Devora liée, rien à déplacer",
+		"mergeTriageNoColumn": "Issue #{number} non déplacée — configure la colonne cible dans les réglages du repo",
 		"worktreeArchived": "Worktree archivé",
 		"worktreeArchiveFailed": "Échec de l'archivage du worktree"
 	},
@@ -523,27 +525,9 @@
 		"deletedSuccess": "Rapport supprimé"
 	},
 	"notifications": {
-		"title": "Notifications",
-		"empty": "Aucune notification",
-		"markAllRead": "Tout marquer lu",
-		"muteSound": "Couper le son",
-		"unmuteSound": "Activer le son",
-		"seeAll": "Tout voir",
-		"filterAll": "Tout",
-		"filterAgents": "Agents",
-		"filterCi": "CI",
-		"filterGithub": "GitHub",
-		"filterPr": "PR",
 		"agent_done": "L'agent a terminé",
 		"agent_error": "L'agent a échoué",
-		"agent_blocked": "L'agent attend ta réponse",
-		"ci_failed": "CI échouée — {title} ({repo} #{number})",
-		"ci_passed": "CI réussie — {title} ({repo} #{number})",
-		"mention": "Mention — {title} ({repo})",
-		"review_requested": "Review demandée — {title} ({repo})",
-		"pr_merged": "PR mergée — {title} ({repo} #{number})",
-		"pr_approved": "PR approuvée — {title} ({repo} #{number})",
-		"changes_requested": "Changements demandés — {title} ({repo} #{number})"
+		"agent_blocked": "L'agent attend ta réponse"
 	},
 	"personas": {
 		"title": "Personas",

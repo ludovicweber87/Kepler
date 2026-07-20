@@ -16,6 +16,7 @@ import {
 	sendSSE,
 } from '../helpers.js';
 import { getDb } from '../db.js';
+import { fetchIssueContextBlock, issueContextMarker } from '../issueContext.js';
 import { parseFilesToCopy } from '../filesToCopy.js';
 import { resolveCopyTargets } from '../resolveCopyTargets.js';
 import { resolveRemoteBaseRef } from '../gitBase.js';
@@ -780,47 +781,22 @@ Issue title: "${issueTitle}"`;
 					// quand même running→done pour ne pas bloquer la step côté UI.
 					if (token) {
 						const { owner, repo, number } = body.issue;
-						const base = `https://api.github.com/repos/${owner}/${repo}/issues/${number}`;
-						const headers = {
-							Authorization: `Bearer ${token}`,
-							Accept: 'application/vnd.github+json',
-							'X-GitHub-Api-Version': '2022-11-28',
-						};
-						const [issueRes, commentsRes] = await Promise.all([
-							fetch(base, { headers }),
-							fetch(`${base}/comments`, { headers }),
-						]);
-						const issue = issueRes.ok ? await issueRes.json() : null;
-						const comments = commentsRes.ok ? await commentsRes.json() : [];
-						if (issue) {
-							const commentsText = (comments as { body?: string }[])
-								.map((c) => c.body ?? '')
-								.filter(Boolean)
-								.join('\n\n---\n\n');
-							const issueBlock = [
-								`## Contexte de l'issue #${number} : ${issue.title}`,
-								'',
-								issue.body ?? '',
-								commentsText ? `\n## Commentaires\n${commentsText}` : '',
-							]
-								.join('\n')
-								.trim();
-							if (issueBlock && db) {
-								// Idempotence : ne pas ré-injecter si un provision précédent
-								// (ex. retry) a déjà ajouté le contexte de cette issue.
-								const marker = `## Contexte de l'issue #${number}`;
-								const row = db
-									.prepare(
-										'SELECT system_prompt FROM agent_sessions WHERE session_id = ?',
-									)
-									.get(body.sessionId) as { system_prompt?: string } | undefined;
-								if (!(row?.system_prompt ?? '').includes(marker)) {
-									const nextPrompt =
-										`${row?.system_prompt ?? ''}\n\n${issueBlock}`.trim();
-									db.prepare(
-										'UPDATE agent_sessions SET system_prompt = ? WHERE session_id = ?',
-									).run(nextPrompt, body.sessionId);
-								}
+						const issueBlock = await fetchIssueContextBlock(owner, repo, number, token);
+						if (issueBlock && db) {
+							// Idempotence : ne pas ré-injecter si un provision précédent
+							// (ex. retry) a déjà ajouté le contexte de cette issue.
+							const marker = issueContextMarker(number);
+							const row = db
+								.prepare(
+									'SELECT system_prompt FROM agent_sessions WHERE session_id = ?',
+								)
+								.get(body.sessionId) as { system_prompt?: string } | undefined;
+							if (!(row?.system_prompt ?? '').includes(marker)) {
+								const nextPrompt =
+									`${row?.system_prompt ?? ''}\n\n${issueBlock}`.trim();
+								db.prepare(
+									'UPDATE agent_sessions SET system_prompt = ? WHERE session_id = ?',
+								).run(nextPrompt, body.sessionId);
 							}
 						}
 					}

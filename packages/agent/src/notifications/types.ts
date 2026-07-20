@@ -1,10 +1,6 @@
-export type NotificationSource = 'agent' | 'github' | 'ci' | 'pr';
-export type NotificationType =
-	| 'agent_done' | 'agent_error' | 'agent_blocked'
-	| 'ci_failed' | 'ci_passed'
-	| 'mention' | 'review_requested'
-	| 'pr_merged' | 'pr_approved' | 'changes_requested';
-export interface EntityRef { kind: 'session' | 'issue' | 'pr'; id: string; repo?: string; }
+export type NotificationSource = 'agent';
+export type NotificationType = 'agent_done' | 'agent_error' | 'agent_blocked';
+export interface EntityRef { kind: 'session'; id: string; repo?: string; }
 export interface NewNotification {
 	source: NotificationSource;
 	type: NotificationType;
