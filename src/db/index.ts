@@ -4,6 +4,7 @@ import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import { mkdirSync } from 'fs';
 import { join } from 'path';
 import * as schema from './schema';
+import { ensureSchema } from './ensureSchema';
 
 const DB_PATH = process.env.DEVORA_DB_PATH ?? join(process.cwd(), 'data', 'devora.db');
 
@@ -24,6 +25,9 @@ export const db = drizzle(sqlite, { schema });
 // tables that already exist), breaking the build. Migrations belong to runtime.
 if (process.env.NEXT_PHASE !== 'phase-production-build') {
 	migrate(db, { migrationsFolder: join(process.cwd(), 'src', 'db', 'migrations') });
+	// Filet de sécurité : réconcilie la base avec le schéma quand le journal des
+	// migrations a divergé (migration réécrite dont le slot est déjà "appliqué").
+	ensureSchema(sqlite);
 }
 
 export { schema };
