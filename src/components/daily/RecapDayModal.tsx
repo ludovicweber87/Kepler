@@ -17,19 +17,51 @@ import CircularProgress from '@mui/material/CircularProgress';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { useTranslations } from 'next-intl';
 import type { DailyRecap } from '@/types';
+import { parseRecapPoints, truncateTitle } from '@/lib/recap';
 
-const markdownSx = {
-	'& p': { my: 0.5, lineHeight: 1.6, color: 'text.secondary', fontSize: '0.85rem' },
-	'& ul, & ol': { pl: 2.5, my: 0.5, color: 'text.secondary', fontSize: '0.85rem' },
-	'& li': { mb: 0.25 },
-	'& h1, & h2, & h3': { fontSize: '0.95rem', fontWeight: 600, mt: 1, mb: 0.5 },
-	'& code': { fontFamily: 'monospace', fontSize: '0.8em' },
-	'& a': { color: 'primary.light' },
-};
+function RecapPointCard({ point }: { point: string }) {
+	const [open, setOpen] = useState(false);
+	const truncated = truncateTitle(point);
+	const isTruncated = truncated !== point;
+
+	return (
+		<Box
+			onClick={() => setOpen((v) => !v)}
+			sx={{
+				border: 1,
+				borderColor: 'divider',
+				borderRadius: 2,
+				px: 1.25,
+				py: 0.75,
+				mb: 0.75,
+				cursor: 'pointer',
+				transition: 'border-color 0.15s, background-color 0.15s',
+				'&:hover': { borderColor: 'primary.light', bgcolor: 'action.hover' },
+			}}
+		>
+			<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+				{isTruncated && (
+					<ExpandMoreRoundedIcon
+						fontSize="small"
+						sx={{
+							color: 'text.disabled',
+							transform: open ? 'rotate(180deg)' : 'none',
+							transition: 'transform 0.15s',
+						}}
+					/>
+				)}
+				<Typography
+					variant="body2"
+					sx={{ color: 'text.secondary', fontSize: '0.85rem', flex: 1 }}
+				>
+					{open ? point : truncated}
+				</Typography>
+			</Box>
+		</Box>
+	);
+}
 
 function RecapCard({ recap, onDelete }: { recap: DailyRecap; onDelete: (id: string) => void }) {
 	const t = useTranslations('daily');
@@ -61,8 +93,10 @@ function RecapCard({ recap, onDelete }: { recap: DailyRecap; onDelete: (id: stri
 				</Tooltip>
 			</Box>
 
-			<Box sx={markdownSx}>
-				<ReactMarkdown remarkPlugins={[remarkGfm]}>{recap.content}</ReactMarkdown>
+			<Box>
+				{parseRecapPoints(recap.content).map((point, i) => (
+					<RecapPointCard key={i} point={point} />
+				))}
 			</Box>
 
 			{items.length > 0 && (
