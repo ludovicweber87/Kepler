@@ -1,12 +1,6 @@
 import { sqliteTable, text, integer, uniqueIndex, index } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
-import type {
-	NotificationSource,
-	NotificationType,
-	EntityRef,
-	PersonaFlowNode,
-	PersonaFlowEdge,
-} from '@/types';
+import type { NotificationSource, NotificationType, EntityRef } from '@/types';
 
 const timestamp = () => text().default(sql`(datetime('now'))`);
 const uuid = () =>
@@ -36,8 +30,10 @@ export const agentSessions = sqliteTable('agent_sessions', {
 	claude_session_id: text(),
 	system_prompt: text(),
 	launch_mode: text().default('worktree'),
-	pipeline_run_id: text(),
-	pipeline_node_id: text(),
+	model: text(),
+	effort: text(),
+	permission_mode: text(),
+	agent_color: text(),
 });
 
 // ─── Personas (bibliothèque réutilisable) ────────────────
@@ -53,58 +49,6 @@ export const personas = sqliteTable('personas', {
 	color: text(),
 	created_at: timestamp(),
 	updated_at: timestamp(),
-});
-
-// ─── Persona Groups (workflow = graphe React Flow) ───────
-
-export const personaGroups = sqliteTable('persona_groups', {
-	id: uuid(),
-	name: text().notNull(),
-	description: text().default(''),
-	nodes: text({ mode: 'json' }).$type<PersonaFlowNode[]>().default([]),
-	edges: text({ mode: 'json' }).$type<PersonaFlowEdge[]>().default([]),
-	created_at: timestamp(),
-	updated_at: timestamp(),
-});
-
-// ─── Pipeline Runs (exécution d'un groupe) ───────────────
-
-export const pipelineRuns = sqliteTable('pipeline_runs', {
-	id: uuid(),
-	group_id: text().notNull(),
-	group_name: text().default(''),
-	project_path: text(),
-	project_name: text(),
-	branch: text(),
-	worktree_path: text(),
-	status: text().default('running'), // running | paused | completed | failed
-	current_node_id: text(),
-	pause_reason: text(), // checkpoint | error | awaiting_outcome | max_steps
-	initial_prompt: text(),
-	issue_owner: text(),
-	issue_repo: text(),
-	issue_number: integer(),
-	issue_title: text(),
-	max_steps: integer().default(30),
-	step_count: integer().default(0),
-	created_at: timestamp(),
-	ended_at: text(),
-});
-
-// ─── Pipeline Run Steps (étapes franchies) ───────────────
-
-export const pipelineRunSteps = sqliteTable('pipeline_run_steps', {
-	id: uuid(),
-	run_id: text().notNull(),
-	node_id: text().notNull(),
-	persona_id: text(),
-	session_id: text(),
-	outcome: text(),
-	summary: text(),
-	status: text().default('running'), // running | completed | failed | paused
-	seq: integer().notNull(),
-	started_at: timestamp(),
-	ended_at: text(),
 });
 
 // ─── Agent Activity Logs ─────────────────────────────────

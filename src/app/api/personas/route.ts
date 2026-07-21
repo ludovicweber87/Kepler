@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, isAuthError } from '@/lib/auth-utils';
 import { db } from '@/db';
-import { personas, personaGroups } from '@/db/schema';
+import { personas } from '@/db/schema';
 import { eq, asc } from 'drizzle-orm';
 
 export async function GET(req: NextRequest) {
@@ -80,22 +80,7 @@ export async function DELETE(req: NextRequest) {
 	try {
 		const { searchParams } = req.nextUrl;
 		const id = searchParams.get('id');
-		const force = searchParams.get('force') === 'true';
 		if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
-
-		// Guard: refuse deletion if the persona is referenced by a group (unless forced).
-		if (!force) {
-			const groups = db.select().from(personaGroups).all();
-			const usedIn = groups
-				.filter((g) => (g.nodes ?? []).some((n) => n.data?.personaId === id))
-				.map((g) => g.name);
-			if (usedIn.length > 0) {
-				return NextResponse.json(
-					{ error: 'persona_in_use', groups: usedIn },
-					{ status: 409 },
-				);
-			}
-		}
 
 		db.delete(personas).where(eq(personas.id, id)).run();
 		return NextResponse.json({ ok: true });

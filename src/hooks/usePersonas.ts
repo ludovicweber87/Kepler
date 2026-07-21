@@ -47,17 +47,7 @@ export function usePersonas() {
 			const res = await apiFetch(`/api/personas?id=${encodeURIComponent(id)}`, {
 				method: 'DELETE',
 			});
-			if (!res.ok) {
-				const data = (await res.json().catch(() => null)) as {
-					error?: string;
-					groups?: string[];
-				} | null;
-				const err = new Error(data?.error ?? 'Failed to delete persona') as Error & {
-					groups?: string[];
-				};
-				err.groups = data?.groups;
-				throw err;
-			}
+			if (!res.ok) throw new Error('Failed to delete persona');
 			return true;
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),

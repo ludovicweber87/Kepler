@@ -116,6 +116,10 @@ export async function POST(req: NextRequest) {
 			system_prompt,
 			status,
 			launch_mode,
+			model,
+			effort,
+			permission_mode,
+			agent_color,
 		} = body;
 
 		// Check if already exists
@@ -159,6 +163,10 @@ export async function POST(req: NextRequest) {
 				issue_title: issue_title ?? null,
 				system_prompt: system_prompt ?? null,
 				launch_mode: launch_mode ?? 'worktree',
+				model: model ?? null,
+				effort: effort ?? null,
+				permission_mode: permission_mode ?? null,
+				agent_color: agent_color ?? null,
 			})
 			.returning()
 			.all();

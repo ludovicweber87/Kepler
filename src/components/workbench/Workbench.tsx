@@ -39,7 +39,6 @@ import { useGitStatus } from '@/hooks/useGitStatus';
 import { usePullRequests } from '@/hooks/usePullRequests';
 import { findOpenPrForBranch } from '@/lib/pullRequests';
 import AgentChatTab from '@/components/agents/AgentChatTab';
-import RunWorkbench from '@/components/workbench/RunWorkbench';
 import WorkbenchShell from '@/components/workbench/WorkbenchShell';
 import { FileDiffView } from '@/components/agents/AgentDiffTab';
 import ChangedFilesList from '@/components/agents/ChangedFilesList';
@@ -59,7 +58,6 @@ export default function Workbench() {
 	const searchParams = useSearchParams();
 	const router = useRouter();
 	const sessionId = searchParams.get('session') ?? undefined;
-	const runId = searchParams.get('run') ?? undefined;
 
 	const { data: allSessions = [] } = useAgentSessionHistory();
 	const { session, logs } = useAgentSession(sessionId);
@@ -99,7 +97,7 @@ export default function Workbench() {
 	// au démarrage du chat. Le serveur ne l'injecte qu'une fois (transcript vide),
 	// donc c'est sans effet sur une session qui a déjà une conversation.
 	const initialPrompt = useMemo(() => {
-		if (!hasIssue || resolved?.pipeline_run_id) return undefined;
+		if (!hasIssue) return undefined;
 		const title = resolved?.issue_title?.trim();
 		return title
 			? `Résous l'issue #${resolved!.issue_number} : ${title}`
@@ -234,12 +232,6 @@ export default function Workbench() {
 		}
 	}, [sessionId, stop, showSnackbar, tc, router]);
 
-	// Pipeline-run view: same Workbench chrome, with a Workflow tab.
-	// `key` remounts on run change → internal tab/file state resets naturally.
-	if (runId) {
-		return <RunWorkbench key={runId} runId={runId} />;
-	}
-
 	if (!sessionId) {
 		return (
 			<Box
@@ -292,6 +284,17 @@ export default function Workbench() {
 			<WorkbenchShell
 				headerLeft={
 					<>
+						{resolved?.agent_color && (
+							<Box
+								sx={{
+									width: 10,
+									height: 10,
+									borderRadius: '50%',
+									bgcolor: resolved.agent_color,
+									flexShrink: 0,
+								}}
+							/>
+						)}
 						<Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
 							{resolved?.agent_name ??
 								(bucket === 'active' ? t('activeSession') : t('newSession'))}
@@ -433,6 +436,9 @@ export default function Workbench() {
 									sessionId={sessionId}
 									cwd={effectivePath}
 									systemPrompt={resolved?.system_prompt ?? undefined}
+									initialModel={resolved?.model ?? undefined}
+									initialEffort={resolved?.effort ?? undefined}
+									initialMode={resolved?.permission_mode ?? undefined}
 									initialPrompt={initialPrompt}
 									readOnly={chatReadOnly}
 									createPrPrompt={repoSettings.create_pr_prompt}
