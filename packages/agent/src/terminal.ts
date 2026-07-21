@@ -6,6 +6,7 @@ import { writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { findTmux, findClaude } from './helpers.js';
+import { isAgentSession } from './sessionFilter.js';
 import { createSdkAgentManager } from './sdk/sdkAgent.js';
 
 // Manager de sessions Agent SDK, partagé par toutes les connexions WS.
@@ -175,7 +176,7 @@ export function getActiveSessions(): SessionMeta[] {
 			.split('\n')
 			.filter((line) => {
 				const id = line.split('|')[0];
-				return id.startsWith('devora-') && !id.endsWith('-shell');
+				return isAgentSession(id);
 			})
 			.map((line) => {
 				const [sessionId, created, cwd, activity, command] = line.split('|');
@@ -236,7 +237,7 @@ export function listTmuxSessions(): string[] {
 		return out
 			.trim()
 			.split('\n')
-			.filter((s) => s.startsWith('devora-') && !s.endsWith('-shell'));
+			.filter((s) => isAgentSession(s));
 	} catch {
 		return [];
 	}
