@@ -77,11 +77,6 @@
 		"emptyDesc": "Wähle eine Sitzung in der Seitenleiste aus oder starte einen neuen Worktree aus einem Projekt.",
 		"chipActivity": "Activity",
 		"tabChat": "Chat",
-		"tabRunChat": "Chat",
-		"tabWorkflow": "Workflow",
-		"runChatEmpty": "Noch keine Schritte.",
-		"runChatPersonaFallback": "Persona",
-		"personaWorking": "{name} arbeitet",
 		"tabRecap": "Zusammenfassung",
 		"tabChanges": "Changes",
 		"chipIssue": "Issue",
@@ -95,8 +90,7 @@
 		"stopSession": "Sitzung beenden",
 		"closeFile": "Datei schließen",
 		"fileError": "Datei kann nicht gelesen werden",
-		"fileTruncated": "Datei gekürzt (zu groß zur vollständigen Anzeige)",
-		"runComposerDisabled": "Du kannst dich nur einbringen, während eine Persona arbeitet."
+		"fileTruncated": "Datei gekürzt (zu groß zur vollständigen Anzeige)"
 	},
 	"creationProgress": {
 		"title": "Arbeitsbereich wird vorbereitet",
@@ -304,11 +298,8 @@
 		"titleWithIssue": "Agent — #{number}",
 		"activeSession": "Aktive Sitzung",
 		"newSession": "Neue Sitzung",
-		"groupNone": "Keine (Solo-Agent)",
-		"groupNoneDesc": "Einen einzelnen Agenten starten, ohne Persona-Pipeline",
-		"selectGroupTitle": "Wähle eine Persona-Gruppe",
-		"selectGroupSubtitle": "Oder starte einen Solo-Agenten",
-		"noGroups": "Noch keine Gruppen — erstelle eine auf der Personas-Seite."
+		"selectAgentLabel": "Agent",
+		"agentNone": "Keiner (Standard)"
 	},
 	"agentActivity": {
 		"reportTitle": "Agent-Bericht",
@@ -510,8 +501,6 @@
 	},
 	"personas": {
 		"title": "Personas",
-		"tabLibrary": "Bibliothek",
-		"tabGroups": "Gruppen",
 		"newPersona": "Neue Persona",
 		"editPersona": "Persona bearbeiten",
 		"name": "Name",
@@ -527,34 +516,9 @@
 		"cancel": "Abbrechen",
 		"delete": "Löschen",
 		"deleteConfirm": "Diese Persona löschen?",
-		"inUseError": "Diese Persona wird verwendet in: {groups}",
 		"emptyLibrary": "Noch keine Personas. Erstelle die erste.",
-		"emptyGroups": "Noch keine Gruppen.",
-		"newGroup": "Neue Gruppe",
-		"groupNamePlaceholder": "Gruppenname",
 		"defaultOption": "Standard",
 		"saveError": "Persona konnte nicht gespeichert werden",
-		"deleteError": "Persona konnte nicht gelöscht werden",
-		"editorSave": "Speichern",
-		"editorSaved": "Gespeichert",
-		"addCheckpoint": "Checkpoint",
-		"addEnd": "Ende",
-		"paletteHint": "Auf die Fläche ziehen",
-		"nodeStart": "Start",
-		"nodeCheckpoint": "Checkpoint",
-		"nodeEnd": "Ende",
-		"selectPersona": "Persona",
-		"outputs": "Ausgänge",
-		"addOutput": "Ausgang hinzufügen",
-		"outputPlaceholder": "Name des Ausgangs",
-		"endAction": "Endaktion",
-		"endActionNone": "Keine",
-		"endActionCreatePr": "PR erstellen",
-		"deleteNode": "Knoten löschen",
-		"configTitle": "Knoten-Einstellungen",
-		"configEmpty": "Wähle einen Knoten zum Konfigurieren.",
-		"unknownPersona": "Unbekannte Persona",
-		"runContinue": "Fortsetzen",
-		"runStop": "Run stoppen"
+		"deleteError": "Persona konnte nicht gelöscht werden"
 	}
 }

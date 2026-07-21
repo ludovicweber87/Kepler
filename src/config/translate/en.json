@@ -77,11 +77,6 @@
 		"emptyDesc": "Select a session in the sidebar or launch a new worktree from a project.",
 		"chipActivity": "Activity",
 		"tabChat": "Chat",
-		"tabRunChat": "Chat",
-		"tabWorkflow": "Workflow",
-		"runChatEmpty": "No steps yet.",
-		"runChatPersonaFallback": "Persona",
-		"personaWorking": "{name} is working",
 		"tabRecap": "Recap",
 		"tabChanges": "Changes",
 		"chipIssue": "Issue",
@@ -95,8 +90,7 @@
 		"stopSession": "Stop session",
 		"closeFile": "Close file",
 		"fileError": "Unable to read file",
-		"fileTruncated": "File truncated (too large to display fully)",
-		"runComposerDisabled": "You can only chime in while a persona is working."
+		"fileTruncated": "File truncated (too large to display fully)"
 	},
 	"creationProgress": {
 		"title": "Preparing the workspace",
@@ -326,11 +320,8 @@
 		"titleWithIssue": "Agent — #{number}",
 		"activeSession": "Active session",
 		"newSession": "New session",
-		"groupNone": "None (solo agent)",
-		"groupNoneDesc": "Launch a single agent, no persona pipeline",
-		"selectGroupTitle": "Choose a persona group",
-		"selectGroupSubtitle": "Or launch a solo agent",
-		"noGroups": "No groups yet — create one on the Personas page."
+		"selectAgentLabel": "Agent",
+		"agentNone": "None (default)"
 	},
 	"agentActivity": {
 		"reportTitle": "Agent report",
@@ -532,8 +523,6 @@
 	},
 	"personas": {
 		"title": "Personas",
-		"tabLibrary": "Library",
-		"tabGroups": "Groups",
 		"newPersona": "New persona",
 		"editPersona": "Edit persona",
 		"name": "Name",
@@ -549,34 +538,9 @@
 		"cancel": "Cancel",
 		"delete": "Delete",
 		"deleteConfirm": "Delete this persona?",
-		"inUseError": "This persona is used in: {groups}",
 		"emptyLibrary": "No personas yet. Create your first one.",
-		"emptyGroups": "No groups yet.",
-		"newGroup": "New group",
-		"groupNamePlaceholder": "Group name",
 		"defaultOption": "Default",
 		"saveError": "Failed to save persona",
-		"deleteError": "Failed to delete persona",
-		"editorSave": "Save",
-		"editorSaved": "Saved",
-		"addCheckpoint": "Checkpoint",
-		"addEnd": "End",
-		"paletteHint": "Drag onto the canvas",
-		"nodeStart": "Start",
-		"nodeCheckpoint": "Checkpoint",
-		"nodeEnd": "End",
-		"selectPersona": "Persona",
-		"outputs": "Outputs",
-		"addOutput": "Add output",
-		"outputPlaceholder": "output name",
-		"endAction": "End action",
-		"endActionNone": "None",
-		"endActionCreatePr": "Create PR",
-		"deleteNode": "Delete node",
-		"configTitle": "Node settings",
-		"configEmpty": "Select a node to configure it.",
-		"unknownPersona": "Unknown persona",
-		"runContinue": "Continue",
-		"runStop": "Stop run"
+		"deleteError": "Failed to delete persona"
 	}
 }

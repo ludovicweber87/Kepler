@@ -77,11 +77,6 @@
 		"emptyDesc": "Selecciona una sesión en la barra lateral o lanza un nuevo worktree desde un proyecto.",
 		"chipActivity": "Actividad",
 		"tabChat": "Chat",
-		"tabRunChat": "Chat",
-		"tabWorkflow": "Workflow",
-		"runChatEmpty": "Aún no hay pasos.",
-		"runChatPersonaFallback": "Persona",
-		"personaWorking": "{name} está trabajando",
 		"tabRecap": "Resumen",
 		"tabChanges": "Changes",
 		"chipIssue": "Issue",
@@ -95,8 +90,7 @@
 		"stopSession": "Detener la sesión",
 		"closeFile": "Cerrar archivo",
 		"fileError": "No se puede leer el archivo",
-		"fileTruncated": "Archivo truncado (demasiado grande para mostrarlo completo)",
-		"runComposerDisabled": "Solo puedes intervenir mientras una persona esté trabajando."
+		"fileTruncated": "Archivo truncado (demasiado grande para mostrarlo completo)"
 	},
 	"creationProgress": {
 		"title": "Preparando el espacio de trabajo",
@@ -304,11 +298,8 @@
 		"titleWithIssue": "Agente — #{number}",
 		"activeSession": "Sesión activa",
 		"newSession": "Nueva sesión",
-		"groupNone": "Ninguno (agente solo)",
-		"groupNoneDesc": "Lanza un solo agente, sin pipeline de personas",
-		"selectGroupTitle": "Elige un grupo de personas",
-		"selectGroupSubtitle": "O lanza un agente solo",
-		"noGroups": "Aún no hay grupos — crea uno en la página Personas."
+		"selectAgentLabel": "Agente",
+		"agentNone": "Ninguno (por defecto)"
 	},
 	"agentActivity": {
 		"reportTitle": "Informe del agente",
@@ -510,8 +501,6 @@
 	},
 	"personas": {
 		"title": "Personas",
-		"tabLibrary": "Biblioteca",
-		"tabGroups": "Grupos",
 		"newPersona": "Nueva persona",
 		"editPersona": "Editar persona",
 		"name": "Nombre",
@@ -527,34 +516,9 @@
 		"cancel": "Cancelar",
 		"delete": "Eliminar",
 		"deleteConfirm": "¿Eliminar esta persona?",
-		"inUseError": "Esta persona se usa en: {groups}",
 		"emptyLibrary": "Aún no hay personas. Crea la primera.",
-		"emptyGroups": "Aún no hay grupos.",
-		"newGroup": "Nuevo grupo",
-		"groupNamePlaceholder": "Nombre del grupo",
 		"defaultOption": "Predeterminado",
 		"saveError": "No se pudo guardar la persona",
-		"deleteError": "No se pudo eliminar la persona",
-		"editorSave": "Guardar",
-		"editorSaved": "Guardado",
-		"addCheckpoint": "Checkpoint",
-		"addEnd": "Fin",
-		"paletteHint": "Arrastra al lienzo",
-		"nodeStart": "Inicio",
-		"nodeCheckpoint": "Checkpoint",
-		"nodeEnd": "Fin",
-		"selectPersona": "Persona",
-		"outputs": "Salidas",
-		"addOutput": "Añadir salida",
-		"outputPlaceholder": "nombre de la salida",
-		"endAction": "Acción final",
-		"endActionNone": "Ninguna",
-		"endActionCreatePr": "Crear PR",
-		"deleteNode": "Eliminar nodo",
-		"configTitle": "Ajustes del nodo",
-		"configEmpty": "Selecciona un nodo para configurarlo.",
-		"unknownPersona": "Persona desconocida",
-		"runContinue": "Continuar",
-		"runStop": "Detener el run"
+		"deleteError": "No se pudo eliminar la persona"
 	}
 }

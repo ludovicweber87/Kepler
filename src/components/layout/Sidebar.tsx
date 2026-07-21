@@ -75,7 +75,6 @@ export default function Sidebar() {
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
 	const currentSessionId = searchParams.get('session');
-	const currentRunId = searchParams.get('run');
 	const router = useRouter();
 	const { me } = useMe();
 	const t = useTranslations('sidebar');
@@ -476,14 +475,10 @@ export default function Sidebar() {
 														wtSession?.agent_name ?? wt.branch;
 													const sessionIdForWt =
 														wtSession?.session_id ?? null;
-													const runIdForWt =
-														wtSession?.pipeline_run_id ?? null;
-													// Currently open in the Workbench (session or pipeline run).
+													// Currently open in the Workbench.
 													const isCurrent =
-														(!!currentSessionId &&
-															sessionIdForWt === currentSessionId) ||
-														(!!currentRunId &&
-															runIdForWt === currentRunId);
+														!!currentSessionId &&
+														sessionIdForWt === currentSessionId;
 													const isMerged = mergedBranches.has(wt.branch);
 													const hasOpenPr =
 														!isMerged && openPrBranches.has(wt.branch);
@@ -512,9 +507,7 @@ export default function Sidebar() {
 																	if (unreadIds.length)
 																		markRead(unreadIds);
 																	router.push(
-																		runIdForWt
-																			? `/workbench?run=${encodeURIComponent(runIdForWt)}`
-																			: `/workbench?session=${encodeURIComponent(wtSession.session_id)}`,
+																		`/workbench?session=${encodeURIComponent(wtSession.session_id)}`,
 																	);
 																} else {
 																	setModalConfig({

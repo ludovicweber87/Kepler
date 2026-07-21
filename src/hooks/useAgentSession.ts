@@ -20,9 +20,11 @@ export interface AgentSession {
 	issue_number: number | null;
 	issue_title: string | null;
 	system_prompt: string | null;
-	launch_mode: 'worktree' | 'current-branch' | 'existing-branch' | 'pipeline' | null;
-	pipeline_run_id: string | null;
-	pipeline_node_id: string | null;
+	launch_mode: 'worktree' | 'current-branch' | 'existing-branch' | null;
+	model: string | null;
+	effort: string | null;
+	permission_mode: string | null;
+	agent_color: string | null;
 }
 
 export interface AgentActivityLog {
@@ -80,6 +82,10 @@ export function useAgentSession(sessionId: string | undefined) {
 			systemPrompt?: string | null;
 			status?: string;
 			launchMode?: 'worktree' | 'current-branch' | 'existing-branch';
+			model?: string | null;
+			effort?: string | null;
+			permissionMode?: string | null;
+			agentColor?: string | null;
 		}) => {
 			const res = await apiFetch('/api/agent-sessions', {
 				method: 'POST',
@@ -98,6 +104,10 @@ export function useAgentSession(sessionId: string | undefined) {
 					system_prompt: params.systemPrompt ?? null,
 					status: params.status ?? 'active',
 					launch_mode: params.launchMode ?? 'worktree',
+					model: params.model ?? null,
+					effort: params.effort ?? null,
+					permission_mode: params.permissionMode ?? null,
+					agent_color: params.agentColor ?? null,
 				}),
 			});
 			if (!res.ok) throw new Error('Failed to ensure session');

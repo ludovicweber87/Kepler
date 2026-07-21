@@ -45,14 +45,7 @@ export default function PersonaLibrary() {
 	const handleDelete = (p: Persona) => {
 		if (!confirm(t('deleteConfirm'))) return;
 		remove.mutate(p.id, {
-			onError: (err) => {
-				const groups = (err as Error & { groups?: string[] }).groups;
-				if (groups?.length) {
-					showSnackbar(t('inUseError', { groups: groups.join(', ') }), 'warning');
-				} else {
-					showSnackbar(t('deleteError'), 'error');
-				}
-			},
+			onError: () => showSnackbar(t('deleteError'), 'error'),
 		});
 	};
 

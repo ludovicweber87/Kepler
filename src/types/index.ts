@@ -420,14 +420,10 @@ export type NewNotification = Omit<AppNotification, 'id' | 'read_at' | 'created_
 	dedupe_key: string;
 };
 
-// ─── Personas & Workflow (groupes) ───────────────────────
+// ─── Personas (bibliothèque réutilisable) ────────────────
 
 export type ClaudeEffort = 'low' | 'medium' | 'high';
-export type ClaudePermissionMode =
-	| 'default'
-	| 'acceptEdits'
-	| 'bypassPermissions'
-	| 'plan';
+export type ClaudePermissionMode = 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan';
 
 export interface Persona {
 	id: string;
@@ -444,91 +440,3 @@ export interface Persona {
 
 export type NewPersona = Pick<Persona, 'name'> &
 	Partial<Omit<Persona, 'id' | 'created_at' | 'updated_at'>>;
-
-export type PersonaNodeType = 'start' | 'persona' | 'checkpoint' | 'end';
-
-/** Data carried by a node inside the React Flow graph (serialised in DB). */
-export interface PersonaFlowNodeData {
-	label?: string;
-	/** For `persona` nodes: which persona this node runs. */
-	personaId?: string;
-	/** For `persona` nodes: declared named outputs → become source handles / edges. */
-	outputs?: string[];
-	/** For `end` nodes: optional terminal action. */
-	endAction?: 'none' | 'create-pr';
-	[key: string]: unknown;
-}
-
-/** Serialisable React Flow node persisted on a group. */
-export interface PersonaFlowNode {
-	id: string;
-	type: PersonaNodeType;
-	position: { x: number; y: number };
-	data: PersonaFlowNodeData;
-}
-
-/** Serialisable React Flow edge persisted on a group. */
-export interface PersonaFlowEdge {
-	id: string;
-	source: string;
-	target: string;
-	/** Output name the edge leaves from (persona node with multiple outputs). */
-	sourceHandle?: string | null;
-	targetHandle?: string | null;
-	label?: string | null;
-}
-
-export interface PersonaGroup {
-	id: string;
-	name: string;
-	description: string | null;
-	nodes: PersonaFlowNode[];
-	edges: PersonaFlowEdge[];
-	created_at: string;
-	updated_at: string;
-}
-
-export type PipelineRunStatus = 'running' | 'paused' | 'completed' | 'failed';
-export type PipelinePauseReason =
-	| 'checkpoint'
-	| 'error'
-	| 'awaiting_outcome'
-	| 'max_steps';
-
-export interface PipelineRun {
-	id: string;
-	group_id: string;
-	group_name: string | null;
-	project_path: string | null;
-	project_name: string | null;
-	branch: string | null;
-	worktree_path: string | null;
-	status: PipelineRunStatus;
-	current_node_id: string | null;
-	pause_reason: PipelinePauseReason | null;
-	initial_prompt: string | null;
-	issue_owner: string | null;
-	issue_repo: string | null;
-	issue_number: number | null;
-	issue_title: string | null;
-	max_steps: number;
-	step_count: number;
-	created_at: string;
-	ended_at: string | null;
-}
-
-export type PipelineRunStepStatus = 'running' | 'completed' | 'failed' | 'paused';
-
-export interface PipelineRunStep {
-	id: string;
-	run_id: string;
-	node_id: string;
-	persona_id: string | null;
-	session_id: string | null;
-	outcome: string | null;
-	summary: string | null;
-	status: PipelineRunStepStatus;
-	seq: number;
-	started_at: string;
-	ended_at: string | null;
-}

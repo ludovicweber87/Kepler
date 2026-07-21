@@ -77,11 +77,6 @@
 		"emptyDesc": "Selecione uma sessão na barra lateral ou inicie um novo worktree a partir de um projeto.",
 		"chipActivity": "Activity",
 		"tabChat": "Chat",
-		"tabRunChat": "Chat",
-		"tabWorkflow": "Workflow",
-		"runChatEmpty": "Ainda não há etapas.",
-		"runChatPersonaFallback": "Persona",
-		"personaWorking": "{name} está a trabalhar",
 		"tabRecap": "Resumo",
 		"tabChanges": "Changes",
 		"chipIssue": "Issue",
@@ -95,8 +90,7 @@
 		"stopSession": "Parar a sessão",
 		"closeFile": "Fechar ficheiro",
 		"fileError": "Não foi possível ler o arquivo",
-		"fileTruncated": "Arquivo truncado (muito grande para exibir por completo)",
-		"runComposerDisabled": "Só podes intervir enquanto uma persona estiver a trabalhar."
+		"fileTruncated": "Arquivo truncado (muito grande para exibir por completo)"
 	},
 	"creationProgress": {
 		"title": "Preparando o espaço de trabalho",
@@ -305,11 +299,8 @@
 		"titleWithIssue": "Agente — #{number}",
 		"activeSession": "Sessão ativa",
 		"newSession": "Nova sessão",
-		"groupNone": "Nenhum (agente solo)",
-		"groupNoneDesc": "Inicia um único agente, sem pipeline de personas",
-		"selectGroupTitle": "Escolhe um grupo de personas",
-		"selectGroupSubtitle": "Ou inicia um agente solo",
-		"noGroups": "Ainda não há grupos — cria um na página Personas."
+		"selectAgentLabel": "Agente",
+		"agentNone": "Nenhum (padrão)"
 	},
 	"agentActivity": {
 		"reportTitle": "Relatório do agente",
@@ -511,8 +502,6 @@
 	},
 	"personas": {
 		"title": "Personas",
-		"tabLibrary": "Biblioteca",
-		"tabGroups": "Grupos",
 		"newPersona": "Nova persona",
 		"editPersona": "Editar persona",
 		"name": "Nome",
@@ -528,34 +517,9 @@
 		"cancel": "Cancelar",
 		"delete": "Eliminar",
 		"deleteConfirm": "Eliminar esta persona?",
-		"inUseError": "Esta persona é usada em: {groups}",
 		"emptyLibrary": "Ainda não há personas. Cria a primeira.",
-		"emptyGroups": "Ainda não há grupos.",
-		"newGroup": "Novo grupo",
-		"groupNamePlaceholder": "Nome do grupo",
 		"defaultOption": "Padrão",
 		"saveError": "Falha ao guardar a persona",
-		"deleteError": "Falha ao eliminar a persona",
-		"editorSave": "Guardar",
-		"editorSaved": "Guardado",
-		"addCheckpoint": "Checkpoint",
-		"addEnd": "Fim",
-		"paletteHint": "Arrasta para a tela",
-		"nodeStart": "Início",
-		"nodeCheckpoint": "Checkpoint",
-		"nodeEnd": "Fim",
-		"selectPersona": "Persona",
-		"outputs": "Saídas",
-		"addOutput": "Adicionar saída",
-		"outputPlaceholder": "nome da saída",
-		"endAction": "Ação final",
-		"endActionNone": "Nenhuma",
-		"endActionCreatePr": "Criar PR",
-		"deleteNode": "Eliminar nó",
-		"configTitle": "Definições do nó",
-		"configEmpty": "Seleciona um nó para o configurar.",
-		"unknownPersona": "Persona desconhecida",
-		"runContinue": "Continuar",
-		"runStop": "Parar o run"
+		"deleteError": "Falha ao eliminar a persona"
 	}
 }

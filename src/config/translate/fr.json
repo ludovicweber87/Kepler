@@ -77,11 +77,6 @@
 		"emptyDesc": "Sélectionne une session dans la barre latérale ou lance un nouveau worktree depuis un projet.",
 		"chipActivity": "Activity",
 		"tabChat": "Chat",
-		"tabRunChat": "Chat",
-		"tabWorkflow": "Workflow",
-		"runChatEmpty": "Aucune étape pour l'instant.",
-		"runChatPersonaFallback": "Persona",
-		"personaWorking": "{name} travaille",
 		"tabRecap": "Récap",
 		"tabChanges": "Changes",
 		"chipIssue": "Issue",
@@ -95,8 +90,7 @@
 		"stopSession": "Arrêter la session",
 		"closeFile": "Fermer le fichier",
 		"fileError": "Impossible de lire le fichier",
-		"fileTruncated": "Fichier tronqué (trop volumineux pour tout afficher)",
-		"runComposerDisabled": "L'interjection n'est possible que pendant qu'une persona travaille."
+		"fileTruncated": "Fichier tronqué (trop volumineux pour tout afficher)"
 	},
 	"creationProgress": {
 		"title": "Préparation de l'espace de travail",
@@ -326,11 +320,8 @@
 		"titleWithIssue": "Agent — #{number}",
 		"activeSession": "Session active",
 		"newSession": "Nouvelle session",
-		"groupNone": "Aucun (agent solo)",
-		"groupNoneDesc": "Lance un seul agent, sans pipeline de personas",
-		"selectGroupTitle": "Choisis un groupe de personas",
-		"selectGroupSubtitle": "Ou lance un agent solo",
-		"noGroups": "Aucun groupe — crée-en un sur la page Personas."
+		"selectAgentLabel": "Agent",
+		"agentNone": "Aucun (par défaut)"
 	},
 	"agentActivity": {
 		"reportTitle": "Rapport agent",
@@ -532,8 +523,6 @@
 	},
 	"personas": {
 		"title": "Personas",
-		"tabLibrary": "Bibliothèque",
-		"tabGroups": "Groupes",
 		"newPersona": "Nouvelle persona",
 		"editPersona": "Éditer la persona",
 		"name": "Nom",
@@ -549,34 +538,9 @@
 		"cancel": "Annuler",
 		"delete": "Supprimer",
 		"deleteConfirm": "Supprimer cette persona ?",
-		"inUseError": "Cette persona est utilisée dans : {groups}",
 		"emptyLibrary": "Aucune persona pour l'instant. Crée la première.",
-		"emptyGroups": "Aucun groupe pour l'instant.",
-		"newGroup": "Nouveau groupe",
-		"groupNamePlaceholder": "Nom du groupe",
 		"defaultOption": "Défaut",
 		"saveError": "Échec de l'enregistrement de la persona",
-		"deleteError": "Échec de la suppression de la persona",
-		"editorSave": "Enregistrer",
-		"editorSaved": "Enregistré",
-		"addCheckpoint": "Checkpoint",
-		"addEnd": "Fin",
-		"paletteHint": "Glisse sur le canvas",
-		"nodeStart": "Début",
-		"nodeCheckpoint": "Checkpoint",
-		"nodeEnd": "Fin",
-		"selectPersona": "Persona",
-		"outputs": "Sorties",
-		"addOutput": "Ajouter une sortie",
-		"outputPlaceholder": "nom de la sortie",
-		"endAction": "Action de fin",
-		"endActionNone": "Aucune",
-		"endActionCreatePr": "Créer une PR",
-		"deleteNode": "Supprimer le nœud",
-		"configTitle": "Réglages du nœud",
-		"configEmpty": "Sélectionne un nœud pour le configurer.",
-		"unknownPersona": "Persona inconnue",
-		"runContinue": "Continuer",
-		"runStop": "Arrêter le run"
+		"deleteError": "Échec de la suppression de la persona"
 	}
 }
