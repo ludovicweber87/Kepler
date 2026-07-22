@@ -35,17 +35,29 @@ import type { BoardIssue } from '@/lib/boardMerge';
 
 const COLUMN_WIDTH = 300;
 
-function buildColumns(issues: GitHubIssue[], statusColumns: string[]): [string, GitHubIssue[]][] {
+function buildColumns(
+	issues: GitHubIssue[],
+	statusColumns: string[],
+	closedLabel: string,
+): [string, GitHubIssue[]][] {
 	const map = new Map<string, GitHubIssue[]>();
 	for (const col of statusColumns) {
 		map.set(col, []);
 	}
+	// Les issues fermées vont dans une colonne dédiée en fin de board, quel que soit leur Status.
+	const closed: GitHubIssue[] = [];
 	for (const issue of issues) {
+		if (issue.state === 'closed') {
+			closed.push(issue);
+			continue;
+		}
 		const col = issue.project_columns?.[0]?.column ?? 'No Status';
 		if (!map.has(col)) map.set(col, []);
 		map.get(col)!.push(issue);
 	}
-	return [...map.entries()];
+	const columns = [...map.entries()];
+	if (closed.length > 0) columns.push([closedLabel, closed]);
+	return columns;
 }
 
 export default function IssuesList() {
@@ -115,9 +127,10 @@ export default function IssuesList() {
 		);
 	}, [issues, search]);
 
+	const closedLabel = t('closedColumn');
 	const columns = useMemo(
-		() => buildColumns(searchedIssues, statusColumns),
-		[searchedIssues, statusColumns],
+		() => buildColumns(searchedIssues, statusColumns, closedLabel),
+		[searchedIssues, statusColumns, closedLabel],
 	);
 
 	const handleStatusChange = useCallback(

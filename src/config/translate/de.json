@@ -120,6 +120,8 @@
 		"created": "Erstellt",
 		"branchCreated": "Branch {branchName} erstellt",
 		"moveTo": "Verschieben nach",
+		"closedColumn": "Geschlossen",
+		"closedBadge": "Geschlossen",
 		"updated": "Aktualisiert um {time}",
 		"noReposConfigured": "Kein Repository konfiguriert",
 		"noReposConfiguredDesc": "Füge in den Einstellungen ein Repository hinzu, um dessen Issues hier zu sehen.",

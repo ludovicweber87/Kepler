@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { projectConfigs } from '@/db/schema';
-import { fetchRepoAssignedOpenIssues, fetchProjectColumns } from '@/lib/github';
+import { fetchRepoAssignedIssues, fetchProjectColumns } from '@/lib/github';
 import {
 	resolveConfigForRepo,
 	reconcileRepoIssues,
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 	const [owner, name] = repo.split('/');
 
 	try {
-		const issues = await fetchRepoAssignedOpenIssues(owner, name, auth.login, auth.accessToken);
+		const issues = await fetchRepoAssignedIssues(owner, name, auth.login, auth.accessToken);
 
 		const nodeIds = issues.map((i) => i.node_id).filter((id): id is string => !!id);
 		const columnsByNodeId = await fetchProjectColumns(nodeIds, auth.accessToken);

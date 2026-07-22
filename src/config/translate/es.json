@@ -120,6 +120,8 @@
 		"created": "Creada",
 		"branchCreated": "Rama {branchName} creada",
 		"moveTo": "Mover a",
+		"closedColumn": "Cerradas",
+		"closedBadge": "Cerrada",
 		"updated": "Actualizado a las {time}",
 		"noReposConfigured": "Ningún repositorio configurado",
 		"noReposConfiguredDesc": "Añade un repositorio en los ajustes para ver sus issues aquí.",

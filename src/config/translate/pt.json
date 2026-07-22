@@ -120,6 +120,8 @@
 		"created": "Criada",
 		"branchCreated": "Branch {branchName} criada",
 		"moveTo": "Mover para",
+		"closedColumn": "Fechadas",
+		"closedBadge": "Fechada",
 		"updated": "Atualizado às {time}",
 		"noReposConfigured": "Nenhum repositório configurado",
 		"noReposConfiguredDesc": "Adicione um repositório nas configurações para ver as suas issues aqui.",
