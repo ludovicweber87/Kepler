@@ -128,9 +128,7 @@
 		"configureRepos": "Repositories konfigurieren",
 		"createIssue": "Issue erstellen",
 		"newIssue": "Neue Issue",
-		"issueTitle": "Titel",
 		"issueTitlePlaceholder": "Titel der Issue",
-		"issueBody": "Beschreibung",
 		"issueBodyPlaceholder": "Beschreibe die Issue (Markdown unterstützt)...",
 		"labels": "Labels",
 		"assignees": "Zuständige",
@@ -145,10 +143,7 @@
 		"boardAddWarning": "Issue erstellt, aber nicht zum Board hinzugefügt (Projekt oder Status nicht gefunden)",
 		"describeIssue": "Beschreibe dein Anliegen",
 		"describeIssuePlaceholder": "Beschreibe, was du willst – der Agent formuliert das Issue...",
-		"generateIssue": "Issue generieren",
 		"generating": "Wird generiert...",
-		"regenerate": "Neu generieren",
-		"editDescription": "← Beschreibung",
 		"generateError": "Issue konnte nicht generiert werden"
 	},
 	"prs": {
