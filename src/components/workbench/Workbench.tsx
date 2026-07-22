@@ -22,6 +22,7 @@ import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import StopCircleRoundedIcon from '@mui/icons-material/StopCircleRounded';
 import CallMergeRoundedIcon from '@mui/icons-material/CallMergeRounded';
+import MergeRoundedIcon from '@mui/icons-material/MergeRounded';
 import PublishRoundedIcon from '@mui/icons-material/PublishRounded';
 import { useTranslations } from 'next-intl';
 import { useAgentSessionHistory, useAgentSession } from '@/hooks/useAgentSession';
@@ -37,7 +38,8 @@ import { useRepoSettings } from '@/hooks/useRepoSettings';
 import { useGitDiff } from '@/hooks/useGitDiff';
 import { useGitStatus } from '@/hooks/useGitStatus';
 import { usePullRequests } from '@/hooks/usePullRequests';
-import { findOpenPrForBranch } from '@/lib/pullRequests';
+import { useMergedBranches } from '@/hooks/useMergedBranches';
+import { findOpenPrForBranch, findMergedPrForBranch } from '@/lib/pullRequests';
 import AgentChatTab from '@/components/agents/AgentChatTab';
 import WorkbenchShell from '@/components/workbench/WorkbenchShell';
 import { FileDiffView } from '@/components/agents/AgentDiffTab';
@@ -175,7 +177,16 @@ export default function Workbench() {
 
 	const branch = resolved?.branch ?? null;
 	const { data: branchPrs } = usePullRequests(repoFullName ? [repoFullName] : []);
+	const { mergedPrsForRepo } = useMergedBranches(repoFullName ? [repoFullName] : []);
 	const openPr = useMemo(() => findOpenPrForBranch(branchPrs, branch), [branchPrs, branch]);
+	// Priorité : une PR ouverte prime sur une PR mergée (cas d'une PR ré-ouverte après merge).
+	const mergedPr = useMemo(
+		() =>
+			openPr || !repoFullName
+				? undefined
+				: findMergedPrForBranch(mergedPrsForRepo(repoFullName), branch),
+		[openPr, repoFullName, mergedPrsForRepo, branch],
+	);
 	const repoLabel =
 		resolved?.project_name ?? resolved?.project_path?.split('/').filter(Boolean).pop() ?? '';
 	const isAutoNamed = !!branch && branch.startsWith('wip-');
@@ -337,50 +348,75 @@ export default function Workbench() {
 								{tAgentChat('commitPush')}
 							</Button>
 						)}
-						{openPr
-							? !isArchived && (
-									<Button
-										component="a"
-										href={openPr.html_url}
-										target="_blank"
-										rel="noopener noreferrer"
-										variant="outlined"
-										color="primary"
-										size="small"
-										startIcon={<CallMergeRoundedIcon sx={{ fontSize: 16 }} />}
-										sx={{
-											textTransform: 'none',
-											fontWeight: 600,
-											borderRadius: 1,
-											px: 1.25,
-										}}
-									>
-										{tAgentChat('viewPr', { number: openPr.number })}
-									</Button>
-								)
-							: prState.available &&
-								!isArchived && (
-									<Button
-										variant="contained"
-										color="primary"
-										size="small"
-										startIcon={<CallMergeRoundedIcon sx={{ fontSize: 16 }} />}
-										onClick={() => prState.trigger()}
-										sx={{
-											textTransform: 'none',
-											fontWeight: 600,
-											borderRadius: 1,
-											px: 1.25,
+						{openPr ? (
+							!isArchived && (
+								<Button
+									component="a"
+									href={openPr.html_url}
+									target="_blank"
+									rel="noopener noreferrer"
+									variant="outlined"
+									color="primary"
+									size="small"
+									startIcon={<CallMergeRoundedIcon sx={{ fontSize: 16 }} />}
+									sx={{
+										textTransform: 'none',
+										fontWeight: 600,
+										borderRadius: 1,
+										px: 1.25,
+									}}
+								>
+									{tAgentChat('viewPr', { number: openPr.number })}
+								</Button>
+							)
+						) : mergedPr ? (
+							<Button
+								component="a"
+								href={mergedPr.html_url}
+								target="_blank"
+								rel="noopener noreferrer"
+								variant="outlined"
+								color="primary"
+								size="small"
+								startIcon={
+									<MergeRoundedIcon
+										sx={{ fontSize: 16, color: 'primary.main' }}
+									/>
+								}
+								sx={{
+									textTransform: 'none',
+									fontWeight: 600,
+									borderRadius: 1,
+									px: 1.25,
+								}}
+							>
+								{tAgentChat('merged', { number: mergedPr.number })}
+							</Button>
+						) : (
+							prState.available &&
+							!isArchived && (
+								<Button
+									variant="contained"
+									color="primary"
+									size="small"
+									startIcon={<CallMergeRoundedIcon sx={{ fontSize: 16 }} />}
+									onClick={() => prState.trigger()}
+									sx={{
+										textTransform: 'none',
+										fontWeight: 600,
+										borderRadius: 1,
+										px: 1.25,
+										boxShadow: 'none',
+										'&:hover': {
 											boxShadow: 'none',
-											'&:hover': {
-												boxShadow: 'none',
-												bgcolor: 'primary.dark',
-											},
-										}}
-									>
-										{tAgentChat('createPr')}
-									</Button>
-								)}
+											bgcolor: 'primary.dark',
+										},
+									}}
+								>
+									{tAgentChat('createPr')}
+								</Button>
+							)
+						)}
 					</>
 				}
 				repoLabel={repoLabel}

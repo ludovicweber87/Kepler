@@ -5,6 +5,7 @@ import {
 	GitHubComment,
 	GitHubTimelineEvent,
 	GitHubPullRequest,
+	MergedPrRef,
 	CheckRun,
 	ProjectColumn,
 	ProjectV2Data,
@@ -613,6 +614,54 @@ export function extractMergedBranches(
 		if (pr.merged_at && pr.head?.ref) set.add(pr.head.ref);
 	}
 	return [...set];
+}
+
+/**
+ * Extrait, par branche (head.ref), la PR mergée la plus récente ({ ref, number, html_url }).
+ * Les PRs doivent être triées par `updated` desc : la première vue par ref est conservée. Pur.
+ */
+export function extractMergedPrs(
+	prs: Array<{
+		merged_at: string | null;
+		number: number;
+		html_url: string;
+		head: { ref: string };
+	}>,
+): MergedPrRef[] {
+	const byRef = new Map<string, MergedPrRef>();
+	for (const pr of prs) {
+		if (pr.merged_at && pr.head?.ref && !byRef.has(pr.head.ref)) {
+			byRef.set(pr.head.ref, {
+				ref: pr.head.ref,
+				number: pr.number,
+				html_url: pr.html_url,
+			});
+		}
+	}
+	return [...byRef.values()];
+}
+
+/**
+ * Renvoie les PRs mergées d'un repo, associées à leur branche.
+ * Volontairement léger : une seule page (100 PRs closed les plus récentes), sans check-runs.
+ */
+export async function fetchMergedPrs(
+	owner: string,
+	repo: string,
+	token: string,
+): Promise<MergedPrRef[]> {
+	const res = await fetch(
+		`${GITHUB_API}/repos/${owner}/${repo}/pulls?state=closed&per_page=100&sort=updated&direction=desc`,
+		{ headers: getHeaders(token) },
+	);
+	if (!res.ok) throw new Error(`GitHub /pulls failed: ${res.status}`);
+	const data = (await res.json()) as Array<{
+		merged_at: string | null;
+		number: number;
+		html_url: string;
+		head: { ref: string };
+	}>;
+	return extractMergedPrs(data);
 }
 
 /**

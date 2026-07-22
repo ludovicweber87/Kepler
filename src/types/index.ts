@@ -264,6 +264,13 @@ export interface GitHubPullRequest {
 	check_runs: CheckRun[];
 }
 
+/** Référence légère d'une PR mergée, associée à sa branche (head.ref). */
+export interface MergedPrRef {
+	ref: string;
+	number: number;
+	html_url: string;
+}
+
 // Agent sessions (from local agent /sessions endpoint)
 
 export interface ActiveSession {
