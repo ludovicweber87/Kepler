@@ -158,10 +158,49 @@ export function useAgentSession(sessionId: string | undefined) {
 		},
 	});
 
+	const updatePersonaMutation = useMutation({
+		mutationFn: async (patch: {
+			agent_name: string | null;
+			agent_color: string | null;
+			model: string | null;
+			effort: string | null;
+			permission_mode: string | null;
+			system_prompt: string | null;
+		}) => {
+			if (!session) throw new Error('No session');
+			const res = await apiFetch('/api/agent-sessions', {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ id: session.id, ...patch }),
+			});
+			if (!res.ok) throw new Error('Failed to update session persona');
+			return (await res.json()) as AgentSession;
+		},
+		onMutate: async (patch) => {
+			const key = queryKey(sessionId ?? '');
+			const prev = qc.getQueryData<AgentSession | null>(key);
+			if (prev) qc.setQueryData(key, { ...prev, ...patch });
+			return { prev };
+		},
+		onError: (_err, _patch, ctx) => {
+			if (ctx?.prev) qc.setQueryData(queryKey(sessionId ?? ''), ctx.prev);
+		},
+		onSuccess: (data) => {
+			qc.setQueryData(queryKey(data.session_id), data);
+			qc.invalidateQueries({ queryKey: ['agent-sessions', 'history'] });
+		},
+	});
+
 	const ensureSession = useCallback(
 		(params: Parameters<typeof ensureSessionMutation.mutate>[0]) =>
 			ensureSessionMutation.mutate(params),
 		[ensureSessionMutation],
+	);
+
+	const updatePersona = useCallback(
+		(patch: Parameters<typeof updatePersonaMutation.mutate>[0]) =>
+			updatePersonaMutation.mutate(patch),
+		[updatePersonaMutation],
 	);
 
 	const addLog = useCallback(
@@ -175,7 +214,7 @@ export function useAgentSession(sessionId: string | undefined) {
 		[updateStatusMutation],
 	);
 
-	return { session, logs, ensureSession, addLog, updateStatus };
+	return { session, logs, ensureSession, addLog, updateStatus, updatePersona };
 }
 
 /** Fetch all sessions for history view (single source of truth for buckets). */
