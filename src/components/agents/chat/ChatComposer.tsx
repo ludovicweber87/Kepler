@@ -7,6 +7,7 @@ import ButtonBase from '@mui/material/ButtonBase';
 import Typography from '@mui/material/Typography';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
+import Divider from '@mui/material/Divider';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import StopRoundedIcon from '@mui/icons-material/StopRounded';
 import ArrowDropDownRoundedIcon from '@mui/icons-material/ArrowDropDownRounded';
@@ -23,11 +24,26 @@ import { validateImageFile, readFileAsDataUrl, stripDataUrlPrefix } from '@/lib/
 import { LIGHT_INPUT_SHADOW } from '@/theme/theme';
 import type { ChatImageInput } from '@/types';
 
-const MODELS = [
+// Aliases : résolus par l'Agent SDK vers le dernier modèle de chaque famille.
+const MODEL_ALIASES = [
 	{ value: 'opus', key: 'modelOpus' },
 	{ value: 'sonnet', key: 'modelSonnet' },
 	{ value: 'haiku', key: 'modelHaiku' },
 ] as const;
+// Versions pinnées (IDs exacts). À tenir à jour lors des sorties de modèles.
+const MODEL_VERSIONS = [
+	{ value: 'claude-fable-5', key: 'modelFable5' },
+	{ value: 'claude-opus-4-8', key: 'modelOpus48' },
+	{ value: 'claude-opus-4-7', key: 'modelOpus47' },
+	{ value: 'claude-opus-4-6', key: 'modelOpus46' },
+	{ value: 'claude-opus-4-5', key: 'modelOpus45' },
+	{ value: 'claude-opus-4-1', key: 'modelOpus41' },
+	{ value: 'claude-sonnet-5', key: 'modelSonnet5' },
+	{ value: 'claude-sonnet-4-6', key: 'modelSonnet46' },
+	{ value: 'claude-sonnet-4-5', key: 'modelSonnet45' },
+	{ value: 'claude-haiku-4-5', key: 'modelHaiku45' },
+] as const;
+const MODELS = [...MODEL_ALIASES, ...MODEL_VERSIONS] as const;
 const EFFORTS = [
 	{ value: 'low', key: 'effortLow' },
 	{ value: 'medium', key: 'effortMedium' },
@@ -273,7 +289,21 @@ export default function ChatComposer({
 						open={!!modelAnchor}
 						onClose={() => setModelAnchor(null)}
 					>
-						{MODELS.map((o) => (
+						{MODEL_ALIASES.map((o) => (
+							<MenuItem
+								key={o.value}
+								selected={o.value === model}
+								onClick={() => {
+									onModel(o.value);
+									setModelAnchor(null);
+								}}
+								sx={{ fontSize: '0.8rem' }}
+							>
+								{t(o.key)}
+							</MenuItem>
+						))}
+						<Divider />
+						{MODEL_VERSIONS.map((o) => (
 							<MenuItem
 								key={o.value}
 								selected={o.value === model}
