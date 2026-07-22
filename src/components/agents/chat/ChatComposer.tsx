@@ -22,34 +22,9 @@ import { useTranslations } from 'next-intl';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { validateImageFile, readFileAsDataUrl, stripDataUrlPrefix } from '@/lib/imageAttach';
 import { LIGHT_INPUT_SHADOW } from '@/theme/theme';
+import { MODEL_ALIASES, MODEL_VERSIONS, MODELS, EFFORTS } from '@/lib/models';
 import type { ChatImageInput } from '@/types';
 
-// Aliases : résolus par l'Agent SDK vers le dernier modèle de chaque famille.
-const MODEL_ALIASES = [
-	{ value: 'opus', key: 'modelOpus' },
-	{ value: 'sonnet', key: 'modelSonnet' },
-	{ value: 'haiku', key: 'modelHaiku' },
-] as const;
-// Versions pinnées (IDs exacts). À tenir à jour lors des sorties de modèles.
-const MODEL_VERSIONS = [
-	{ value: 'claude-fable-5', key: 'modelFable5' },
-	{ value: 'claude-opus-4-8', key: 'modelOpus48' },
-	{ value: 'claude-opus-4-7', key: 'modelOpus47' },
-	{ value: 'claude-opus-4-6', key: 'modelOpus46' },
-	{ value: 'claude-opus-4-5', key: 'modelOpus45' },
-	{ value: 'claude-opus-4-1', key: 'modelOpus41' },
-	{ value: 'claude-sonnet-5', key: 'modelSonnet5' },
-	{ value: 'claude-sonnet-4-6', key: 'modelSonnet46' },
-	{ value: 'claude-sonnet-4-5', key: 'modelSonnet45' },
-	{ value: 'claude-haiku-4-5', key: 'modelHaiku45' },
-] as const;
-const MODELS = [...MODEL_ALIASES, ...MODEL_VERSIONS] as const;
-const EFFORTS = [
-	{ value: 'low', key: 'effortLow' },
-	{ value: 'medium', key: 'effortMedium' },
-	{ value: 'high', key: 'effortHigh' },
-	{ value: 'max', key: 'effortMax' },
-] as const;
 const MODES = [
 	{ value: 'bypassPermissions', key: 'modeBypass' },
 	{ value: 'plan', key: 'modePlan' },
@@ -134,6 +109,7 @@ export default function ChatComposer({
 	onMode,
 }: Props) {
 	const t = useTranslations('agentChat');
+	const tc = useTranslations('common');
 	const { showSnackbar } = useSnackbar();
 	const [text, setText] = useState('');
 	const [modelAnchor, setModelAnchor] = useState<null | HTMLElement>(null);
@@ -280,7 +256,7 @@ export default function ChatComposer({
 					<ButtonBase sx={controlSx} onClick={(e) => setModelAnchor(e.currentTarget)}>
 						<AutoAwesomeRoundedIcon sx={{ fontSize: 15 }} />
 						<Typography variant="caption" sx={{ fontWeight: 600, fontSize: 'inherit' }}>
-							{modelLabel ? t(modelLabel) : model}
+							{modelLabel ? tc(modelLabel) : model}
 						</Typography>
 						<ArrowDropDownRoundedIcon sx={{ fontSize: 16, ml: -0.25 }} />
 					</ButtonBase>
@@ -299,7 +275,7 @@ export default function ChatComposer({
 								}}
 								sx={{ fontSize: '0.8rem' }}
 							>
-								{t(o.key)}
+								{tc(o.key)}
 							</MenuItem>
 						))}
 						<Divider />
@@ -313,7 +289,7 @@ export default function ChatComposer({
 								}}
 								sx={{ fontSize: '0.8rem' }}
 							>
-								{t(o.key)}
+								{tc(o.key)}
 							</MenuItem>
 						))}
 					</Menu>
@@ -331,7 +307,7 @@ export default function ChatComposer({
 									: 'none',
 							}}
 						>
-							{effortLabel ? t(effortLabel) : effort}
+							{effortLabel ? tc(effortLabel) : effort}
 						</Typography>
 					</ButtonBase>
 
