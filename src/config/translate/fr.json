@@ -142,7 +142,14 @@
 		"cancel": "Annuler",
 		"issueCreated": "Issue #{number} créée",
 		"issueCreateError": "Échec de la création de l'issue",
-		"boardAddWarning": "Issue créée, mais non ajoutée au board (projet ou statut introuvable)"
+		"boardAddWarning": "Issue créée, mais non ajoutée au board (projet ou statut introuvable)",
+		"describeIssue": "Décrivez votre besoin",
+		"describeIssuePlaceholder": "Décrivez ce que vous voulez, l’agent rédigera l’issue...",
+		"generateIssue": "Générer l’issue",
+		"generating": "Génération...",
+		"regenerate": "Régénérer",
+		"editDescription": "← Description",
+		"generateError": "Échec de la génération de l’issue"
 	},
 	"prs": {
 		"title": "Pull Requests",
