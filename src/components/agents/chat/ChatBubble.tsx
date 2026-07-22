@@ -30,9 +30,7 @@ export default function ChatBubble({
 					px: 1.5,
 					py: 1,
 					borderRadius: 2,
-					...(isUser
-						? { borderBottomLeftRadius: 0 }
-						: { borderBottomRightRadius: 0 }),
+					...(isUser ? { borderBottomLeftRadius: 0 } : { borderBottomRightRadius: 0 }),
 					bgcolor: isUser ? 'primary.main' : 'background.paper',
 					color: isUser ? 'primary.contrastText' : 'text.primary',
 					fontSize: '0.8rem',
@@ -44,6 +42,12 @@ export default function ChatBubble({
 						p: 1,
 						borderRadius: 1,
 					},
+					...(isUser && {
+						'& a': {
+							color: 'primary.contrastText',
+							textDecoration: 'underline',
+						},
+					}),
 				}}
 			>
 				{message.segments.map((seg, i) => {
@@ -70,9 +74,7 @@ export default function ChatBubble({
 							/>
 						);
 					}
-					return isUser ? (
-						<span key={i}>{seg.text}</span>
-					) : (
+					return (
 						<ReactMarkdown key={i} remarkPlugins={[remarkGfm]}>
 							{seg.text}
 						</ReactMarkdown>
