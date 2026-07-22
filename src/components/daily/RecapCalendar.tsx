@@ -12,6 +12,9 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useTranslations } from 'next-intl';
 import { buildMonthGrid, parseMonth, shiftMonth, toKey } from '@/lib/monthGrid';
+import { truncateTitle } from '@/lib/recap';
+
+const MAX_POINTS_PER_DAY = 3;
 
 function capitalize(s: string) {
 	return s.charAt(0).toUpperCase() + s.slice(1);
@@ -19,14 +22,14 @@ function capitalize(s: string) {
 
 export default function RecapCalendar({
 	month,
-	recapDays,
+	pointsByDay,
 	onPickDay,
 	onMonthChange,
 	onGenerate,
 	generatingDates,
 }: {
 	month: string;
-	recapDays: Set<string>;
+	pointsByDay: Map<string, string[]>;
 	onPickDay: (date: Date) => void;
 	onMonthChange: (month: string) => void;
 	onGenerate: (dateKey: string) => void;
@@ -89,7 +92,10 @@ export default function RecapCalendar({
 				{weeks.flat().map((day) => {
 					const isToday = day.key === todayKey;
 					const isFuture = day.key > todayKey;
-					const hasRecap = day.inMonth && recapDays.has(day.key);
+					const points = (day.inMonth && pointsByDay.get(day.key)) || [];
+					const hasRecap = day.inMonth && pointsByDay.has(day.key);
+					const visiblePoints = points.slice(0, MAX_POINTS_PER_DAY);
+					const extraCount = points.length - visiblePoints.length;
 					const isGenerating = generatingDates?.has(day.key) ?? false;
 					const canGenerate = day.inMonth && !isFuture;
 
@@ -99,7 +105,9 @@ export default function RecapCalendar({
 							onClick={day.inMonth ? () => onPickDay(day.date) : undefined}
 							sx={{
 								position: 'relative',
-								aspectRatio: '1 / 1',
+								display: 'flex',
+								flexDirection: 'column',
+								minHeight: 120,
 								borderRadius: 2,
 								border: 2,
 								borderColor: isToday ? 'primary.main' : 'divider',
@@ -107,6 +115,7 @@ export default function RecapCalendar({
 								opacity: day.inMonth ? 1 : 0.4,
 								cursor: day.inMonth ? 'pointer' : 'default',
 								overflow: 'hidden',
+								p: 1,
 								transition: 'border-color 0.15s, box-shadow 0.15s',
 								'&:hover': day.inMonth ? { boxShadow: 3 } : {},
 								'&:hover .day-overlay': canGenerate ? { opacity: 1 } : {},
@@ -114,11 +123,10 @@ export default function RecapCalendar({
 						>
 							<Typography
 								sx={{
-									position: 'absolute',
-									top: 8,
-									left: 10,
 									fontSize: 14,
 									fontWeight: 600,
+									lineHeight: 1.4,
+									mb: 0.5,
 									color: isToday ? 'primary.main' : 'text.primary',
 								}}
 							>
@@ -128,15 +136,51 @@ export default function RecapCalendar({
 							{hasRecap && (
 								<Box
 									sx={{
-										position: 'absolute',
-										bottom: 10,
-										left: 12,
-										width: 6,
-										height: 6,
-										borderRadius: '50%',
-										bgcolor: 'primary.main',
+										display: 'flex',
+										flexDirection: 'column',
+										gap: 0.5,
+										minWidth: 0,
 									}}
-								/>
+								>
+									{visiblePoints.map((point, i) => (
+										<Box
+											key={i}
+											sx={{
+												border: 1,
+												borderColor: 'divider',
+												borderRadius: 1,
+												px: 0.75,
+												py: 0.25,
+												bgcolor: 'action.hover',
+											}}
+										>
+											<Typography
+												sx={{
+													fontSize: '0.68rem',
+													lineHeight: 1.3,
+													color: 'text.secondary',
+													overflow: 'hidden',
+													textOverflow: 'ellipsis',
+													whiteSpace: 'nowrap',
+												}}
+											>
+												{truncateTitle(point, 60)}
+											</Typography>
+										</Box>
+									))}
+									{extraCount > 0 && (
+										<Typography
+											sx={{
+												fontSize: '0.65rem',
+												fontWeight: 600,
+												color: 'primary.main',
+												pl: 0.25,
+											}}
+										>
+											{t('morePoints', { count: extraCount })}
+										</Typography>
+									)}
+								</Box>
 							)}
 
 							{canGenerate && (

@@ -496,6 +496,7 @@
 		"generateForDay": "Generar el informe",
 		"generate": "Generar",
 		"regenerate": "Regenerar",
+		"morePoints": "{count, plural, one {+# más} other {+# más}}",
 		"prevMonth": "Mes anterior",
 		"nextMonth": "Mes siguiente",
 		"reportAt": "Informe de las {time}",
