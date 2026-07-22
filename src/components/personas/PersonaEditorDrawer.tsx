@@ -7,11 +7,13 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import MenuItem from '@mui/material/MenuItem';
+import ListSubheader from '@mui/material/ListSubheader';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import { useTranslations } from 'next-intl';
 import type { Persona, NewPersona } from '@/types';
+import { MODEL_ALIASES, MODEL_VERSIONS, EFFORTS } from '@/lib/models';
 
 export const PERSONA_COLORS = [
 	'#7C5CFF',
@@ -24,8 +26,6 @@ export const PERSONA_COLORS = [
 	'#A855F7',
 ];
 
-const MODEL_OPTIONS = ['', 'sonnet', 'opus', 'haiku'];
-const EFFORT_OPTIONS = ['', 'low', 'medium', 'high'];
 const PERMISSION_OPTIONS = ['', 'default', 'acceptEdits', 'bypassPermissions', 'plan'];
 
 interface Props {
@@ -64,6 +64,7 @@ function PersonaForm({
 	saving?: boolean;
 }) {
 	const t = useTranslations('personas');
+	const tc = useTranslations('common');
 	const [name, setName] = useState(persona?.name ?? '');
 	const [role, setRole] = useState(persona?.role ?? '');
 	const [systemPrompt, setSystemPrompt] = useState(persona?.system_prompt ?? '');
@@ -148,9 +149,17 @@ function PersonaForm({
 						size="small"
 						sx={{ flex: 1 }}
 					>
-						{MODEL_OPTIONS.map((m) => (
-							<MenuItem key={m || 'default'} value={m}>
-								{m || t('defaultOption')}
+						<MenuItem value="">{t('defaultOption')}</MenuItem>
+						<ListSubheader>{tc('modelGroupAliases')}</ListSubheader>
+						{MODEL_ALIASES.map((m) => (
+							<MenuItem key={m.value} value={m.value}>
+								{tc(m.key)}
+							</MenuItem>
+						))}
+						<ListSubheader>{tc('modelGroupVersions')}</ListSubheader>
+						{MODEL_VERSIONS.map((m) => (
+							<MenuItem key={m.value} value={m.value}>
+								{tc(m.key)}
 							</MenuItem>
 						))}
 					</TextField>
@@ -162,9 +171,10 @@ function PersonaForm({
 						size="small"
 						sx={{ flex: 1 }}
 					>
-						{EFFORT_OPTIONS.map((m) => (
-							<MenuItem key={m || 'default'} value={m}>
-								{m || t('defaultOption')}
+						<MenuItem value="">{t('defaultOption')}</MenuItem>
+						{EFFORTS.map((e) => (
+							<MenuItem key={e.value} value={e.value}>
+								{tc(e.key)}
 							</MenuItem>
 						))}
 					</TextField>
