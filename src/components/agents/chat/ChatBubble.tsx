@@ -27,10 +27,13 @@ export default function ChatBubble({
 			<Box
 				sx={{
 					maxWidth: isUser ? '78%' : '92%',
-					px: isUser ? 1.5 : 0,
-					py: isUser ? 1 : 0,
+					px: 1.5,
+					py: 1,
 					borderRadius: 2,
-					bgcolor: isUser ? 'primary.main' : 'transparent',
+					...(isUser
+						? { borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }
+						: { borderTopRightRadius: 0, borderBottomRightRadius: 0 }),
+					bgcolor: isUser ? 'primary.main' : 'background.paper',
 					color: isUser ? 'primary.contrastText' : 'text.primary',
 					fontSize: '0.8rem',
 					lineHeight: 1.5,

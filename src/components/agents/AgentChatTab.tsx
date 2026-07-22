@@ -118,6 +118,23 @@ export default function AgentChatTab({
 		if (nearBottom) el.scrollTop = el.scrollHeight;
 	}, [chat.messages, chat.pendingPermissions, chat.pendingQuestions, chat.queued]);
 
+	// Question / permission : demande une action → scroll forcé en bas à l'apparition
+	// d'un NOUVEL id (indépendant de l'heuristique « près du bas », car la carte est grande).
+	const seenPromptIds = useRef<Set<string>>(new Set());
+	useEffect(() => {
+		const ids = [
+			...chat.pendingPermissions.map((p) => p.id),
+			...chat.pendingQuestions.map((q) => q.id),
+		];
+		const hasNew = ids.some((id) => !seenPromptIds.current.has(id));
+		seenPromptIds.current = new Set(ids);
+		if (!hasNew) return;
+		requestAnimationFrame(() => {
+			const node = scrollRef.current;
+			if (node) node.scrollTop = node.scrollHeight;
+		});
+	}, [chat.pendingPermissions, chat.pendingQuestions]);
+
 	// Toujours à jour sans re-déclencher l'effet de fin de tour (lecture au moment T).
 	// Déclaré avant l'effet fin-de-tour → exécuté avant lui sur un même commit.
 	const messagesRef = useRef(chat.messages);
