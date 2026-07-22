@@ -18,6 +18,7 @@ import { useTranslations } from 'next-intl';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useRecaps, useGenerateRecap, useDeleteRecap, useGeneratingDates } from '@/hooks/useRecaps';
 import { useSnackbar } from '@/hooks/useSnackbar';
+import { aggregatePointsByDay } from '@/lib/recap';
 import RecapCalendar from './RecapCalendar';
 import RecapDayModal from './RecapDayModal';
 
@@ -42,7 +43,7 @@ export default function DailyPage() {
 	const todayKey = format(new Date(), 'yyyy-MM-dd');
 	const todayGenerating = generatingDates.has(todayKey);
 
-	const recapDays = useMemo(() => new Set(recaps.map((r) => r.recap_date)), [recaps]);
+	const pointsByDay = useMemo(() => aggregatePointsByDay(recaps), [recaps]);
 	const selectedKey = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : '';
 	const recapsForDay = useMemo(
 		() => recaps.filter((r) => r.recap_date === selectedKey),
@@ -137,7 +138,7 @@ export default function DailyPage() {
 
 				<RecapCalendar
 					month={month}
-					recapDays={recapDays}
+					pointsByDay={pointsByDay}
 					onPickDay={(date) => {
 						setSelectedDate(date);
 						setModalOpen(true);

@@ -521,6 +521,7 @@
 		"generateForDay": "Generate report",
 		"generate": "Generate",
 		"regenerate": "Regenerate",
+		"morePoints": "{count, plural, one {+# more} other {+# more}}",
 		"prevMonth": "Previous month",
 		"nextMonth": "Next month",
 		"reportAt": "Report at {time}",

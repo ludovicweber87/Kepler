@@ -1,3 +1,5 @@
+import type { DailyRecap } from '@/types';
+
 /**
  * Découpe le markdown d'un recap (`content`, "puces courtes") en une liste de
  * points. Chaque ligne non vide devient un point ; les marqueurs de puce
@@ -24,4 +26,22 @@ export function parseRecapPoints(content: string): string[] {
 export function truncateTitle(text: string, max = 100): string {
 	if (text.length <= max) return text;
 	return text.slice(0, max).trimEnd() + '…';
+}
+
+/**
+ * Agrège les points de tous les recaps par jour (`recap_date`). Chaque jour
+ * ayant au moins un recap est présent dans la map (tableau éventuellement vide
+ * si le contenu ne produit aucun point) ; les points parsés (`parseRecapPoints`)
+ * sont concaténés dans l'ordre du tableau fourni. Fonction pure → testable.
+ */
+export function aggregatePointsByDay(recaps: DailyRecap[]): Map<string, string[]> {
+	const byDay = new Map<string, string[]>();
+
+	for (const recap of recaps) {
+		const existing = byDay.get(recap.recap_date) ?? [];
+		existing.push(...parseRecapPoints(recap.content));
+		byDay.set(recap.recap_date, existing);
+	}
+
+	return byDay;
 }

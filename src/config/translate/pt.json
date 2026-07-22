@@ -500,6 +500,7 @@
 		"generateForDay": "Gerar o relatório",
 		"generate": "Gerar",
 		"regenerate": "Regerar",
+		"morePoints": "{count, plural, one {+# mais} other {+# mais}}",
 		"prevMonth": "Mês anterior",
 		"nextMonth": "Mês seguinte",
 		"reportAt": "Relatório das {time}",

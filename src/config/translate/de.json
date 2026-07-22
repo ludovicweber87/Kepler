@@ -499,6 +499,7 @@
 		"generateForDay": "Bericht erstellen",
 		"generate": "Erstellen",
 		"regenerate": "Neu erstellen",
+		"morePoints": "{count, plural, one {+# weiterer} other {+# weitere}}",
 		"prevMonth": "Voriger Monat",
 		"nextMonth": "Nächster Monat",
 		"reportAt": "Bericht um {time}",
