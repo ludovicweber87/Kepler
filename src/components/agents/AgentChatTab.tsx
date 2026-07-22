@@ -7,7 +7,10 @@ import Typography from '@mui/material/Typography';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import { useTranslations } from 'next-intl';
 import { useAgentChat } from '@/hooks/useAgentChat';
+import { useAgentSession } from '@/hooks/useAgentSession';
+import { usePersonas } from '@/hooks/usePersonas';
 import { DEFAULT_CREATE_PR_PROMPT, DEFAULT_COMMIT_PUSH_PROMPT } from '@/lib/prompts';
+import { buildPersonaSwitchMessage } from '@/lib/personaSwitch';
 import type { ChatImageInput, ChatSegment } from '@/types';
 import ChatBubble from './chat/ChatBubble';
 import ChatPermissionCard from './chat/ChatPermissionCard';
@@ -73,6 +76,8 @@ export default function AgentChatTab({
 	onCommitPushStateChange,
 }: Props) {
 	const t = useTranslations('agentChat');
+	const { session, updatePersona } = useAgentSession(sessionId);
+	const { personas } = usePersonas();
 	const firstSent = useRef(false);
 	const firstUserText = useRef('');
 	const firstTurnDone = useRef(false);
@@ -172,6 +177,30 @@ export default function AgentChatTab({
 			onFirstUserMessage?.(text);
 		}
 		chat.send(text, images);
+	};
+
+	const agentColor = session?.agent_color ?? null;
+	const agentName = session?.agent_name ?? null;
+	const currentPersonaId = personas.find((p) => p.name === agentName)?.id ?? null;
+
+	// Changement de persona en cours de session : model/effort/mode appliqués en live,
+	// puis directive injectée dans la conversation (le SDK ne change pas le prompt à chaud),
+	// puis snapshot persisté sur la session (couleur/nom/prompt survivent au reload).
+	const handleSwitchPersona = (personaId: string) => {
+		const persona = personas.find((p) => p.id === personaId);
+		if (!persona) return;
+		chat.setModel(persona.model ?? '');
+		chat.setEffort(persona.effort ?? '');
+		chat.setPermissionMode(persona.permission_mode ?? '');
+		chat.send(buildPersonaSwitchMessage(persona));
+		updatePersona({
+			agent_name: persona.name,
+			agent_color: persona.color,
+			model: persona.model,
+			effort: persona.effort,
+			permission_mode: persona.permission_mode,
+			system_prompt: persona.system_prompt,
+		});
 	};
 
 	const busy = chat.status === 'busy';
@@ -287,6 +316,11 @@ export default function AgentChatTab({
 						onModel={chat.setModel}
 						onEffort={chat.setEffort}
 						onMode={chat.setPermissionMode}
+						agentColor={agentColor}
+						agentName={agentName}
+						personas={personas}
+						currentPersonaId={currentPersonaId}
+						onSwitchPersona={handleSwitchPersona}
 					/>
 				</>
 			)}
