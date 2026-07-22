@@ -97,10 +97,10 @@ export async function fetchAssignedIssues(token: string): Promise<GitHubIssue[]>
 }
 
 /**
- * Issues ouvertes assignées à `assignee` dans UN repo (scope tab active du Kanban).
- * PRs exclues. Paginé (100/page) avec garde-fou de 10 pages.
+ * Issues (ouvertes + fermées) assignées à `assignee` dans UN repo (scope tab active du Kanban).
+ * PRs exclues. Paginé (100/page) avec garde-fou de 10 pages, triées par date de mise à jour.
  */
-export async function fetchRepoAssignedOpenIssues(
+export async function fetchRepoAssignedIssues(
 	owner: string,
 	repo: string,
 	assignee: string,
@@ -114,7 +114,7 @@ export async function fetchRepoAssignedOpenIssues(
 		const res = await fetch(
 			`${GITHUB_API}/repos/${owner}/${repo}/issues?assignee=${encodeURIComponent(
 				assignee,
-			)}&state=open&per_page=100&sort=updated&page=${page}`,
+			)}&state=all&per_page=100&sort=updated&page=${page}`,
 			{ headers: getHeaders(token) },
 		);
 		if (!res.ok) throw new Error(`GitHub repo issues failed: ${res.status}`);

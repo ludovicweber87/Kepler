@@ -120,6 +120,8 @@
 		"created": "Creee",
 		"branchCreated": "Branche {branchName} creee",
 		"moveTo": "Deplacer vers",
+		"closedColumn": "Fermées",
+		"closedBadge": "Fermée",
 		"updated": "Mis à jour à {time}",
 		"noReposConfigured": "Aucun dépôt configuré",
 		"noReposConfiguredDesc": "Ajoutez un dépôt dans les paramètres pour afficher ses issues ici.",

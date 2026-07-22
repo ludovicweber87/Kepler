@@ -44,6 +44,7 @@ export default function IssueCard({
 }: IssueCardProps) {
 	const t = useTranslations('issues');
 	const repo = (issue.repo_full_name ?? '').split('/')[1] ?? '';
+	const isClosed = issue.state === 'closed';
 
 	const handleStatusChange = (event: SelectChangeEvent<string>) => {
 		event.stopPropagation();
@@ -59,6 +60,7 @@ export default function IssueCard({
 			sx={{
 				cursor: 'pointer',
 				borderRadius: 1,
+				opacity: isClosed ? 0.7 : 1,
 				transition: 'transform 0.15s, box-shadow 0.15s',
 				'&:hover': { transform: 'translateY(-1px)', boxShadow: 4 },
 			}}
@@ -95,6 +97,19 @@ export default function IssueCard({
 					<Typography variant="caption" sx={{ color: 'text.disabled' }}>
 						#{issue.number}
 					</Typography>
+					{isClosed && (
+						<Chip
+							label={t('closedBadge')}
+							size="small"
+							sx={{
+								height: 18,
+								fontSize: '0.625rem',
+								fontWeight: 600,
+								bgcolor: alpha('#EF4444', 0.15),
+								color: '#EF4444',
+							}}
+						/>
+					)}
 				</Box>
 
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
@@ -123,7 +138,7 @@ export default function IssueCard({
 					</Box>
 				</Box>
 
-				{columns.length > 0 && (
+				{columns.length > 0 && !isClosed && (
 					<Select
 						size="small"
 						value={currentColumn}
