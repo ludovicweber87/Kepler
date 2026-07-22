@@ -128,9 +128,7 @@
 		"configureRepos": "Configurer mes dépôts",
 		"createIssue": "Créer une issue",
 		"newIssue": "Nouvelle issue",
-		"issueTitle": "Titre",
 		"issueTitlePlaceholder": "Titre de l'issue",
-		"issueBody": "Description",
 		"issueBodyPlaceholder": "Décrivez l'issue (Markdown supporté)...",
 		"labels": "Labels",
 		"assignees": "Assignés",
@@ -145,10 +143,7 @@
 		"boardAddWarning": "Issue créée, mais non ajoutée au board (projet ou statut introuvable)",
 		"describeIssue": "Décrivez votre besoin",
 		"describeIssuePlaceholder": "Décrivez ce que vous voulez, l’agent rédigera l’issue...",
-		"generateIssue": "Générer l’issue",
 		"generating": "Génération...",
-		"regenerate": "Régénérer",
-		"editDescription": "← Description",
 		"generateError": "Échec de la génération de l’issue"
 	},
 	"prs": {
