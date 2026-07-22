@@ -31,8 +31,8 @@ export default function ChatBubble({
 					py: 1,
 					borderRadius: 2,
 					...(isUser
-						? { borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }
-						: { borderTopRightRadius: 0, borderBottomRightRadius: 0 }),
+						? { borderBottomLeftRadius: 0 }
+						: { borderBottomRightRadius: 0 }),
 					bgcolor: isUser ? 'primary.main' : 'background.paper',
 					color: isUser ? 'primary.contrastText' : 'text.primary',
 					fontSize: '0.8rem',
