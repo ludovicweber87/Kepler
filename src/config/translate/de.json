@@ -406,6 +406,9 @@
 		}
 	},
 	"agentChat": {
+		"agentLabel": "Agent",
+		"switchPersona": "Persona wechseln",
+		"noPersonas": "Keine Personas",
 		"composerPlaceholder": "Nachricht an den Agenten…",
 		"attachTypeError": "Bildtyp nicht unterstützt",
 		"attachSizeError": "Bild zu groß (max. 5 MB)",

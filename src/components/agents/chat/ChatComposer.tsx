@@ -23,7 +23,7 @@ import { useSnackbar } from '@/hooks/useSnackbar';
 import { validateImageFile, readFileAsDataUrl, stripDataUrlPrefix } from '@/lib/imageAttach';
 import { LIGHT_INPUT_SHADOW } from '@/theme/theme';
 import { MODEL_ALIASES, MODEL_VERSIONS, MODELS, EFFORTS } from '@/lib/models';
-import type { ChatImageInput } from '@/types';
+import type { ChatImageInput, Persona } from '@/types';
 
 const MODES = [
 	{ value: 'bypassPermissions', key: 'modeBypass' },
@@ -47,6 +47,16 @@ interface Props {
 	onModel: (m: string) => void;
 	onEffort: (e: string) => void;
 	onMode: (m: string) => void;
+	/** Couleur de la persona active (snapshot session) — teinte la bordure et le label. */
+	agentColor?: string | null;
+	/** Nom de la persona active, affiché dans le label flottant. */
+	agentName?: string | null;
+	/** Bibliothèque de personas pour le sélecteur. */
+	personas?: Persona[];
+	/** Persona courante (match best-effort par nom) pour surligner le menu. */
+	currentPersonaId?: string | null;
+	/** Change la persona active en cours de session. */
+	onSwitchPersona?: (personaId: string) => void;
 }
 
 function next<T extends { value: string }>(options: readonly T[], value: string): string {
@@ -107,12 +117,18 @@ export default function ChatComposer({
 	onModel,
 	onEffort,
 	onMode,
+	agentColor,
+	agentName,
+	personas = [],
+	currentPersonaId,
+	onSwitchPersona,
 }: Props) {
 	const t = useTranslations('agentChat');
 	const tc = useTranslations('common');
 	const { showSnackbar } = useSnackbar();
 	const [text, setText] = useState('');
 	const [modelAnchor, setModelAnchor] = useState<null | HTMLElement>(null);
+	const [personaAnchor, setPersonaAnchor] = useState<null | HTMLElement>(null);
 	type Attachment = { id: string; name: string; mediaType: string; data: string };
 	const [attachments, setAttachments] = useState<Attachment[]>([]);
 	const attachId = useRef(0);
@@ -174,6 +190,8 @@ export default function ChatComposer({
 	const modelLabel = MODELS.find((o) => o.value === model)?.key;
 	const effortLabel = EFFORTS.find((o) => o.value === effort)?.key;
 	const modeLabel = MODES.find((o) => o.value === permissionMode)?.key;
+	const labelColor = agentColor || 'text.secondary';
+	const personaLabel = agentName || t('agentLabel');
 
 	return (
 		<Box sx={{ p: 1.5, borderTop: 1, borderColor: 'divider', flexShrink: 0 }}>
@@ -186,8 +204,11 @@ export default function ChatComposer({
 				}}
 				onDragLeave={() => setDragOver(false)}
 				sx={{
+					position: 'relative',
 					border: isPlan ? '1px dashed' : '1px solid',
-					borderColor: dragOver ? 'primary.main' : isPlan ? 'primary.main' : 'divider',
+					borderColor: dragOver
+						? 'primary.main'
+						: agentColor || (isPlan ? 'primary.main' : 'divider'),
 					borderRadius: 2.5,
 					px: 1.5,
 					py: 1,
@@ -195,6 +216,84 @@ export default function ChatComposer({
 					boxShadow: (th) => (th.palette.mode === 'light' ? LIGHT_INPUT_SHADOW : 'none'),
 				}}
 			>
+				<ButtonBase
+					onClick={(e) => setPersonaAnchor(e.currentTarget)}
+					disabled={!onSwitchPersona}
+					aria-label={t('switchPersona')}
+					sx={{
+						position: 'absolute',
+						top: 0,
+						left: 12,
+						transform: 'translateY(-50%)',
+						display: 'flex',
+						alignItems: 'center',
+						gap: 0.5,
+						height: 18,
+						px: 0.75,
+						borderRadius: 1,
+						bgcolor: 'background.default',
+						zIndex: 1,
+					}}
+				>
+					<Box
+						sx={{
+							width: 7,
+							height: 7,
+							borderRadius: '50%',
+							bgcolor: agentColor || 'text.disabled',
+							flexShrink: 0,
+						}}
+					/>
+					<Typography
+						variant="caption"
+						sx={{
+							fontSize: '0.68rem',
+							fontWeight: 700,
+							color: labelColor,
+							lineHeight: 1,
+						}}
+					>
+						{personaLabel}
+					</Typography>
+					{onSwitchPersona && (
+						<ArrowDropDownRoundedIcon
+							sx={{ fontSize: 14, color: labelColor, ml: -0.25 }}
+						/>
+					)}
+				</ButtonBase>
+				<Menu
+					anchorEl={personaAnchor}
+					open={!!personaAnchor}
+					onClose={() => setPersonaAnchor(null)}
+				>
+					{personas.length === 0 && (
+						<MenuItem disabled sx={{ fontSize: '0.8rem' }}>
+							{t('noPersonas')}
+						</MenuItem>
+					)}
+					{personas.map((p) => (
+						<MenuItem
+							key={p.id}
+							selected={p.id === currentPersonaId}
+							onClick={() => {
+								onSwitchPersona?.(p.id);
+								setPersonaAnchor(null);
+							}}
+							sx={{ fontSize: '0.8rem', gap: 1 }}
+						>
+							<Box
+								sx={{
+									width: 8,
+									height: 8,
+									borderRadius: '50%',
+									bgcolor: p.color || 'text.disabled',
+									flexShrink: 0,
+								}}
+							/>
+							{p.name}
+						</MenuItem>
+					))}
+				</Menu>
 				{attachments.length > 0 && (
 					<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
 						{attachments.map((a) => (
