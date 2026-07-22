@@ -142,7 +142,14 @@
 		"cancel": "Cancelar",
 		"issueCreated": "Issue #{number} criada",
 		"issueCreateError": "Falha ao criar a issue",
-		"boardAddWarning": "Issue criada, mas não adicionada ao board (projeto ou estado não encontrado)"
+		"boardAddWarning": "Issue criada, mas não adicionada ao board (projeto ou estado não encontrado)",
+		"describeIssue": "Descreva o que precisa",
+		"describeIssuePlaceholder": "Descreva o que quer, o agente redigirá a issue...",
+		"generateIssue": "Gerar issue",
+		"generating": "A gerar...",
+		"regenerate": "Regenerar",
+		"editDescription": "← Descrição",
+		"generateError": "Falha ao gerar a issue"
 	},
 	"prs": {
 		"title": "Pull Requests",
