@@ -2,9 +2,15 @@
 
 import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react';
 import Snackbar from '@mui/material/Snackbar';
+import Slide, { type SlideProps } from '@mui/material/Slide';
 import Alert, { type AlertColor } from '@mui/material/Alert';
 import AlertTitle from '@mui/material/AlertTitle';
 import Typography from '@mui/material/Typography';
+import { alpha } from '@mui/material/styles';
+
+function SlideUp(props: SlideProps) {
+	return <Slide {...props} direction="up" />;
+}
 
 interface SnackbarAction {
 	onClick: () => void;
@@ -81,8 +87,9 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
 				open={state.open}
 				autoHideDuration={5000}
 				onClose={handleClose}
-				anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-				sx={{ mt: '64px' }}
+				anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+				TransitionComponent={SlideUp}
+				sx={{ mb: 2 }}
 			>
 				<Alert
 					onClose={(e) => {
@@ -91,15 +98,35 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
 					}}
 					onClick={clickable ? handleActionClick : undefined}
 					severity={state.severity}
-					variant="filled"
-					sx={{
-						fontWeight: 600,
-						fontSize: '0.8rem',
-						maxWidth: 380,
+					variant="outlined"
+					sx={(theme) => ({
+						minWidth: 300,
+						maxWidth: 420,
+						px: 2,
+						py: 1.25,
+						alignItems: 'flex-start',
+						color: theme.palette.text.primary,
+						bgcolor: alpha(theme.palette.background.paper, 0.82),
+						backdropFilter: 'blur(12px)',
+						WebkitBackdropFilter: 'blur(12px)',
+						border: `1px solid ${theme.palette.divider}`,
+						borderLeft: `3px solid ${theme.palette[state.severity].main}`,
+						borderRadius: '14px',
+						boxShadow: '0 10px 30px rgba(0, 0, 0, 0.35)',
+						'& .MuiAlert-icon': {
+							color: theme.palette[state.severity].main,
+							pt: 0.25,
+						},
+						'& .MuiAlert-action': {
+							pt: 0,
+							color: theme.palette.text.secondary,
+						},
 						...(clickable && { cursor: 'pointer' }),
-					}}
+					})}
 				>
-					<AlertTitle sx={{ fontWeight: 700, fontSize: '0.82rem', mb: 0.25 }}>
+					<AlertTitle
+						sx={{ fontWeight: 700, fontSize: '0.82rem', mb: state.message ? 0.25 : 0 }}
+					>
 						{state.title}
 					</AlertTitle>
 					{state.message && (
@@ -107,7 +134,7 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
 							sx={{
 								fontSize: '0.75rem',
 								fontWeight: 400,
-								opacity: 0.9,
+								color: 'text.secondary',
 								display: '-webkit-box',
 								WebkitLineClamp: 3,
 								WebkitBoxOrient: 'vertical',

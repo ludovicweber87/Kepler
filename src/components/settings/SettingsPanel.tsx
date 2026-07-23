@@ -11,7 +11,6 @@ import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import Chip from '@mui/material/Chip';
 import Skeleton from '@mui/material/Skeleton';
 import CircularProgress from '@mui/material/CircularProgress';
-import Snackbar from '@mui/material/Snackbar';
 import IconButton from '@mui/material/IconButton';
 import Popover from '@mui/material/Popover';
 import List from '@mui/material/List';
@@ -41,6 +40,7 @@ import { useTranslations } from 'next-intl';
 import { localFetch } from '@/lib/local-fetch';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useAgentStatus } from '@/hooks/useAgentStatus';
+import { useSnackbar } from '@/hooks/useSnackbar';
 
 /** Repo path card with popover actions */
 function RepoPathCard({
@@ -270,12 +270,11 @@ export default function SettingsPanel() {
 	const { configs, configsLoading, saveConfig, clearConfig } = useProjectConfig();
 	const { repoPaths, savePath, deletePath } = useRepoPaths();
 	const { isAgentOnline } = useAgentStatus();
+	const { showSnackbar } = useSnackbar();
 
 	const [orgProjects, setOrgProjects] = useState<OrgWithProjects[]>([]);
 	const [loadingProjects, setLoadingProjects] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-	const [toast, setToast] = useState(false);
-	const [toastMessage, setToastMessage] = useState('');
 	const [localPaths, setLocalPaths] = useState<Record<string, string>>({});
 	const [pickingRepo, setPickingRepo] = useState<string | null>(null);
 	const [manualDialogOpen, setManualDialogOpen] = useState(false);
@@ -319,10 +318,12 @@ export default function SettingsPanel() {
 		};
 	}, [t]);
 
-	const showToast = useCallback((msg: string) => {
-		setToastMessage(msg);
-		setToast(true);
-	}, []);
+	const showToast = useCallback(
+		(msg: string) => {
+			showSnackbar(msg, 'success');
+		},
+		[showSnackbar],
+	);
 
 	const pickDirectory = async (repo: string) => {
 		setPickingRepo(repo);
@@ -602,17 +603,6 @@ export default function SettingsPanel() {
 					</Button>
 				</DialogActions>
 			</Dialog>
-
-			<Snackbar
-				open={toast}
-				autoHideDuration={2000}
-				onClose={() => setToast(false)}
-				anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-			>
-				<Alert onClose={() => setToast(false)} severity="success" variant="filled">
-					{toastMessage}
-				</Alert>
-			</Snackbar>
 		</Box>
 	);
 }
