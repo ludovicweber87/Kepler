@@ -11,30 +11,15 @@ import Divider from '@mui/material/Divider';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import StopRoundedIcon from '@mui/icons-material/StopRounded';
 import ArrowDropDownRoundedIcon from '@mui/icons-material/ArrowDropDownRounded';
-import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
-import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
-import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
-import BoltRoundedIcon from '@mui/icons-material/BoltRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
-import { alpha, keyframes, type Theme } from '@mui/material/styles';
+import { alpha } from '@mui/material/styles';
 import { useTranslations } from 'next-intl';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { validateImageFile, readFileAsDataUrl, stripDataUrlPrefix } from '@/lib/imageAttach';
 import { LIGHT_INPUT_SHADOW } from '@/theme/theme';
-import { MODEL_ALIASES, MODEL_VERSIONS, MODELS, EFFORTS } from '@/lib/models';
+import AgentSettingsControls from './AgentSettingsControls';
 import type { ChatImageInput, Persona } from '@/types';
-
-const MODES = [
-	{ value: 'bypassPermissions', key: 'modeBypass' },
-	{ value: 'plan', key: 'modePlan' },
-	{ value: 'acceptEdits', key: 'modeEdit' },
-] as const;
-
-const pulse = keyframes`
-	0%, 100% { opacity: 1; }
-	50% { opacity: 0.45; }
-`;
 
 interface Props {
 	disabled?: boolean;
@@ -55,55 +40,8 @@ interface Props {
 	personas?: Persona[];
 	/** Persona courante (match best-effort par nom) pour surligner le menu. */
 	currentPersonaId?: string | null;
-	/** Change la persona active en cours de session. */
-	onSwitchPersona?: (personaId: string) => void;
-}
-
-function next<T extends { value: string }>(options: readonly T[], value: string): string {
-	const i = options.findIndex((o) => o.value === value);
-	return options[(i + 1) % options.length].value;
-}
-
-const controlSx = {
-	display: 'flex',
-	alignItems: 'center',
-	gap: 0.5,
-	px: 0.75,
-	py: 0.25,
-	borderRadius: 999,
-	color: 'text.secondary',
-	fontSize: '0.72rem',
-	transition: 'background-color 120ms',
-	'&:hover': { bgcolor: (th: Theme) => alpha(th.palette.text.primary, 0.06) },
-} as const;
-
-function SignalBars({ level, hot }: { level: number; hot: boolean }) {
-	const heights = [5, 8, 11, 14];
-	return (
-		<Box sx={{ display: 'flex', alignItems: 'flex-end', gap: '2px', height: 14 }}>
-			{heights.map((h, i) => {
-				const filled = i < level;
-				return (
-					<Box
-						key={i}
-						sx={{
-							width: 3,
-							height: h,
-							borderRadius: 0.5,
-							bgcolor: filled
-								? hot
-									? 'primary.main'
-									: 'text.secondary'
-								: (th) => alpha(th.palette.text.primary, 0.18),
-							animation:
-								filled && hot ? `${pulse} 1.4s ease-in-out infinite` : 'none',
-							animationDelay: `${i * 0.12}s`,
-						}}
-					/>
-				);
-			})}
-		</Box>
-	);
+	/** Change la persona active en cours de session (`null` = sans persona). */
+	onSwitchPersona?: (personaId: string | null) => void;
 }
 
 export default function ChatComposer({
@@ -127,7 +65,6 @@ export default function ChatComposer({
 	const tc = useTranslations('common');
 	const { showSnackbar } = useSnackbar();
 	const [text, setText] = useState('');
-	const [modelAnchor, setModelAnchor] = useState<null | HTMLElement>(null);
 	const [personaAnchor, setPersonaAnchor] = useState<null | HTMLElement>(null);
 	type Attachment = { id: string; name: string; mediaType: string; data: string };
 	const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -185,13 +122,11 @@ export default function ChatComposer({
 	};
 
 	const isPlan = permissionMode === 'plan';
-	const effortLevel = Math.max(1, EFFORTS.findIndex((o) => o.value === effort) + 1);
-	const effortHot = effort === 'high' || effort === 'max';
-	const modelLabel = MODELS.find((o) => o.value === model)?.key;
-	const effortLabel = EFFORTS.find((o) => o.value === effort)?.key;
-	const modeLabel = MODES.find((o) => o.value === permissionMode)?.key;
 	const labelColor = agentColor || 'text.secondary';
 	const personaLabel = agentName || t('agentLabel');
+	// Une persona impose ses réglages → contrôles verrouillés. « Sans persona » les libère.
+	const personaLocked = currentPersonaId != null;
+	const lockedTooltip = tc('settingsLockedByPersona', { name: agentName ?? '' });
 
 	return (
 		<Box sx={{ p: 1.5, borderTop: 1, borderColor: 'divider', flexShrink: 0 }}>
@@ -266,11 +201,27 @@ export default function ChatComposer({
 					open={!!personaAnchor}
 					onClose={() => setPersonaAnchor(null)}
 				>
-					{personas.length === 0 && (
-						<MenuItem disabled sx={{ fontSize: '0.8rem' }}>
-							{t('noPersonas')}
-						</MenuItem>
-					)}
+					<MenuItem
+						selected={currentPersonaId == null}
+						onClick={() => {
+							onSwitchPersona?.(null);
+							setPersonaAnchor(null);
+						}}
+						sx={{ fontSize: '0.8rem', gap: 1 }}
+					>
+						<Box
+							sx={{
+								width: 8,
+								height: 8,
+								borderRadius: '50%',
+								border: '1px dashed',
+								borderColor: 'text.disabled',
+								flexShrink: 0,
+							}}
+						/>
+						{t('noPersona')}
+					</MenuItem>
+					{personas.length > 0 && <Divider />}
 					{personas.map((p) => (
 						<MenuItem
 							key={p.id}
@@ -352,80 +303,16 @@ export default function ChatComposer({
 					</Typography>
 				)}
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-					<ButtonBase sx={controlSx} onClick={(e) => setModelAnchor(e.currentTarget)}>
-						<AutoAwesomeRoundedIcon sx={{ fontSize: 15 }} />
-						<Typography variant="caption" sx={{ fontWeight: 600, fontSize: 'inherit' }}>
-							{modelLabel ? tc(modelLabel) : model}
-						</Typography>
-						<ArrowDropDownRoundedIcon sx={{ fontSize: 16, ml: -0.25 }} />
-					</ButtonBase>
-					<Menu
-						anchorEl={modelAnchor}
-						open={!!modelAnchor}
-						onClose={() => setModelAnchor(null)}
-					>
-						{MODEL_ALIASES.map((o) => (
-							<MenuItem
-								key={o.value}
-								selected={o.value === model}
-								onClick={() => {
-									onModel(o.value);
-									setModelAnchor(null);
-								}}
-								sx={{ fontSize: '0.8rem' }}
-							>
-								{tc(o.key)}
-							</MenuItem>
-						))}
-						<Divider />
-						{MODEL_VERSIONS.map((o) => (
-							<MenuItem
-								key={o.value}
-								selected={o.value === model}
-								onClick={() => {
-									onModel(o.value);
-									setModelAnchor(null);
-								}}
-								sx={{ fontSize: '0.8rem' }}
-							>
-								{tc(o.key)}
-							</MenuItem>
-						))}
-					</Menu>
-
-					<ButtonBase sx={controlSx} onClick={() => onEffort(next(EFFORTS, effort))}>
-						<SignalBars level={effortLevel} hot={effortHot} />
-						<Typography
-							variant="caption"
-							sx={{
-								fontWeight: 600,
-								fontSize: 'inherit',
-								color: effortHot ? 'primary.main' : 'inherit',
-								animation: effortHot
-									? `${pulse} 1.4s ease-in-out infinite`
-									: 'none',
-							}}
-						>
-							{effortLabel ? tc(effortLabel) : effort}
-						</Typography>
-					</ButtonBase>
-
-					<ButtonBase
-						sx={{ ...controlSx, color: isPlan ? 'primary.main' : 'text.secondary' }}
-						onClick={() => onMode(next(MODES, permissionMode))}
-					>
-						{permissionMode === 'bypassPermissions' ? (
-							<BoltRoundedIcon sx={{ fontSize: 15 }} />
-						) : isPlan ? (
-							<MapOutlinedIcon sx={{ fontSize: 15 }} />
-						) : (
-							<EditOutlinedIcon sx={{ fontSize: 15 }} />
-						)}
-						<Typography variant="caption" sx={{ fontWeight: 600, fontSize: 'inherit' }}>
-							{modeLabel ? t(modeLabel) : permissionMode}
-						</Typography>
-					</ButtonBase>
-
+					<AgentSettingsControls
+						model={model}
+						effort={effort}
+						permissionMode={permissionMode}
+						onModel={onModel}
+						onEffort={onEffort}
+						onMode={onMode}
+						locked={personaLocked}
+						lockedTooltip={lockedTooltip}
+					/>
 					<Box sx={{ flex: 1 }} />
 					{busy && (
 						<IconButton size="small" color="error" onClick={onStop}>

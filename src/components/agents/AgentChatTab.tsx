@@ -150,7 +150,22 @@ export default function AgentChatTab({
 	// puis le system prompt est changé côté serveur via un restart soft (resume →
 	// contexte préservé, zéro token consommé, aucun message injecté), puis snapshot
 	// persisté sur la session (couleur/nom/prompt survivent au reload).
-	const handleSwitchPersona = (personaId: string) => {
+	const handleSwitchPersona = (personaId: string | null) => {
+		// « Sans persona » : on déverrouille les contrôles en gardant les valeurs
+		// courantes (model/effort/mode inchangés), on efface le system prompt persona
+		// et on persiste la remise à null du snapshot (sticky au reload).
+		if (personaId === null) {
+			chat.setSystemPrompt('');
+			updatePersona({
+				agent_name: null,
+				agent_color: null,
+				model: chat.model,
+				effort: chat.effort,
+				permission_mode: chat.permissionMode,
+				system_prompt: '',
+			});
+			return;
+		}
 		const persona = personas.find((p) => p.id === personaId);
 		if (!persona) return;
 		chat.setModel(persona.model ?? '');

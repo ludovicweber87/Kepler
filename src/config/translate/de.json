@@ -283,6 +283,7 @@
 		"effortMedium": "Medium",
 		"effortHigh": "High",
 		"effortMax": "Max",
+		"settingsLockedByPersona": "Durch die Persona {name} festgelegt",
 		"modelGroupAliases": "Aliase",
 		"modelGroupVersions": "Versionen"
 	},
@@ -322,7 +323,8 @@
 		"activeSession": "Aktive Sitzung",
 		"newSession": "Neue Sitzung",
 		"selectAgentLabel": "Agent",
-		"agentNone": "Keiner (Standard)"
+		"agentNone": "Keiner (Standard)",
+		"agentSettingsLabel": "Agent-Einstellungen"
 	},
 	"agentActivity": {
 		"reportTitle": "Agent-Bericht",
@@ -414,6 +416,7 @@
 		"agentLabel": "Agent",
 		"switchPersona": "Persona wechseln",
 		"noPersonas": "Keine Personas",
+		"noPersona": "Ohne Persona",
 		"composerPlaceholder": "Nachricht an den Agenten…",
 		"attachTypeError": "Bildtyp nicht unterstützt",
 		"attachSizeError": "Bild zu groß (max. 5 MB)",

@@ -283,6 +283,7 @@
 		"effortMedium": "Medium",
 		"effortHigh": "High",
 		"effortMax": "Max",
+		"settingsLockedByPersona": "Definido por la persona {name}",
 		"modelGroupAliases": "Alias",
 		"modelGroupVersions": "Versiones"
 	},
@@ -322,7 +323,8 @@
 		"activeSession": "Sesión activa",
 		"newSession": "Nueva sesión",
 		"selectAgentLabel": "Agente",
-		"agentNone": "Ninguno (por defecto)"
+		"agentNone": "Ninguno (por defecto)",
+		"agentSettingsLabel": "Ajustes del agente"
 	},
 	"agentActivity": {
 		"reportTitle": "Informe del agente",
@@ -414,6 +416,7 @@
 		"agentLabel": "Agente",
 		"switchPersona": "Cambiar de persona",
 		"noPersonas": "Sin personas",
+		"noPersona": "Sin persona",
 		"composerPlaceholder": "Mensaje para el agente…",
 		"attachTypeError": "Tipo de imagen no soportado",
 		"attachSizeError": "Imagen demasiado grande (máx 5 MB)",

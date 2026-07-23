@@ -40,6 +40,7 @@ import { useTranslations } from 'next-intl';
 import { localFetch } from '@/lib/local-fetch';
 import { apiFetch } from '@/lib/api-fetch';
 import { slugify } from '@/lib/slug';
+import AgentSettingsControls from './chat/AgentSettingsControls';
 
 interface IssueContext {
 	owner: string;
@@ -155,7 +156,15 @@ export default function AgentTerminalModal({
 	>(null);
 	const [selectedExistingBranch, setSelectedExistingBranch] = useState<Branch | null>(null);
 	const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(null);
+	// Réglages libres utilisés quand aucune persona n'est choisie (« Sans persona »).
+	// Une persona sélectionnée impose et verrouille ses propres valeurs.
+	const [settingsModel, setSettingsModel] = useState('opus');
+	const [settingsEffort, setSettingsEffort] = useState('high');
+	const [settingsMode, setSettingsMode] = useState('bypassPermissions');
 	const { personas } = usePersonas();
+	const selectedPersona = selectedPersonaId
+		? (personas.find((p) => p.id === selectedPersonaId) ?? null)
+		: null;
 
 	// Path resolution for issue context
 	const { repoPaths, getLocalPath } = useRepoPaths();
@@ -235,6 +244,9 @@ export default function AgentTerminalModal({
 			setFetchingBranch(false);
 			setLaunchMode(null);
 			setSelectedPersonaId(null);
+			setSettingsModel('opus');
+			setSettingsEffort('high');
+			setSettingsMode('bypassPermissions');
 			setSelectedExistingBranch(null);
 			setIssueUrl('');
 			setIssueLoaded(null);
@@ -390,9 +402,11 @@ export default function AgentTerminalModal({
 				issueNumber: linked?.issueNumber ?? null,
 				issueTitle: linked?.issueTitle ?? null,
 				systemPrompt: composeSystemPrompt(persona?.system_prompt),
-				model: persona?.model ?? null,
-				effort: persona?.effort ?? null,
-				permissionMode: persona?.permission_mode ?? null,
+				// Persona → ses réglages (null = défaut serveur, comportement inchangé).
+				// Sans persona → les réglages libres choisis dans la modale.
+				model: persona ? (persona.model ?? null) : settingsModel,
+				effort: persona ? (persona.effort ?? null) : settingsEffort,
+				permissionMode: persona ? (persona.permission_mode ?? null) : settingsMode,
 				agentColor: persona?.color ?? null,
 			});
 			goToWorkbench(sessionId);
@@ -413,6 +427,9 @@ export default function AgentTerminalModal({
 		goToWorkbench,
 		selectedPersonaId,
 		personas,
+		settingsModel,
+		settingsEffort,
+		settingsMode,
 	]);
 
 	// Launching from an issue: skip the launch-mode cards and go straight to the branch
@@ -1035,6 +1052,49 @@ export default function AgentTerminalModal({
 									/>
 								);
 							})}
+						</Box>
+					</Box>
+
+					{/* Model / effort / mode — verrouillés si une persona impose ses réglages */}
+					<Box sx={{ width: '100%', maxWidth: 500 }}>
+						<Typography
+							variant="caption"
+							sx={{ color: 'text.secondary', mb: 0.75, display: 'block' }}
+						>
+							{tl('agentSettingsLabel')}
+						</Typography>
+						<Box
+							sx={{
+								display: 'flex',
+								alignItems: 'center',
+								gap: 0.25,
+								flexWrap: 'wrap',
+							}}
+						>
+							<AgentSettingsControls
+								model={
+									selectedPersona
+										? (selectedPersona.model ?? 'opus')
+										: settingsModel
+								}
+								effort={
+									selectedPersona
+										? (selectedPersona.effort ?? 'high')
+										: settingsEffort
+								}
+								permissionMode={
+									selectedPersona
+										? (selectedPersona.permission_mode ?? 'bypassPermissions')
+										: settingsMode
+								}
+								onModel={setSettingsModel}
+								onEffort={setSettingsEffort}
+								onMode={setSettingsMode}
+								locked={selectedPersonaId != null}
+								lockedTooltip={tc('settingsLockedByPersona', {
+									name: selectedPersona?.name ?? '',
+								})}
+							/>
 						</Box>
 					</Box>
 
