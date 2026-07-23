@@ -1,7 +1,9 @@
 'use client';
 import Box from '@mui/material/Box';
+import Divider from '@mui/material/Divider';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useTranslations } from 'next-intl';
 import ChatThinking from './ChatThinking';
 import ChatToolCard from './ChatToolCard';
 import { getAgentHttpUrl } from '@/lib/local-fetch';
@@ -14,7 +16,28 @@ export default function ChatBubble({
 	message: ChatMessage;
 	onOpenChanges?: (filePath: string) => void;
 }) {
+	const t = useTranslations('agentChat');
 	const isUser = message.role === 'user';
+
+	if (message.role === 'system') {
+		const seg = message.segments.find((s) => s.kind === 'role_switch');
+		if (seg?.kind !== 'role_switch') return null;
+		return (
+			<Box sx={{ px: 3, py: 1 }}>
+				<Divider
+					sx={{
+						'&::before, &::after': { borderColor: 'divider' },
+						color: 'text.secondary',
+						fontSize: '0.7rem',
+						fontWeight: 600,
+					}}
+				>
+					🔄 {t('roleSwitch', { name: seg.name })}
+				</Divider>
+			</Box>
+		);
+	}
+
 	return (
 		<Box
 			sx={{
@@ -74,6 +97,7 @@ export default function ChatBubble({
 							/>
 						);
 					}
+					if (seg.kind === 'role_switch') return null;
 					return (
 						<ReactMarkdown key={i} remarkPlugins={[remarkGfm]}>
 							{seg.text}

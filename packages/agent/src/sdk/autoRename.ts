@@ -1,7 +1,7 @@
 import { execFile, execFileSync } from 'node:child_process';
 import { promisify } from 'node:util';
 import { existsSync } from 'node:fs';
-import { dirname, join, isAbsolute } from 'node:path';
+import { basename, dirname, join, isAbsolute } from 'node:path';
 import { findClaude } from '../helpers.js';
 import { getDb } from '../db.js';
 
@@ -116,6 +116,20 @@ export interface SessionRow {
 
 export function isAutoNamed(branch: string | null | undefined): boolean {
 	return !!branch?.startsWith('wip-');
+}
+
+/**
+ * Le dossier du worktree doit-il être réaligné sur la branche ? Vrai quand la
+ * branche a déjà un nom final (non `wip-`) mais que le dossier est resté `wip-`
+ * (move raté ou jamais tenté). Ne touche jamais un dossier nommé manuellement
+ * (qui ne commence pas par `wip-`). Idempotent : faux dès que dossier == branche.
+ */
+export function worktreeNeedsMove(row: SessionRow): boolean {
+	if (!row.branch || !row.worktree_path) return false;
+	if (isAutoNamed(row.branch)) return false; // la phase 1 (rename branche) s'en occupe
+	const current = basename(row.worktree_path);
+	if (!current.startsWith('wip-')) return false;
+	return current !== row.branch.replace(/\//g, '-');
 }
 
 export function readSessionRow(sessionId: string): SessionRow | null {
