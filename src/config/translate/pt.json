@@ -38,7 +38,8 @@
 		"archiveScriptFailed": "Falha no script de arquivamento, arquivado mesmo assim",
 		"personas": "Personas",
 		"unreadAgentNotification": "Notificação de agente não lida",
-		"prOpen": "PR aberta"
+		"prOpen": "PR aberta",
+		"tasks": "Tarefas"
 	},
 	"landing": {
 		"nav": {
@@ -566,5 +567,38 @@
 		"defaultOption": "Padrão",
 		"saveError": "Falha ao guardar a persona",
 		"deleteError": "Falha ao eliminar a persona"
+	},
+	"tasks": {
+		"title": "Tarefas",
+		"newTask": "Nova tarefa",
+		"allRepos": "Todos os repos",
+		"emptyTitle": "Ainda sem tarefas",
+		"emptyHint": "Crie sua primeira tarefa para começar.",
+		"sectionPinned": "Fixadas",
+		"sectionActive": "Em andamento",
+		"sectionDone": "Concluídas",
+		"chipToday": "hoje",
+		"chipTomorrow": "amanhã",
+		"chipInDays": "em {days, plural, one {# dia} other {# dias}}",
+		"chipOverdue": "atrasada · {days, plural, one {# dia} other {# dias}}",
+		"tooltipToday": "Vence hoje",
+		"tooltipInDays": "Vence em {days, plural, one {# dia} other {# dias}}",
+		"tooltipOverdue": "Atrasada há {days, plural, one {# dia} other {# dias}}",
+		"pin": "Fixar",
+		"unpin": "Desafixar",
+		"delete": "Excluir",
+		"cancel": "Cancelar",
+		"save": "Salvar",
+		"create": "Criar",
+		"editTitle": "Editar tarefa",
+		"newTitle": "Nova tarefa",
+		"fieldTitle": "Título",
+		"fieldDescription": "Descrição",
+		"fieldDueDate": "Prazo",
+		"fieldRepo": "Repo",
+		"noRepo": "Sem repo",
+		"fieldIssue": "Issue vinculada",
+		"issuePlaceholder": "Buscar uma issue…",
+		"fieldPinned": "Fixar no topo"
 	}
 }

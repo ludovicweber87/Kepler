@@ -38,7 +38,8 @@
 		"archiveScriptFailed": "Échec du script d’archivage, archivage effectué quand même",
 		"personas": "Personas",
 		"unreadAgentNotification": "Notification d’agent non lue",
-		"prOpen": "PR ouverte"
+		"prOpen": "PR ouverte",
+		"tasks": "Tâches"
 	},
 	"landing": {
 		"nav": {
@@ -587,5 +588,38 @@
 		"defaultOption": "Défaut",
 		"saveError": "Échec de l'enregistrement de la persona",
 		"deleteError": "Échec de la suppression de la persona"
+	},
+	"tasks": {
+		"title": "Tâches",
+		"newTask": "Nouvelle tâche",
+		"allRepos": "Tous les repos",
+		"emptyTitle": "Aucune tâche",
+		"emptyHint": "Crée ta première tâche pour démarrer.",
+		"sectionPinned": "Épinglées",
+		"sectionActive": "En cours",
+		"sectionDone": "Terminées",
+		"chipToday": "aujourd’hui",
+		"chipTomorrow": "demain",
+		"chipInDays": "dans {days, plural, one {# jour} other {# jours}}",
+		"chipOverdue": "en retard · {days, plural, one {# jour} other {# jours}}",
+		"tooltipToday": "Échéance aujourd’hui",
+		"tooltipInDays": "Échéance dans {days, plural, one {# jour} other {# jours}}",
+		"tooltipOverdue": "En retard de {days, plural, one {# jour} other {# jours}}",
+		"pin": "Épingler",
+		"unpin": "Désépingler",
+		"delete": "Supprimer",
+		"cancel": "Annuler",
+		"save": "Enregistrer",
+		"create": "Créer",
+		"editTitle": "Modifier la tâche",
+		"newTitle": "Nouvelle tâche",
+		"fieldTitle": "Titre",
+		"fieldDescription": "Description",
+		"fieldDueDate": "Échéance",
+		"fieldRepo": "Repo",
+		"noRepo": "Aucun repo",
+		"fieldIssue": "Issue liée",
+		"issuePlaceholder": "Rechercher une issue…",
+		"fieldPinned": "Épingler en haut"
 	}
 }

@@ -26,6 +26,7 @@ import { alpha, useTheme } from '@mui/material/styles';
 import MergeTypeRoundedIcon from '@mui/icons-material/MergeTypeRounded';
 import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
 import TodayRoundedIcon from '@mui/icons-material/TodayRounded';
+import ChecklistRoundedIcon from '@mui/icons-material/ChecklistRounded';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
@@ -244,6 +245,7 @@ export default function Sidebar() {
 	const mainItems = [
 		{ label: t('issues'), href: '/issues', icon: <BugReportRoundedIcon /> },
 		{ label: t('prs'), href: '/prs', icon: <MergeTypeRoundedIcon /> },
+		{ label: t('tasks'), href: '/tasks', icon: <ChecklistRoundedIcon /> },
 		// "Daily" reste non traduit dans toutes les locales (choix produit).
 		{ label: 'Daily', href: '/daily', icon: <TodayRoundedIcon /> },
 	];

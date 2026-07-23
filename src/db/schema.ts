@@ -182,3 +182,22 @@ export const notifications = sqliteTable(
 		createdIdx: index('notifications_created_at_idx').on(t.created_at),
 	}),
 );
+
+// ─── Tasks ───────────────────────────────────────────────
+
+export const tasks = sqliteTable('tasks', {
+	id: uuid(),
+	title: text().notNull(),
+	description: text(),
+	due_date: text(), // 'YYYY-MM-DD', optionnel
+	repo_full_name: text(),
+	issue_owner: text(),
+	issue_repo: text(),
+	issue_number: integer(),
+	issue_title: text(),
+	done: integer({ mode: 'boolean' }).default(false),
+	completed_at: text(),
+	pinned: integer({ mode: 'boolean' }).default(false),
+	created_at: timestamp(),
+	updated_at: timestamp(),
+});

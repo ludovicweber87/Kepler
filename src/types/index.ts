@@ -456,3 +456,44 @@ export interface Persona {
 
 export type NewPersona = Pick<Persona, 'name'> &
 	Partial<Omit<Persona, 'id' | 'created_at' | 'updated_at'>>;
+
+// ─── Tasks ───────────────────────────────────────────────
+
+export type UrgencyLevel = 'none' | 'green' | 'orange' | 'red' | 'overdue';
+
+export interface Task {
+	id: string;
+	title: string;
+	description: string | null;
+	due_date: string | null; // 'YYYY-MM-DD'
+	repo_full_name: string | null;
+	issue_owner: string | null;
+	issue_repo: string | null;
+	issue_number: number | null;
+	issue_title: string | null;
+	done: boolean;
+	completed_at: string | null;
+	pinned: boolean;
+	created_at: string;
+	updated_at: string;
+}
+
+// Payload de création : seul le titre est requis.
+export type NewTask = Pick<Task, 'title'> &
+	Partial<
+		Pick<
+			Task,
+			| 'description'
+			| 'due_date'
+			| 'repo_full_name'
+			| 'issue_owner'
+			| 'issue_repo'
+			| 'issue_number'
+			| 'issue_title'
+			| 'pinned'
+		>
+	>;
+
+// Payload de mise à jour : id requis, tout le reste optionnel.
+export type TaskPatch = Pick<Task, 'id'> &
+	Partial<Omit<Task, 'id' | 'created_at' | 'updated_at' | 'completed_at'>>;
