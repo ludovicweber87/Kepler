@@ -1,5 +1,5 @@
 import { query as realQuery } from '@anthropic-ai/claude-agent-sdk';
-import { findClaude } from '../helpers.js';
+import { findClaude, cleanClaudeEnv } from '../helpers.js';
 import { makePromptQueue, type PromptQueue } from './promptQueue.js';
 import { mapMessage } from './mapMessage.js';
 import { createPermissionController, type PermissionController, type PendingPermission, type PendingQuestion, type QuestionAnswers } from './permissions.js';
@@ -80,13 +80,7 @@ interface SessionState {
 export interface ActiveSdkSession { sessionId: string; cwd: string; createdAt: number; busy: boolean }
 
 function cleanEnv(): Record<string, string> {
-  const env = { ...process.env } as Record<string, string>;
-  delete env.ANTHROPIC_API_KEY;
-  delete env.CLAUDECODE;
-  delete env.CLAUDE_CODE_ENTRYPOINT;
-  delete env.ANTHROPIC_AUTH_TOKEN;
-  delete env.ANTHROPIC_BASE_URL;
-  return env;
+  return cleanClaudeEnv() as Record<string, string>;
 }
 
 export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAttempt?: (sessionId: string) => void }) {
@@ -297,14 +291,21 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
     if (isAutoNamed(row.branch)) {
       s.renameInFlight = true;
       void autoRenameBranch(sessionId, row)
-        .then((newName) => {
-          if (!newName) return;
+        .then((verdict) => {
+          if (verdict.outcome !== 'renamed' || !verdict.newName) {
+            console.info(`[auto-rename] ${verdict.outcome} (${verdict.reason}) for ${sessionId}`);
+            return;
+          }
+          const display = verdict.displayName ? `; display "${verdict.displayName}"` : '';
+          console.info(`[auto-rename] renamed ${row.branch} -> ${verdict.newName}${display} for ${sessionId}`);
           // Tour encore en cours → move différé à la fin de tour (runLoop) ;
           // session déjà idle → move immédiat.
-          if (s.busy) s.pendingMove = { newName };
-          else void applyWorktreeMove(sessionId, s, newName);
+          if (s.busy) s.pendingMove = { newName: verdict.newName };
+          else void applyWorktreeMove(sessionId, s, verdict.newName);
         })
-        .catch(() => { /* retentera au prochain message */ })
+        .catch((err) => {
+          console.warn(`[auto-rename] attempt threw for ${sessionId}:`, err instanceof Error ? err.message : err);
+        })
         .finally(() => { s.renameInFlight = false; });
       return;
     }

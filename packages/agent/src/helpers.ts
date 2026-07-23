@@ -54,6 +54,30 @@ export function startSSE(res: ServerResponse) {
 	});
 }
 
+// ── Env du sous-process Claude ──
+
+/**
+ * Variables retirées avant tout appel à Claude (SDK `query()` comme `claude
+ * --print`) : le CLI/SDK s'authentifie via son login stocké, et laisser fuiter
+ * `ANTHROPIC_*` du process serveur redirige l'auth/l'endpoint (proxy, token
+ * incohérent) et casse silencieusement l'appel. Liste unique partagée pour
+ * éviter que les deux chemins divergent à nouveau.
+ */
+export const CLAUDE_ENV_STRIP_KEYS = [
+	'ANTHROPIC_API_KEY',
+	'ANTHROPIC_AUTH_TOKEN',
+	'ANTHROPIC_BASE_URL',
+	'CLAUDECODE',
+	'CLAUDE_CODE_ENTRYPOINT',
+] as const;
+
+/** Copie de `process.env` sans les variables qui parasitent l'auth Claude. */
+export function cleanClaudeEnv(): NodeJS.ProcessEnv {
+	const env = { ...process.env };
+	for (const key of CLAUDE_ENV_STRIP_KEYS) delete env[key];
+	return env;
+}
+
 // ── Binary locators ──
 
 export function findClaude(): string {
