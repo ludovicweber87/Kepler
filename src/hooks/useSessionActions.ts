@@ -92,13 +92,5 @@ export function useSessionActions() {
 		[invalidate],
 	);
 
-	const rename = useCallback(
-		async (sessionId: string, name: string) => {
-			await patch({ session_id: sessionId, agent_name: name });
-			invalidate();
-		},
-		[patch, invalidate],
-	);
-
-	return { stop, resume, archive, unarchive, remove, rename };
+	return { stop, resume, archive, unarchive, remove };
 }

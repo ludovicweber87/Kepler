@@ -11,7 +11,7 @@ import { useAgentSession } from '@/hooks/useAgentSession';
 import { usePersonas } from '@/hooks/usePersonas';
 import { DEFAULT_CREATE_PR_PROMPT, DEFAULT_COMMIT_PUSH_PROMPT } from '@/lib/prompts';
 import { buildPersonaSwitchMessage } from '@/lib/personaSwitch';
-import type { ChatImageInput, ChatSegment } from '@/types';
+import type { ChatImageInput } from '@/types';
 import ChatBubble from './chat/ChatBubble';
 import ChatPermissionCard from './chat/ChatPermissionCard';
 import ChatQuestionCard from './chat/ChatQuestionCard';
@@ -35,13 +35,6 @@ interface Props {
 	initialMode?: string;
 	createPrPrompt?: string;
 	commitPushPrompt?: string;
-	onFirstUserMessage?: (text: string) => void;
-	/**
-	 * Appelé une seule fois, à la fin du PREMIER tour agent (busy → idle) : fournit la
-	 * demande initiale de l'utilisateur + la réponse de l'agent, pour synthétiser un nom
-	 * de branche à partir d'un contexte complet plutôt que du seul premier message.
-	 */
-	onFirstTurnComplete?: (userText: string, assistantText: string) => void;
 	onResume?: () => void;
 	/** Ref one-shot armée par le parent au clic « reprendre » : relance le dernier prompt user. */
 	resumeRetryRef?: { current: boolean };
@@ -66,8 +59,6 @@ export default function AgentChatTab({
 	initialMode,
 	createPrPrompt,
 	commitPushPrompt,
-	onFirstUserMessage,
-	onFirstTurnComplete,
 	onResume,
 	resumeRetryRef,
 	onOpenChanges,
@@ -78,9 +69,6 @@ export default function AgentChatTab({
 	const t = useTranslations('agentChat');
 	const { session, updatePersona } = useAgentSession(sessionId);
 	const { personas } = usePersonas();
-	const firstSent = useRef(false);
-	const firstUserText = useRef('');
-	const firstTurnDone = useRef(false);
 	const prevStatus = useRef<string | null>(null);
 
 	const chat = useAgentChat({
@@ -140,42 +128,18 @@ export default function AgentChatTab({
 		});
 	}, [chat.pendingPermissions, chat.pendingQuestions]);
 
-	// Toujours à jour sans re-déclencher l'effet de fin de tour (lecture au moment T).
-	// Déclaré avant l'effet fin-de-tour → exécuté avant lui sur un même commit.
-	const messagesRef = useRef(chat.messages);
-	useEffect(() => {
-		messagesRef.current = chat.messages;
-	}, [chat.messages]);
-
-	// Fin de tour de l'agent (busy → idle) : signale au parent pour rafraîchir le diff,
-	// et — au tout premier tour seulement — remonte demande + réponse pour le renommage.
+	// Fin de tour de l'agent (busy → idle) : signale au parent pour rafraîchir le diff.
 	useEffect(() => {
 		if (prevStatus.current === 'busy' && chat.status === 'idle') {
 			onTurnComplete?.();
-			if (!firstTurnDone.current && firstUserText.current) {
-				firstTurnDone.current = true;
-				const assistantText = (
-					messagesRef.current.filter((m) => m.role === 'assistant').at(-1)?.segments ?? []
-				)
-					.filter((s): s is Extract<ChatSegment, { kind: 'text' }> => s.kind === 'text')
-					.map((s) => s.text)
-					.join('\n')
-					.trim();
-				onFirstTurnComplete?.(firstUserText.current, assistantText);
-			}
 		}
 		prevStatus.current = chat.status;
-	}, [chat.status, onTurnComplete, onFirstTurnComplete]);
+	}, [chat.status, onTurnComplete]);
 
 	const prPrompt = createPrPrompt || DEFAULT_CREATE_PR_PROMPT;
 	const commitPrompt = commitPushPrompt || DEFAULT_COMMIT_PUSH_PROMPT;
 
 	const handleSend = (text: string, images?: ChatImageInput[]) => {
-		if (!firstSent.current) {
-			firstSent.current = true;
-			firstUserText.current = text;
-			onFirstUserMessage?.(text);
-		}
 		chat.send(text, images);
 	};
 

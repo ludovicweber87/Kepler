@@ -92,7 +92,7 @@ export default function Sidebar() {
 		return map;
 	}, [allSessions]);
 	const { views } = useAgentViews();
-	const { byPath, deleteWorktree, renameBranch } = useAllWorktrees(views.map((v) => v.path));
+	const { byPath, deleteWorktree, renameWorktree } = useAllWorktrees(views.map((v) => v.path));
 	const { mergedForRepo } = useMergedBranches(views.map((v) => v.repoFullName));
 	const { data: openPrs = [] } = usePullRequests(views.map((v) => v.repoFullName));
 	// Branches avec une PR ouverte, groupées par repo (match par head.ref).
@@ -104,7 +104,7 @@ export default function Sidebar() {
 		}
 		return map;
 	}, [openPrs]);
-	const { archive, remove, rename } = useSessionActions();
+	const { archive, remove } = useSessionActions();
 	const { repoPaths } = useRepoPaths();
 	const { showSnackbar } = useSnackbar();
 
@@ -148,6 +148,7 @@ export default function Sidebar() {
 	} | null>(null);
 	const [renameDialog, setRenameDialog] = useState<{
 		projectPath: string;
+		worktreePath: string;
 		sessionId: string | null;
 		branch: string;
 		value: string;
@@ -221,15 +222,14 @@ export default function Sidebar() {
 
 	const handleRename = async () => {
 		if (!renameDialog) return;
-		const { projectPath, sessionId, branch, value } = renameDialog;
+		const { projectPath, worktreePath, sessionId, value } = renameDialog;
 		const name = value.trim();
 		if (!name) return;
 		setRenameBusy(true);
 		try {
-			// A session's display name lives on agent_name; without a session we
-			// rename the underlying git branch (the folder stays untouched).
-			if (sessionId) await rename(sessionId, name);
-			else await renameBranch(projectPath, branch, name);
+			// Renomme tout d'un bloc côté serveur agent : branche git, dossier
+			// worktree et nom d'affichage de la session (input slugifié en kebab).
+			await renameWorktree(projectPath, worktreePath, name, sessionId);
 			showSnackbar(t('renamed'), 'success');
 			setRenameDialog(null);
 		} catch (err) {
@@ -773,6 +773,7 @@ export default function Sidebar() {
 						if (!actionsMenu) return;
 						setRenameDialog({
 							projectPath: actionsMenu.projectPath,
+							worktreePath: actionsMenu.worktreePath,
 							sessionId: actionsMenu.sessionId,
 							branch: actionsMenu.branch,
 							value: actionsMenu.currentName,

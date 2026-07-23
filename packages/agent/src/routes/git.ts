@@ -16,6 +16,8 @@ import {
 	sendSSE,
 } from '../helpers.js';
 import { getDb } from '../db.js';
+import { sdkAgent } from '../terminal.js';
+import { slugifyBranchInput, moveWorktreeDir } from '../sdk/autoRename.js';
 import { fetchIssueContextBlock, issueContextMarker } from '../issueContext.js';
 import { parseFilesToCopy } from '../filesToCopy.js';
 import { resolveCopyTargets } from '../resolveCopyTargets.js';
@@ -328,42 +330,88 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 		return;
 	}
 
-	// POST /git/rename-branch — rename a local branch in place (folder untouched)
-	if (path === '/git/rename-branch' && method === 'POST') {
+	// POST /git/rename-worktree — renomme branche + dossier worktree (+ nom de session).
+	// Seul chemin d'édition manuel (clic droit → renommer). Si une session SDK vit
+	// sur ce worktree, le move du dossier passe par le manager (différé si busy).
+	if (path === '/git/rename-worktree' && method === 'POST') {
 		try {
-			const { cwd, oldBranch, newBranch } = await readBody<{
-				cwd: string;
-				oldBranch: string;
-				newBranch: string;
+			const { worktreePath, newName, sessionId } = await readBody<{
+				worktreePath: string;
+				newName: string;
+				sessionId?: string;
 			}>(req);
-			if (!cwd || !oldBranch || !newBranch?.trim())
-				return sendJson(res, { error: 'cwd, oldBranch and newBranch are required' }, 400);
+			if (!worktreePath || !newName?.trim())
+				return sendJson(res, { error: 'worktreePath and newName are required' }, 400);
 
-			const target = newBranch.trim();
-			if (target === oldBranch) return sendJson(res, { branch: oldBranch });
+			const slug = slugifyBranchInput(newName);
+			if (!slug) return sendJson(res, { error: `Invalid branch name: ${newName}` }, 400);
 
-			// Validate the new ref name against git's own rules.
-			try {
-				execFileSync('git', ['check-ref-format', '--branch', target], {
-					cwd,
-					stdio: 'ignore',
-					timeout: 10000,
-				});
-			} catch {
-				return sendJson(res, { error: `Invalid branch name: ${target}` }, 400);
-			}
-
-			if (localBranchExists(cwd, target))
-				return sendJson(res, { error: `Branch already exists: ${target}` }, 409);
-
-			execFileSync('git', ['-C', cwd, 'branch', '-m', oldBranch, target], {
+			const oldBranch = execFileSync('git', ['-C', worktreePath, 'branch', '--show-current'], {
 				encoding: 'utf-8',
 				timeout: 10000,
-			});
+			}).trim();
 
-			sendJson(res, { branch: target });
+			if (slug !== oldBranch) {
+				// Validate the new ref name against git's own rules.
+				try {
+					execFileSync('git', ['check-ref-format', '--branch', slug], {
+						cwd: worktreePath,
+						stdio: 'ignore',
+						timeout: 10000,
+					});
+				} catch {
+					return sendJson(res, { error: `Invalid branch name: ${slug}` }, 400);
+				}
+
+				if (localBranchExists(worktreePath, slug))
+					return sendJson(res, { error: `Branch already exists: ${slug}` }, 409);
+
+				execFileSync('git', ['-C', worktreePath, 'branch', '-m', oldBranch, slug], {
+					encoding: 'utf-8',
+					timeout: 10000,
+				});
+			}
+
+			const db = getDb();
+			try {
+				db?.prepare('UPDATE agent_sessions SET branch = ? WHERE worktree_path = ?').run(
+					slug,
+					worktreePath,
+				);
+				if (sessionId)
+					db?.prepare('UPDATE agent_sessions SET agent_name = ? WHERE session_id = ?').run(
+						slug,
+						sessionId,
+					);
+			} catch {
+				/* best-effort */
+			}
+
+			// Move du dossier : via le manager SDK si la session vit (restart propre),
+			// sinon directement — aucun process à ménager.
+			let finalPath: string = worktreePath;
+			let deferred = false;
+			if (sessionId && sdkAgent.has(sessionId)) {
+				const move = await sdkAgent.requestWorktreeMove(sessionId, slug);
+				if (move.status === 'moved' && move.worktreePath) finalPath = move.worktreePath;
+				else deferred = true;
+			} else {
+				const moved = moveWorktreeDir(worktreePath, slug);
+				if (moved) {
+					finalPath = moved;
+					try {
+						db?.prepare(
+							'UPDATE agent_sessions SET worktree_path = ? WHERE worktree_path = ?',
+						).run(moved, worktreePath);
+					} catch {
+						/* best-effort */
+					}
+				}
+			}
+
+			sendJson(res, { branch: slug, worktreePath: finalPath, deferred });
 		} catch (err) {
-			sendError(res, err instanceof Error ? err.message : 'Failed to rename branch');
+			sendError(res, err instanceof Error ? err.message : 'Failed to rename worktree');
 		}
 		return;
 	}

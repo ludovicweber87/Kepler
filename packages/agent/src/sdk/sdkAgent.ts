@@ -14,6 +14,13 @@ import { insertAndEmit } from '../notifications/insert.js';
 import { randomUUID } from 'node:crypto';
 import { saveAttachment, extForMediaType } from './attachments.js';
 import type { ChatImageInput } from './promptQueue.js';
+import {
+  autoRenameBranch,
+  isAutoNamed,
+  moveWorktreeDir,
+  persistWorktreePath,
+  readSessionRow,
+} from './autoRename.js';
 
 export interface StreamSocket { send(data: string): void; readyState?: number }
 export interface StartParams { cwd: string; systemPrompt?: string; model?: string; effort?: string; permissionMode?: string; resumeClaudeSessionId?: string; mcpServers?: Record<string, unknown>; retryLastUser?: boolean; observeOnly?: boolean; initialPrompt?: string }
@@ -40,6 +47,13 @@ interface SessionState {
   cwd: string;
   createdAt: number;
   turnActions: string[];
+  systemPrompt?: string;
+  mcpServers?: Record<string, unknown>;
+  // Auto-rename : époque du runLoop (invalide l'ancien loop après un restart),
+  // génération LLM en cours, et move de worktree différé au prochain idle.
+  epoch: number;
+  renameInFlight: boolean;
+  pendingMove?: { newName: string };
 }
 
 export interface ActiveSdkSession { sessionId: string; cwd: string; createdAt: number; busy: boolean }
@@ -91,6 +105,7 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
   }
 
   async function runLoop(sessionId: string, s: SessionState) {
+    const epoch = s.epoch;
     try {
       for await (const msg of s.q) {
         for (const ev of mapMessage(msg as never)) {
@@ -133,15 +148,109 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
             } catch (err) { console.error('[notifications] agent result notif failed', err); }
           }
           broadcast(s, { type: 'stream-event', seq, ...ev });
+          // Fin de tour + move en attente → on déplace le dossier du worktree
+          // maintenant que la session est idle, puis on redémarre le query SDK
+          // avec le nouveau cwd (resume → contexte préservé, transparent client).
+          if (ev.event === 'result' && s.pendingMove && !s.busy) {
+            const { newName } = s.pendingMove;
+            s.pendingMove = undefined;
+            void applyWorktreeMove(sessionId, s, newName);
+          }
         }
       }
-      if (!s.closed) broadcast(s, { type: 'stream-closed', reason: 'generator-ended' });
+      if (!s.closed && epoch === s.epoch) broadcast(s, { type: 'stream-closed', reason: 'generator-ended' });
     } catch (err) {
-      if (!s.closed) broadcast(s, { type: 'stream-error', message: err instanceof Error ? err.message : String(err), fatal: true });
+      if (!s.closed && epoch === s.epoch) broadcast(s, { type: 'stream-error', message: err instanceof Error ? err.message : String(err), fatal: true });
     } finally {
-      s.perms.abortAll();
-      sessions.delete(sessionId);
+      // Un restart (auto-rename) incrémente l'époque : l'ancien loop ne doit
+      // alors ni tuer les permissions ni retirer la session de la map.
+      if (epoch === s.epoch) {
+        s.perms.abortAll();
+        sessions.delete(sessionId);
+      }
     }
+  }
+
+  /** Options du query SDK, reconstruites depuis l'état courant de la session. */
+  function buildQueryOptions(s: SessionState, cwd: string, resumeId: string | null): Record<string, unknown> {
+    const options: Record<string, unknown> = {
+      cwd,
+      pathToClaudeCodeExecutable: findClaude(),
+      env: cleanEnv(),
+      permissionMode: s.permissionMode,
+      // Requis par le SDK pour autoriser le mode 'bypassPermissions' (défaut :
+      // l'agent n'invite jamais à confirmer), au démarrage comme via le chip.
+      allowDangerouslySkipPermissions: true,
+      canUseTool: s.perms.canUseTool,
+    };
+    if (s.model) options.model = s.model;
+    if (s.effort) options.effort = s.effort;
+    if (s.systemPrompt) options.systemPrompt = s.systemPrompt;
+    if (s.mcpServers) options.mcpServers = s.mcpServers;
+    if (resumeId) options.resume = resumeId;
+    return options;
+  }
+
+  /**
+   * Restart soft du query SDK avec un nouveau cwd : nouvelle queue (les messages
+   * arrivés pendant le restart y sont bufferisés), fermeture propre de l'ancien
+   * query, relance avec `resume` → le contexte de conversation est préservé.
+   */
+  async function restartQuery(sessionId: string, s: SessionState, newCwd: string) {
+    s.epoch++;
+    const oldQ = s.q;
+    const oldQueue = s.queue;
+    s.queue = makePromptQueue();
+    s.cwd = newCwd;
+    oldQueue.close();
+    try { await oldQ.return?.(); } catch { /* ignore */ }
+    const resumeId = s.claudeSessionId ?? readClaudeSessionId(sessionId);
+    s.q = queryFn({ prompt: s.queue.iterable, options: buildQueryOptions(s, newCwd, resumeId) } as never) as unknown as QueryLike;
+    sessions.set(sessionId, s);
+    void runLoop(sessionId, s);
+    broadcast(s, readyPayload(s, true));
+  }
+
+  /**
+   * Applique le move différé : `git worktree move` + DB + restart du query.
+   * Si un nouveau tour a démarré entre-temps, re-diffère au prochain idle.
+   * Échec du move → warn, la branche garde son nom, le dossier reste (dégradation douce).
+   */
+  async function applyWorktreeMove(sessionId: string, s: SessionState, newName: string): Promise<string | null> {
+    if (s.busy) { s.pendingMove = { newName }; return null; }
+    const row = readSessionRow(sessionId);
+    if (!row?.worktree_path) return null;
+    const newPath = moveWorktreeDir(row.worktree_path, newName);
+    if (!newPath) return null;
+    persistWorktreePath(row.id, newPath);
+    try {
+      await restartQuery(sessionId, s, newPath);
+    } catch (err) {
+      console.error('[autoRename] restart du query SDK a échoué :', err);
+    }
+    return newPath;
+  }
+
+  /**
+   * Déclenche la génération de nom (async, en parallèle du tour) si la branche
+   * de la session est encore auto-générée (`wip-`). Échec → silencieux, on
+   * retentera au prochain message utilisateur.
+   */
+  function maybeStartAutoRename(sessionId: string, s: SessionState) {
+    if (s.renameInFlight || s.pendingMove) return;
+    const row = readSessionRow(sessionId);
+    if (!row || !isAutoNamed(row.branch) || !row.worktree_path) return;
+    s.renameInFlight = true;
+    void autoRenameBranch(sessionId, row)
+      .then((newName) => {
+        if (!newName) return;
+        // Tour encore en cours → move différé à la fin de tour (runLoop) ;
+        // session déjà idle → move immédiat.
+        if (s.busy) s.pendingMove = { newName };
+        else void applyWorktreeMove(sessionId, s, newName);
+      })
+      .catch(() => { /* retentera au prochain message */ })
+      .finally(() => { s.renameInFlight = false; });
   }
 
   function persistClaudeSessionId(sessionId: string, claudeId: string) {
@@ -225,23 +334,13 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
         cwd: params.cwd,
         createdAt: Date.now(),
         turnActions: [],
+        systemPrompt: params.systemPrompt,
+        mcpServers: params.mcpServers,
+        epoch: 0,
+        renameInFlight: false,
       };
-      const options: Record<string, unknown> = {
-        cwd: params.cwd,
-        pathToClaudeCodeExecutable: findClaude(),
-        env: cleanEnv(),
-        permissionMode: s.permissionMode,
-        // Requis par le SDK pour autoriser le mode 'bypassPermissions' (défaut :
-        // l'agent n'invite jamais à confirmer), au démarrage comme via le chip.
-        allowDangerouslySkipPermissions: true,
-        canUseTool: s.perms.canUseTool,
-      };
-      if (params.model) options.model = params.model;
-      if (params.effort) options.effort = params.effort;
-      if (params.systemPrompt) options.systemPrompt = params.systemPrompt;
-      if (params.mcpServers) options.mcpServers = params.mcpServers;
       const resumeId = params.resumeClaudeSessionId ?? readClaudeSessionId(sessionId);
-      if (resumeId) options.resume = resumeId;
+      const options = buildQueryOptions(s, params.cwd, resumeId ?? null);
 
       s.q = queryFn({ prompt: queue.iterable, options } as never) as unknown as QueryLike;
       sessions.set(sessionId, s);
@@ -260,6 +359,7 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
         transcript.appendEvent(sessionId, seq, 'user', ev);
         broadcast(s, { type: 'stream-event', seq, ...ev });
         s.queue.push(params.initialPrompt, []);
+        maybeStartAutoRename(sessionId, s);
       }
     },
 
@@ -286,6 +386,7 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
       transcript.appendEvent(sessionId, seq, 'user', ev);
       broadcast(s, { type: 'stream-event', seq, ...ev });
       s.queue.push(text, validImages);
+      maybeStartAutoRename(sessionId, s);
     },
     setModel(sessionId: string, model?: string) {
       const s = sessions.get(sessionId);
@@ -326,6 +427,21 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
     },
     detach(sessionId: string, ws: StreamSocket) {
       sessions.get(sessionId)?.clients.delete(ws);
+    },
+    /**
+     * Move manuel (clic droit → renommer) sur une session SDK vivante : différé
+     * en fin de tour si l'agent travaille, immédiat sinon. 'no-session' → le
+     * caller (route git) fait le move lui-même, aucun process à ménager.
+     */
+    async requestWorktreeMove(sessionId: string, newName: string): Promise<{ status: 'moved' | 'deferred' | 'no-session'; worktreePath?: string }> {
+      const s = sessions.get(sessionId);
+      if (!s) return { status: 'no-session' };
+      if (s.busy) {
+        s.pendingMove = { newName };
+        return { status: 'deferred' };
+      }
+      const newPath = await applyWorktreeMove(sessionId, s, newName);
+      return newPath ? { status: 'moved', worktreePath: newPath } : { status: 'deferred' };
     },
     stop(sessionId: string) {
       const s = sessions.get(sessionId);
