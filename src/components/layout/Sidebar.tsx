@@ -227,8 +227,8 @@ export default function Sidebar() {
 		if (!name) return;
 		setRenameBusy(true);
 		try {
-			// Renomme tout d'un bloc côté serveur agent : branche git, dossier
-			// worktree et nom d'affichage de la session (input slugifié en kebab).
+			// Renomme l'identité du worktree côté serveur agent : branche git +
+			// dossier worktree (input slugifié en kebab). N'affecte pas la persona.
 			await renameWorktree(projectPath, worktreePath, name, sessionId);
 			showSnackbar(t('renamed'), 'success');
 			setRenameDialog(null);
@@ -470,9 +470,9 @@ export default function Sidebar() {
 													const isActiveWt =
 														!!wtSession &&
 														classifySession(wtSession) === 'active';
-													// Show the agent-renamed name.
-													const displayName =
-														wtSession?.agent_name ?? wt.branch;
+													// Identité du worktree = sa branche. La persona (agent_name)
+													// est une donnée séparée, affichée au-dessus du composer.
+													const displayName = wt.branch;
 													const sessionIdForWt =
 														wtSession?.session_id ?? null;
 													// Currently open in the Workbench.
