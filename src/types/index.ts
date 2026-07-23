@@ -305,7 +305,7 @@ export interface AgentPreset {
 }
 
 // ─── Agent Chat (lot 2) ──────────────────────────────────
-export type ChatRole = 'user' | 'assistant';
+export type ChatRole = 'user' | 'assistant' | 'system';
 
 export interface ChatToolCall {
 	id: string;
@@ -320,6 +320,7 @@ export type ChatSegment =
 	| { kind: 'text'; text: string }
 	| { kind: 'thinking'; text: string }
 	| { kind: 'image'; url: string; name: string }
+	| { kind: 'role_switch'; name: string }
 	| { kind: 'tool'; call: ChatToolCall };
 
 export interface ChatImageInput {
@@ -368,7 +369,15 @@ export type QuestionAnswers = Record<string, string>;
 /** Event tel qu'il arrive sur le fil WS (data selon l'`event`). */
 export interface StreamEventWire {
 	seq: number;
-	event: 'session' | 'user' | 'thinking' | 'assistant' | 'tool_use' | 'tool_result' | 'result';
+	event:
+		| 'session'
+		| 'user'
+		| 'thinking'
+		| 'assistant'
+		| 'tool_use'
+		| 'tool_result'
+		| 'role_switch'
+		| 'result';
 	data: Record<string, unknown>;
 }
 

@@ -80,6 +80,12 @@ interface StreamSetModeMessage {
 	sessionId: string;
 	permissionMode: string;
 }
+interface StreamSetSystemPromptMessage {
+	type: 'stream-set-system-prompt';
+	sessionId: string;
+	systemPrompt: string;
+	personaName?: string;
+}
 interface StreamInterruptMessage {
 	type: 'stream-interrupt';
 	sessionId: string;
@@ -112,6 +118,7 @@ type ClientMessage =
 	| StreamSetModelMessage
 	| StreamSetEffortMessage
 	| StreamSetModeMessage
+	| StreamSetSystemPromptMessage
 	| StreamInterruptMessage
 	| StreamStopMessage
 	| StreamPermissionResponseMessage
@@ -352,6 +359,10 @@ export function startTerminalServer(httpServer: HttpServer) {
 			}
 			if (msg.type === 'stream-set-mode') {
 				sdkAgent.setPermissionMode(msg.sessionId, msg.permissionMode);
+				return;
+			}
+			if (msg.type === 'stream-set-system-prompt') {
+				sdkAgent.setSystemPrompt(msg.sessionId, msg.systemPrompt, msg.personaName);
 				return;
 			}
 			if (msg.type === 'stream-interrupt') {

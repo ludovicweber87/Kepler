@@ -9,6 +9,16 @@ export function reduceStreamEvent(messages: ChatMessage[], wire: StreamEventWire
 
 	if (event === 'session' || event === 'result') return messages;
 
+	if (event === 'role_switch')
+		return [
+			...messages,
+			{
+				id: nextId(),
+				role: 'system',
+				segments: [{ kind: 'role_switch', name: String(data.name ?? '') }],
+			},
+		];
+
 	if (event === 'user')
 		return [
 			...messages,

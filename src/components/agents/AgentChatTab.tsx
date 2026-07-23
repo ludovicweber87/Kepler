@@ -10,7 +10,6 @@ import { useAgentChat } from '@/hooks/useAgentChat';
 import { useAgentSession } from '@/hooks/useAgentSession';
 import { usePersonas } from '@/hooks/usePersonas';
 import { DEFAULT_CREATE_PR_PROMPT, DEFAULT_COMMIT_PUSH_PROMPT } from '@/lib/prompts';
-import { buildPersonaSwitchMessage } from '@/lib/personaSwitch';
 import type { ChatImageInput } from '@/types';
 import ChatBubble from './chat/ChatBubble';
 import ChatPermissionCard from './chat/ChatPermissionCard';
@@ -148,15 +147,16 @@ export default function AgentChatTab({
 	const currentPersonaId = personas.find((p) => p.name === agentName)?.id ?? null;
 
 	// Changement de persona en cours de session : model/effort/mode appliqués en live,
-	// puis directive injectée dans la conversation (le SDK ne change pas le prompt à chaud),
-	// puis snapshot persisté sur la session (couleur/nom/prompt survivent au reload).
+	// puis le system prompt est changé côté serveur via un restart soft (resume →
+	// contexte préservé, zéro token consommé, aucun message injecté), puis snapshot
+	// persisté sur la session (couleur/nom/prompt survivent au reload).
 	const handleSwitchPersona = (personaId: string) => {
 		const persona = personas.find((p) => p.id === personaId);
 		if (!persona) return;
 		chat.setModel(persona.model ?? '');
 		chat.setEffort(persona.effort ?? '');
 		chat.setPermissionMode(persona.permission_mode ?? '');
-		chat.send(buildPersonaSwitchMessage(persona));
+		chat.setSystemPrompt(persona.system_prompt ?? '', persona.name);
 		updatePersona({
 			agent_name: persona.name,
 			agent_color: persona.color,

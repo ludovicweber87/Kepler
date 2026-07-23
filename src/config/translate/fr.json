@@ -432,6 +432,7 @@
 		}
 	},
 	"agentChat": {
+		"roleSwitch": "Rôle : {name}",
 		"agentLabel": "Agent",
 		"switchPersona": "Changer de persona",
 		"noPersonas": "Aucune persona",

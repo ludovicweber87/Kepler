@@ -132,6 +132,8 @@ export function useAgentChat(p: Params) {
 						setModelState(
 							String((msg.data as Record<string, unknown>)?.model ?? model),
 						);
+					} else if (msg.event === 'role_switch') {
+						// Marqueur informatif : ne modifie pas l'etat busy/idle.
 					} else setStatus('busy');
 					applyWire(msg as unknown as StreamEventWire);
 					break;
@@ -226,6 +228,12 @@ export function useAgentChat(p: Params) {
 		},
 		[sendCtl],
 	);
+	const setSystemPrompt = useCallback(
+		(systemPrompt: string, personaName?: string) => {
+			sendCtl({ type: 'stream-set-system-prompt', systemPrompt, personaName });
+		},
+		[sendCtl],
+	);
 	const interrupt = useCallback(() => {
 		setStatus('idle'); // réactive le composer sans attendre le round-trip serveur
 		sendCtl({ type: 'stream-interrupt' });
@@ -261,6 +269,7 @@ export function useAgentChat(p: Params) {
 		setModel,
 		setEffort,
 		setPermissionMode,
+		setSystemPrompt,
 		interrupt,
 		resolvePermission,
 		resolveQuestion,

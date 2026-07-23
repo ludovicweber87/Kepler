@@ -54,6 +54,8 @@ interface SessionState {
   epoch: number;
   renameInFlight: boolean;
   pendingMove?: { newName: string };
+  // Changement de persona demandé pendant un tour : restart différé au prochain idle.
+  pendingSystemPrompt?: boolean;
 }
 
 export interface ActiveSdkSession { sessionId: string; cwd: string; createdAt: number; busy: boolean }
@@ -156,6 +158,14 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
             s.pendingMove = undefined;
             void applyWorktreeMove(sessionId, s, newName);
           }
+          // Changement de persona demandé pendant le tour : restart soft maintenant
+          // que la session est idle (le move, s'il y en a un, l'a déjà couvert).
+          else if (ev.event === 'result' && s.pendingSystemPrompt && !s.busy) {
+            s.pendingSystemPrompt = false;
+            void restartQuery(sessionId, s).catch((err) =>
+              console.error('[persona] restart du query SDK a échoué :', err),
+            );
+          }
         }
       }
       if (!s.closed && epoch === s.epoch) broadcast(s, { type: 'stream-closed', reason: 'generator-ended' });
@@ -196,7 +206,7 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
    * arrivés pendant le restart y sont bufferisés), fermeture propre de l'ancien
    * query, relance avec `resume` → le contexte de conversation est préservé.
    */
-  async function restartQuery(sessionId: string, s: SessionState, newCwd: string) {
+  async function restartQuery(sessionId: string, s: SessionState, newCwd: string = s.cwd) {
     s.epoch++;
     const oldQ = s.q;
     const oldQueue = s.queue;
@@ -205,6 +215,9 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
     oldQueue.close();
     try { await oldQ.return?.(); } catch { /* ignore */ }
     const resumeId = s.claudeSessionId ?? readClaudeSessionId(sessionId);
+    // Tout restart relance le query avec l'état courant (dont systemPrompt) via
+    // buildQueryOptions : le changement de persona en attente est donc appliqué.
+    s.pendingSystemPrompt = false;
     s.q = queryFn({ prompt: s.queue.iterable, options: buildQueryOptions(s, newCwd, resumeId) } as never) as unknown as QueryLike;
     sessions.set(sessionId, s);
     void runLoop(sessionId, s);
@@ -408,6 +421,31 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
       if (!s) return;
       s.permissionMode = mode;
       void s.q.setPermissionMode?.(mode)?.catch(() => {});
+    },
+    /**
+     * Changement de persona à chaud : le SDK n'a pas de setter du system prompt,
+     * on le change donc via un restart soft avec `resume` (contexte préservé).
+     * Aucun message n'est envoyé au modèle → zéro token consommé pour le switch.
+     * Un event `role_switch` est persisté dans le transcript (marqueur visuel, non
+     * transmis au modèle). Si l'agent travaille, le restart est différé au prochain idle.
+     */
+    setSystemPrompt(sessionId: string, prompt: string, personaName?: string) {
+      const s = sessions.get(sessionId);
+      if (!s) return;
+      s.systemPrompt = prompt || undefined;
+      if (personaName) {
+        const seq = s.seq++;
+        const ev = { event: 'role_switch', data: { name: personaName } } as const;
+        transcript.appendEvent(sessionId, seq, 'system', ev);
+        broadcast(s, { type: 'stream-event', seq, ...ev });
+      }
+      if (s.busy) {
+        s.pendingSystemPrompt = true;
+        return;
+      }
+      void restartQuery(sessionId, s).catch((err) =>
+        console.error('[persona] restart du query SDK a échoué :', err),
+      );
     },
     interrupt(sessionId: string) {
       const s = sessions.get(sessionId);
