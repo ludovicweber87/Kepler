@@ -28,3 +28,58 @@ export const EFFORTS = [
 	{ value: 'high', key: 'effortHigh' },
 	{ value: 'max', key: 'effortMax' },
 ] as const;
+
+// Regroupement famille → versions, pour le sélecteur en cards de la modale de lancement.
+// `alias` = valeur à envoyer pour « dernier modèle de la famille » (null si pas d'alias).
+// `labelKey`/`descKey` sont résolus dans le namespace i18n `launchModal`.
+export const MODEL_FAMILIES = [
+	{
+		id: 'opus',
+		labelKey: 'familyOpus',
+		descKey: 'familyOpusDesc',
+		alias: 'opus',
+		versions: [
+			'claude-opus-4-8',
+			'claude-opus-4-7',
+			'claude-opus-4-6',
+			'claude-opus-4-5',
+			'claude-opus-4-1',
+		],
+	},
+	{
+		id: 'sonnet',
+		labelKey: 'familySonnet',
+		descKey: 'familySonnetDesc',
+		alias: 'sonnet',
+		versions: ['claude-sonnet-5', 'claude-sonnet-4-6', 'claude-sonnet-4-5'],
+	},
+	{
+		id: 'haiku',
+		labelKey: 'familyHaiku',
+		descKey: 'familyHaikuDesc',
+		alias: 'haiku',
+		versions: ['claude-haiku-4-5'],
+	},
+	{
+		id: 'fable',
+		labelKey: 'familyFable',
+		descKey: 'familyFableDesc',
+		alias: null,
+		versions: ['claude-fable-5'],
+	},
+] as const;
+
+export type ModelFamilyId = (typeof MODEL_FAMILIES)[number]['id'];
+
+/** Famille d'un model (alias ou version épinglée). Retourne 'opus' par défaut. */
+export function modelFamily(model: string): ModelFamilyId {
+	const found = MODEL_FAMILIES.find(
+		(f) => f.alias === model || (f.versions as readonly string[]).includes(model),
+	);
+	return found?.id ?? 'opus';
+}
+
+/** Clé i18n (namespace `common`) du label court d'une valeur de model. */
+export function modelLabelKey(model: string): string | undefined {
+	return MODELS.find((m) => m.value === model)?.key;
+}
