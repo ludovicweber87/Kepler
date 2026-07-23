@@ -6,7 +6,7 @@ import { createPermissionController, type PermissionController, type PendingPerm
 import type { PermissionDecision } from './types.js';
 import * as transcript from './transcriptStore.js';
 import { extractLastUserText } from './retryLastUser.js';
-import { buildPersonaNote, applyPersonaNote } from './personaSwitch.js';
+import { buildPersonaNote, buildEffortNote, buildModeNote, applyPersonaNote, combineNotes } from './personaSwitch.js';
 import { deriveLogs } from './activityDeriver.js';
 import { summarizeTurn } from './turnSummarizer.js';
 import { getDb } from '../db.js';
@@ -64,6 +64,13 @@ interface SessionState {
   personaName?: string;
   pendingPersonaNote?: string;
   pendingPersonaFrom?: string;
+  // Marqueurs « effort / mode changé » à transmettre au modèle au prochain tour user
+  // (même mécanique que persona). `pendingXFrom` conserve la valeur d'origine si
+  // plusieurs changements s'enchaînent avant que l'utilisateur reparle (coalescence).
+  pendingEffortNote?: string;
+  pendingEffortFrom?: string;
+  pendingModeNote?: string;
+  pendingModeFrom?: string;
   // Restart déclenché par un switch de persona : le SDK émet un `result` de reprise
   // qu'il ne faut PAS interpréter comme une fin de tour utilisateur, sinon l'auto-rename
   // opportuniste se déclenche sur un simple changement de rôle. Consommé une seule fois.
@@ -444,11 +451,16 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
       } as const;
       transcript.appendEvent(sessionId, seq, 'user', ev);
       broadcast(s, { type: 'stream-event', seq, ...ev });
-      // Le transcript/UI conserve le texte brut ; seul le flux SDK reçoit le marqueur
-      // de switch de persona (option A), consommé une seule fois.
-      s.queue.push(applyPersonaNote(s.pendingPersonaNote, text), validImages);
+      // Le transcript/UI conserve le texte brut ; seul le flux SDK reçoit les marqueurs
+      // de changement (persona + effort + mode, option A), consommés une seule fois.
+      const note = combineNotes(s.pendingPersonaNote, s.pendingEffortNote, s.pendingModeNote);
+      s.queue.push(applyPersonaNote(note, text), validImages);
       s.pendingPersonaNote = undefined;
       s.pendingPersonaFrom = undefined;
+      s.pendingEffortNote = undefined;
+      s.pendingEffortFrom = undefined;
+      s.pendingModeNote = undefined;
+      s.pendingModeFrom = undefined;
       // Un vrai tour utilisateur ré-arme l'auto-rename : annule un skip éventuellement
       // laissé par un switch de persona qui n'aurait pas produit de `result` de reprise.
       s.skipAutoRenameOnNextResult = false;
@@ -463,17 +475,40 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
     setEffort(sessionId: string, effort: string) {
       const s = sessions.get(sessionId);
       if (!s) return;
+      const prev = s.effort;
       s.effort = effort;
       // Pas de setter dédié : la clé Settings est `effortLevel` (low|medium|high|xhigh).
       // 'max' n'existe pas côté live (uniquement à l'init via Options.effort) → clamp xhigh.
       const effortLevel = effort === 'max' ? 'xhigh' : effort;
       void s.q.applyFlagSettings?.({ effortLevel })?.catch(() => {});
+      // Informe le modèle au prochain tour user (option A). Coalescence : on garde la
+      // valeur d'origine si plusieurs changements s'enchaînent. Net no-op (typique du
+      // bouton cyclique qui revient au départ) → on efface la note pending.
+      const from = s.pendingEffortFrom ?? prev;
+      if (from === effort) {
+        s.pendingEffortFrom = undefined;
+        s.pendingEffortNote = undefined;
+      } else {
+        s.pendingEffortFrom = from;
+        s.pendingEffortNote = buildEffortNote(from, effort);
+      }
     },
     setPermissionMode(sessionId: string, mode: string) {
       const s = sessions.get(sessionId);
       if (!s) return;
+      const prev = s.permissionMode;
       s.permissionMode = mode;
       void s.q.setPermissionMode?.(mode)?.catch(() => {});
+      // Idem effort : marqueur transmis au modèle au prochain tour user, avec
+      // coalescence de l'origine et effacement si retour à la valeur de départ.
+      const from = s.pendingModeFrom ?? prev;
+      if (from === mode) {
+        s.pendingModeFrom = undefined;
+        s.pendingModeNote = undefined;
+      } else {
+        s.pendingModeFrom = from;
+        s.pendingModeNote = buildModeNote(from, mode);
+      }
     },
     /**
      * Changement de persona à chaud : le SDK n'a pas de setter du system prompt,
