@@ -24,6 +24,7 @@ import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
 import AltRouteRoundedIcon from '@mui/icons-material/AltRouteRounded';
+import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
 import Tooltip from '@mui/material/Tooltip';
 interface AgentFile {
 	filename: string;
@@ -40,7 +41,9 @@ import { useTranslations } from 'next-intl';
 import { localFetch } from '@/lib/local-fetch';
 import { apiFetch } from '@/lib/api-fetch';
 import { slugify } from '@/lib/slug';
-import AgentSettingsControls from './chat/AgentSettingsControls';
+import { MODELS, EFFORTS } from '@/lib/models';
+import PersonaCards from './launch/PersonaCards';
+import AgentSettingsCards from './launch/AgentSettingsCards';
 
 interface IssueContext {
 	owner: string;
@@ -135,9 +138,15 @@ export default function AgentTerminalModal({
 	const router = useRouter();
 	const tl = useTranslations('launchModal');
 	const tc = useTranslations('common');
-	// Step management: 'project' → 'launch-mode' → 'branch'
+	// Step management: 'project' → 'launch-mode' → 'agent' → ['settings'] → 'branch'
 	const [step, setStep] = useState<
-		'project' | 'launch-mode' | 'branch' | 'existing-branch' | 'linking-issue'
+		| 'project'
+		| 'launch-mode'
+		| 'agent'
+		| 'settings'
+		| 'branch'
+		| 'existing-branch'
+		| 'linking-issue'
 	>('project');
 	const [branchInput, setBranchInput] = useState('');
 	// F2 — optional GitHub issue linked at launch, injected into the agent prompt as context
@@ -445,9 +454,15 @@ export default function AgentTerminalModal({
 			!autoLaunchedRef.current
 		) {
 			autoLaunchedRef.current = true;
-			setStep('branch');
+			setStep('agent');
 		}
 	}, [open, issueContext, existingSessionId, existingWorktree, projectPath]);
+
+	// Navigation depuis l'étape « Agent » : une persona verrouille les réglages → on
+	// saute l'étape Réglages ; « Sans persona » ouvre les réglages libres.
+	const handleAgentNext = useCallback(() => {
+		setStep(selectedPersonaId ? 'branch' : 'settings');
+	}, [selectedPersonaId]);
 
 	const handleLaunchExistingBranch = useCallback(() => {
 		if (!projectPath || !selectedExistingBranch) return;
@@ -539,7 +554,7 @@ export default function AgentTerminalModal({
 	const handleLaunchModeNext = useCallback(() => {
 		if (!launchMode) return;
 		if (launchMode === 'worktree') {
-			setStep('branch');
+			setStep('agent');
 		} else if (launchMode === 'existing-branch') {
 			setStep('existing-branch');
 		} else {
@@ -950,7 +965,120 @@ export default function AgentTerminalModal({
 				</Box>
 			)}
 
-			{/* Step 3: Branch name input + agent selection (worktree mode) */}
+			{/* Step 3: Agent (persona) selection */}
+			{step === 'agent' && (
+				<Box
+					sx={{
+						flex: 1,
+						display: 'flex',
+						flexDirection: 'column',
+						alignItems: 'center',
+						justifyContent: 'center',
+						gap: 3,
+						px: 4,
+						py: 2,
+						overflowY: 'auto',
+					}}
+				>
+					<SmartToyRoundedIcon
+						sx={{ fontSize: 48, color: 'primary.main', opacity: 0.7 }}
+					/>
+					<Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+						{tl('stepAgent')}
+					</Typography>
+
+					<Box sx={{ width: '100%', maxWidth: 820 }}>
+						<PersonaCards
+							personas={personas}
+							selectedPersonaId={selectedPersonaId}
+							onSelect={setSelectedPersonaId}
+						/>
+					</Box>
+
+					<Box sx={{ display: 'flex', gap: 2 }}>
+						<Button
+							variant="outlined"
+							startIcon={<ArrowBackRoundedIcon />}
+							onClick={() => (issueContext ? onClose() : setStep('launch-mode'))}
+							sx={{ textTransform: 'none', fontWeight: 600 }}
+						>
+							{tc('back')}
+						</Button>
+						<Button
+							variant="contained"
+							endIcon={<ArrowForwardRoundedIcon />}
+							onClick={handleAgentNext}
+							sx={{
+								textTransform: 'none',
+								fontWeight: 600,
+								px: 4,
+								'&:hover': { bgcolor: 'primary.dark' },
+							}}
+						>
+							{tc('next')}
+						</Button>
+					</Box>
+				</Box>
+			)}
+
+			{/* Step 4: Free settings (model / effort / permissions) — only when "no persona" */}
+			{step === 'settings' && (
+				<Box
+					sx={{
+						flex: 1,
+						display: 'flex',
+						flexDirection: 'column',
+						alignItems: 'center',
+						justifyContent: 'center',
+						gap: 3,
+						px: 4,
+						py: 2,
+						overflowY: 'auto',
+					}}
+				>
+					<TuneRoundedIcon sx={{ fontSize: 48, color: 'primary.main', opacity: 0.7 }} />
+					<Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+						{tl('stepSettings')}
+					</Typography>
+
+					<Box sx={{ width: '100%', maxWidth: 640 }}>
+						<AgentSettingsCards
+							model={settingsModel}
+							effort={settingsEffort}
+							permissionMode={settingsMode}
+							onModel={setSettingsModel}
+							onEffort={setSettingsEffort}
+							onMode={setSettingsMode}
+						/>
+					</Box>
+
+					<Box sx={{ display: 'flex', gap: 2 }}>
+						<Button
+							variant="outlined"
+							startIcon={<ArrowBackRoundedIcon />}
+							onClick={() => setStep('agent')}
+							sx={{ textTransform: 'none', fontWeight: 600 }}
+						>
+							{tc('back')}
+						</Button>
+						<Button
+							variant="contained"
+							endIcon={<ArrowForwardRoundedIcon />}
+							onClick={() => setStep('branch')}
+							sx={{
+								textTransform: 'none',
+								fontWeight: 600,
+								px: 4,
+								'&:hover': { bgcolor: 'primary.dark' },
+							}}
+						>
+							{tc('next')}
+						</Button>
+					</Box>
+				</Box>
+			)}
+
+			{/* Step 5: Branch name input + launch */}
 			{step === 'branch' && (
 				<Box
 					sx={{
@@ -1004,98 +1132,59 @@ export default function AgentTerminalModal({
 						</Box>
 					)}
 
-					{/* Agent (persona) selection — snapshotted onto the session at launch */}
-					<Box sx={{ width: '100%', maxWidth: 500 }}>
-						<Typography
-							variant="caption"
-							sx={{ color: 'text.secondary', mb: 0.75, display: 'block' }}
-						>
-							{tl('selectAgentLabel')}
-						</Typography>
-						<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-							<Chip
-								label={tl('agentNone')}
-								size="small"
-								onClick={() => setSelectedPersonaId(null)}
-								variant={selectedPersonaId === null ? 'filled' : 'outlined'}
-								color={selectedPersonaId === null ? 'primary' : 'default'}
-							/>
-							{personas.map((p) => {
-								const selected = selectedPersonaId === p.id;
-								const dot = p.color ?? '#7C5CFF';
-								return (
-									<Chip
-										key={p.id}
-										label={p.name}
-										size="small"
-										onClick={() => setSelectedPersonaId(p.id)}
-										variant={selected ? 'filled' : 'outlined'}
-										icon={
-											<Box
-												sx={{
-													width: 8,
-													height: 8,
-													borderRadius: '50%',
-													bgcolor: dot,
-													ml: 1,
-												}}
-											/>
-										}
-										sx={
-											selected
-												? {
-														bgcolor: alpha(dot, 0.18),
-														borderColor: dot,
-													}
-												: undefined
-										}
-									/>
-								);
-							})}
-						</Box>
-					</Box>
-
-					{/* Model / effort / mode — verrouillés si une persona impose ses réglages */}
-					<Box sx={{ width: '100%', maxWidth: 500 }}>
-						<Typography
-							variant="caption"
-							sx={{ color: 'text.secondary', mb: 0.75, display: 'block' }}
-						>
-							{tl('agentSettingsLabel')}
-						</Typography>
-						<Box
-							sx={{
-								display: 'flex',
-								alignItems: 'center',
-								gap: 0.25,
-								flexWrap: 'wrap',
-							}}
-						>
-							<AgentSettingsControls
-								model={
-									selectedPersona
-										? (selectedPersona.model ?? 'opus')
-										: settingsModel
-								}
-								effort={
-									selectedPersona
-										? (selectedPersona.effort ?? 'high')
-										: settingsEffort
-								}
-								permissionMode={
-									selectedPersona
-										? (selectedPersona.permission_mode ?? 'bypassPermissions')
-										: settingsMode
-								}
-								onModel={setSettingsModel}
-								onEffort={setSettingsEffort}
-								onMode={setSettingsMode}
-								locked={selectedPersonaId != null}
-								lockedTooltip={tc('settingsLockedByPersona', {
-									name: selectedPersona?.name ?? '',
-								})}
-							/>
-						</Box>
+					{/* Récap de l'agent / des réglages choisis aux étapes précédentes */}
+					<Box
+						sx={{
+							width: '100%',
+							maxWidth: 500,
+							display: 'flex',
+							flexWrap: 'wrap',
+							gap: 0.75,
+							justifyContent: 'center',
+						}}
+					>
+						<Chip
+							size="small"
+							icon={
+								<Box
+									sx={{
+										width: 8,
+										height: 8,
+										borderRadius: '50%',
+										bgcolor: selectedPersona?.color ?? 'text.secondary',
+										ml: 1,
+									}}
+								/>
+							}
+							label={selectedPersona ? selectedPersona.name : tl('agentNoneName')}
+							sx={{ height: 24, fontSize: '0.7rem' }}
+						/>
+						<Chip
+							size="small"
+							label={tc(
+								MODELS.find(
+									(m) =>
+										m.value ===
+										(selectedPersona
+											? (selectedPersona.model ?? 'opus')
+											: settingsModel),
+								)?.key ?? 'modelOpus',
+							)}
+							sx={{ height: 24, fontSize: '0.7rem' }}
+						/>
+						<Chip
+							size="small"
+							label={tc(
+								EFFORTS.find(
+									(e) =>
+										e.value ===
+										(selectedPersona
+											? (selectedPersona.effort ?? 'high')
+											: settingsEffort),
+								)?.key ?? 'effortHigh',
+							)}
+							sx={{ height: 24, fontSize: '0.7rem' }}
+						/>
 					</Box>
 
 					<Box
@@ -1163,7 +1252,7 @@ export default function AgentTerminalModal({
 						<Button
 							variant="outlined"
 							startIcon={<ArrowBackRoundedIcon />}
-							onClick={() => (issueContext ? onClose() : setStep('launch-mode'))}
+							onClick={() => setStep(selectedPersonaId ? 'agent' : 'settings')}
 							disabled={isCreating}
 							sx={{ textTransform: 'none', fontWeight: 600 }}
 						>
