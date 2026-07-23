@@ -305,6 +305,7 @@
 		"effortMedium": "Medium",
 		"effortHigh": "High",
 		"effortMax": "Max",
+		"settingsLockedByPersona": "Set by the {name} persona",
 		"modelGroupAliases": "Aliases",
 		"modelGroupVersions": "Versions"
 	},
@@ -344,7 +345,8 @@
 		"activeSession": "Active session",
 		"newSession": "New session",
 		"selectAgentLabel": "Agent",
-		"agentNone": "None (default)"
+		"agentNone": "None (default)",
+		"agentSettingsLabel": "Agent settings"
 	},
 	"agentActivity": {
 		"reportTitle": "Agent report",
@@ -436,6 +438,7 @@
 		"agentLabel": "Agent",
 		"switchPersona": "Switch persona",
 		"noPersonas": "No personas",
+		"noPersona": "No persona",
 		"composerPlaceholder": "Message the agent…",
 		"attachTypeError": "Unsupported image type",
 		"attachSizeError": "Image too large (max 5 MB)",
