@@ -330,7 +330,8 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 		return;
 	}
 
-	// POST /git/rename-worktree — renomme branche + dossier worktree (+ nom de session).
+	// POST /git/rename-worktree — renomme branche + dossier worktree (identité worktree).
+	// N'affecte PAS agent_name (nom de persona) : les deux sont découplés.
 	// Seul chemin d'édition manuel (clic droit → renommer). Si une session SDK vit
 	// sur ce worktree, le move du dossier passe par le manager (différé si busy).
 	if (path === '/git/rename-worktree' && method === 'POST') {
@@ -374,15 +375,13 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 
 			const db = getDb();
 			try {
+				// Renommage worktree = identité worktree uniquement (branch + worktree_path).
+				// On NE touche PAS agent_name : c'est le nom de persona (label au-dessus du
+				// composer), une donnée séparée qui ne doit pas bouger avec le worktree.
 				db?.prepare('UPDATE agent_sessions SET branch = ? WHERE worktree_path = ?').run(
 					slug,
 					worktreePath,
 				);
-				if (sessionId)
-					db?.prepare('UPDATE agent_sessions SET agent_name = ? WHERE session_id = ?').run(
-						slug,
-						sessionId,
-					);
 			} catch {
 				/* best-effort */
 			}

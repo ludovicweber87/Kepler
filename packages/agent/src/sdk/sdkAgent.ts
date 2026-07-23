@@ -57,6 +57,10 @@ interface SessionState {
   pendingMove?: { newName: string };
   // Changement de persona demandé pendant un tour : restart différé au prochain idle.
   pendingSystemPrompt?: boolean;
+  // Restart déclenché par un switch de persona : le SDK émet un `result` de reprise
+  // qu'il ne faut PAS interpréter comme une fin de tour utilisateur, sinon l'auto-rename
+  // opportuniste se déclenche sur un simple changement de rôle. Consommé une seule fois.
+  skipAutoRenameOnNextResult?: boolean;
 }
 
 export interface ActiveSdkSession { sessionId: string; cwd: string; createdAt: number; busy: boolean }
@@ -71,8 +75,11 @@ function cleanEnv(): Record<string, string> {
   return env;
 }
 
-export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
+export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAttempt?: (sessionId: string) => void }) {
   const queryFn = deps?.queryFn ?? realQuery;
+  // Seam de test : notifie chaque entrée dans maybeStartAutoRename (permet de vérifier
+  // que le switch de persona ne déclenche pas l'auto-rename). No-op en production.
+  const onAutoRenameAttempt = deps?.onAutoRenameAttempt;
   const sessions = new Map<string, SessionState>();
 
   function send(ws: StreamSocket, payload: unknown) {
@@ -163,6 +170,9 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
           // que la session est idle (le move, s'il y en a un, l'a déjà couvert).
           else if (ev.event === 'result' && s.pendingSystemPrompt && !s.busy) {
             s.pendingSystemPrompt = false;
+            // Restart de persona : le `result` de reprise qui suivra ne doit pas
+            // ré-armer l'auto-rename (un switch de rôle ne renomme jamais le worktree).
+            s.skipAutoRenameOnNextResult = true;
             void restartQuery(sessionId, s).catch((err) =>
               console.error('[persona] restart du query SDK a échoué :', err),
             );
@@ -171,7 +181,13 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
           // Couvre le nom de branche pas encore généré ET le dossier resté wip-
           // après un move raté — auto-réparation sans nouvelle action utilisateur.
           else if (ev.event === 'result' && !s.busy && !s.renameInFlight) {
-            maybeStartAutoRename(sessionId, s);
+            if (s.skipAutoRenameOnNextResult) {
+              // `result` de reprise consécutif à un switch de persona : consommé sans
+              // déclencher l'auto-rename. Un vrai message utilisateur le ré-armera.
+              s.skipAutoRenameOnNextResult = false;
+            } else {
+              maybeStartAutoRename(sessionId, s);
+            }
           }
         }
       }
@@ -257,6 +273,7 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
    * retentera au prochain message utilisateur.
    */
   function maybeStartAutoRename(sessionId: string, s: SessionState) {
+    onAutoRenameAttempt?.(sessionId);
     if (s.renameInFlight || s.pendingMove) return;
     const row = readSessionRow(sessionId);
     if (!row || !row.worktree_path) return;
@@ -421,6 +438,9 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
       transcript.appendEvent(sessionId, seq, 'user', ev);
       broadcast(s, { type: 'stream-event', seq, ...ev });
       s.queue.push(text, validImages);
+      // Un vrai tour utilisateur ré-arme l'auto-rename : annule un skip éventuellement
+      // laissé par un switch de persona qui n'aurait pas produit de `result` de reprise.
+      s.skipAutoRenameOnNextResult = false;
       maybeStartAutoRename(sessionId, s);
     },
     setModel(sessionId: string, model?: string) {
@@ -465,6 +485,9 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
         s.pendingSystemPrompt = true;
         return;
       }
+      // Switch de rôle idle : le `result` de reprise du restart ne doit pas déclencher
+      // l'auto-rename opportuniste (le worktree ne change pas sur un changement de rôle).
+      s.skipAutoRenameOnNextResult = true;
       void restartQuery(sessionId, s).catch((err) =>
         console.error('[persona] restart du query SDK a échoué :', err),
       );

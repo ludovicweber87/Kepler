@@ -109,7 +109,7 @@ export function useAllWorktrees(paths: string[]) {
 			throw err;
 		} finally {
 			queryClient.invalidateQueries({ queryKey: ['git-worktrees', cwd] });
-			// Le serveur met aussi à jour branch/worktree_path/agent_name des sessions liées.
+			// Le serveur met à jour branch/worktree_path des sessions liées (pas agent_name).
 			queryClient.invalidateQueries({ queryKey: ['sessions', 'active'] });
 			queryClient.invalidateQueries({ queryKey: ['agent-sessions', 'history'] });
 			queryClient.invalidateQueries({ queryKey: ['agent-session'] });
