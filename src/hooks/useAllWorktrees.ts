@@ -66,17 +66,24 @@ export function useAllWorktrees(paths: string[]) {
 		}
 	};
 
-	const renameBranch = async (cwd: string, oldBranch: string, newBranch: string) => {
+	/**
+	 * Renomme branche + dossier worktree (+ nom de session si `sessionId`) via le
+	 * serveur agent. Le serveur slugifie l'entrée en kebab-case ; l'UI optimiste
+	 * affiche le nouveau nom de branche en attendant la réponse.
+	 */
+	const renameWorktree = async (
+		cwd: string,
+		worktreePath: string,
+		newName: string,
+		sessionId?: string | null,
+	) => {
 		await queryClient.cancelQueries({ queryKey: ['git-worktrees', cwd] });
 		const previous = queryClient.getQueryData<WorktreeInfo[]>(['git-worktrees', cwd]);
-		queryClient.setQueryData<WorktreeInfo[]>(['git-worktrees', cwd], (old = []) =>
-			old.map((wt) => (wt.branch === oldBranch ? { ...wt, branch: newBranch } : wt)),
-		);
 		try {
-			const res = await localFetch('/git/rename-branch', {
+			const res = await localFetch('/git/rename-worktree', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ cwd, oldBranch, newBranch }),
+				body: JSON.stringify({ worktreePath, newName, sessionId: sessionId ?? undefined }),
 			});
 			if (!res.ok) {
 				let detail = `HTTP ${res.status}`;
@@ -88,11 +95,24 @@ export function useAllWorktrees(paths: string[]) {
 				}
 				throw new Error(detail);
 			}
+			const data = (await res.json()) as { branch: string; worktreePath: string };
+			queryClient.setQueryData<WorktreeInfo[]>(['git-worktrees', cwd], (old = []) =>
+				old.map((wt) =>
+					wt.path === worktreePath
+						? { ...wt, branch: data.branch, path: data.worktreePath }
+						: wt,
+				),
+			);
+			return data;
 		} catch (err) {
 			if (previous) queryClient.setQueryData(['git-worktrees', cwd], previous);
 			throw err;
 		} finally {
 			queryClient.invalidateQueries({ queryKey: ['git-worktrees', cwd] });
+			// Le serveur met aussi à jour branch/worktree_path/agent_name des sessions liées.
+			queryClient.invalidateQueries({ queryKey: ['sessions', 'active'] });
+			queryClient.invalidateQueries({ queryKey: ['agent-sessions', 'history'] });
+			queryClient.invalidateQueries({ queryKey: ['agent-session'] });
 		}
 	};
 
@@ -100,6 +120,6 @@ export function useAllWorktrees(paths: string[]) {
 		byPath: combined.byPath,
 		isLoading: combined.isLoading,
 		deleteWorktree,
-		renameBranch,
+		renameWorktree,
 	};
 }

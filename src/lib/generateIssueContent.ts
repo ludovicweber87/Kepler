@@ -5,7 +5,7 @@ import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 
-/** Resolve the `claude` binary robustly (mirrors autoRenameBranch / the agent server). */
+/** Resolve the `claude` binary robustly (mirrors the agent server). */
 function findClaude(): string {
 	if (process.env.CLAUDE_BIN) return process.env.CLAUDE_BIN;
 	const paths = [

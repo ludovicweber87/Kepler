@@ -29,7 +29,6 @@ import { useAgentSessionHistory, useAgentSession } from '@/hooks/useAgentSession
 import { useSessionActions } from '@/hooks/useSessionActions';
 import { useOverlayTerminal } from '@/hooks/useOverlayTerminal';
 import { useSnackbar } from '@/hooks/useSnackbar';
-import { apiFetch } from '@/lib/api-fetch';
 import { classifySession } from '@/lib/sessionStatus';
 import { resolveEffectivePath } from '@/lib/effectivePath';
 import { resolveRepoFullName } from '@/lib/resolveRepoFullName';
@@ -70,7 +69,6 @@ export default function Workbench() {
 
 	const [confirmClose, setConfirmClose] = useState(false);
 	const [closing, setClosing] = useState(false);
-	const firstPromptSent = useRef(false);
 	// Armé au clic « reprendre » : demande la relance du dernier prompt user à
 	// la réouverture du WS. Consommé (one-shot) par useAgentChat.
 	const resumeRetryRef = useRef(false);
@@ -189,33 +187,6 @@ export default function Workbench() {
 	);
 	const repoLabel =
 		resolved?.project_name ?? resolved?.project_path?.split('/').filter(Boolean).pop() ?? '';
-	const isAutoNamed = !!branch && branch.startsWith('wip-');
-
-	const submitRenameFromPrompt = useCallback(
-		(promptText: string) => {
-			apiFetch('/api/agent-sessions/rename-from-prompt', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ sessionId, prompt: promptText }),
-			})
-				.then((res) => (res.ok ? res.json() : null))
-				.then((data) => {
-					if (data?.branch) {
-						if (resolved?.project_path)
-							queryClient.invalidateQueries({
-								queryKey: ['git-worktrees', resolved.project_path],
-							});
-						queryClient.invalidateQueries({ queryKey: ['sessions', 'active'] });
-						queryClient.invalidateQueries({ queryKey: ['agent-sessions', 'history'] });
-						// Le header lit `resolved` qui privilégie cette query : sans invalidation,
-						// il resterait sur l'ancien nom `wip-...` jusqu'à ~5 min (staleTime global).
-						queryClient.invalidateQueries({ queryKey: ['agent-session', sessionId] });
-					}
-				})
-				.catch(() => {});
-		},
-		[sessionId, resolved?.project_path, queryClient],
-	);
 
 	const handlePip = useCallback(() => {
 		if (!sessionId || !effectivePath) return;
@@ -495,15 +466,6 @@ export default function Workbench() {
 										queryClient.invalidateQueries({
 											queryKey: ['github', 'prs'],
 										});
-									}}
-									onFirstTurnComplete={(userText, assistantText) => {
-										if (isAutoNamed && !firstPromptSent.current) {
-											firstPromptSent.current = true;
-											const context = assistantText
-												? `${userText}\n\n[Réponse de l'agent]\n${assistantText}`
-												: userText;
-											submitRenameFromPrompt(context);
-										}
 									}}
 								/>
 							</Box>
