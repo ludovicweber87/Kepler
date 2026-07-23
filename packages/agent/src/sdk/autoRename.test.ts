@@ -8,6 +8,11 @@ import {
 	generateBranchSlug,
 	isAutoNamed,
 	worktreeNeedsMove,
+	humanizeBranchSlug,
+	branchHasUpstream,
+	currentBranchName,
+	autoRenameBranch,
+	type GitExec,
 } from './autoRename.js';
 
 // ── validateSlug : format strict type + 1..4 mots-clés anglais kebab ──
@@ -176,4 +181,79 @@ test('worktreeNeedsMove: false quand le dossier est nommé manuellement (pas wip
 test('worktreeNeedsMove: false sans branche ou sans worktree_path', () => {
 	assert.equal(worktreeNeedsMove({ id: '1', branch: null, worktree_path: '/x/wip-a' }), false);
 	assert.equal(worktreeNeedsMove({ id: '1', branch: 'fix-a', worktree_path: null }), false);
+});
+
+// ── humanizeBranchSlug : slug typé → label sidebar ──
+
+test('humanizeBranchSlug strips the conventional type prefix and capitalizes', () => {
+	assert.equal(humanizeBranchSlug('feat-add-login'), 'Add login');
+	assert.equal(humanizeBranchSlug('fix-stale-header'), 'Stale header');
+	assert.equal(humanizeBranchSlug('refactor-chat-reducer'), 'Chat reducer');
+});
+
+test('humanizeBranchSlug keeps a slug without a known type prefix', () => {
+	assert.equal(humanizeBranchSlug('add-login-screen'), 'Add login screen');
+});
+
+test('humanizeBranchSlug returns empty string when nothing usable remains', () => {
+	assert.equal(humanizeBranchSlug(''), '');
+	assert.equal(humanizeBranchSlug('feat-'), '');
+});
+
+// ── seams git : branchHasUpstream / currentBranchName ──
+
+const okExec = (out: string): GitExec => () => out;
+const failExec: GitExec = () => {
+	throw new Error('fatal: no upstream configured');
+};
+
+test('branchHasUpstream: true when git resolves @{upstream}, false when it throws', () => {
+	assert.equal(branchHasUpstream(okExec('origin/feat-x\n')), true);
+	assert.equal(branchHasUpstream(failExec), false);
+});
+
+test('currentBranchName: trims output, null on detached HEAD or error', () => {
+	assert.equal(currentBranchName(okExec('  wip-swift-pine-vgvo\n')), 'wip-swift-pine-vgvo');
+	assert.equal(currentBranchName(okExec('HEAD\n')), null);
+	assert.equal(currentBranchName(failExec), null);
+});
+
+// ── buildBranchNamePrompt : contexte assistant optionnel ──
+
+test('buildBranchNamePrompt appends the assistant response only when present', () => {
+	const withoutAssistant = buildBranchNamePrompt('Do the thing');
+	assert.ok(!withoutAssistant.includes("Agent's initial response"));
+	const withAssistant = buildBranchNamePrompt('Do the thing', 'I will explore the code first');
+	assert.ok(withAssistant.includes("Agent's initial response"));
+	assert.ok(withAssistant.includes('I will explore the code first'));
+});
+
+// ── autoRenameBranch : ordre des gates (sans DB) ──
+
+test('autoRenameBranch skips a branch that is not auto-named', async () => {
+	const verdict = await autoRenameBranch(
+		'sid',
+		{ id: '1', branch: 'feat/task', worktree_path: '/x/feat-task' },
+		{ gitExec: failExec },
+	);
+	assert.equal(verdict.outcome, 'skip');
+	assert.match(verdict.reason, /not auto-named/);
+});
+
+test('autoRenameBranch skips when the branch already has an upstream (before any generation)', async () => {
+	let generated = false;
+	const verdict = await autoRenameBranch(
+		'sid',
+		{ id: '1', branch: 'wip-swift-pine', worktree_path: '/x/wip-swift-pine' },
+		{
+			gitExec: okExec('origin/wip-swift-pine\n'),
+			run: async () => {
+				generated = true;
+				return 'feat-x';
+			},
+		},
+	);
+	assert.equal(verdict.outcome, 'skip');
+	assert.match(verdict.reason, /upstream/);
+	assert.equal(generated, false, 'generation must not run once the upstream gate skips');
 });

@@ -2,7 +2,7 @@ import { execFile, execFileSync } from 'node:child_process';
 import { promisify } from 'node:util';
 import { existsSync } from 'node:fs';
 import { basename, dirname, join, isAbsolute } from 'node:path';
-import { findClaude } from '../helpers.js';
+import { findClaude, cleanClaudeEnv } from '../helpers.js';
 import { getDb } from '../db.js';
 
 const execFileAsync = promisify(execFile);
@@ -53,9 +53,27 @@ export function dedupeSlug(slug: string, exists: (name: string) => boolean): str
 	return null;
 }
 
+/** Types conventionnels retirés en tête de slug avant humanisation. */
+const SLUG_TYPE_PREFIX = /^(feat|fix|docs|refactor|test|chore)-/;
+
+/**
+ * Transforme un slug de branche en label lisible pour la sidebar : retire le
+ * préfixe de type conventionnel puis met en forme (`feat-add-login` →
+ * `Add login`). Retourne `''` si rien d'exploitable.
+ */
+export function humanizeBranchSlug(slug: string): string {
+	const words = slug
+		.replace(SLUG_TYPE_PREFIX, '')
+		.split('-')
+		.filter(Boolean);
+	const joined = words.join(' ');
+	if (!joined) return '';
+	return joined.charAt(0).toUpperCase() + joined.slice(1);
+}
+
 /** Prompt LLM (anglais) : synthèse de la première demande → slug de branche. */
-export function buildBranchNamePrompt(firstRequest: string): string {
-	return `You are given the first request a developer sent to a coding agent. Infer the actual TASK and produce a git branch slug that summarizes it.
+export function buildBranchNamePrompt(firstRequest: string, assistantMessage?: string): string {
+	const base = `You are given the first request a developer sent to a coding agent. Infer the actual TASK and produce a git branch slug that summarizes it.
 STRICT format: <type>-<keywords> where <type> is one of feat, fix, docs, refactor, test, chore and <keywords> is 1 to 4 meaningful English words in kebab-case.
 Rules:
 - English ONLY. Translate if the request is written in another language.
@@ -66,18 +84,22 @@ Rules:
 
 Request:
 ${firstRequest.slice(0, 1500)}`;
+	const assistant = assistantMessage?.trim();
+	if (!assistant) return base;
+	return `${base}
+
+Agent's initial response (context only):
+${assistant.slice(0, 800)}`;
 }
 
 async function defaultRun(prompt: string): Promise<string> {
 	const CLAUDE_BIN = findClaude();
-	const { CLAUDECODE, CLAUDE_CODE_ENTRYPOINT, ...cleanEnv } = process.env as Record<
-		string,
-		string | undefined
-	>;
+	// Même env nettoyé que le chemin SDK : laisser fuiter les `ANTHROPIC_*` du
+	// serveur casse l'auth du sous-process (cause de l'échec silencieux du rename).
 	const { stdout } = await execFileAsync(CLAUDE_BIN, ['--print', '--model', 'haiku', prompt], {
 		timeout: 30_000,
 		maxBuffer: 1024 * 512,
-		env: cleanEnv as NodeJS.ProcessEnv,
+		env: cleanClaudeEnv(),
 	});
 	return stdout;
 }
@@ -91,9 +113,10 @@ async function defaultRun(prompt: string): Promise<string> {
 export async function generateBranchSlug(
 	firstRequest: string,
 	run: (prompt: string) => Promise<string> = defaultRun,
+	assistantMessage?: string,
 ): Promise<string | null> {
 	try {
-		const out = await run(buildBranchNamePrompt(firstRequest));
+		const out = await run(buildBranchNamePrompt(firstRequest, assistantMessage));
 		const slug = validateSlug(out);
 		if (!slug) console.warn('[autoRename] sortie LLM invalide, rename différé :', out.slice(0, 80));
 		return slug;
@@ -145,16 +168,16 @@ export function readSessionRow(sessionId: string): SessionRow | null {
 	}
 }
 
-/** Premier message user du transcript — la « première demande » qui nomme la branche. */
-export function readFirstUserText(sessionId: string): string | null {
+/** Premier event d'un type donné dans le transcript, texte extrait ou null. */
+function readFirstEventText(sessionId: string, eventType: 'user' | 'assistant'): string | null {
 	const d = getDb();
 	if (!d) return null;
 	try {
 		const row = d
 			.prepare(
-				"SELECT content FROM agent_chat_messages WHERE agent_session_id = ? AND event_type = 'user' ORDER BY seq ASC LIMIT 1",
+				'SELECT content FROM agent_chat_messages WHERE agent_session_id = ? AND event_type = ? ORDER BY seq ASC LIMIT 1',
 			)
-			.get(sessionId) as { content: string } | undefined;
+			.get(sessionId, eventType) as { content: string } | undefined;
 		if (!row) return null;
 		const parsed = JSON.parse(row.content) as { data?: { text?: string } };
 		const text = parsed.data?.text?.trim();
@@ -164,7 +187,80 @@ export function readFirstUserText(sessionId: string): string | null {
 	}
 }
 
+/** Premier message user du transcript — la « première demande » qui nomme la branche. */
+export function readFirstUserText(sessionId: string): string | null {
+	return readFirstEventText(sessionId, 'user');
+}
+
+/** Première réponse de l'agent — contexte optionnel pour affiner le nom (façon Orca). */
+export function readFirstAssistantText(sessionId: string): string | null {
+	return readFirstEventText(sessionId, 'assistant');
+}
+
+/** Label humain courant de la session (`agent_name`), ou null. */
+export function readAgentName(sessionDbId: string): string | null {
+	const d = getDb();
+	if (!d) return null;
+	try {
+		const row = d
+			.prepare('SELECT agent_name FROM agent_sessions WHERE id = ?')
+			.get(sessionDbId) as { agent_name: string | null } | undefined;
+		return row?.agent_name?.trim() || null;
+	} catch {
+		return null;
+	}
+}
+
+/** Écrit le label humain de la session (best-effort). */
+export function persistAgentName(sessionDbId: string, name: string): void {
+	const d = getDb();
+	if (!d) return;
+	try {
+		d.prepare('UPDATE agent_sessions SET agent_name = ? WHERE id = ?').run(name, sessionDbId);
+	} catch {
+		/* best-effort */
+	}
+}
+
 // ── Opérations git ──
+
+/**
+ * Seam d'exécution git injectable (pour les tests) : renvoie stdout, throw si la
+ * commande échoue (code ≠ 0). L'implémentation par défaut appelle `git -C <wt>`.
+ */
+export type GitExec = (args: string[]) => string;
+
+export function defaultGitExec(worktreePath: string): GitExec {
+	return (args) =>
+		execFileSync('git', ['-C', worktreePath, ...args], {
+			encoding: 'utf-8',
+			timeout: 10_000,
+		}).toString();
+}
+
+/** Nom de la branche courante (`HEAD`), ou null si détaché/illisible. */
+export function currentBranchName(exec: GitExec): string | null {
+	try {
+		const name = exec(['rev-parse', '--abbrev-ref', 'HEAD']).trim();
+		return name && name !== 'HEAD' ? name : null;
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * La branche courante a-t-elle un upstream (déjà poussée) ? True si oui → on ne
+ * renomme jamais une branche publiée (garde façon Orca). L'échec de la commande
+ * (`@{upstream}` absent) signifie « pas d'upstream » → false.
+ */
+export function branchHasUpstream(exec: GitExec): boolean {
+	try {
+		exec(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}']);
+		return true;
+	} catch {
+		return false;
+	}
+}
 
 export function localBranchExists(worktreePath: string, branch: string): boolean {
 	try {
@@ -268,26 +364,72 @@ export function persistWorktreePath(sessionDbId: string, worktreePath: string): 
 // ── Orchestration : phase 1 (branche, immédiate) ──
 
 /**
+ * Verdict structuré de l'auto-rename : `renamed` (branche renommée),
+ * `skip` (inéligible de façon définitive), `retry` (échec transitoire, on
+ * retentera au prochain tour). `reason` alimente les logs de l'appelant.
+ */
+export interface AutoRenameVerdict {
+	outcome: 'renamed' | 'skip' | 'retry';
+	reason: string;
+	newName?: string;
+	displayName?: string;
+}
+
+/**
  * Génère un nom depuis la première demande du transcript et renomme la BRANCHE
- * immédiatement (le dossier bouge plus tard, à un moment idle). Retourne le
- * nouveau nom, ou null si rien n'a été renommé (l'appelant retentera).
+ * immédiatement (le dossier bouge plus tard, à un moment idle). Garde-fous façon
+ * Orca : jamais une branche déjà poussée, re-validation après génération. Écrit
+ * aussi un label humain (`agent_name`) s'il est vide. Retourne un verdict que
+ * l'appelant loggue et exploite (`newName` seulement si `outcome === 'renamed'`).
  */
 export async function autoRenameBranch(
 	sessionId: string,
 	row: SessionRow,
-	run?: (prompt: string) => Promise<string>,
-): Promise<string | null> {
-	if (!isAutoNamed(row.branch) || !row.worktree_path) return null;
+	opts?: { run?: (prompt: string) => Promise<string>; gitExec?: GitExec },
+): Promise<AutoRenameVerdict> {
+	if (!isAutoNamed(row.branch) || !row.worktree_path) {
+		return { outcome: 'skip', reason: 'branch is not auto-named' };
+	}
+	const worktreePath = row.worktree_path;
+	const gitExec = opts?.gitExec ?? defaultGitExec(worktreePath);
+
+	// Gate : ne jamais renommer une branche déjà publiée.
+	if (branchHasUpstream(gitExec)) {
+		return { outcome: 'skip', reason: 'branch has upstream' };
+	}
+
 	const text = readFirstUserText(sessionId);
-	if (!text) return null;
+	if (!text) return { outcome: 'retry', reason: 'no first user text yet' };
+	const assistant = readFirstAssistantText(sessionId) ?? undefined;
 
-	const slug = await generateBranchSlug(text, run);
-	if (!slug) return null;
+	const slug = await generateBranchSlug(text, opts?.run, assistant);
+	if (!slug) return { outcome: 'retry', reason: 'slug generation failed' };
 
-	const unique = dedupeSlug(slug, (n) => localBranchExists(row.worktree_path!, n));
-	if (!unique || unique === row.branch) return null;
+	const unique = dedupeSlug(slug, (n) => localBranchExists(worktreePath, n));
+	if (!unique || unique === row.branch) {
+		return { outcome: 'skip', reason: `no distinct name for slug "${slug}"` };
+	}
 
-	if (!renameBranchInWorktree(row.worktree_path, unique)) return null;
+	// Re-validation après les ~8s de génération : la branche n'a pas changé et
+	// n'a pas été poussée entre-temps.
+	const branchNow = currentBranchName(gitExec);
+	if (branchNow !== row.branch) {
+		return { outcome: 'retry', reason: `branch changed during generation (${branchNow})` };
+	}
+	if (branchHasUpstream(gitExec)) {
+		return { outcome: 'retry', reason: 'branch pushed during generation' };
+	}
+
+	if (!renameBranchInWorktree(worktreePath, unique)) {
+		return { outcome: 'retry', reason: 'git branch -m failed' };
+	}
 	persistBranch(row.id, unique);
-	return unique;
+
+	// Label sidebar humanisé, uniquement si aucun label (persona/issue) déjà posé.
+	const displayName = humanizeBranchSlug(unique);
+	if (displayName && !readAgentName(row.id)) {
+		persistAgentName(row.id, displayName);
+		return { outcome: 'renamed', reason: 'ok', newName: unique, displayName };
+	}
+	return { outcome: 'renamed', reason: 'ok', newName: unique };
 }
