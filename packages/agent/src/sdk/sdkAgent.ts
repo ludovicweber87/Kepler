@@ -20,6 +20,7 @@ import {
   moveWorktreeDir,
   persistWorktreePath,
   readSessionRow,
+  worktreeNeedsMove,
 } from './autoRename.js';
 
 export interface StreamSocket { send(data: string): void; readyState?: number }
@@ -166,6 +167,12 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
               console.error('[persona] restart du query SDK a échoué :', err),
             );
           }
+          // Idle en fin de tour, rien d'autre en attente : (re)tente l'auto-rename.
+          // Couvre le nom de branche pas encore généré ET le dossier resté wip-
+          // après un move raté — auto-réparation sans nouvelle action utilisateur.
+          else if (ev.event === 'result' && !s.busy && !s.renameInFlight) {
+            maybeStartAutoRename(sessionId, s);
+          }
         }
       }
       if (!s.closed && epoch === s.epoch) broadcast(s, { type: 'stream-closed', reason: 'generator-ended' });
@@ -252,18 +259,33 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn }) {
   function maybeStartAutoRename(sessionId: string, s: SessionState) {
     if (s.renameInFlight || s.pendingMove) return;
     const row = readSessionRow(sessionId);
-    if (!row || !isAutoNamed(row.branch) || !row.worktree_path) return;
-    s.renameInFlight = true;
-    void autoRenameBranch(sessionId, row)
-      .then((newName) => {
-        if (!newName) return;
-        // Tour encore en cours → move différé à la fin de tour (runLoop) ;
-        // session déjà idle → move immédiat.
-        if (s.busy) s.pendingMove = { newName };
-        else void applyWorktreeMove(sessionId, s, newName);
-      })
-      .catch(() => { /* retentera au prochain message */ })
-      .finally(() => { s.renameInFlight = false; });
+    if (!row || !row.worktree_path) return;
+
+    // Phase 1 : branche encore auto-nommée (wip-) → génère le slug depuis la
+    // première demande et renomme la branche, puis planifie le move du dossier.
+    if (isAutoNamed(row.branch)) {
+      s.renameInFlight = true;
+      void autoRenameBranch(sessionId, row)
+        .then((newName) => {
+          if (!newName) return;
+          // Tour encore en cours → move différé à la fin de tour (runLoop) ;
+          // session déjà idle → move immédiat.
+          if (s.busy) s.pendingMove = { newName };
+          else void applyWorktreeMove(sessionId, s, newName);
+        })
+        .catch(() => { /* retentera au prochain message */ })
+        .finally(() => { s.renameInFlight = false; });
+      return;
+    }
+
+    // Phase 2 : branche déjà finale mais dossier resté wip- (move raté ou jamais
+    // tenté) → réaligne le dossier sur la branche. Retenté à chaque message/idle
+    // jusqu'à réussite : corrige l'état bloqué au lieu de l'abandonner.
+    if (worktreeNeedsMove(row) && row.branch) {
+      const target = row.branch;
+      if (s.busy) s.pendingMove = { newName: target };
+      else void applyWorktreeMove(sessionId, s, target);
+    }
   }
 
   function persistClaudeSessionId(sessionId: string, claudeId: string) {

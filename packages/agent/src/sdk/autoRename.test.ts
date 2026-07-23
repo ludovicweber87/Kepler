@@ -7,6 +7,7 @@ import {
 	buildBranchNamePrompt,
 	generateBranchSlug,
 	isAutoNamed,
+	worktreeNeedsMove,
 } from './autoRename.js';
 
 // ── validateSlug : format strict type + 1..4 mots-clés anglais kebab ──
@@ -124,4 +125,55 @@ test('isAutoNamed matches only wip- branches', () => {
 	assert.equal(isAutoNamed('fix-branch-rename'), false);
 	assert.equal(isAutoNamed(null), false);
 	assert.equal(isAutoNamed(undefined), false);
+});
+
+// ── worktreeNeedsMove : dossier wip- à réaligner sur une branche finale ──
+
+test('worktreeNeedsMove: true quand branche finale mais dossier resté wip-', () => {
+	assert.equal(
+		worktreeNeedsMove({
+			id: '1',
+			branch: 'fix-snackbar-bottom-center',
+			worktree_path: '/repo/.worktrees/wip-dusty-pine-zllm',
+		}),
+		true,
+	);
+});
+
+test('worktreeNeedsMove: false quand dossier déjà aligné sur la branche', () => {
+	assert.equal(
+		worktreeNeedsMove({
+			id: '1',
+			branch: 'fix-snackbar-bottom-center',
+			worktree_path: '/repo/.worktrees/fix-snackbar-bottom-center',
+		}),
+		false,
+	);
+});
+
+test('worktreeNeedsMove: false quand la branche est encore wip- (phase 1)', () => {
+	assert.equal(
+		worktreeNeedsMove({
+			id: '1',
+			branch: 'wip-dusty-pine-zllm',
+			worktree_path: '/repo/.worktrees/wip-dusty-pine-zllm',
+		}),
+		false,
+	);
+});
+
+test('worktreeNeedsMove: false quand le dossier est nommé manuellement (pas wip-)', () => {
+	assert.equal(
+		worktreeNeedsMove({
+			id: '1',
+			branch: 'feat-115-truc',
+			worktree_path: '/repo/.worktrees/feat-115-fix-chat',
+		}),
+		false,
+	);
+});
+
+test('worktreeNeedsMove: false sans branche ou sans worktree_path', () => {
+	assert.equal(worktreeNeedsMove({ id: '1', branch: null, worktree_path: '/x/wip-a' }), false);
+	assert.equal(worktreeNeedsMove({ id: '1', branch: 'fix-a', worktree_path: null }), false);
 });
