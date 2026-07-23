@@ -8,6 +8,7 @@ import {
 	updateProjectItemStatus,
 } from '@/lib/github';
 import { resolveConfigForRepo } from '@/lib/repoIssueBoard';
+import { resolveAssigneeLogin } from '@/lib/githubAssignee';
 import { requireAuth, isAuthError } from '@/lib/auth-utils';
 
 interface CreateIssueBody {
@@ -38,7 +39,8 @@ export async function POST(req: NextRequest) {
 
 		// Le board ne montre que les issues assignées à l'utilisateur courant :
 		// à défaut d'assignee explicite, on s'auto-assigne pour qu'elle y apparaisse.
-		const finalAssignees = assignees && assignees.length > 0 ? assignees : [auth.login];
+		const finalAssignees =
+			assignees && assignees.length > 0 ? assignees : [resolveAssigneeLogin(auth.login)];
 
 		const issue = await createIssue(
 			owner,

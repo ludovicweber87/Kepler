@@ -20,6 +20,7 @@ import { partitionTasks } from '@/lib/taskSort';
 import type { Task } from '@/types';
 import TaskRow from './TaskRow';
 import TaskFormModal from './TaskFormModal';
+import TaskViewModal from './TaskViewModal';
 
 const DATE_LOCALES = { en: enUS, fr, es, de, pt } as const;
 
@@ -33,6 +34,7 @@ export default function TasksPage() {
 	const [repoFilter, setRepoFilter] = useState('all');
 	const [modalOpen, setModalOpen] = useState(false);
 	const [editing, setEditing] = useState<Task | null>(null);
+	const [viewTask, setViewTask] = useState<Task | null>(null);
 
 	// Stable pour toute la durée de vie de la page (cohérence du tri/urgence).
 	const now = useMemo(() => new Date(), []);
@@ -54,7 +56,7 @@ export default function TasksPage() {
 
 	const rowProps = {
 		now,
-		onEdit: openEdit,
+		onOpen: setViewTask,
 		onToggleDone: toggleDone,
 		onTogglePin: togglePinned,
 		onDelete: deleteTask,
@@ -153,6 +155,18 @@ export default function TasksPage() {
 						{renderSection(t('sectionDone'), done)}
 					</>
 				)}
+
+				<TaskViewModal
+					key={viewTask?.id ?? 'none'}
+					open={!!viewTask}
+					task={viewTask}
+					now={now}
+					onClose={() => setViewTask(null)}
+					onEdit={(task) => {
+						setViewTask(null);
+						openEdit(task);
+					}}
+				/>
 
 				<TaskFormModal
 					open={modalOpen}

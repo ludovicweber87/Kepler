@@ -41,6 +41,20 @@ export async function fetchUserLogin(token: string): Promise<string> {
 	return data.login;
 }
 
+/** Vérifie qu'un login GitHub existe. Renvoie `{ login, avatar_url }` ou `null` (404). */
+export async function fetchGitHubUser(
+	login: string,
+	token: string,
+): Promise<{ login: string; avatar_url: string } | null> {
+	const res = await fetch(`${GITHUB_API}/users/${encodeURIComponent(login)}`, {
+		headers: getHeaders(token),
+	});
+	if (res.status === 404) return null;
+	if (!res.ok) throw new Error(`GitHub /users failed: ${res.status}`);
+	const data = await res.json();
+	return { login: data.login, avatar_url: data.avatar_url };
+}
+
 export async function fetchUserRepos(token: string): Promise<GitHubRepo[]> {
 	const repos: GitHubRepo[] = [];
 	let page = 1;

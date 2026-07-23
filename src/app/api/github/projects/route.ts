@@ -3,10 +3,10 @@ import {
 	fetchOrgProjects,
 	fetchProjectV2Data,
 	fetchViewerOrgProjects,
-	fetchUserLogin,
 	projectItemToIssue,
 } from '@/lib/github';
 import { mapViewsToRepos } from '@/lib/projectViews';
+import { resolveAssigneeLogin } from '@/lib/githubAssignee';
 import { requireAuth, isAuthError } from '@/lib/auth-utils';
 import { readSnapshot, writeSnapshot, type ProjectBoardPayload } from '@/lib/projectBoardCache';
 import { buildBoardIssues } from '@/lib/boardMerge';
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
 
 			// Assigned-to-viewer items, mapped to the GitHubIssue shape (issues + PRs) —
 			// the board renders straight from this.
-			const viewer = (await fetchUserLogin(auth.accessToken)).toLowerCase();
+			const viewer = resolveAssigneeLogin(auth.login).toLowerCase();
 			const allMine = projectData.items
 				.filter((it) => it.assignees.some((a) => a.login.toLowerCase() === viewer))
 				.map((it) => projectItemToIssue(it, projectData.title));

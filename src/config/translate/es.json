@@ -187,7 +187,13 @@
 		"connectedCount": "{count, plural, one {# conectado} other {# conectados}}",
 		"repoCount": "{count, plural, one {# repositorio} other {# repositorios}}",
 		"loadViewsError": "Error al cargar las vistas",
-		"loadProjectsError": "Error al cargar los proyectos"
+		"loadProjectsError": "Error al cargar los proyectos",
+		"githubUser": "Usuario de GitHub",
+		"githubUserDesc": "Login de GitHub usado para crear y obtener incidencias. Déjalo vacío para usar el usuario actual de gh CLI.",
+		"assigneeLabel": "Login de GitHub",
+		"assigneeHelp": "Vacío = usuario actual de gh CLI",
+		"assigneeInvalid": "Usuario de GitHub no encontrado",
+		"assigneeSaved": "Usuario de GitHub guardado"
 	},
 	"appearance": {
 		"title": "Apariencia",
@@ -598,6 +604,14 @@
 		"noRepo": "Sin repo",
 		"fieldIssue": "Issue vinculada",
 		"issuePlaceholder": "Buscar una issue…",
-		"fieldPinned": "Fijar arriba"
+		"fieldPinned": "Fijar arriba",
+		"edit": "Editar",
+		"close": "Cerrar",
+		"createIssue": "Crear incidencia desde esta tarea",
+		"createIssueRepoLabel": "Repositorio para la incidencia",
+		"createIssueNoRepo": "Añade un repositorio en Ajustes para crear una incidencia.",
+		"issueCreated": "Incidencia #{number} creada",
+		"issueCreateError": "No se pudo crear la incidencia",
+		"noDescription": "Sin descripción"
 	}
 }

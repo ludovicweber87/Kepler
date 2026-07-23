@@ -19,13 +19,13 @@ import UrgencyChip from './UrgencyChip';
 interface Props {
 	task: Task;
 	now: Date;
-	onEdit: (task: Task) => void;
+	onOpen: (task: Task) => void;
 	onToggleDone: (task: Task) => void;
 	onTogglePin: (task: Task) => void;
 	onDelete: (id: string) => void;
 }
 
-export default function TaskRow({ task, now, onEdit, onToggleDone, onTogglePin, onDelete }: Props) {
+export default function TaskRow({ task, now, onOpen, onToggleDone, onTogglePin, onDelete }: Props) {
 	const router = useRouter();
 	const t = useTranslations('tasks');
 
@@ -33,7 +33,7 @@ export default function TaskRow({ task, now, onEdit, onToggleDone, onTogglePin, 
 
 	return (
 		<Box
-			onClick={() => onEdit(task)}
+			onClick={() => onOpen(task)}
 			sx={{
 				display: 'flex',
 				alignItems: 'center',
