@@ -284,6 +284,59 @@ test('reprise: sans le flag retryLastUser, aucun prompt n’est relancé', async
   mgr.stop('sess-noretry');
 });
 
+// query factice « longue vie » : émet session+result immédiatement (comme une reprise
+// `resume` du SDK), puis reste vivante en consommant la queue et en émettant un result
+// par prompt reçu. Chaque restart (switch de persona) recrée une instance qui ré-émet
+// un result de reprise — c'est ce result qui, sans garde, déclencherait l'auto-rename.
+function longLivedResultQueryFactory() {
+  const resultEvent = { type: 'result', subtype: 'success', is_error: false, result: 'ok', session_id: 'claude-x', num_turns: 1, usage: {}, total_cost_usd: 0 };
+  const queryFn = ((params: { prompt: AsyncIterable<unknown> }) => {
+    async function* gen() {
+      yield { type: 'system', subtype: 'init', session_id: 'claude-x', model: 'm', permissionMode: 'bypassPermissions', cwd: '/tmp', tools: [] };
+      yield resultEvent;
+      for await (const _ of params.prompt) { void _; yield resultEvent; }
+    }
+    const q = gen() as AsyncGenerator<unknown> & Record<string, unknown>;
+    q.setModel = async () => {}; q.setPermissionMode = async () => {}; q.interrupt = async () => {};
+    return q;
+  }) as unknown as QueryFn;
+  return { queryFn };
+}
+
+test('switch de persona ne déclenche pas l’auto-rename ; un vrai message le ré-arme (issue #122)', async () => {
+  // agent_sessions doit exposer branch/worktree_path (colonnes lues par readSessionRow).
+  memDb.exec('ALTER TABLE agent_sessions ADD COLUMN branch TEXT');
+  memDb.exec('ALTER TABLE agent_sessions ADD COLUMN worktree_path TEXT');
+  // worktree_path NULL → maybeStartAutoRename sort avant tout appel git, mais APRÈS le
+  // hook onAutoRenameAttempt : on observe donc uniquement la décision « tenter ou non ».
+  memDb.prepare("INSERT INTO agent_sessions (id, session_id, branch, worktree_path) VALUES (?, 'sess-persona', 'wip-foo', NULL)")
+    .run(randomUUID());
+  __setDbForTests(memDb);
+  try {
+    const attempts: string[] = [];
+    const { queryFn } = longLivedResultQueryFactory();
+    const mgr = createSdkAgentManager({ queryFn, onAutoRenameAttempt: (id) => attempts.push(id) });
+    mgr.startOrAttach('sess-persona', fakeSocket(), { cwd: '/tmp' });
+    await new Promise((r) => setTimeout(r, 30));
+    const afterStart = attempts.length;
+    assert.ok(afterStart >= 1, 'le result initial laisse une chance à l’auto-rename');
+
+    // Switch de persona (session idle) : restart → result de reprise. NE DOIT PAS
+    // relancer l’auto-rename.
+    mgr.setSystemPrompt('sess-persona', 'nouveau system prompt', 'Architecte Back-end');
+    await new Promise((r) => setTimeout(r, 30));
+    assert.equal(attempts.length, afterStart, 'un switch de rôle ne doit pas tenter l’auto-rename');
+
+    // Un vrai message utilisateur ré-arme l’auto-rename.
+    mgr.sendUserMessage('sess-persona', 'fais avancer la tâche');
+    await new Promise((r) => setTimeout(r, 30));
+    assert.ok(attempts.length > afterStart, 'un vrai message utilisateur doit ré-armer l’auto-rename');
+    mgr.stop('sess-persona');
+  } finally {
+    __resetDbForTests();
+  }
+});
+
 test('reprise: retryLastUser mais dernier event = assistant → aucune relance', async () => {
   transcript.appendEvent('sess-answered', 1, 'user', { event: 'user', data: { text: 'demande' } });
   transcript.appendEvent('sess-answered', 2, 'assistant', { event: 'assistant', data: { text: 'réponse' } });
