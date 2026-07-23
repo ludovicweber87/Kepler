@@ -38,7 +38,8 @@
 		"archiveScriptFailed": "Archive script failed, archiving anyway",
 		"personas": "Personas",
 		"unreadAgentNotification": "Unread agent notification",
-		"prOpen": "Open PR"
+		"prOpen": "Open PR",
+		"tasks": "Tasks"
 	},
 	"landing": {
 		"nav": {
@@ -587,5 +588,38 @@
 		"defaultOption": "Default",
 		"saveError": "Failed to save persona",
 		"deleteError": "Failed to delete persona"
+	},
+	"tasks": {
+		"title": "Tasks",
+		"newTask": "New task",
+		"allRepos": "All repos",
+		"emptyTitle": "No tasks yet",
+		"emptyHint": "Create your first task to get started.",
+		"sectionPinned": "Pinned",
+		"sectionActive": "In progress",
+		"sectionDone": "Done",
+		"chipToday": "today",
+		"chipTomorrow": "tomorrow",
+		"chipInDays": "in {days, plural, one {# day} other {# days}}",
+		"chipOverdue": "overdue · {days, plural, one {# day} other {# days}}",
+		"tooltipToday": "Due today",
+		"tooltipInDays": "Due in {days, plural, one {# day} other {# days}}",
+		"tooltipOverdue": "Overdue by {days, plural, one {# day} other {# days}}",
+		"pin": "Pin",
+		"unpin": "Unpin",
+		"delete": "Delete",
+		"cancel": "Cancel",
+		"save": "Save",
+		"create": "Create",
+		"editTitle": "Edit task",
+		"newTitle": "New task",
+		"fieldTitle": "Title",
+		"fieldDescription": "Description",
+		"fieldDueDate": "Due date",
+		"fieldRepo": "Repo",
+		"noRepo": "No repo",
+		"fieldIssue": "Linked issue",
+		"issuePlaceholder": "Search an issue…",
+		"fieldPinned": "Pin to top"
 	}
 }

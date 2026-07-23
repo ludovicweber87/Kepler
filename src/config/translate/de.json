@@ -38,7 +38,8 @@
 		"archiveScriptFailed": "Archivierungsskript fehlgeschlagen, trotzdem archiviert",
 		"personas": "Personas",
 		"unreadAgentNotification": "Ungelesene Agent-Benachrichtigung",
-		"prOpen": "Offener PR"
+		"prOpen": "Offener PR",
+		"tasks": "Aufgaben"
 	},
 	"landing": {
 		"nav": {
@@ -565,5 +566,38 @@
 		"defaultOption": "Standard",
 		"saveError": "Persona konnte nicht gespeichert werden",
 		"deleteError": "Persona konnte nicht gelöscht werden"
+	},
+	"tasks": {
+		"title": "Aufgaben",
+		"newTask": "Neue Aufgabe",
+		"allRepos": "Alle Repos",
+		"emptyTitle": "Noch keine Aufgaben",
+		"emptyHint": "Erstelle deine erste Aufgabe, um zu starten.",
+		"sectionPinned": "Angepinnt",
+		"sectionActive": "In Arbeit",
+		"sectionDone": "Erledigt",
+		"chipToday": "heute",
+		"chipTomorrow": "morgen",
+		"chipInDays": "in {days, plural, one {# Tag} other {# Tagen}}",
+		"chipOverdue": "überfällig · {days, plural, one {# Tag} other {# Tagen}}",
+		"tooltipToday": "Heute fällig",
+		"tooltipInDays": "Fällig in {days, plural, one {# Tag} other {# Tagen}}",
+		"tooltipOverdue": "Überfällig seit {days, plural, one {# Tag} other {# Tagen}}",
+		"pin": "Anpinnen",
+		"unpin": "Lösen",
+		"delete": "Löschen",
+		"cancel": "Abbrechen",
+		"save": "Speichern",
+		"create": "Erstellen",
+		"editTitle": "Aufgabe bearbeiten",
+		"newTitle": "Neue Aufgabe",
+		"fieldTitle": "Titel",
+		"fieldDescription": "Beschreibung",
+		"fieldDueDate": "Fälligkeitsdatum",
+		"fieldRepo": "Repo",
+		"noRepo": "Kein Repo",
+		"fieldIssue": "Verknüpftes Issue",
+		"issuePlaceholder": "Issue suchen…",
+		"fieldPinned": "Oben anpinnen"
 	}
 }
