@@ -159,14 +159,16 @@ export function useAgentSession(sessionId: string | undefined) {
 	});
 
 	const updatePersonaMutation = useMutation({
-		mutationFn: async (patch: {
-			agent_name: string | null;
-			agent_color: string | null;
-			model: string | null;
-			effort: string | null;
-			permission_mode: string | null;
-			system_prompt: string | null;
-		}) => {
+		mutationFn: async (
+			patch: Partial<{
+				agent_name: string | null;
+				agent_color: string | null;
+				model: string | null;
+				effort: string | null;
+				permission_mode: string | null;
+				system_prompt: string | null;
+			}>,
+		) => {
 			if (!session) throw new Error('No session');
 			const res = await apiFetch('/api/agent-sessions', {
 				method: 'PATCH',

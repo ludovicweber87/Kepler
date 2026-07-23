@@ -88,6 +88,7 @@
 		"noTerminal": "Aucun terminal",
 		"newSession": "Nouvelle session",
 		"activeSession": "Session active",
+		"renameLabel": "Renommer",
 		"stopSession": "Arrêter la session",
 		"closeFile": "Fermer le fichier",
 		"fileError": "Impossible de lire le fichier",

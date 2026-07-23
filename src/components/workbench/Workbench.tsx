@@ -49,6 +49,7 @@ import AgentIssueTab from '@/components/agents/AgentIssueTab';
 import TerminalTabs from '@/components/agents/TerminalTabs';
 import CreationProgress from '@/components/workbench/CreationProgress';
 import FileContentView from '@/components/workbench/FileContentView';
+import EditableSessionName from '@/components/workbench/EditableSessionName';
 import { matchFileDiff, resolveTabAfterClose, addOpenFile, CHAT_TAB } from '@/lib/workbenchTabs';
 import FileTabLabel from '@/components/shared/FileTab';
 
@@ -61,7 +62,7 @@ export default function Workbench() {
 	const sessionId = searchParams.get('session') ?? undefined;
 
 	const { data: allSessions = [] } = useAgentSessionHistory();
-	const { session, logs } = useAgentSession(sessionId);
+	const { session, logs, updatePersona } = useAgentSession(sessionId);
 	const { stop, resume } = useSessionActions();
 	const queryClient = useQueryClient();
 	const overlay = useOverlayTerminal();
@@ -277,10 +278,12 @@ export default function Workbench() {
 								}}
 							/>
 						)}
-						<Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-							{resolved?.agent_name ??
-								(bucket === 'active' ? t('activeSession') : t('newSession'))}
-						</Typography>
+						<EditableSessionName
+							value={resolved?.agent_name}
+							fallback={bucket === 'active' ? t('activeSession') : t('newSession')}
+							onRename={(name) => updatePersona({ agent_name: name })}
+							disabled={!session}
+						/>
 						{branch && (
 							<Chip
 								icon={

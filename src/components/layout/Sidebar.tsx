@@ -105,7 +105,7 @@ export default function Sidebar() {
 		}
 		return map;
 	}, [openPrs]);
-	const { archive, remove } = useSessionActions();
+	const { archive, remove, rename } = useSessionActions();
 	const { repoPaths } = useRepoPaths();
 	const { showSnackbar } = useSnackbar();
 
@@ -228,9 +228,15 @@ export default function Sidebar() {
 		if (!name) return;
 		setRenameBusy(true);
 		try {
-			// Renomme l'identité du worktree côté serveur agent : branche git +
-			// dossier worktree (input slugifié en kebab). N'affecte pas la persona.
-			await renameWorktree(projectPath, worktreePath, name, sessionId);
+			if (sessionId) {
+				// Renomme le label humain (agent_name) : simple UPDATE DB,
+				// instantané, aucune opération git, aucun cas d'échec worktree.
+				await rename(sessionId, name);
+			} else {
+				// Pas de session attachée : le seul nom disponible est la branche.
+				// On retombe sur le renommage git (branche + dossier worktree).
+				await renameWorktree(projectPath, worktreePath, name, sessionId);
+			}
 			showSnackbar(t('renamed'), 'success');
 			setRenameDialog(null);
 		} catch (err) {
@@ -472,9 +478,12 @@ export default function Sidebar() {
 													const isActiveWt =
 														!!wtSession &&
 														classifySession(wtSession) === 'active';
-													// Identité du worktree = sa branche. La persona (agent_name)
-													// est une donnée séparée, affichée au-dessus du composer.
-													const displayName = wt.branch;
+													// Label humain (agent_name) si défini, sinon la branche.
+													// Le label est découplé de l'identité git : on peut le
+													// renommer sans toucher branche ni worktree.
+													const sessionLabel =
+														wtSession?.agent_name?.trim();
+													const displayName = sessionLabel || wt.branch;
 													const sessionIdForWt =
 														wtSession?.session_id ?? null;
 													// Currently open in the Workbench.
@@ -586,8 +595,17 @@ export default function Sidebar() {
 																/>
 															)}
 															<Tooltip
-																title={isMerged ? t('merged') : ''}
-																disableHoverListener={!isMerged}
+																title={
+																	isMerged
+																		? t('merged')
+																		: displayName !== wt.branch
+																			? wt.branch
+																			: ''
+																}
+																disableHoverListener={
+																	!isMerged &&
+																	displayName === wt.branch
+																}
 															>
 																<Typography
 																	variant="caption"
