@@ -6,6 +6,7 @@ import { createPermissionController, type PermissionController, type PendingPerm
 import type { PermissionDecision } from './types.js';
 import * as transcript from './transcriptStore.js';
 import { extractLastUserText } from './retryLastUser.js';
+import { buildPersonaNote, applyPersonaNote } from './personaSwitch.js';
 import { deriveLogs } from './activityDeriver.js';
 import { summarizeTurn } from './turnSummarizer.js';
 import { getDb } from '../db.js';
@@ -57,6 +58,12 @@ interface SessionState {
   pendingMove?: { newName: string };
   // Changement de persona demandé pendant un tour : restart différé au prochain idle.
   pendingSystemPrompt?: boolean;
+  // Persona courant (nom) + marqueur « switch de rôle » à transmettre au modèle au
+  // prochain tour user (option A). `pendingPersonaFrom` conserve le rôle d'origine si
+  // plusieurs switchs s'enchaînent avant que l'utilisateur reparle (coalescence « X → Z »).
+  personaName?: string;
+  pendingPersonaNote?: string;
+  pendingPersonaFrom?: string;
   // Restart déclenché par un switch de persona : le SDK émet un `result` de reprise
   // qu'il ne faut PAS interpréter comme une fin de tour utilisateur, sinon l'auto-rename
   // opportuniste se déclenche sur un simple changement de rôle. Consommé une seule fois.
@@ -437,7 +444,11 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
       } as const;
       transcript.appendEvent(sessionId, seq, 'user', ev);
       broadcast(s, { type: 'stream-event', seq, ...ev });
-      s.queue.push(text, validImages);
+      // Le transcript/UI conserve le texte brut ; seul le flux SDK reçoit le marqueur
+      // de switch de persona (option A), consommé une seule fois.
+      s.queue.push(applyPersonaNote(s.pendingPersonaNote, text), validImages);
+      s.pendingPersonaNote = undefined;
+      s.pendingPersonaFrom = undefined;
       // Un vrai tour utilisateur ré-arme l'auto-rename : annule un skip éventuellement
       // laissé par un switch de persona qui n'aurait pas produit de `result` de reprise.
       s.skipAutoRenameOnNextResult = false;
@@ -476,6 +487,14 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
       if (!s) return;
       s.systemPrompt = prompt || undefined;
       if (personaName) {
+        // Marqueur transmis au modèle au prochain tour user (option A) : il « sait »
+        // qu'un switch a eu lieu, sans consommer de tokens au moment du switch.
+        // Coalescence : on garde le rôle d'origine si plusieurs switchs s'enchaînent.
+        const from = s.pendingPersonaFrom ?? s.personaName;
+        s.pendingPersonaFrom = from;
+        s.pendingPersonaNote = buildPersonaNote(from, personaName);
+        s.personaName = personaName;
+        // Marqueur visuel client (non transmis au modèle) — inchangé.
         const seq = s.seq++;
         const ev = { event: 'role_switch', data: { name: personaName } } as const;
         transcript.appendEvent(sessionId, seq, 'system', ev);
