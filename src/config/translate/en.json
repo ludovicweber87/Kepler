@@ -209,7 +209,13 @@
 		"connectedCount": "{count} connected",
 		"repoCount": "{count, plural, one {# repo} other {# repos}}",
 		"loadViewsError": "Failed to load views",
-		"loadProjectsError": "Failed to load projects"
+		"loadProjectsError": "Failed to load projects",
+		"githubUser": "GitHub user",
+		"githubUserDesc": "GitHub login used to create and fetch issues. Leave empty to use the current gh CLI user.",
+		"assigneeLabel": "GitHub login",
+		"assigneeHelp": "Empty = current gh CLI user",
+		"assigneeInvalid": "GitHub user not found",
+		"assigneeSaved": "GitHub user saved"
 	},
 	"appearance": {
 		"title": "Appearance",
@@ -620,6 +626,14 @@
 		"noRepo": "No repo",
 		"fieldIssue": "Linked issue",
 		"issuePlaceholder": "Search an issue…",
-		"fieldPinned": "Pin to top"
+		"fieldPinned": "Pin to top",
+		"edit": "Edit",
+		"close": "Close",
+		"createIssue": "Create issue from this task",
+		"createIssueRepoLabel": "Repository for the issue",
+		"createIssueNoRepo": "Add a repository in Settings to create an issue.",
+		"issueCreated": "Issue #{number} created",
+		"issueCreateError": "Failed to create the issue",
+		"noDescription": "No description"
 	}
 }

@@ -209,7 +209,13 @@
 		"connectedCount": "{count} connecté{count, plural, one {} other {s}}",
 		"repoCount": "{count} dépôt{count, plural, one {} other {s}}",
 		"loadViewsError": "Échec du chargement des vues",
-		"loadProjectsError": "Échec du chargement des projets"
+		"loadProjectsError": "Échec du chargement des projets",
+		"githubUser": "Utilisateur GitHub",
+		"githubUserDesc": "Login GitHub utilisé pour créer et récupérer les issues. Laisse vide pour utiliser l'utilisateur gh CLI courant.",
+		"assigneeLabel": "Login GitHub",
+		"assigneeHelp": "Vide = utilisateur gh CLI courant",
+		"assigneeInvalid": "Utilisateur GitHub introuvable",
+		"assigneeSaved": "Utilisateur GitHub enregistré"
 	},
 	"appearance": {
 		"title": "Apparence",
@@ -620,6 +626,14 @@
 		"noRepo": "Aucun repo",
 		"fieldIssue": "Issue liée",
 		"issuePlaceholder": "Rechercher une issue…",
-		"fieldPinned": "Épingler en haut"
+		"fieldPinned": "Épingler en haut",
+		"edit": "Éditer",
+		"close": "Fermer",
+		"createIssue": "Créer une issue depuis cette tâche",
+		"createIssueRepoLabel": "Dépôt pour l'issue",
+		"createIssueNoRepo": "Ajoute un dépôt dans les Paramètres pour créer une issue.",
+		"issueCreated": "Issue #{number} créée",
+		"issueCreateError": "Échec de la création de l'issue",
+		"noDescription": "Aucune description"
 	}
 }

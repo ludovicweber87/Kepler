@@ -187,7 +187,13 @@
 		"connectedCount": "{count, plural, one {# verbunden} other {# verbunden}}",
 		"repoCount": "{count, plural, one {# Repository} other {# Repositorys}}",
 		"loadViewsError": "Ansichten konnten nicht geladen werden",
-		"loadProjectsError": "Projekte konnten nicht geladen werden"
+		"loadProjectsError": "Projekte konnten nicht geladen werden",
+		"githubUser": "GitHub-Benutzer",
+		"githubUserDesc": "GitHub-Login zum Erstellen und Abrufen von Issues. Leer lassen, um den aktuellen gh-CLI-Benutzer zu verwenden.",
+		"assigneeLabel": "GitHub-Login",
+		"assigneeHelp": "Leer = aktueller gh-CLI-Benutzer",
+		"assigneeInvalid": "GitHub-Benutzer nicht gefunden",
+		"assigneeSaved": "GitHub-Benutzer gespeichert"
 	},
 	"appearance": {
 		"title": "Erscheinungsbild",
@@ -598,6 +604,14 @@
 		"noRepo": "Kein Repo",
 		"fieldIssue": "Verknüpftes Issue",
 		"issuePlaceholder": "Issue suchen…",
-		"fieldPinned": "Oben anpinnen"
+		"fieldPinned": "Oben anpinnen",
+		"edit": "Bearbeiten",
+		"close": "Schließen",
+		"createIssue": "Issue aus dieser Aufgabe erstellen",
+		"createIssueRepoLabel": "Repository für das Issue",
+		"createIssueNoRepo": "Füge ein Repository in den Einstellungen hinzu, um ein Issue zu erstellen.",
+		"issueCreated": "Issue #{number} erstellt",
+		"issueCreateError": "Issue konnte nicht erstellt werden",
+		"noDescription": "Keine Beschreibung"
 	}
 }
