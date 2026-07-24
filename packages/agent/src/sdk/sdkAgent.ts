@@ -23,6 +23,7 @@ import {
   readSessionRow,
   worktreeNeedsMove,
 } from './autoRename.js';
+import { applyGeneratedTitle } from './generatedTitle.js';
 
 export interface StreamSocket { send(data: string): void; readyState?: number }
 export interface StartParams { cwd: string; systemPrompt?: string; model?: string; effort?: string; permissionMode?: string; resumeClaudeSessionId?: string; mcpServers?: Record<string, unknown>; retryLastUser?: boolean; observeOnly?: boolean; initialPrompt?: string }
@@ -282,6 +283,11 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
    */
   function maybeStartAutoRename(sessionId: string, s: SessionState) {
     onAutoRenameAttempt?.(sessionId);
+    // Titre de session déterministe dérivé du premier prompt (façon Orca) :
+    // instantané, sans LLM ni condition de branche, indépendant du rename git
+    // ci-dessous. C'est ce qui alimente le nom affiché dans la sidebar.
+    const generatedTitle = applyGeneratedTitle(sessionId);
+    if (generatedTitle) console.info(`[auto-title] "${generatedTitle}" for ${sessionId}`);
     if (s.renameInFlight || s.pendingMove) return;
     const row = readSessionRow(sessionId);
     if (!row || !row.worktree_path) return;

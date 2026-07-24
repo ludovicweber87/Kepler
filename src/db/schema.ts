@@ -34,6 +34,9 @@ export const agentSessions = sqliteTable('agent_sessions', {
 	effort: text(),
 	permission_mode: text(),
 	agent_color: text(),
+	// true dès qu'un renommage manuel a figé le nom : le titre auto (dérivé du
+	// premier prompt) ne l'écrase plus jamais. « Manual rename always wins ».
+	title_pinned: integer({ mode: 'boolean' }).default(false),
 });
 
 // ─── Personas (bibliothèque réutilisable) ────────────────
