@@ -39,7 +39,8 @@
 		"personas": "Personas",
 		"unreadAgentNotification": "Unread agent notification",
 		"prOpen": "Open PR",
-		"tasks": "Tasks"
+		"tasks": "Tasks",
+		"docs": "Docs"
 	},
 	"landing": {
 		"nav": {
@@ -638,5 +639,100 @@
 		"issueCreated": "Issue #{number} created",
 		"issueCreateError": "Failed to create the issue",
 		"noDescription": "No description"
+	},
+	"docs": {
+		"title": "Docs",
+		"newDoc": "New doc",
+		"empty": "No docs yet",
+		"emptyHint": "Create your first AI-generated documentation.",
+		"searchPlaceholder": "Search a doc…",
+		"allTab": "All",
+		"addCategory": "Category",
+		"newCategory": "New category",
+		"categoryName": "Category name",
+		"create": "Create",
+		"cancel": "Cancel",
+		"deleteCategory": "Delete category",
+		"created": "Doc created, generating",
+		"createFailed": "Failed to create doc",
+		"categoryCreateFailed": "Failed to create category",
+		"status": {
+			"queued": "Queued",
+			"generating": "Generating…",
+			"ready": "Ready",
+			"failed": "Failed"
+		},
+		"level": {
+			"beginner": "Beginner",
+			"intermediate": "Intermediate",
+			"senior": "Senior"
+		},
+		"length": {
+			"short": "Short",
+			"medium": "Medium",
+			"long": "Long"
+		},
+		"format": {
+			"overview": "Overview",
+			"tutorial": "Tutorial",
+			"reference": "Reference",
+			"cheatsheet": "Cheat sheet",
+			"comparison": "Comparison"
+		},
+		"source": {
+			"knowledge": "General knowledge",
+			"repo": "Repo"
+		},
+		"form": {
+			"subject": "Subject",
+			"subjectPlaceholder": "E.g. Explain Kubernetes to me",
+			"source": "Source",
+			"sourceKnowledge": "General knowledge",
+			"sourceRepo": "From a repo",
+			"repo": "Repo",
+			"noRepos": "No repo configured",
+			"level": "Level",
+			"length": "Length",
+			"format": "Format",
+			"categories": "Categories",
+			"newCategoryPlaceholder": "Create a category…",
+			"angle": "Angle / focus",
+			"optional": "optional",
+			"anglePlaceholder": "E.g. keep it concrete, with examples",
+			"submit": "Generate doc"
+		},
+		"notFound": "Doc not found",
+		"backToList": "Back to docs",
+		"copied": "Copied",
+		"saved": "Saved",
+		"read": "Read",
+		"edit": "Edit",
+		"export": "Export",
+		"copyMarkdown": "Copy Markdown",
+		"downloadMd": "Download .md",
+		"toc": "Contents",
+		"generatingHint": "Generating the doc…",
+		"generationFailed": "Generation failed",
+		"retry": "Retry",
+		"save": "Save",
+		"refineTitle": "Refine the doc",
+		"refineEmpty": "Ask for a change in plain language — the doc will be updated.",
+		"you": "You",
+		"writer": "Writer",
+		"refineDone": "✓ Doc updated",
+		"working": "Working…",
+		"refinePlaceholder": "Ask for a change…",
+		"quick": {
+			"shorter": "Shorter",
+			"examples": "Add examples",
+			"technical": "More technical",
+			"simpler": "Simplify"
+		},
+		"quickPrompt": {
+			"shorter": "Make the doc shorter and more concise.",
+			"examples": "Add concrete examples.",
+			"technical": "Make the doc more technical and detailed.",
+			"simpler": "Simplify the complex parts."
+		}
 	}
 }

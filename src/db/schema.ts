@@ -37,6 +37,10 @@ export const agentSessions = sqliteTable('agent_sessions', {
 	// true dès qu'un renommage manuel a figé le nom : le titre auto (dérivé du
 	// premier prompt) ne l'écrase plus jamais. « Manual rename always wins ».
 	title_pinned: integer({ mode: 'boolean' }).default(false),
+	// Origine de la session : 'workbench' (défaut, sessions utilisateur normales)
+	// ou 'doc' (persona rédacteur de la feature Docs). Les sessions 'doc' sont
+	// exclues des listings/sidebar Projets.
+	origin: text().default('workbench'),
 });
 
 // ─── Personas (bibliothèque réutilisable) ────────────────
@@ -204,3 +208,46 @@ export const tasks = sqliteTable('tasks', {
 	created_at: timestamp(),
 	updated_at: timestamp(),
 });
+
+// ─── Docs (documentation rédigée par l'IA) ───────────────
+
+export const docs = sqliteTable('docs', {
+	id: uuid(),
+	title: text().notNull(),
+	subject: text().notNull(), // le "quoi" décrit par l'utilisateur
+	source_type: text().notNull().default('knowledge'), // 'knowledge' | 'repo'
+	repo_full_name: text(), // renseigné si source_type = 'repo'
+	level: text().notNull().default('intermediate'), // 'beginner' | 'intermediate' | 'senior'
+	length: text().notNull().default('medium'), // 'short' | 'medium' | 'long'
+	format: text().notNull().default('overview'), // overview|tutorial|reference|cheatsheet|comparison
+	angle: text(), // focus libre, optionnel
+	content: text(), // Markdown courant (null avant la 1re génération)
+	status: text().notNull().default('queued'), // queued|generating|ready|failed
+	error: text(), // message d'erreur si status = 'failed'
+	agent_session_id: text(), // → agent_sessions.session_id (persona rédacteur)
+	created_at: timestamp(),
+	updated_at: timestamp(),
+});
+
+// ─── Doc Categories (onglets de rangement, créés à la volée) ──
+
+export const docCategories = sqliteTable('doc_categories', {
+	id: uuid(),
+	name: text().notNull().unique(),
+	color: text().notNull().default('#7C5CFF'),
+	sort_order: integer().default(0),
+	created_at: timestamp(),
+});
+
+// ─── Doc ↔ Category (relation N-N, tags multiples) ───────
+
+export const docCategoryLinks = sqliteTable(
+	'doc_category_links',
+	{
+		id: uuid(),
+		doc_id: text().notNull(),
+		category_id: text().notNull(),
+		created_at: timestamp(),
+	},
+	(t) => [uniqueIndex('doc_category_links_doc_cat').on(t.doc_id, t.category_id)],
+);
