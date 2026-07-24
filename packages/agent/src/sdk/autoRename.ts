@@ -425,11 +425,8 @@ export async function autoRenameBranch(
 	}
 	persistBranch(row.id, unique);
 
-	// Label sidebar humanisé, uniquement si aucun label (persona/issue) déjà posé.
-	const displayName = humanizeBranchSlug(unique);
-	if (displayName && !readAgentName(row.id)) {
-		persistAgentName(row.id, displayName);
-		return { outcome: 'renamed', reason: 'ok', newName: unique, displayName };
-	}
+	// Le nom affiché dans la sidebar (`agent_name`) est désormais dérivé du premier
+	// prompt par `generatedTitle.applyGeneratedTitle` (déterministe, sans LLM).
+	// L'auto-rename ne s'occupe plus que de la branche git et du dossier worktree.
 	return { outcome: 'renamed', reason: 'ok', newName: unique };
 }

@@ -94,9 +94,11 @@ export function useSessionActions() {
 
 	// Renomme le label humain de la session (agent_name). Découplé de la branche
 	// git : simple UPDATE DB, aucune opération git, aucun cas d'échec worktree.
+	// `title_pinned` fige le nom : le titre auto dérivé du premier prompt ne
+	// l'écrasera plus jamais (« manual rename always wins »).
 	const rename = useCallback(
 		async (sessionId: string, name: string) => {
-			await patch({ session_id: sessionId, agent_name: name });
+			await patch({ session_id: sessionId, agent_name: name, title_pinned: true });
 			invalidate();
 		},
 		[patch, invalidate],
