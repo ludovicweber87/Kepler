@@ -30,6 +30,7 @@ import ChecklistRoundedIcon from '@mui/icons-material/ChecklistRounded';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
+import DragIndicatorRoundedIcon from '@mui/icons-material/DragIndicatorRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
@@ -92,7 +93,7 @@ export default function Sidebar() {
 		}
 		return map;
 	}, [allSessions]);
-	const { views } = useAgentViews();
+	const { views, reorderViews } = useAgentViews();
 	const { byPath, deleteWorktree, renameWorktree } = useAllWorktrees(views.map((v) => v.path));
 	const { mergedForRepo } = useMergedBranches(views.map((v) => v.repoFullName));
 	const { data: openPrs = [] } = usePullRequests(views.map((v) => v.repoFullName));
@@ -108,6 +109,36 @@ export default function Sidebar() {
 	const { archive, remove, rename } = useSessionActions();
 	const { repoPaths } = useRepoPaths();
 	const { showSnackbar } = useSnackbar();
+
+	// Drag & drop pour réordonner les projets (persiste via le groupe 'views' —
+	// même ordre partagé par le select Daily et les tabs PRs). Clé = view.label.
+	const dragViewIdx = useRef<number | null>(null);
+	const [dropViewTarget, setDropViewTarget] = useState<number | null>(null);
+	const handleViewDragStart = (idx: number) => (e: React.DragEvent) => {
+		dragViewIdx.current = idx;
+		e.dataTransfer.effectAllowed = 'move';
+		e.dataTransfer.setData('text/plain', String(idx));
+	};
+	const handleViewDragOver = (idx: number) => (e: React.DragEvent) => {
+		e.preventDefault();
+		e.dataTransfer.dropEffect = 'move';
+		if (dragViewIdx.current !== null && dragViewIdx.current !== idx) setDropViewTarget(idx);
+	};
+	const handleViewDrop = (idx: number) => (e: React.DragEvent) => {
+		e.preventDefault();
+		setDropViewTarget(null);
+		const from = dragViewIdx.current;
+		dragViewIdx.current = null;
+		if (from === null || from === idx) return;
+		const keys = views.map((v) => v.label);
+		const [moved] = keys.splice(from, 1);
+		keys.splice(idx, 0, moved);
+		reorderViews(keys);
+	};
+	const handleViewDragEnd = () => {
+		dragViewIdx.current = null;
+		setDropViewTarget(null);
+	};
 
 	// Default focus: on a bare /workbench (no ?session=), open the first worktree
 	// that already has a session, scanning folders then worktrees in order.
@@ -374,7 +405,7 @@ export default function Sidebar() {
 								{t('projects')}
 							</Typography>
 						)}
-						{views.map((view) => {
+						{views.map((view, idx) => {
 							const allWorktrees = byPath.get(view.path) ?? [];
 							// Hide worktrees whose session is archived (archived → Archives page only).
 							const worktrees = allWorktrees.filter((wt) => {
@@ -387,7 +418,38 @@ export default function Sidebar() {
 								openPrBranchesByRepo.get(view.repoFullName) ?? new Set<string>();
 							return (
 								<Box key={view.path}>
-									<Box sx={{ display: 'flex', alignItems: 'center' }}>
+									<Box
+										draggable
+										onDragStart={handleViewDragStart(idx)}
+										onDragOver={handleViewDragOver(idx)}
+										onDrop={handleViewDrop(idx)}
+										onDragEnd={handleViewDragEnd}
+										sx={{
+											display: 'flex',
+											alignItems: 'center',
+											borderRadius: 1,
+											borderTop: 2,
+											borderColor:
+												dropViewTarget === idx
+													? alpha(theme.palette.primary.main, 0.6)
+													: 'transparent',
+											'&:hover .drag-handle': { opacity: 1 },
+										}}
+									>
+										<Box
+											className="drag-handle"
+											sx={{
+												display: 'flex',
+												alignItems: 'center',
+												cursor: 'grab',
+												color: 'text.disabled',
+												opacity: 0,
+												transition: 'opacity 0.15s',
+												'&:active': { cursor: 'grabbing' },
+											}}
+										>
+											<DragIndicatorRoundedIcon sx={{ fontSize: 16 }} />
+										</Box>
 										<ListItemButton
 											onClick={() => toggleProject(view.path)}
 											sx={{
