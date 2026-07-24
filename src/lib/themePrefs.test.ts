@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	DEFAULT_THEME_PREFS,
 	normalizeThemePrefs,
+	normalizeHexInput,
 	appFontStack,
 	terminalFontStack,
 	googleFontsHref,
@@ -47,6 +48,34 @@ describe('normalizeThemePrefs', () => {
 	it('rejects an invalid mode', () => {
 		const out = normalizeThemePrefs({ customTokens: { mode: 'blue' } });
 		expect(out.customTokens.mode).toBe(DEFAULT_THEME_PREFS.customTokens.mode);
+	});
+});
+
+describe('normalizeHexInput', () => {
+	it('accepts a full 6-digit hex with #', () => {
+		expect(normalizeHexInput('#7C5CFF')).toBe('#7C5CFF');
+	});
+
+	it('accepts a 6-digit hex without # and normalizes the case', () => {
+		expect(normalizeHexInput('7c5cff')).toBe('#7C5CFF');
+	});
+
+	it('expands the 3-digit shorthand', () => {
+		expect(normalizeHexInput('#fff')).toBe('#FFFFFF');
+		expect(normalizeHexInput('abc')).toBe('#AABBCC');
+	});
+
+	it('trims surrounding whitespace', () => {
+		expect(normalizeHexInput('  #123abc  ')).toBe('#123ABC');
+	});
+
+	it('rejects invalid input', () => {
+		expect(normalizeHexInput('')).toBeNull();
+		expect(normalizeHexInput('#12')).toBeNull();
+		expect(normalizeHexInput('#12345')).toBeNull();
+		expect(normalizeHexInput('#gggggg')).toBeNull();
+		expect(normalizeHexInput('rgb(0,0,0)')).toBeNull();
+		expect(normalizeHexInput('red')).toBeNull();
 	});
 });
 

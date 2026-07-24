@@ -231,6 +231,8 @@
 		"terminalFontSize": "Size (terminal)",
 		"save": "Save",
 		"saved": "Appearance saved",
+		"hexPlaceholder": "#7C5CFF",
+		"hexInvalid": "Invalid HEX code",
 		"colors": {
 			"primary": "Primary",
 			"secondary": "Secondary",

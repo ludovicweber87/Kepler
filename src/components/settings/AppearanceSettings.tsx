@@ -14,7 +14,13 @@ import { useColorMode } from '@/hooks/useColorMode';
 import { useThemePrefs } from '@/hooks/useThemePrefs';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { THEME_VARIANTS, THEME_VARIANT_SWATCH, type ThemeVariant } from '@/theme/theme';
-import { APP_FONTS, TERMINAL_FONTS, COLOR_TOKEN_KEYS, type ThemePrefs } from '@/lib/themePrefs';
+import {
+	APP_FONTS,
+	TERMINAL_FONTS,
+	COLOR_TOKEN_KEYS,
+	normalizeHexInput,
+	type ThemePrefs,
+} from '@/lib/themePrefs';
 import { APP_FONT_MIN, APP_FONT_MAX } from '@/lib/appFontScale';
 
 export default function AppearanceSettings() {
@@ -125,36 +131,14 @@ export default function AppearanceSettings() {
 						}}
 					>
 						{COLOR_TOKEN_KEYS.map((key) => (
-							<Box key={key} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-								<Box
-									component="input"
-									type="color"
-									value={draft.customTokens[key]}
-									aria-label={t(`colors.${key}`)}
-									onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-										setColor(key, e.target.value)
-									}
-									sx={{
-										width: 28,
-										height: 28,
-										p: 0,
-										border: 1,
-										borderColor: 'divider',
-										borderRadius: 1,
-										bgcolor: 'transparent',
-										cursor: 'pointer',
-										flexShrink: 0,
-										'&::-webkit-color-swatch-wrapper': { p: 0 },
-										'&::-webkit-color-swatch': {
-											border: 'none',
-											borderRadius: 3,
-										},
-									}}
-								/>
-								<Typography variant="caption" color="text.secondary" noWrap>
-									{t(`colors.${key}`)}
-								</Typography>
-							</Box>
+							<ColorField
+								key={key}
+								label={t(`colors.${key}`)}
+								placeholder={t('hexPlaceholder')}
+								invalidLabel={t('hexInvalid')}
+								value={draft.customTokens[key]}
+								onColor={(hex) => setColor(key, hex)}
+							/>
 						))}
 					</Box>
 				</Box>
@@ -248,6 +232,72 @@ function FontControl({
 				}}
 				slotProps={{ htmlInput: { min, max } }}
 			/>
+		</Box>
+	);
+}
+
+function ColorField({
+	label,
+	placeholder,
+	invalidLabel,
+	value,
+	onColor,
+}: {
+	label: string;
+	placeholder: string;
+	invalidLabel: string;
+	value: string;
+	onColor: (hex: string) => void;
+}) {
+	const [text, setText] = useState(value);
+	const [lastValue, setLastValue] = useState(value);
+
+	// Re-sync when the stored value changes from the outside (e.g. prefs reload),
+	// but keep the raw text the user is currently typing if it already resolves
+	// to the stored value (avoids clobbering mid-edit, e.g. lowercase input).
+	if (value !== lastValue) {
+		setLastValue(value);
+		if (normalizeHexInput(text) !== value) setText(value);
+	}
+
+	const normalized = normalizeHexInput(text);
+	const invalid = text.trim() !== '' && normalized === null;
+	const swatch = normalized ?? value;
+
+	return (
+		<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+			<Typography variant="caption" color="text.secondary" noWrap>
+				{label}
+			</Typography>
+			<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+				<Box
+					aria-hidden
+					sx={{
+						width: 28,
+						height: 28,
+						flexShrink: 0,
+						border: 1,
+						borderColor: 'divider',
+						borderRadius: 1,
+						bgcolor: swatch,
+					}}
+				/>
+				<TextField
+					size="small"
+					fullWidth
+					placeholder={placeholder}
+					aria-label={label}
+					error={invalid}
+					helperText={invalid ? invalidLabel : undefined}
+					value={text}
+					onChange={(e) => {
+						setText(e.target.value);
+						const next = normalizeHexInput(e.target.value);
+						if (next) onColor(next);
+					}}
+					onBlur={() => setText(value)}
+				/>
+			</Box>
 		</Box>
 	);
 }

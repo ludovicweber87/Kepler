@@ -84,6 +84,27 @@ function hex(value: unknown, fallback: string): string {
 	return typeof value === 'string' && HEX.test(value) ? value : fallback;
 }
 
+// Lenient HEX parser for manual text input: tolerates an optional leading '#',
+// surrounding whitespace, any case, and the 3-digit shorthand (#fff → #ffffff).
+// Returns the canonical `#RRGGBB` (uppercase) form, or null when invalid.
+export function normalizeHexInput(input: string): string | null {
+	if (typeof input !== 'string') return null;
+	const raw = input.trim().replace(/^#/, '');
+	if (!/^[0-9a-fA-F]+$/.test(raw)) return null;
+	let digits: string;
+	if (raw.length === 3) {
+		digits = raw
+			.split('')
+			.map((c) => c + c)
+			.join('');
+	} else if (raw.length === 6) {
+		digits = raw;
+	} else {
+		return null;
+	}
+	return `#${digits.toUpperCase()}`;
+}
+
 function clampSize(value: unknown, fallback: number): number {
 	if (typeof value !== 'number' || Number.isNaN(value)) return fallback;
 	return Math.min(MAX_SIZE, Math.max(MIN_SIZE, Math.round(value)));
