@@ -15,7 +15,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { fr } from 'date-fns/locale';
 import { format } from 'date-fns';
 import { useTranslations } from 'next-intl';
-import { useRepoPaths } from '@/hooks/useRepoPaths';
+import { useAgentViews } from '@/hooks/useAgentViews';
 import { useRecaps, useGenerateRecap, useDeleteRecap, useGeneratingDates } from '@/hooks/useRecaps';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { aggregatePointsByDay } from '@/lib/recap';
@@ -24,7 +24,7 @@ import RecapDayModal from './RecapDayModal';
 
 export default function DailyPage() {
 	const t = useTranslations('daily');
-	const { repoPaths } = useRepoPaths();
+	const { views } = useAgentViews();
 	const { showSnackbar } = useSnackbar();
 
 	const [selectedRepo, setSelectedRepo] = useState<string>();
@@ -33,7 +33,8 @@ export default function DailyPage() {
 	const [modalOpen, setModalOpen] = useState(false);
 
 	// Effective repo: user choice, else the first configured repo (no state-in-effect).
-	const repo = selectedRepo ?? repoPaths[0]?.repo_full_name;
+	// `views` is ordered by the shared 'views' tab_orders group (same order as the Sidebar).
+	const repo = selectedRepo ?? views[0]?.repoFullName;
 
 	const { data: recaps = [] } = useRecaps(repo, month);
 	const generate = useGenerateRecap();
@@ -70,7 +71,7 @@ export default function DailyPage() {
 		);
 	};
 
-	if (repoPaths.length === 0) {
+	if (views.length === 0) {
 		return (
 			<Box sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>
 				<Typography variant="h6" sx={{ mb: 1 }}>
@@ -111,9 +112,9 @@ export default function DailyPage() {
 							}
 							sx={{ minWidth: 220, fontSize: '0.85rem' }}
 						>
-							{repoPaths.map((r) => (
-								<MenuItem key={r.repo_full_name} value={r.repo_full_name}>
-									{r.repo_full_name}
+							{views.map((v) => (
+								<MenuItem key={v.repoFullName} value={v.repoFullName}>
+									{v.repoFullName}
 								</MenuItem>
 							))}
 						</Select>
