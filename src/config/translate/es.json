@@ -39,7 +39,8 @@
 		"personas": "Personas",
 		"unreadAgentNotification": "Notificación de agente sin leer",
 		"prOpen": "PR abierta",
-		"tasks": "Tareas"
+		"tasks": "Tareas",
+		"docs": "Docs"
 	},
 	"landing": {
 		"nav": {
@@ -616,5 +617,100 @@
 		"issueCreated": "Incidencia #{number} creada",
 		"issueCreateError": "No se pudo crear la incidencia",
 		"noDescription": "Sin descripción"
+	},
+	"docs": {
+		"title": "Docs",
+		"newDoc": "Nuevo doc",
+		"empty": "Aún no hay docs",
+		"emptyHint": "Crea tu primera documentación generada por IA.",
+		"searchPlaceholder": "Buscar un doc…",
+		"allTab": "Todas",
+		"addCategory": "Categoría",
+		"newCategory": "Nueva categoría",
+		"categoryName": "Nombre de la categoría",
+		"create": "Crear",
+		"cancel": "Cancelar",
+		"deleteCategory": "Eliminar categoría",
+		"created": "Doc creado, generando",
+		"createFailed": "Error al crear el doc",
+		"categoryCreateFailed": "Error al crear la categoría",
+		"status": {
+			"queued": "En cola",
+			"generating": "Generando…",
+			"ready": "Lista",
+			"failed": "Error"
+		},
+		"level": {
+			"beginner": "Principiante",
+			"intermediate": "Intermedio",
+			"senior": "Senior"
+		},
+		"length": {
+			"short": "Corto",
+			"medium": "Medio",
+			"long": "Largo"
+		},
+		"format": {
+			"overview": "Visión general",
+			"tutorial": "Tutorial",
+			"reference": "Referencia",
+			"cheatsheet": "Chuleta",
+			"comparison": "Comparativa"
+		},
+		"source": {
+			"knowledge": "Conocimiento general",
+			"repo": "Repo"
+		},
+		"form": {
+			"subject": "Tema",
+			"subjectPlaceholder": "Ej. Explícame Kubernetes",
+			"source": "Fuente",
+			"sourceKnowledge": "Conocimiento general",
+			"sourceRepo": "Desde un repo",
+			"repo": "Repo",
+			"noRepos": "Ningún repo configurado",
+			"level": "Nivel",
+			"length": "Longitud",
+			"format": "Formato",
+			"categories": "Categorías",
+			"newCategoryPlaceholder": "Crear una categoría…",
+			"angle": "Enfoque",
+			"optional": "opcional",
+			"anglePlaceholder": "Ej. algo concreto, con ejemplos",
+			"submit": "Generar doc"
+		},
+		"notFound": "Doc no encontrado",
+		"backToList": "Volver a docs",
+		"copied": "Copiado",
+		"saved": "Guardado",
+		"read": "Lectura",
+		"edit": "Edición",
+		"export": "Exportar",
+		"copyMarkdown": "Copiar Markdown",
+		"downloadMd": "Descargar .md",
+		"toc": "Índice",
+		"generatingHint": "Generando el doc…",
+		"generationFailed": "Error de generación",
+		"retry": "Reintentar",
+		"save": "Guardar",
+		"refineTitle": "Afinar el doc",
+		"refineEmpty": "Pide un cambio en lenguaje natural — el doc se actualizará.",
+		"you": "Tú",
+		"writer": "Redactor",
+		"refineDone": "✓ Doc actualizado",
+		"working": "Trabajando…",
+		"refinePlaceholder": "Pide un cambio…",
+		"quick": {
+			"shorter": "Más corto",
+			"examples": "Añadir ejemplos",
+			"technical": "Más técnico",
+			"simpler": "Simplificar"
+		},
+		"quickPrompt": {
+			"shorter": "Haz el doc más corto y conciso.",
+			"examples": "Añade ejemplos concretos.",
+			"technical": "Haz el doc más técnico y detallado.",
+			"simpler": "Simplifica las partes complejas."
+		}
 	}
 }

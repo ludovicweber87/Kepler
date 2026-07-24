@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, isAuthError } from '@/lib/auth-utils';
 import { db } from '@/db';
 import { agentSessions, agentActivityLogs } from '@/db/schema';
-import { eq, desc, and, inArray } from 'drizzle-orm';
+import { eq, desc, and, inArray, sql } from 'drizzle-orm';
 
 export async function GET(req: NextRequest) {
 	const auth = await requireAuth();
@@ -27,8 +27,12 @@ export async function GET(req: NextRequest) {
 			return NextResponse.json(session ?? null);
 		}
 
-		// Build query conditions
-		const conditions = [];
+		// Build query conditions.
+		// Exclut les sessions du persona rédacteur de Docs (origin='doc') des
+		// listings/sidebar. Les lignes legacy (origin NULL) restent incluses.
+		const conditions = [
+			sql`(${agentSessions.origin} IS NULL OR ${agentSessions.origin} != 'doc')`,
+		];
 		if (status) {
 			if (status === 'completed') {
 				conditions.push(inArray(agentSessions.status, ['completed', 'error']));

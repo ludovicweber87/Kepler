@@ -497,3 +497,59 @@ export type NewTask = Pick<Task, 'title'> &
 // Payload de mise à jour : id requis, tout le reste optionnel.
 export type TaskPatch = Pick<Task, 'id'> &
 	Partial<Omit<Task, 'id' | 'created_at' | 'updated_at' | 'completed_at'>>;
+
+// ─── Docs ────────────────────────────────────────────────
+
+export type DocSourceType = 'knowledge' | 'repo';
+export type DocLevel = 'beginner' | 'intermediate' | 'senior';
+export type DocLength = 'short' | 'medium' | 'long';
+export type DocFormat = 'overview' | 'tutorial' | 'reference' | 'cheatsheet' | 'comparison';
+export type DocStatus = 'queued' | 'generating' | 'ready' | 'failed';
+
+export interface DocCategory {
+	id: string;
+	name: string;
+	color: string;
+	sort_order: number;
+	created_at: string;
+}
+
+export type NewDocCategory = Pick<DocCategory, 'name'> & Partial<Pick<DocCategory, 'color'>>;
+export type DocCategoryPatch = Pick<DocCategory, 'id'> &
+	Partial<Pick<DocCategory, 'name' | 'color' | 'sort_order'>>;
+
+export interface Doc {
+	id: string;
+	title: string;
+	subject: string;
+	source_type: DocSourceType;
+	repo_full_name: string | null;
+	level: DocLevel;
+	length: DocLength;
+	format: DocFormat;
+	angle: string | null;
+	content: string | null;
+	status: DocStatus;
+	error: string | null;
+	agent_session_id: string | null;
+	created_at: string;
+	updated_at: string;
+}
+
+// Doc enrichie des ids de catégories liées (jointure), pour l'UI liste/filtre.
+export interface DocWithCategories extends Doc {
+	category_ids: string[];
+}
+
+// Payload de création : sujet requis ; le reste a des défauts côté serveur.
+// `category_ids` = catégories existantes à lier à la création.
+export type NewDoc = Pick<Doc, 'subject'> &
+	Partial<
+		Pick<Doc, 'title' | 'source_type' | 'repo_full_name' | 'level' | 'length' | 'format' | 'angle'>
+	> & { category_ids?: string[] };
+
+// Payload de mise à jour : id requis, tout le reste optionnel.
+export type DocPatch = Pick<Doc, 'id'> &
+	Partial<
+		Pick<Doc, 'title' | 'content' | 'status' | 'error' | 'angle'> & { category_ids: string[] }
+	>;

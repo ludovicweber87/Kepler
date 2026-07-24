@@ -39,7 +39,8 @@
 		"personas": "Personas",
 		"unreadAgentNotification": "Ungelesene Agent-Benachrichtigung",
 		"prOpen": "Offener PR",
-		"tasks": "Aufgaben"
+		"tasks": "Aufgaben",
+		"docs": "Docs"
 	},
 	"landing": {
 		"nav": {
@@ -616,5 +617,100 @@
 		"issueCreated": "Issue #{number} erstellt",
 		"issueCreateError": "Issue konnte nicht erstellt werden",
 		"noDescription": "Keine Beschreibung"
+	},
+	"docs": {
+		"title": "Docs",
+		"newDoc": "Neues Doc",
+		"empty": "Noch keine Docs",
+		"emptyHint": "Erstelle deine erste KI-generierte Dokumentation.",
+		"searchPlaceholder": "Doc suchen…",
+		"allTab": "Alle",
+		"addCategory": "Kategorie",
+		"newCategory": "Neue Kategorie",
+		"categoryName": "Kategoriename",
+		"create": "Erstellen",
+		"cancel": "Abbrechen",
+		"deleteCategory": "Kategorie löschen",
+		"created": "Doc erstellt, wird generiert",
+		"createFailed": "Doc konnte nicht erstellt werden",
+		"categoryCreateFailed": "Kategorie konnte nicht erstellt werden",
+		"status": {
+			"queued": "In Warteschlange",
+			"generating": "Wird generiert…",
+			"ready": "Fertig",
+			"failed": "Fehler"
+		},
+		"level": {
+			"beginner": "Anfänger",
+			"intermediate": "Mittel",
+			"senior": "Senior"
+		},
+		"length": {
+			"short": "Kurz",
+			"medium": "Mittel",
+			"long": "Lang"
+		},
+		"format": {
+			"overview": "Überblick",
+			"tutorial": "Tutorial",
+			"reference": "Referenz",
+			"cheatsheet": "Spickzettel",
+			"comparison": "Vergleich"
+		},
+		"source": {
+			"knowledge": "Allgemeinwissen",
+			"repo": "Repo"
+		},
+		"form": {
+			"subject": "Thema",
+			"subjectPlaceholder": "z. B. Erkläre mir Kubernetes",
+			"source": "Quelle",
+			"sourceKnowledge": "Allgemeinwissen",
+			"sourceRepo": "Aus einem Repo",
+			"repo": "Repo",
+			"noRepos": "Kein Repo konfiguriert",
+			"level": "Niveau",
+			"length": "Länge",
+			"format": "Format",
+			"categories": "Kategorien",
+			"newCategoryPlaceholder": "Kategorie erstellen…",
+			"angle": "Fokus",
+			"optional": "optional",
+			"anglePlaceholder": "z. B. konkret, mit Beispielen",
+			"submit": "Doc generieren"
+		},
+		"notFound": "Doc nicht gefunden",
+		"backToList": "Zurück zu Docs",
+		"copied": "Kopiert",
+		"saved": "Gespeichert",
+		"read": "Lesen",
+		"edit": "Bearbeiten",
+		"export": "Exportieren",
+		"copyMarkdown": "Markdown kopieren",
+		"downloadMd": ".md herunterladen",
+		"toc": "Inhalt",
+		"generatingHint": "Doc wird generiert…",
+		"generationFailed": "Generierung fehlgeschlagen",
+		"retry": "Erneut versuchen",
+		"save": "Speichern",
+		"refineTitle": "Doc verfeinern",
+		"refineEmpty": "Bitte um eine Änderung in natürlicher Sprache — das Doc wird aktualisiert.",
+		"you": "Du",
+		"writer": "Autor",
+		"refineDone": "✓ Doc aktualisiert",
+		"working": "Arbeitet…",
+		"refinePlaceholder": "Um eine Änderung bitten…",
+		"quick": {
+			"shorter": "Kürzer",
+			"examples": "Beispiele hinzufügen",
+			"technical": "Technischer",
+			"simpler": "Vereinfachen"
+		},
+		"quickPrompt": {
+			"shorter": "Mach das Doc kürzer und prägnanter.",
+			"examples": "Füge konkrete Beispiele hinzu.",
+			"technical": "Mach das Doc technischer und detaillierter.",
+			"simpler": "Vereinfache die komplexen Stellen."
+		}
 	}
 }
