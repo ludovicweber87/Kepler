@@ -209,6 +209,8 @@
 		"terminalFontSize": "Größe (Terminal)",
 		"save": "Speichern",
 		"saved": "Erscheinungsbild gespeichert",
+		"hexPlaceholder": "#7C5CFF",
+		"hexInvalid": "Ungültiger HEX-Code",
 		"colors": {
 			"primary": "Primär",
 			"secondary": "Sekundär",
