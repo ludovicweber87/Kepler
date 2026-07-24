@@ -142,9 +142,15 @@ export default function AgentChatTab({
 		chat.send(text, images);
 	};
 
-	const agentColor = session?.agent_color ?? null;
-	const agentName = session?.agent_name ?? null;
-	const currentPersonaId = personas.find((p) => p.name === agentName)?.id ?? null;
+	// Persona active = persona_id (source de vérité), avec fallback par nom pour les
+	// sessions créées avant la colonne persona_id (lecture seule, jamais réécrit).
+	const currentPersonaId =
+		session?.persona_id ?? personas.find((p) => p.name === session?.agent_name)?.id ?? null;
+	const activePersona = personas.find((p) => p.id === currentPersonaId) ?? null;
+	// Badge du composer = persona active. Fallback sur le label de session (cas
+	// « sans persona » ou legacy). Découplé du nom/couleur affichés dans la sidebar.
+	const agentName = activePersona?.name ?? session?.agent_name ?? null;
+	const agentColor = activePersona?.color ?? session?.agent_color ?? null;
 
 	// Changement de persona en cours de session : model/effort/mode appliqués en live,
 	// puis le system prompt est changé côté serveur via un restart soft (resume →
@@ -154,11 +160,13 @@ export default function AgentChatTab({
 		// « Sans persona » : on déverrouille les contrôles en gardant les valeurs
 		// courantes (model/effort/mode inchangés), on efface le system prompt persona
 		// et on persiste la remise à null du snapshot (sticky au reload).
+		// On ne touche jamais agent_name / agent_color : ce sont le label et la couleur
+		// du worktree affichés dans la sidebar. Seule l'identité de persona (persona_id)
+		// et les réglages comportementaux changent.
 		if (personaId === null) {
 			chat.setSystemPrompt('');
 			updatePersona({
-				agent_name: null,
-				agent_color: null,
+				persona_id: null,
 				model: chat.model,
 				effort: chat.effort,
 				permission_mode: chat.permissionMode,
@@ -173,8 +181,7 @@ export default function AgentChatTab({
 		chat.setPermissionMode(persona.permission_mode ?? '');
 		chat.setSystemPrompt(persona.system_prompt ?? '', persona.name);
 		updatePersona({
-			agent_name: persona.name,
-			agent_color: persona.color,
+			persona_id: persona.id,
 			model: persona.model,
 			effort: persona.effort,
 			permission_mode: persona.permission_mode,
