@@ -46,3 +46,18 @@ export function toolChipLabel(input: unknown): string {
 	}
 	return '';
 }
+
+/**
+ * Clé i18n (namespace `agentChat`) décrivant l'action d'un outil de doc, ou null.
+ * On renvoie une CLÉ et pas un libellé : ce module est pur et ne traduit pas —
+ * c'est ChatToolCard qui appelle useTranslations.
+ */
+const DOC_TOOL_LABEL_KEYS: Record<string, string> = {
+	mcp__doc__read_doc: 'docRead',
+	mcp__doc__edit_doc: 'docUpdated',
+	mcp__doc__replace_doc: 'docUpdated',
+};
+
+export function docToolLabelKey(name: string): string | null {
+	return DOC_TOOL_LABEL_KEYS[name] ?? null;
+}
