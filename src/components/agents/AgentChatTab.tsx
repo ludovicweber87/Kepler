@@ -11,6 +11,7 @@ import { useAgentChat } from '@/hooks/useAgentChat';
 import { useAgentSession } from '@/hooks/useAgentSession';
 import { usePersonas } from '@/hooks/usePersonas';
 import { DEFAULT_CREATE_PR_PROMPT, DEFAULT_COMMIT_PUSH_PROMPT } from '@/lib/prompts';
+import { resolvePersonaIdentity } from '@/lib/personaIdentity';
 import type { ChatImageInput } from '@/types';
 import ChatBubble from './chat/ChatBubble';
 import ChatPermissionCard from './chat/ChatPermissionCard';
@@ -143,15 +144,15 @@ export default function AgentChatTab({
 		chat.send(text, images);
 	};
 
-	// Persona active = persona_id (source de vérité), avec fallback par nom pour les
-	// sessions créées avant la colonne persona_id (lecture seule, jamais réécrit).
-	const currentPersonaId =
-		session?.persona_id ?? personas.find((p) => p.name === session?.agent_name)?.id ?? null;
-	const activePersona = personas.find((p) => p.id === currentPersonaId) ?? null;
-	// Badge du composer = persona active. Fallback sur le label de session (cas
-	// « sans persona » ou legacy). Découplé du nom/couleur affichés dans la sidebar.
-	const agentName = activePersona?.name ?? session?.agent_name ?? null;
-	const agentColor = activePersona?.color ?? session?.agent_color ?? null;
+	// Badge du composer = identité de persona, dérivée du seul `persona_id`. Aucun
+	// fallback sur `agent_name` / `agent_color` : ce sont le label et la couleur du
+	// worktree, réécrits par l'auto-rename → le choix de persona doit rester stable.
+	// Sans persona, le composer affiche son label neutre (`agentLabel`).
+	const {
+		personaId: currentPersonaId,
+		name: agentName,
+		color: agentColor,
+	} = resolvePersonaIdentity(session, personas);
 
 	// Changement de persona en cours de session : model/effort/mode appliqués en live,
 	// puis le system prompt est changé côté serveur via un restart soft (resume →

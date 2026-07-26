@@ -18,15 +18,20 @@ import { useTranslations } from 'next-intl';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { validateImageFile, readFileAsDataUrl, stripDataUrlPrefix } from '@/lib/imageAttach';
 import { normalizeEffort } from '@/lib/models';
-import { LIGHT_INPUT_SHADOW, RAINBOW_GRADIENT } from '@/theme/theme';
+import {
+	DARK_SHADOW_TOP,
+	LIGHT_INPUT_SHADOW,
+	LIGHT_SHADOW_TOP,
+	RAINBOW_GRADIENT,
+} from '@/theme/theme';
 import AgentSettingsControls from './AgentSettingsControls';
 import type { ChatImageInput, Persona } from '@/types';
 
 // Bordure dégradée arc-en-ciel (effort ultracode) : astuce padding-box / border-box pour
-// respecter le border-radius. Seule la 2ᵉ couche (le dégradé de la bordure) défile.
+// respecter le border-radius. Seule la 3ᵉ couche (le dégradé de la bordure) défile.
 const rainbowBorderShift = keyframes`
-	0% { background-position: 0% 0%, 0% 0%; }
-	100% { background-position: 0% 0%, 200% 0%; }
+	0% { background-position: 0% 0%, 0% 0%, 0% 0%; }
+	100% { background-position: 0% 0%, 0% 0%, 200% 0%; }
 `;
 
 interface Props {
@@ -141,12 +146,14 @@ export default function ChatComposer({
 			? {
 					border: '1px solid transparent',
 					borderRadius: 2.5,
-					background: (th: Theme) =>
-						`linear-gradient(${alpha(th.palette.text.primary, 0.03)}, ${alpha(
-							th.palette.text.primary,
-							0.03,
-						)}) padding-box, ${RAINBOW_GRADIENT} border-box`,
-					backgroundSize: '100% 100%, 200% 100%',
+					// 3 couches : teinte subtile + fond opaque (masque le dégradé à l'intérieur
+					// de la bordure) en padding-box, puis l'arc-en-ciel en border-box.
+					background: (th: Theme) => {
+						const tint = alpha(th.palette.text.primary, 0.03);
+						const base = th.palette.background.default;
+						return `linear-gradient(${tint}, ${tint}) padding-box, linear-gradient(${base}, ${base}) padding-box, ${RAINBOW_GRADIENT} border-box`;
+					},
+					backgroundSize: '100% 100%, 100% 100%, 200% 100%',
 					animation: `${rainbowBorderShift} 6s linear infinite`,
 				}
 			: {
@@ -166,7 +173,20 @@ export default function ChatComposer({
 	const lockedTooltip = tc('settingsLockedByPersona', { name: agentName ?? '' });
 
 	return (
-		<Box sx={{ p: 1.5, borderTop: 1, borderColor: 'divider', flexShrink: 0 }}>
+		<Box
+			sx={{
+				p: 1.5,
+				borderTop: 1,
+				borderColor: 'divider',
+				flexShrink: 0,
+				// z-index : sans lui l'ombre serait peinte sous le texte des messages
+				// (ordre de peinture CSS : fonds des blocs avant le contenu inline).
+				position: 'relative',
+				zIndex: 1,
+				boxShadow: (th) =>
+					th.palette.mode === 'light' ? LIGHT_SHADOW_TOP : DARK_SHADOW_TOP,
+			}}
+		>
 			<Box
 				onPaste={onPaste}
 				onDrop={onDrop}
