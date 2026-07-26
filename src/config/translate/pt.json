@@ -92,6 +92,7 @@
 		"renameLabel": "Renomear",
 		"stopSession": "Parar a sessão",
 		"closeFile": "Fechar ficheiro",
+		"closeReader": "Fechar leitura",
 		"fileError": "Não foi possível ler o arquivo",
 		"fileTruncated": "Arquivo truncado (muito grande para exibir por completo)",
 		"chipReader": "Leitura"

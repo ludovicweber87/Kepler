@@ -1,6 +1,13 @@
 import type { FileDiff } from './gitDiff';
 
 export const CHAT_TAB = 'chat';
+/** Onglet gauche du lecteur d'activité pleine largeur (ouvert via « Voir », fermable). */
+export const READER_TAB = 'reader';
+
+/** Vrai si l'onglet gauche actif est une vue de session, pas un chemin de fichier. */
+export function isSessionTab(tab: string): boolean {
+	return tab === CHAT_TAB || tab === READER_TAB;
+}
 
 /** Trouve le FileDiff pour un chemin relatif repo OU absolu (match par suffixe). */
 export function matchFileDiff(files: FileDiff[], path: string | null): FileDiff | undefined {
