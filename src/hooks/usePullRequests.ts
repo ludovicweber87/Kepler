@@ -41,6 +41,16 @@ export function useMergePR() {
 			mergePR(repo, pullNumber),
 		onSettled: () => {
 			queryClient.invalidateQueries({ queryKey: ['github', 'prs'] });
+			// La sidebar barre les worktrees dont la branche est mergée en lisant
+			// `['merged-branches', repo]` : sans cette invalidation, la query reste en
+			// cache (staleTime 5 min, pas de polling, refetchOnWindowFocus off) et seul
+			// un rechargement complet la rafraîchit.
+			// Préfixe volontairement non scopé au repo : la casse de `repo_full_name`
+			// (API GitHub) peut diverger de celle des vues configurées — cf. la
+			// comparaison en toLowerCase() dans PullRequestsList — et une clé exacte
+			// raterait alors sa cible. Un merge est rare, refetch tous les repos est
+			// sans conséquence.
+			queryClient.invalidateQueries({ queryKey: ['merged-branches'] });
 		},
 	});
 }
