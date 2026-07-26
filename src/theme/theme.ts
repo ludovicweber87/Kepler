@@ -36,6 +36,11 @@ export const LIGHT_SHADOW_RIGHT = '6px 0 24px -14px rgba(0,0,0,0.14), 1px 0 2px 
 export const LIGHT_SHADOW_LEFT = '-6px 0 24px -14px rgba(0,0,0,0.14), -1px 0 2px rgba(0,0,0,0.04)';
 export const LIGHT_INPUT_SHADOW = '0 2px 14px -6px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.05)';
 
+// Dégradé arc-en-ciel de l'effort « ultracode ». La dernière teinte reprend la première
+// pour boucler sans couture quand on anime `background-position` (background-size 200%).
+export const RAINBOW_GRADIENT =
+	'linear-gradient(90deg, #FF6B6B, #FFD93D, #6BCB77, #4D96FF, #B983FF, #FF6B6B)';
+
 /** [background, primary] pair used to render the variant swatch: left half signals
  * dark/light mode (the surface), right half shows the primary accent. */
 export const THEME_VARIANT_SWATCH: Record<ThemeVariant, [string, string]> = {

@@ -438,7 +438,7 @@ export type NewNotification = Omit<AppNotification, 'id' | 'read_at' | 'created_
 
 // ─── Personas (bibliothèque réutilisable) ────────────────
 
-export type ClaudeEffort = 'low' | 'medium' | 'high' | 'max';
+export type ClaudeEffort = 'low' | 'medium' | 'high' | 'ultracode';
 export type ClaudePermissionMode = 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan';
 
 export interface Persona {

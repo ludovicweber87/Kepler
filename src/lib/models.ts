@@ -9,6 +9,7 @@ export const MODEL_ALIASES = [
 // Versions pinnées (IDs exacts). À tenir à jour lors des sorties de modèles.
 export const MODEL_VERSIONS = [
 	{ value: 'claude-fable-5', key: 'modelFable5' },
+	{ value: 'claude-opus-5', key: 'modelOpus5' },
 	{ value: 'claude-opus-4-8', key: 'modelOpus48' },
 	{ value: 'claude-opus-4-7', key: 'modelOpus47' },
 	{ value: 'claude-opus-4-6', key: 'modelOpus46' },
@@ -26,7 +27,7 @@ export const EFFORTS = [
 	{ value: 'low', key: 'effortLow' },
 	{ value: 'medium', key: 'effortMedium' },
 	{ value: 'high', key: 'effortHigh' },
-	{ value: 'max', key: 'effortMax' },
+	{ value: 'ultracode', key: 'effortUltracode' },
 ] as const;
 
 // Regroupement famille → versions, pour le sélecteur en cards de la modale de lancement.
@@ -39,6 +40,7 @@ export const MODEL_FAMILIES = [
 		descKey: 'familyOpusDesc',
 		alias: 'opus',
 		versions: [
+			'claude-opus-5',
 			'claude-opus-4-8',
 			'claude-opus-4-7',
 			'claude-opus-4-6',
@@ -82,4 +84,13 @@ export function modelFamily(model: string): ModelFamilyId {
 /** Clé i18n (namespace `common`) du label court d'une valeur de model. */
 export function modelLabelKey(model: string): string | undefined {
 	return MODELS.find((m) => m.value === model)?.key;
+}
+
+/**
+ * Normalise une valeur d'effort persistée. Le niveau max historique `'max'` a été
+ * renommé `'ultracode'` ; les anciennes sessions/personas stockées en `'max'` sont
+ * remappées à la lecture pour l'affichage. Toute autre valeur est renvoyée telle quelle.
+ */
+export function normalizeEffort(effort: string): string {
+	return effort === 'max' ? 'ultracode' : effort;
 }

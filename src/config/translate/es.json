@@ -281,6 +281,7 @@
 		"modelSonnet": "Sonnet (último)",
 		"modelHaiku": "Haiku (último)",
 		"modelFable5": "Fable 5",
+		"modelOpus5": "Opus 5",
 		"modelOpus48": "Opus 4.8",
 		"modelOpus47": "Opus 4.7",
 		"modelOpus46": "Opus 4.6",
@@ -294,6 +295,7 @@
 		"effortMedium": "Medium",
 		"effortHigh": "High",
 		"effortMax": "Max",
+		"effortUltracode": "Ultracode",
 		"settingsLockedByPersona": "Definido por la persona {name}",
 		"modelGroupAliases": "Alias",
 		"modelGroupVersions": "Versiones"
