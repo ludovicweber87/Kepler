@@ -138,11 +138,13 @@ export default function ChatComposer({
 	const eff = normalizeEffort(effort);
 	const isUltra = eff === 'ultracode';
 	const isHighEffort = eff === 'high';
-	// Habillage de la bordure selon l'effort. Précédence : drag&drop > ultracode > high >
-	// couleur persona / divider. En mode plan → dashed, SAUF ultracode qui reste un dégradé
-	// plein (un dashed multicolore n'est pas rendable proprement en CSS).
+	// Habillage de la bordure. Précédence : drag&drop > couleur persona > ultracode > high >
+	// plan > divider. La persona passe devant l'effort : c'est un marqueur d'identité, et
+	// comme une persona impose son effort (souvent `high`), l'effort écrasait sinon toujours
+	// sa couleur. En mode plan → dashed, SAUF ultracode qui reste un dégradé plein (un dashed
+	// multicolore n'est pas rendable proprement en CSS).
 	const frameSx =
-		!dragOver && isUltra
+		!dragOver && isUltra && !agentColor
 			? {
 					border: '1px solid transparent',
 					borderRadius: 2.5,
@@ -160,9 +162,7 @@ export default function ChatComposer({
 					border: isPlan ? '1px dashed' : '1px solid',
 					borderColor: dragOver
 						? 'primary.main'
-						: isHighEffort
-							? 'primary.main'
-							: agentColor || (isPlan ? 'primary.main' : 'divider'),
+						: agentColor || (isHighEffort || isPlan ? 'primary.main' : 'divider'),
 					borderRadius: 2.5,
 					bgcolor: (th: Theme) => alpha(th.palette.text.primary, 0.03),
 				};
