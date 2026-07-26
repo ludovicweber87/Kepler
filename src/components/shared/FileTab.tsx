@@ -4,27 +4,27 @@ import Box from '@mui/material/Box';
 import Tooltip from '@mui/material/Tooltip';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 
-/** Largeur unique appliquée à tous les onglets gauches (Chat/Récap, Workflow, fichiers). */
+/** Largeur unique appliquée à tous les onglets gauches (Chat/Récap, Lecture, fichiers). */
 export const FILE_TAB_WIDTH = 160;
 
 interface FileTabLabelProps {
-	/** Nom de fichier affiché (tronqué en ellipsis si trop long). */
+	/** Libellé affiché (tronqué en ellipsis si trop long). */
 	name: string;
-	/** Chemin complet, affiché en tooltip. */
-	path: string;
-	/** Ferme l'onglet fichier. */
+	/** Texte du tooltip — le chemin complet pour un fichier. Omis = pas de tooltip. */
+	tooltip?: string;
+	/** Ferme l'onglet. */
 	onClose: () => void;
 	/** Libellé accessible du bouton de fermeture (traduit). */
 	closeLabel: string;
 }
 
-export default function FileTabLabel({ name, path, onClose, closeLabel }: FileTabLabelProps) {
+export default function FileTabLabel({ name, tooltip, onClose, closeLabel }: FileTabLabelProps) {
 	return (
 		<Box
 			component="span"
 			sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0, width: '100%' }}
 		>
-			<Tooltip title={path} arrow>
+			<Tooltip title={tooltip ?? ''} arrow disableHoverListener={!tooltip}>
 				<Box
 					component="span"
 					sx={{

@@ -92,6 +92,7 @@
 		"renameLabel": "Rename",
 		"stopSession": "Stop session",
 		"closeFile": "Close file",
+		"closeReader": "Close reader",
 		"fileError": "Unable to read file",
 		"fileTruncated": "File truncated (too large to display fully)",
 		"chipReader": "Reader"

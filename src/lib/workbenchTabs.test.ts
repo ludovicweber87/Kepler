@@ -3,7 +3,9 @@ import {
 	matchFileDiff,
 	resolveTabAfterClose,
 	addOpenFile,
+	isSessionTab,
 	CHAT_TAB,
+	READER_TAB,
 } from './workbenchTabs';
 import type { FileDiff } from './gitDiff';
 
@@ -29,6 +31,21 @@ describe('addOpenFile', () => {
 	});
 	it('is a no-op for an already open path', () => {
 		expect(addOpenFile(['a', 'b'], 'b')).toEqual(['a', 'b']);
+	});
+});
+
+describe('isSessionTab', () => {
+	it('is true for the session views (chat & reader)', () => {
+		expect(isSessionTab(CHAT_TAB)).toBe(true);
+		expect(isSessionTab(READER_TAB)).toBe(true);
+	});
+	it('is false for a file path', () => {
+		expect(isSessionTab('src/a.ts')).toBe(false);
+		expect(isSessionTab('/repo/root/src/b.ts')).toBe(false);
+	});
+	it('does not match a file merely named like a session tab', () => {
+		expect(isSessionTab('src/reader.ts')).toBe(false);
+		expect(isSessionTab('chat/index.ts')).toBe(false);
 	});
 });
 

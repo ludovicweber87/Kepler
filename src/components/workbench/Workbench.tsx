@@ -19,7 +19,6 @@ import TerminalRoundedIcon from '@mui/icons-material/TerminalRounded';
 import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
 import TimelineRoundedIcon from '@mui/icons-material/TimelineRounded';
 import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
-import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import StopCircleRoundedIcon from '@mui/icons-material/StopCircleRounded';
 import CallMergeRoundedIcon from '@mui/icons-material/CallMergeRounded';
@@ -52,7 +51,14 @@ import TerminalTabs from '@/components/agents/TerminalTabs';
 import CreationProgress from '@/components/workbench/CreationProgress';
 import FileContentView from '@/components/workbench/FileContentView';
 import EditableSessionName from '@/components/workbench/EditableSessionName';
-import { matchFileDiff, resolveTabAfterClose, addOpenFile, CHAT_TAB } from '@/lib/workbenchTabs';
+import {
+	matchFileDiff,
+	resolveTabAfterClose,
+	addOpenFile,
+	isSessionTab,
+	CHAT_TAB,
+	READER_TAB,
+} from '@/lib/workbenchTabs';
 import FileTabLabel from '@/components/shared/FileTab';
 
 export default function Workbench() {
@@ -107,21 +113,18 @@ export default function Workbench() {
 			: `Résous l'issue #${resolved!.issue_number}.`;
 	}, [hasIssue, resolved]);
 
-	type RightTab = 'changes' | 'activity' | 'issue' | 'reader';
+	type RightTab = 'changes' | 'activity' | 'issue';
 	const [rightTab, setRightTab] = useState<RightTab>('activity');
 	// Le lecteur markdown du flux d'activité n'apparaît qu'après clic sur « Voir ».
+	// C'est un onglet gauche (pleine largeur), pas un onglet du panneau droit.
 	const [readerOpen, setReaderOpen] = useState(false);
 
 	useEffect(() => {
 		if (rightTab === 'issue' && !hasIssue) setRightTab('activity');
 	}, [rightTab, hasIssue]);
 
-	const openReader = useCallback(() => {
-		setReaderOpen(true);
-		setRightTab('reader');
-	}, []);
-
-	// Onglets gauche : 'chat' + un chemin de fichier par onglet ouvert.
+	// Onglets gauche : 'chat', le lecteur d'activité optionnel, puis un chemin de
+	// fichier par onglet ouvert.
 	const [openFiles, setOpenFiles] = useState<string[]>([]);
 	const [activeTab, setActiveTab] = useState<string>(CHAT_TAB);
 	const [focusNonce, setFocusNonce] = useState(0);
@@ -154,19 +157,35 @@ export default function Workbench() {
 		[openFiles],
 	);
 
-	const activeFileDiff =
-		activeTab === CHAT_TAB ? undefined : matchFileDiff(changedFiles, activeTab);
+	const openReader = useCallback(() => {
+		setReaderOpen(true);
+		setActiveTab(READER_TAB);
+	}, []);
+
+	const closeReader = useCallback(() => {
+		setReaderOpen(false);
+		setActiveTab((active) => (active === READER_TAB ? CHAT_TAB : active));
+	}, []);
+
+	const activeFileDiff = isSessionTab(activeTab)
+		? undefined
+		: matchFileDiff(changedFiles, activeTab);
+
+	// Le lecteur est ouvert via « Voir » dans l'onglet Activity, masqué en session
+	// archivée : on aligne sa disponibilité dessus pour ne pas laisser un onglet
+	// orphelin si la session est archivée pendant la lecture.
+	const readerVisible = readerOpen && !isArchived;
+
+	useEffect(() => {
+		if (!readerVisible) {
+			setActiveTab((active) => (active === READER_TAB ? CHAT_TAB : active));
+		}
+	}, [readerVisible]);
 
 	// Session archivée : l'onglet Activity disparaît → on dérive un onglet droit valide
 	// pour que <Tabs value> corresponde toujours à un <Tab> rendu (évite le warning MUI).
-	// Le lecteur suit l'onglet Activity : indisponible en session archivée, et
-	// jamais actif sans avoir été ouvert (garde <Tabs value> aligné sur un <Tab> rendu).
 	const effectiveRightTab: RightTab =
-		isArchived && (rightTab === 'activity' || rightTab === 'reader')
-			? 'changes'
-			: rightTab === 'reader' && !readerOpen
-				? 'activity'
-				: rightTab;
+		isArchived && rightTab === 'activity' ? 'changes' : rightTab;
 
 	const [prState, setPrState] = useState<{ available: boolean; trigger: () => void }>({
 		available: false,
@@ -422,6 +441,19 @@ export default function Workbench() {
 						value={CHAT_TAB}
 						label={isArchived ? t('tabRecap') : t('tabChat')}
 					/>,
+					readerVisible && (
+						<Tab
+							key={READER_TAB}
+							value={READER_TAB}
+							label={
+								<FileTabLabel
+									name={t('chipReader')}
+									onClose={closeReader}
+									closeLabel={t('closeReader')}
+								/>
+							}
+						/>
+					),
 					...openFiles.map((path) => {
 						const name = path.split('/').filter(Boolean).pop() ?? path;
 						return (
@@ -431,7 +463,7 @@ export default function Workbench() {
 								label={
 									<FileTabLabel
 										name={name}
-										path={path}
+										tooltip={path}
 										onClose={() => closeFile(path)}
 										closeLabel={t('closeFile')}
 									/>
@@ -489,7 +521,12 @@ export default function Workbench() {
 								/>
 							</Box>
 						)}
-						{activeTab !== CHAT_TAB && (
+						{activeTab === READER_TAB && readerVisible && (
+							<Box sx={{ flex: 1, minHeight: 0 }}>
+								<AgentActivityReaderTab logs={logs} />
+							</Box>
+						)}
+						{!isSessionTab(activeTab) && (
 							<Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
 								{activeFileDiff ? (
 									<FileDiffView
@@ -541,15 +578,6 @@ export default function Workbench() {
 							label={t('chipIssue')}
 						/>
 					),
-					readerOpen && !isArchived && (
-						<Tab
-							key="reader"
-							value="reader"
-							iconPosition="start"
-							icon={<MenuBookRoundedIcon sx={{ fontSize: 16 }} />}
-							label={t('chipReader')}
-						/>
-					),
 				]}
 				rightContent={
 					<>
@@ -565,9 +593,6 @@ export default function Workbench() {
 								logs={logs}
 								onOpenReader={openReader}
 							/>
-						)}
-						{effectiveRightTab === 'reader' && readerOpen && !isArchived && (
-							<AgentActivityReaderTab logs={logs} />
 						)}
 						{effectiveRightTab === 'issue' && hasIssue && (
 							<AgentIssueTab
