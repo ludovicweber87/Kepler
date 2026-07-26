@@ -93,7 +93,8 @@
 		"stopSession": "Parar a sessão",
 		"closeFile": "Fechar ficheiro",
 		"fileError": "Não foi possível ler o arquivo",
-		"fileTruncated": "Arquivo truncado (muito grande para exibir por completo)"
+		"fileTruncated": "Arquivo truncado (muito grande para exibir por completo)",
+		"chipReader": "Leitura"
 	},
 	"creationProgress": {
 		"title": "Preparando o espaço de trabalho",
@@ -369,7 +370,8 @@
 		"reportPublishedFor": "Relatório publicado para {name}",
 		"publishError": "Erro ao publicar relatório",
 		"synthesizing": "A sintetizar o relatório…",
-		"synthesizeError": "Não foi possível sintetizar, a usar atividade em bruto"
+		"synthesizeError": "Não foi possível sintetizar, a usar atividade em bruto",
+		"view": "Ver"
 	},
 	"agentDiff": {
 		"showRemainingLines": "Mostrar {count} linhas restantes",

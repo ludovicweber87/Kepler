@@ -2,8 +2,6 @@
 
 import { useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
@@ -16,32 +14,28 @@ import FiberManualRecordRoundedIcon from '@mui/icons-material/FiberManualRecordR
 import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
 import PublishRoundedIcon from '@mui/icons-material/PublishRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
+import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
 import { useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-fetch';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { localFetch } from '@/lib/local-fetch';
 import type { AgentSession, AgentActivityLog } from '@/hooks/useAgentSession';
 import { buildReport, formatTime } from '@/lib/activityReport';
-
-const LOG_TYPE_COLORS: Record<AgentActivityLog['log_type'], string> = {
-	info: 'text.disabled',
-	commit: 'success.main',
-	file_change: 'warning.main',
-	error: 'error.main',
-	summary: 'primary.main',
-	ask_question: 'warning.main',
-};
+import ActivityMarkdown, { LOG_TYPE_COLORS } from './ActivityMarkdown';
 
 interface AgentActivityTabProps {
 	session: AgentSession | null;
 	logs: AgentActivityLog[];
 	isStreaming?: boolean;
+	/** Ouvre le lecteur markdown pleine largeur du flux d'activité. */
+	onOpenReader?: () => void;
 }
 
 export default function AgentActivityTab({
 	session,
 	logs,
 	isStreaming = false,
+	onOpenReader,
 }: AgentActivityTabProps) {
 	const t = useTranslations('agentActivity');
 	const [publishing, setPublishing] = useState(false);
@@ -271,6 +265,24 @@ export default function AgentActivityTab({
 					>
 						{session.agent_name ?? 'Claude'}
 					</Typography>
+					{visibleLogs.length > 0 && onOpenReader && (
+						<Button
+							size="small"
+							onClick={onOpenReader}
+							startIcon={<MenuBookRoundedIcon sx={{ fontSize: 14 }} />}
+							sx={{
+								flexShrink: 0,
+								textTransform: 'none',
+								fontSize: '0.7rem',
+								fontWeight: 600,
+								py: 0.25,
+								minWidth: 0,
+								color: 'text.secondary',
+							}}
+						>
+							{t('view')}
+						</Button>
+					)}
 				</Box>
 				{/* Rangée 2 : dossier · worktree · statut */}
 				<Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.75 }}>
@@ -394,50 +406,10 @@ export default function AgentActivityTab({
 									/>
 
 									{/* Content (markdown) */}
-									<Box
-										sx={{
-											flex: 1,
-											fontSize: '0.78rem',
-											lineHeight: 1.5,
-											color:
-												log.log_type === 'error'
-													? 'error.main'
-													: 'text.primary',
-											wordBreak: 'break-word',
-											pl: 1,
-											'& p': { m: 0 },
-											'& p + p': { mt: 0.5 },
-											'& ul, & ol': { m: 0, pl: 2.5 },
-											'& li': { mb: 0.25 },
-											'& a': { color: 'primary.main' },
-											'& code': {
-												fontFamily: 'monospace',
-												fontSize: '0.72rem',
-												bgcolor: (theme) =>
-													alpha(theme.palette.text.primary, 0.08),
-												px: 0.5,
-												borderRadius: 0.5,
-											},
-											'& pre': {
-												overflowX: 'auto',
-												bgcolor: 'background.default',
-												p: 1,
-												borderRadius: 1,
-												my: 0.5,
-											},
-											'& pre code': { bgcolor: 'transparent', px: 0 },
-											'& h1, & h2, & h3, & h4': {
-												fontSize: '0.82rem',
-												fontWeight: 700,
-												m: 0,
-												mt: 0.5,
-											},
-										}}
-									>
-										<ReactMarkdown remarkPlugins={[remarkGfm]}>
-											{log.content}
-										</ReactMarkdown>
-									</Box>
+									<ActivityMarkdown
+										content={log.content}
+										error={log.log_type === 'error'}
+									/>
 								</Box>
 							);
 						})}

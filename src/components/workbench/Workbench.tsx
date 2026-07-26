@@ -19,6 +19,7 @@ import TerminalRoundedIcon from '@mui/icons-material/TerminalRounded';
 import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
 import TimelineRoundedIcon from '@mui/icons-material/TimelineRounded';
 import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
+import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import StopCircleRoundedIcon from '@mui/icons-material/StopCircleRounded';
 import CallMergeRoundedIcon from '@mui/icons-material/CallMergeRounded';
@@ -45,6 +46,7 @@ import { FileDiffView } from '@/components/agents/AgentDiffTab';
 import ChangedFilesList from '@/components/agents/ChangedFilesList';
 import SessionRecap from '@/components/agents/SessionRecap';
 import AgentActivityTab from '@/components/agents/AgentActivityTab';
+import AgentActivityReaderTab from '@/components/agents/AgentActivityReaderTab';
 import AgentIssueTab from '@/components/agents/AgentIssueTab';
 import TerminalTabs from '@/components/agents/TerminalTabs';
 import CreationProgress from '@/components/workbench/CreationProgress';
@@ -105,12 +107,19 @@ export default function Workbench() {
 			: `Résous l'issue #${resolved!.issue_number}.`;
 	}, [hasIssue, resolved]);
 
-	type RightTab = 'changes' | 'activity' | 'issue';
+	type RightTab = 'changes' | 'activity' | 'issue' | 'reader';
 	const [rightTab, setRightTab] = useState<RightTab>('activity');
+	// Le lecteur markdown du flux d'activité n'apparaît qu'après clic sur « Voir ».
+	const [readerOpen, setReaderOpen] = useState(false);
 
 	useEffect(() => {
 		if (rightTab === 'issue' && !hasIssue) setRightTab('activity');
 	}, [rightTab, hasIssue]);
+
+	const openReader = useCallback(() => {
+		setReaderOpen(true);
+		setRightTab('reader');
+	}, []);
 
 	// Onglets gauche : 'chat' + un chemin de fichier par onglet ouvert.
 	const [openFiles, setOpenFiles] = useState<string[]>([]);
@@ -121,6 +130,7 @@ export default function Workbench() {
 		setOpenFiles([]);
 		setActiveTab(CHAT_TAB);
 		setRightTab('activity');
+		setReaderOpen(false);
 		setFocusNonce(0);
 		resumeRetryRef.current = false;
 	}, [sessionId]);
@@ -149,8 +159,14 @@ export default function Workbench() {
 
 	// Session archivée : l'onglet Activity disparaît → on dérive un onglet droit valide
 	// pour que <Tabs value> corresponde toujours à un <Tab> rendu (évite le warning MUI).
+	// Le lecteur suit l'onglet Activity : indisponible en session archivée, et
+	// jamais actif sans avoir été ouvert (garde <Tabs value> aligné sur un <Tab> rendu).
 	const effectiveRightTab: RightTab =
-		isArchived && rightTab === 'activity' ? 'changes' : rightTab;
+		isArchived && (rightTab === 'activity' || rightTab === 'reader')
+			? 'changes'
+			: rightTab === 'reader' && !readerOpen
+				? 'activity'
+				: rightTab;
 
 	const [prState, setPrState] = useState<{ available: boolean; trigger: () => void }>({
 		available: false,
@@ -525,6 +541,15 @@ export default function Workbench() {
 							label={t('chipIssue')}
 						/>
 					),
+					readerOpen && !isArchived && (
+						<Tab
+							key="reader"
+							value="reader"
+							iconPosition="start"
+							icon={<MenuBookRoundedIcon sx={{ fontSize: 16 }} />}
+							label={t('chipReader')}
+						/>
+					),
 				]}
 				rightContent={
 					<>
@@ -535,7 +560,14 @@ export default function Workbench() {
 							/>
 						)}
 						{effectiveRightTab === 'activity' && !isArchived && (
-							<AgentActivityTab session={resolved} logs={logs} />
+							<AgentActivityTab
+								session={resolved}
+								logs={logs}
+								onOpenReader={openReader}
+							/>
+						)}
+						{effectiveRightTab === 'reader' && readerOpen && !isArchived && (
+							<AgentActivityReaderTab logs={logs} />
 						)}
 						{effectiveRightTab === 'issue' && hasIssue && (
 							<AgentIssueTab
