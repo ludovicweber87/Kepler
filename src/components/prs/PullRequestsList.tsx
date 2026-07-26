@@ -20,6 +20,7 @@ import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import MergeTypeRoundedIcon from '@mui/icons-material/MergeTypeRounded';
 import ChatBubbleOutlineRoundedIcon from '@mui/icons-material/ChatBubbleOutlineRounded';
 import InsertDriveFileOutlinedIcon from '@mui/icons-material/InsertDriveFileOutlined';
+import { appShadow } from '@/theme/shadows';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import CancelRoundedIcon from '@mui/icons-material/CancelRounded';
@@ -224,7 +225,7 @@ function PRCard({
 				transition: 'transform 0.1s, box-shadow 0.15s',
 				'&:hover': {
 					transform: 'translateX(4px)',
-					boxShadow: `0 4px 16px ${alpha(theme.palette.success.main, 0.1)}`,
+					boxShadow: appShadow(theme.palette.mode),
 					'& .open-icon': { opacity: 1 },
 				},
 			})}

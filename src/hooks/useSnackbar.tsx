@@ -7,6 +7,7 @@ import Alert, { type AlertColor } from '@mui/material/Alert';
 import AlertTitle from '@mui/material/AlertTitle';
 import Typography from '@mui/material/Typography';
 import { alpha } from '@mui/material/styles';
+import { appShadow } from '@/theme/shadows';
 
 function SlideUp(props: SlideProps) {
 	return <Slide {...props} direction="up" />;
@@ -112,7 +113,7 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
 						border: `1px solid ${theme.palette.divider}`,
 						borderLeft: `3px solid ${theme.palette[state.severity].main}`,
 						borderRadius: '14px',
-						boxShadow: '0 10px 30px rgba(0, 0, 0, 0.35)',
+						boxShadow: appShadow(theme.palette.mode),
 						'& .MuiAlert-icon': {
 							color: theme.palette[state.severity].main,
 							pt: 0.25,

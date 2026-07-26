@@ -16,6 +16,7 @@ import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useProjectConfig } from '@/hooks/useProjectConfig';
 import { useNotificationsStream } from '@/hooks/useNotificationsStream';
 import { OverlayTerminalContext, type OverlaySession } from '@/hooks/useOverlayTerminal';
+import { appShadow } from '@/theme/shadows';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
 	useNotificationsStream();
@@ -94,7 +95,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 						justifyContent: 'center',
 						py: 2,
 						bgcolor: 'background.default',
-						boxShadow: '0 -4px 12px rgba(0,0,0,0.15)',
+						boxShadow: (th) => appShadow(th.palette.mode),
 						zIndex: 1200,
 					}}
 				>

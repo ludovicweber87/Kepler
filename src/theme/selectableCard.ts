@@ -1,7 +1,7 @@
 'use client';
 
 import { alpha, type Theme } from '@mui/material/styles';
-import { cardShadowRest, cardShadowHover } from './theme';
+import { appShadow } from './shadows';
 
 interface SelectableCardOptions {
 	selected: boolean;
@@ -32,12 +32,13 @@ export function selectableCardSx(
 		backgroundImage: selected
 			? `linear-gradient(${alpha(color, 0.12)}, ${alpha(color, 0.12)})`
 			: 'none',
-		boxShadow: cardShadowRest(theme.palette.mode),
-		transition: 'transform 0.15s, border-color 0.15s, box-shadow 0.15s, background-color 0.15s',
+		boxShadow: appShadow(theme.palette.mode),
+		transition: 'transform 0.15s, border-color 0.15s, background-color 0.15s',
+		// Le feedback de survol passe par le lift et la bordure d'accent : l'ombre est
+		// la même au repos et au survol (une seule ombre dans toute l'app).
 		'&:hover': {
 			borderColor: color,
 			transform: `translateY(-${lift}px)`,
-			boxShadow: cardShadowHover(theme.palette.mode, color),
 		},
 	} as const;
 }

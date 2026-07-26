@@ -5,6 +5,7 @@ import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
 import { alpha, useTheme } from '@mui/material/styles';
 import IssueCard from './IssueCard';
+import { appShadow } from '@/theme/shadows';
 import { GitHubIssue } from '@/types';
 
 const COLUMN_WIDTH = 300;
@@ -37,10 +38,7 @@ export default function KanbanColumn({
 				flexDirection: 'column',
 				bgcolor: 'background.paper',
 				borderRadius: 1,
-				boxShadow:
-					theme.palette.mode === 'dark'
-						? `0 1px 4px ${alpha(theme.palette.common.black, 0.18)}, 0 0 1px ${alpha(theme.palette.common.black, 0.25)}`
-						: `0 1px 4px ${alpha(theme.palette.common.black, 0.06)}, 0 0 1px ${alpha(theme.palette.common.black, 0.1)}`,
+				boxShadow: appShadow(theme.palette.mode),
 				p: 1.5,
 			}}
 		>
