@@ -4,10 +4,9 @@ import {
 	THEME_VARIANTS,
 	PRESET_VARIANTS,
 	DEFAULT_THEME_VARIANT,
-	cardShadowRest,
-	cardShadowHover,
 	type ThemeVariant,
 } from './theme';
+import { appShadow } from './shadows';
 import { resolveStoredVariant } from '@/hooks/useColorMode';
 import { DEFAULT_THEME_PREFS } from '@/lib/themePrefs';
 
@@ -82,24 +81,23 @@ describe('card elevation', () => {
 		}
 	});
 
-	it('gives a distinct shadow per mode, hover stronger than rest', () => {
-		for (const mode of ['light', 'dark'] as const) {
-			const rest = cardShadowRest(mode);
-			const hover = cardShadowHover(mode);
-			expect(rest).not.toBe('');
-			expect(hover).not.toBe(rest);
-			// Le hover doit décoller davantage que le repos : on compare le blur.
-			const blur = (s: string) => Math.max(...[...s.matchAll(/(\d+)px/g)].map((m) => +m[1]));
-			expect(blur(hover)).toBeGreaterThan(blur(rest));
-		}
-		expect(cardShadowRest('light')).not.toBe(cardShadowRest('dark'));
+	it('keeps one shadow shape across modes, only the opacity differs', () => {
+		const shape = (s: string) => s.replace(/rgba\([^)]*\)/, 'rgba()');
+		expect(shape(appShadow('light'))).toBe(shape(appShadow('dark')));
+
+		// Une ombre noire sur fond sombre a besoin de plus d'opacité pour rester lisible.
+		const opacity = (s: string) => Number(s.match(/rgba\([^)]*?([\d.]+)\)/)![1]);
+		expect(opacity(appShadow('dark'))).toBeGreaterThan(opacity(appShadow('light')));
 	});
 
-	it('layers an accent-tinted shadow on hover when a colour is given', () => {
-		const plain = cardShadowHover('dark');
-		const tinted = cardShadowHover('dark', '#7C5CFF');
-		expect(tinted.startsWith(plain)).toBe(true);
-		expect(tinted).toContain('rgba(124, 92, 255');
+	it('routes every MUI elevation to the single app shadow', () => {
+		for (const v of THEME_VARIANTS) {
+			const { shadows, palette } = getTheme(v);
+			expect(shadows[0]).toBe('none');
+			// Toutes les élévations non nulles résolvent vers l'unique ombre : plus aucune
+			// hiérarchie d'élévation dans l'app.
+			expect(new Set(shadows.slice(1))).toEqual(new Set([appShadow(palette.mode)]));
+		}
 	});
 });
 

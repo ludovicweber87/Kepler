@@ -18,6 +18,7 @@ import { useOverlayTerminal } from '@/hooks/useOverlayTerminal';
 import { getAgentWsUrl } from '@/lib/local-fetch';
 import { useThemePrefs } from '@/hooks/useThemePrefs';
 import { terminalFontStack } from '@/lib/themePrefs';
+import { appShadow } from '@/theme/shadows';
 
 const OVERLAY_W = 560;
 const OVERLAY_H = 340;
@@ -213,7 +214,7 @@ export default function OverlayTerminal() {
 				overflow: 'hidden',
 				border: 1,
 				borderColor: alpha(theme.palette.primary.main, 0.3),
-				boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.5)}`,
+				boxShadow: appShadow(theme.palette.mode),
 				display: 'flex',
 				flexDirection: 'column',
 				bgcolor: 'background.default',

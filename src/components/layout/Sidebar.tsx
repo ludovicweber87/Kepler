@@ -44,14 +44,7 @@ import TheaterComedyRoundedIcon from '@mui/icons-material/TheaterComedyRounded';
 import Image from 'next/image';
 import { useMe } from '@/hooks/useMe';
 import { useTranslations } from 'next-intl';
-import {
-	DARK_SHADOW_RIGHT,
-	DARK_SHADOW_TOP,
-	LIGHT_SHADOW_RIGHT,
-	LIGHT_SHADOW_TOP,
-	cardShadowRest,
-	cardShadowHover,
-} from '@/theme/theme';
+import { appShadow } from '@/theme/shadows';
 import { useAgentSessionHistory } from '@/hooks/useAgentSession';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useMarkNotifications } from '@/hooks/useMarkNotifications';
@@ -83,7 +76,6 @@ function PullRequestIcon(props: SvgIconProps) {
 
 export default function Sidebar() {
 	const theme = useTheme();
-	const isLight = theme.palette.mode === 'light';
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
 	const currentSessionId = searchParams.get('session');
@@ -315,7 +307,7 @@ export default function Sidebar() {
 						width: SIDEBAR_WIDTH,
 						boxSizing: 'border-box',
 						borderRight: 'none',
-						boxShadow: isLight ? LIGHT_SHADOW_RIGHT : DARK_SHADOW_RIGHT,
+						boxShadow: appShadow(theme.palette.mode),
 					},
 				}}
 			>
@@ -471,12 +463,11 @@ export default function Sidebar() {
 												px: 1,
 												flex: 1,
 												minWidth: 0,
-												transition:
-													'background-color 0.15s, box-shadow 0.15s',
+												transition: 'background-color 0.15s',
 												'&:hover': {
 													backgroundColor:
 														theme.palette.surfaces.cardHover,
-													boxShadow: cardShadowHover(theme.palette.mode),
+													boxShadow: appShadow(theme.palette.mode),
 												},
 											}}
 										>
@@ -635,9 +626,7 @@ export default function Sidebar() {
 																// l'item courant (fond teinté) en
 																// reçoit une.
 																boxShadow: isCurrent
-																	? cardShadowRest(
-																			theme.palette.mode,
-																		)
+																	? appShadow(theme.palette.mode)
 																	: 'none',
 																transition:
 																	'background-color 0.15s, box-shadow 0.15s',
@@ -653,9 +642,8 @@ export default function Sidebar() {
 																					.primary.main,
 																				0.1,
 																			),
-																	boxShadow: cardShadowHover(
+																	boxShadow: appShadow(
 																		theme.palette.mode,
-																		theme.palette.primary.main,
 																	),
 																},
 																'&:hover .wt-delete': {
@@ -796,7 +784,7 @@ export default function Sidebar() {
 							pb: 1,
 							pt: 1.5,
 							position: 'relative',
-							boxShadow: isLight ? LIGHT_SHADOW_TOP : DARK_SHADOW_TOP,
+							boxShadow: appShadow(theme.palette.mode),
 						}}
 					>
 						<LocaleSwitcher />

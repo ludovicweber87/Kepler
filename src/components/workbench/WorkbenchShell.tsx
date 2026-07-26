@@ -10,7 +10,7 @@ import { alpha } from '@mui/material/styles';
 import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
 import StopCircleRoundedIcon from '@mui/icons-material/StopCircleRounded';
 import PictureInPictureAltRoundedIcon from '@mui/icons-material/PictureInPictureAltRounded';
-import { LIGHT_SHADOW_LEFT } from '@/theme/theme';
+import { appShadow } from '@/theme/shadows';
 import { FILE_TAB_WIDTH } from '@/components/shared/FileTab';
 import { useAppSetting } from '@/hooks/useAppSetting';
 import { clampSplitPct, parseSplitPct, SPLIT_DEFAULT } from '@/lib/workbenchSplit';
@@ -258,8 +258,7 @@ export default function WorkbenchShell({
 						minWidth: 0,
 						borderLeft: 1,
 						borderColor: 'divider',
-						boxShadow: (th) =>
-							th.palette.mode === 'light' ? LIGHT_SHADOW_LEFT : 'none',
+						boxShadow: (th) => appShadow(th.palette.mode),
 						display: 'flex',
 						flexDirection: 'column',
 						minHeight: 0,
