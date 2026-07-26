@@ -162,6 +162,13 @@
       "when": 1785900000000,
       "tag": "0022_persona_id",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1786000000000,
+      "tag": "0023_doc_chat",
+      "breakpoints": true
     }
   ]
 }
