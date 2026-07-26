@@ -147,7 +147,8 @@ test('toolGate laisse passer un outil autorisé vers le court-circuit bypass', a
   assert.deepEqual(res, { behavior: 'allow', updatedInput: { query: 'x' } });
 });
 
-test('toolGate court-circuite AskUserQuestion au lieu de le parquer', async () => {
+// Sans ce timeout, une régression dans l'ordre du gate entraînerait un hang du test au lieu d'une failure.
+test('toolGate court-circuite AskUserQuestion au lieu de le parquer', { timeout: 5000 }, async () => {
   const asked: PendingQuestion[] = [];
   const ctrl = createPermissionController(
     () => {},
