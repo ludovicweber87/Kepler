@@ -30,18 +30,39 @@ export const THEME_VARIANTS: ThemeVariant[] = [...PRESET_VARIANTS, 'custom'];
 
 export const DEFAULT_THEME_VARIANT: ThemeVariant = 'dark';
 
-/** Shadows appliquées uniquement en thème clair pour décoller les panneaux du fond
- * (les thèmes sombres restent volontairement plats). */
-export const LIGHT_SHADOW_RIGHT = '6px 0 24px -14px rgba(0,0,0,0.14), 1px 0 2px rgba(0,0,0,0.04)';
-export const LIGHT_SHADOW_LEFT = '-6px 0 24px -14px rgba(0,0,0,0.14), -1px 0 2px rgba(0,0,0,0.04)';
+/** Shadows de panneaux latéraux, en thème clair. */
+export const LIGHT_SHADOW_RIGHT = '8px 0 28px -12px rgba(0,0,0,0.20), 1px 0 3px rgba(0,0,0,0.06)';
+export const LIGHT_SHADOW_LEFT = '-8px 0 28px -12px rgba(0,0,0,0.20), -1px 0 3px rgba(0,0,0,0.06)';
 export const LIGHT_INPUT_SHADOW = '0 2px 14px -6px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.05)';
 
 /** Shadows de la sidebar gauche : appliquées dans les deux modes (elles remplacent la
  * bordure droite) + séparateur haut du bloc bas (langue / personas / docs / settings).
  * Les `*_SHADOW_TOP` servent aussi à détacher le composer de chat du fil de messages. */
-export const DARK_SHADOW_RIGHT = '6px 0 24px -12px rgba(0,0,0,0.6), 1px 0 3px rgba(0,0,0,0.28)';
-export const DARK_SHADOW_TOP = '0 -8px 18px -8px rgba(0,0,0,0.55)';
-export const LIGHT_SHADOW_TOP = '0 -8px 18px -10px rgba(0,0,0,0.16)';
+export const DARK_SHADOW_RIGHT = '8px 0 28px -10px rgba(0,0,0,0.85), 2px 0 6px rgba(0,0,0,0.45)';
+export const DARK_SHADOW_TOP = '0 -10px 22px -6px rgba(0,0,0,0.75)';
+export const LIGHT_SHADOW_TOP = '0 -10px 22px -8px rgba(0,0,0,0.22)';
+
+/** Élévation des cards sélectionnables (personas, réglages, mode de lancement, items de
+ * sidebar). Appliquée dans les deux modes : en thème sombre on compense le faible contraste
+ * d'une ombre noire sur fond noir par une opacité plus haute et un spread moins négatif.
+ * À utiliser via `cardShadowRest` / `cardShadowHover`, jamais en dur dans un composant. */
+export const LIGHT_CARD_SHADOW_REST = '0 1px 2px rgba(0,0,0,0.06), 0 2px 8px -4px rgba(0,0,0,0.10)';
+export const DARK_CARD_SHADOW_REST = '0 1px 2px rgba(0,0,0,0.50), 0 4px 12px -6px rgba(0,0,0,0.55)';
+export const LIGHT_CARD_SHADOW_HOVER =
+	'0 2px 4px rgba(0,0,0,0.07), 0 8px 22px -8px rgba(0,0,0,0.16)';
+export const DARK_CARD_SHADOW_HOVER =
+	'0 2px 5px rgba(0,0,0,0.55), 0 12px 28px -10px rgba(0,0,0,0.65)';
+
+/** Ombre au repos d'une card sélectionnable. */
+export const cardShadowRest = (mode: PaletteMode) =>
+	mode === 'light' ? LIGHT_CARD_SHADOW_REST : DARK_CARD_SHADOW_REST;
+
+/** Ombre au survol d'une card sélectionnable. `accent` ajoute une surcouche teintée de la
+ * couleur de la card (couleur de persona, d'effort…) pour conserver son identité colorée. */
+export const cardShadowHover = (mode: PaletteMode, accent?: string) => {
+	const base = mode === 'light' ? LIGHT_CARD_SHADOW_HOVER : DARK_CARD_SHADOW_HOVER;
+	return accent ? `${base}, 0 4px 14px ${alpha(accent, 0.18)}` : base;
+};
 
 // Dégradé arc-en-ciel de l'effort « ultracode ». La dernière teinte reprend la première
 // pour boucler sans couture quand on anime `background-position` (background-size 200%).
@@ -63,6 +84,22 @@ export const THEME_VARIANT_SWATCH: Record<ThemeVariant, [string, string]> = {
 type ColorShades = { main: string; light: string; dark: string };
 type ChipStyle = 'filled' | 'tinted';
 
+export interface SurfaceTokens {
+	cardHover: string;
+	cardBorderHover: string;
+	drawer: string;
+	drawerBorder: string;
+}
+
+declare module '@mui/material/styles' {
+	interface Palette {
+		surfaces: SurfaceTokens;
+	}
+	interface PaletteOptions {
+		surfaces?: SurfaceTokens;
+	}
+}
+
 interface VariantTokens {
 	mode: PaletteMode;
 	chipStyle: ChipStyle;
@@ -75,12 +112,7 @@ interface VariantTokens {
 	background: { default: string; paper: string };
 	text: { primary: string; secondary: string };
 	divider: string;
-	surfaces: {
-		cardHover: string;
-		cardBorderHover: string;
-		drawer: string;
-		drawerBorder: string;
-	};
+	surfaces: SurfaceTokens;
 }
 
 const TOKENS: Record<Exclude<ThemeVariant, 'custom'>, VariantTokens> = {
@@ -253,6 +285,7 @@ export function getTheme(variant: ThemeVariant, prefs?: ThemePrefs) {
 			info: { main: t.info },
 			text: t.text,
 			divider: t.divider,
+			surfaces: t.surfaces,
 		},
 		typography: {
 			fontSize,

@@ -4,6 +4,8 @@ import {
 	THEME_VARIANTS,
 	PRESET_VARIANTS,
 	DEFAULT_THEME_VARIANT,
+	cardShadowRest,
+	cardShadowHover,
 	type ThemeVariant,
 } from './theme';
 import { resolveStoredVariant } from '@/hooks/useColorMode';
@@ -67,6 +69,37 @@ describe('getTheme', () => {
 				expect(contrast(accent, palette.background.paper)).toBeGreaterThanOrEqual(AA);
 			}
 		}
+	});
+});
+
+describe('card elevation', () => {
+	it('exposes an opaque card surface for every variant', () => {
+		// L'ombre des cards sélectionnables n'est lisible que posée sur une surface
+		// opaque : `surfaces` doit donc être exposé sur la palette de chaque variante.
+		for (const v of THEME_VARIANTS) {
+			const { surfaces } = getTheme(v).palette;
+			expect(surfaces.cardHover).toMatch(/^#[0-9A-Fa-f]{6}$/);
+		}
+	});
+
+	it('gives a distinct shadow per mode, hover stronger than rest', () => {
+		for (const mode of ['light', 'dark'] as const) {
+			const rest = cardShadowRest(mode);
+			const hover = cardShadowHover(mode);
+			expect(rest).not.toBe('');
+			expect(hover).not.toBe(rest);
+			// Le hover doit décoller davantage que le repos : on compare le blur.
+			const blur = (s: string) => Math.max(...[...s.matchAll(/(\d+)px/g)].map((m) => +m[1]));
+			expect(blur(hover)).toBeGreaterThan(blur(rest));
+		}
+		expect(cardShadowRest('light')).not.toBe(cardShadowRest('dark'));
+	});
+
+	it('layers an accent-tinted shadow on hover when a colour is given', () => {
+		const plain = cardShadowHover('dark');
+		const tinted = cardShadowHover('dark', '#7C5CFF');
+		expect(tinted.startsWith(plain)).toBe(true);
+		expect(tinted).toContain('rgba(124, 92, 255');
 	});
 });
 
