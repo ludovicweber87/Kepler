@@ -13,13 +13,21 @@ import StopRoundedIcon from '@mui/icons-material/StopRounded';
 import ArrowDropDownRoundedIcon from '@mui/icons-material/ArrowDropDownRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
-import { alpha } from '@mui/material/styles';
+import { alpha, keyframes, type Theme } from '@mui/material/styles';
 import { useTranslations } from 'next-intl';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { validateImageFile, readFileAsDataUrl, stripDataUrlPrefix } from '@/lib/imageAttach';
-import { LIGHT_INPUT_SHADOW } from '@/theme/theme';
+import { normalizeEffort } from '@/lib/models';
+import { LIGHT_INPUT_SHADOW, RAINBOW_GRADIENT } from '@/theme/theme';
 import AgentSettingsControls from './AgentSettingsControls';
 import type { ChatImageInput, Persona } from '@/types';
+
+// Bordure dégradée arc-en-ciel (effort ultracode) : astuce padding-box / border-box pour
+// respecter le border-radius. Seule la 2ᵉ couche (le dégradé de la bordure) défile.
+const rainbowBorderShift = keyframes`
+	0% { background-position: 0% 0%, 0% 0%; }
+	100% { background-position: 0% 0%, 200% 0%; }
+`;
 
 interface Props {
 	disabled?: boolean;
@@ -122,6 +130,35 @@ export default function ChatComposer({
 	};
 
 	const isPlan = permissionMode === 'plan';
+	const eff = normalizeEffort(effort);
+	const isUltra = eff === 'ultracode';
+	const isHighEffort = eff === 'high';
+	// Habillage de la bordure selon l'effort. Précédence : drag&drop > ultracode > high >
+	// couleur persona / divider. En mode plan → dashed, SAUF ultracode qui reste un dégradé
+	// plein (un dashed multicolore n'est pas rendable proprement en CSS).
+	const frameSx =
+		!dragOver && isUltra
+			? {
+					border: '1px solid transparent',
+					borderRadius: 2.5,
+					background: (th: Theme) =>
+						`linear-gradient(${alpha(th.palette.text.primary, 0.03)}, ${alpha(
+							th.palette.text.primary,
+							0.03,
+						)}) padding-box, ${RAINBOW_GRADIENT} border-box`,
+					backgroundSize: '100% 100%, 200% 100%',
+					animation: `${rainbowBorderShift} 6s linear infinite`,
+				}
+			: {
+					border: isPlan ? '1px dashed' : '1px solid',
+					borderColor: dragOver
+						? 'primary.main'
+						: isHighEffort
+							? 'primary.main'
+							: agentColor || (isPlan ? 'primary.main' : 'divider'),
+					borderRadius: 2.5,
+					bgcolor: (th: Theme) => alpha(th.palette.text.primary, 0.03),
+				};
 	const labelColor = agentColor || 'text.secondary';
 	const personaLabel = agentName || t('agentLabel');
 	// Une persona impose ses réglages → contrôles verrouillés. « Sans persona » les libère.
@@ -140,14 +177,9 @@ export default function ChatComposer({
 				onDragLeave={() => setDragOver(false)}
 				sx={{
 					position: 'relative',
-					border: isPlan ? '1px dashed' : '1px solid',
-					borderColor: dragOver
-						? 'primary.main'
-						: agentColor || (isPlan ? 'primary.main' : 'divider'),
-					borderRadius: 2.5,
+					...frameSx,
 					px: 1.5,
 					py: 1,
-					bgcolor: (th) => alpha(th.palette.text.primary, 0.03),
 					boxShadow: (th) => (th.palette.mode === 'light' ? LIGHT_INPUT_SHADOW : 'none'),
 				}}
 			>

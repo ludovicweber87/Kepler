@@ -226,7 +226,9 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
       canUseTool: s.perms.canUseTool,
     };
     if (s.model) options.model = s.model;
-    if (s.effort) options.effort = s.effort;
+    // À l'init, l'Option SDK `effort` comprend `max` (pas le label Devora `ultracode`) →
+    // on remappe. Une valeur legacy `max` déjà stockée passe telle quelle.
+    if (s.effort) options.effort = s.effort === 'ultracode' ? 'max' : s.effort;
     if (s.systemPrompt) options.systemPrompt = s.systemPrompt;
     if (s.mcpServers) options.mcpServers = s.mcpServers;
     if (resumeId) options.resume = resumeId;
@@ -485,8 +487,9 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
       const prev = s.effort;
       s.effort = effort;
       // Pas de setter dédié : la clé Settings est `effortLevel` (low|medium|high|xhigh).
-      // 'max' n'existe pas côté live (uniquement à l'init via Options.effort) → clamp xhigh.
-      const effortLevel = effort === 'max' ? 'xhigh' : effort;
+      // Le niveau max UI s'appelle `ultracode` (ancien nom : `max`, encore possible en
+      // base). Côté live il n'existe pas → clamp xhigh dans les deux cas.
+      const effortLevel = effort === 'ultracode' || effort === 'max' ? 'xhigh' : effort;
       void s.q.applyFlagSettings?.({ effortLevel })?.catch(() => {});
       // Informe le modèle au prochain tour user (option A). Coalescence : on garde la
       // valeur d'origine si plusieurs changements s'enchaînent. Net no-op (typique du

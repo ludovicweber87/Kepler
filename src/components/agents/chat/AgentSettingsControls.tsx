@@ -14,7 +14,8 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import BoltRoundedIcon from '@mui/icons-material/BoltRounded';
 import { alpha, keyframes, type Theme } from '@mui/material/styles';
 import { useTranslations } from 'next-intl';
-import { MODEL_ALIASES, MODEL_VERSIONS, MODELS, EFFORTS } from '@/lib/models';
+import { MODEL_ALIASES, MODEL_VERSIONS, MODELS, EFFORTS, normalizeEffort } from '@/lib/models';
+import { RAINBOW_GRADIENT } from '@/theme/theme';
 
 /** Modes de permission proposés par le sélecteur cyclique (ordre du cycle). */
 export const MODES = [
@@ -26,6 +27,13 @@ export const MODES = [
 const pulse = keyframes`
 	0%, 100% { opacity: 1; }
 	50% { opacity: 0.45; }
+`;
+
+// Défilement lent du dégradé arc-en-ciel (effort ultracode). Boucle sans couture grâce
+// à `background-size: 200%` + la dernière teinte du dégradé = la première.
+const rainbowShift = keyframes`
+	0% { background-position: 0% 50%; }
+	100% { background-position: 200% 50%; }
 `;
 
 function next<T extends { value: string }>(options: readonly T[], value: string): string {
@@ -46,7 +54,7 @@ const controlSx = {
 	'&:hover': { bgcolor: (th: Theme) => alpha(th.palette.text.primary, 0.06) },
 } as const;
 
-function SignalBars({ level, hot }: { level: number; hot: boolean }) {
+function SignalBars({ level, hot, ultra }: { level: number; hot: boolean; ultra: boolean }) {
 	const heights = [5, 8, 11, 14];
 	return (
 		<Box sx={{ display: 'flex', alignItems: 'flex-end', gap: '2px', height: 14 }}>
@@ -59,13 +67,23 @@ function SignalBars({ level, hot }: { level: number; hot: boolean }) {
 							width: 3,
 							height: h,
 							borderRadius: 0.5,
-							bgcolor: filled
-								? hot
-									? 'primary.main'
-									: 'text.secondary'
-								: (th) => alpha(th.palette.text.primary, 0.18),
-							animation:
-								filled && hot ? `${pulse} 1.4s ease-in-out infinite` : 'none',
+							...(filled && ultra
+								? {
+										backgroundImage: RAINBOW_GRADIENT,
+										backgroundSize: '200% 100%',
+										animation: `${rainbowShift} 6s linear infinite`,
+									}
+								: {
+										bgcolor: filled
+											? hot
+												? 'primary.main'
+												: 'text.secondary'
+											: (th) => alpha(th.palette.text.primary, 0.18),
+										animation:
+											filled && hot
+												? `${pulse} 1.4s ease-in-out infinite`
+												: 'none',
+									}),
 							animationDelay: `${i * 0.12}s`,
 						}}
 					/>
@@ -109,10 +127,13 @@ export default function AgentSettingsControls({
 	const [modelAnchor, setModelAnchor] = useState<null | HTMLElement>(null);
 
 	const isPlan = permissionMode === 'plan';
-	const effortLevel = Math.max(1, EFFORTS.findIndex((o) => o.value === effort) + 1);
-	const effortHot = effort === 'high' || effort === 'max';
+	const eff = normalizeEffort(effort);
+	const isUltra = eff === 'ultracode';
+	// `high` reste « chaud » (violet) ; `ultracode` a son propre rendu arc-en-ciel.
+	const effortHot = eff === 'high';
+	const effortLevel = Math.max(1, EFFORTS.findIndex((o) => o.value === eff) + 1);
 	const modelLabel = MODELS.find((o) => o.value === model)?.key;
-	const effortLabel = EFFORTS.find((o) => o.value === effort)?.key;
+	const effortLabel = EFFORTS.find((o) => o.value === eff)?.key;
 	const modeLabel = MODES.find((o) => o.value === permissionMode)?.key;
 
 	const lockedSx = locked ? { opacity: 0.55, '&:hover': { bgcolor: 'transparent' } } : null;
@@ -181,19 +202,32 @@ export default function AgentSettingsControls({
 				<ButtonBase
 					sx={{ ...controlSx, ...lockedSx }}
 					disabled={locked}
-					onClick={() => onEffort(next(EFFORTS, effort))}
+					onClick={() => onEffort(next(EFFORTS, eff))}
 				>
-					<SignalBars level={effortLevel} hot={effortHot} />
+					<SignalBars level={effortLevel} hot={effortHot} ultra={isUltra} />
 					<Typography
 						variant="caption"
 						sx={{
 							fontWeight: 600,
 							fontSize: 'inherit',
-							color: effortHot ? 'primary.main' : 'inherit',
-							animation: effortHot ? `${pulse} 1.4s ease-in-out infinite` : 'none',
+							...(isUltra
+								? {
+										backgroundImage: RAINBOW_GRADIENT,
+										backgroundSize: '200% 100%',
+										WebkitBackgroundClip: 'text',
+										backgroundClip: 'text',
+										color: 'transparent',
+										animation: `${rainbowShift} 6s linear infinite`,
+									}
+								: {
+										color: effortHot ? 'primary.main' : 'inherit',
+										animation: effortHot
+											? `${pulse} 1.4s ease-in-out infinite`
+											: 'none',
+									}),
 						}}
 					>
-						{effortLabel ? tc(effortLabel) : effort}
+						{effortLabel ? tc(effortLabel) : eff}
 					</Typography>
 				</ButtonBase>,
 			)}
