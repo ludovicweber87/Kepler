@@ -44,6 +44,12 @@ import TheaterComedyRoundedIcon from '@mui/icons-material/TheaterComedyRounded';
 import Image from 'next/image';
 import { useMe } from '@/hooks/useMe';
 import { useTranslations } from 'next-intl';
+import {
+	DARK_SHADOW_RIGHT,
+	DARK_SHADOW_TOP,
+	LIGHT_SHADOW_RIGHT,
+	LIGHT_SHADOW_TOP,
+} from '@/theme/theme';
 import { useAgentSessionHistory } from '@/hooks/useAgentSession';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useMarkNotifications } from '@/hooks/useMarkNotifications';
@@ -75,6 +81,7 @@ function PullRequestIcon(props: SvgIconProps) {
 
 export default function Sidebar() {
 	const theme = useTheme();
+	const isLight = theme.palette.mode === 'light';
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
 	const currentSessionId = searchParams.get('session');
@@ -305,6 +312,8 @@ export default function Sidebar() {
 					'& .MuiDrawer-paper': {
 						width: SIDEBAR_WIDTH,
 						boxSizing: 'border-box',
+						borderRight: 'none',
+						boxShadow: isLight ? LIGHT_SHADOW_RIGHT : DARK_SHADOW_RIGHT,
 					},
 				}}
 			>
@@ -757,7 +766,15 @@ export default function Sidebar() {
 						})}
 					</Box>
 
-					<List sx={{ px: 1.5, pb: 1 }}>
+					<List
+						sx={{
+							px: 1.5,
+							pb: 1,
+							pt: 1.5,
+							position: 'relative',
+							boxShadow: isLight ? LIGHT_SHADOW_TOP : DARK_SHADOW_TOP,
+						}}
+					>
 						<LocaleSwitcher />
 						{bottomItems.map((item, index) => {
 							const active = pathname.startsWith(item.href);
