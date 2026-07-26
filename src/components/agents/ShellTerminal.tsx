@@ -269,7 +269,7 @@ const ShellTerminal = forwardRef<ShellTerminalHandle, ShellTerminalProps>(functi
 	return (
 		<Box
 			onWheel={(e) => e.stopPropagation()}
-			sx={{
+			sx={(theme) => ({
 				flex: 1,
 				minHeight: 0,
 				overflow: 'hidden',
@@ -279,10 +279,13 @@ const ShellTerminal = forwardRef<ShellTerminalHandle, ShellTerminalProps>(functi
 				'& .xterm': { height: '100%', p: 1 },
 				'& .xterm-viewport': {
 					overflowY: 'scroll !important',
+					// xterm.css force `.xterm-viewport { background-color: #000 }` → liseré noir
+					// autour du canvas (à cause du padding de `.xterm`). On aligne sur le thème.
+					backgroundColor: `${theme.palette.background.default} !important`,
 					'&::-webkit-scrollbar': { width: 6 },
 					'&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 3 },
 				},
-			}}
+			})}
 		>
 			<Box ref={setNode} sx={{ flex: 1, display: 'flex' }} />
 		</Box>

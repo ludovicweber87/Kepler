@@ -277,14 +277,17 @@ export default function OverlayTerminal() {
 			{/* Terminal */}
 			<Box
 				ref={setTermNode}
-				sx={{
+				sx={(theme) => ({
 					flex: 1,
 					'& .xterm': { height: '100%', p: 0.5 },
 					'& .xterm-viewport': {
+						// xterm.css force `.xterm-viewport { background-color: #000 }` → cadre noir
+						// autour du canvas. On aligne sur le fond du thème.
+						backgroundColor: `${theme.palette.background.default} !important`,
 						'&::-webkit-scrollbar': { width: 4 },
 						'&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 1 },
 					},
-				}}
+				})}
 			/>
 		</Box>
 	);
