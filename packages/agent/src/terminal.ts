@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { findTmux, findClaude } from './helpers.js';
 import { isAgentSession } from './sessionFilter.js';
 import { createSdkAgentManager } from './sdk/sdkAgent.js';
+import { buildDocStartParams } from './sdk/docSession.js';
 
 // Manager de sessions Agent SDK, partagé par toutes les connexions WS.
 export const sdkAgent = createSdkAgentManager();
@@ -49,7 +50,10 @@ interface KillMessage {
 interface StreamInitMessage {
 	type: 'stream-init';
 	sessionId: string;
-	cwd: string;
+	/** Absent pour une session doc : le serveur résout le cwd depuis le docId. */
+	cwd?: string;
+	/** Session de chat sur une doc — tout est construit serveur (voir docSession.ts). */
+	docId?: string;
 	systemPrompt?: string;
 	model?: string;
 	effort?: string;
@@ -331,6 +335,20 @@ export function startTerminalServer(httpServer: HttpServer) {
 			}
 
 			if (msg.type === 'stream-init') {
+				// Session doc : le client n'est cru sur rien. On recalcule le sessionId
+				// depuis le docId et on construit prompt, outils, portail et périmètre
+				// côté serveur — sinon les guardrails ne vaudraient rien.
+				if (msg.docId) {
+					const doc = buildDocStartParams(msg.docId);
+					if (!doc) {
+						ws.send(JSON.stringify({ type: 'stream-error', message: 'doc not found' }));
+						return;
+					}
+					streamSessionId = doc.sessionId;
+					sdkAgent.startOrAttach(doc.sessionId, ws, doc.params);
+					return;
+				}
+				if (!msg.cwd) return;
 				streamSessionId = msg.sessionId;
 				sdkAgent.startOrAttach(msg.sessionId, ws, {
 					cwd: msg.cwd,
