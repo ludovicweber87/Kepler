@@ -92,3 +92,12 @@ test('le portail refuse la lecture de code si le repo est déclaré mais non ré
 test('le portail refuse un outil inconnu', () => {
   assert.equal(buildDocToolGate(REPO)('mcp__autre__truc'), false);
 });
+
+test('le prompt ne promet pas la lecture de code si le dépôt n\'est pas résolu', () => {
+  const prompt = buildDocChatSystemPrompt({ ...REPO, repoResolved: false });
+  const gate = buildDocToolGate({ ...REPO, repoResolved: false });
+  // Couche 1 et couche 2 doivent décrire les mêmes capacités : promettre Read
+  // pendant que le portail le refuse ferait perdre des tours au modèle.
+  assert.doesNotMatch(prompt, /Read/);
+  assert.equal(gate('Read'), false);
+});

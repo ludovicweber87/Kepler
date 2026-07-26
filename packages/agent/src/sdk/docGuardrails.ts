@@ -23,9 +23,10 @@ export function buildDocChatSystemPrompt(doc: DocGuardrailInput): string {
   lines.push(
     `- Tu parles de ${doc.subject} et de son domaine : notions connexes, alternatives, pièges courants, bonnes pratiques — y compris ce qui n'est pas encore écrit dans la doc.`,
   );
-  if (doc.source_type === 'repo' && doc.repoFullName) {
+  if (doc.source_type === 'repo' && doc.repoResolved) {
+    const repoLabel = doc.repoFullName ? `« ${doc.repoFullName} »` : 'associé';
     lines.push(
-      `- La doc décrit le code du dépôt « ${doc.repoFullName} », disponible en lecture seule dans ton dossier de travail. Tu peux l'explorer (Read, Grep, Glob) pour répondre avec exactitude.`,
+      `- La doc décrit le code du dépôt ${repoLabel}, disponible en lecture seule dans ton dossier de travail. Tu peux l'explorer (Read, Grep, Glob) pour répondre avec exactitude.`,
     );
   }
   lines.push(
