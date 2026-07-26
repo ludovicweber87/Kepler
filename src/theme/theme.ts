@@ -37,7 +37,8 @@ export const LIGHT_SHADOW_LEFT = '-6px 0 24px -14px rgba(0,0,0,0.14), -1px 0 2px
 export const LIGHT_INPUT_SHADOW = '0 2px 14px -6px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.05)';
 
 /** Shadows de la sidebar gauche : appliquées dans les deux modes (elles remplacent la
- * bordure droite) + séparateur haut du bloc bas (langue / personas / docs / settings). */
+ * bordure droite) + séparateur haut du bloc bas (langue / personas / docs / settings).
+ * Les `*_SHADOW_TOP` servent aussi à détacher le composer de chat du fil de messages. */
 export const DARK_SHADOW_RIGHT = '6px 0 24px -12px rgba(0,0,0,0.6), 1px 0 3px rgba(0,0,0,0.28)';
 export const DARK_SHADOW_TOP = '0 -8px 18px -8px rgba(0,0,0,0.55)';
 export const LIGHT_SHADOW_TOP = '0 -8px 18px -10px rgba(0,0,0,0.16)';

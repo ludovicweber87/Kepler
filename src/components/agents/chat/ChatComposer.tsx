@@ -18,7 +18,12 @@ import { useTranslations } from 'next-intl';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { validateImageFile, readFileAsDataUrl, stripDataUrlPrefix } from '@/lib/imageAttach';
 import { normalizeEffort } from '@/lib/models';
-import { LIGHT_INPUT_SHADOW, RAINBOW_GRADIENT } from '@/theme/theme';
+import {
+	DARK_SHADOW_TOP,
+	LIGHT_INPUT_SHADOW,
+	LIGHT_SHADOW_TOP,
+	RAINBOW_GRADIENT,
+} from '@/theme/theme';
 import AgentSettingsControls from './AgentSettingsControls';
 import type { ChatImageInput, Persona } from '@/types';
 
@@ -168,7 +173,20 @@ export default function ChatComposer({
 	const lockedTooltip = tc('settingsLockedByPersona', { name: agentName ?? '' });
 
 	return (
-		<Box sx={{ p: 1.5, borderTop: 1, borderColor: 'divider', flexShrink: 0 }}>
+		<Box
+			sx={{
+				p: 1.5,
+				borderTop: 1,
+				borderColor: 'divider',
+				flexShrink: 0,
+				// z-index : sans lui l'ombre serait peinte sous le texte des messages
+				// (ordre de peinture CSS : fonds des blocs avant le contenu inline).
+				position: 'relative',
+				zIndex: 1,
+				boxShadow: (th) =>
+					th.palette.mode === 'light' ? LIGHT_SHADOW_TOP : DARK_SHADOW_TOP,
+			}}
+		>
 			<Box
 				onPaste={onPaste}
 				onDrop={onDrop}
