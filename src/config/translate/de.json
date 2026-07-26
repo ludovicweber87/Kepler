@@ -93,7 +93,8 @@
 		"stopSession": "Sitzung beenden",
 		"closeFile": "Datei schließen",
 		"fileError": "Datei kann nicht gelesen werden",
-		"fileTruncated": "Datei gekürzt (zu groß zur vollständigen Anzeige)"
+		"fileTruncated": "Datei gekürzt (zu groß zur vollständigen Anzeige)",
+		"chipReader": "Lesen"
 	},
 	"creationProgress": {
 		"title": "Arbeitsbereich wird vorbereitet",
@@ -368,7 +369,8 @@
 		"reportPublishedFor": "Bericht veröffentlicht für {name}",
 		"publishError": "Fehler beim Veröffentlichen des Berichts",
 		"synthesizing": "Bericht wird zusammengefasst…",
-		"synthesizeError": "Zusammenfassung fehlgeschlagen, Rohaktivität wird verwendet"
+		"synthesizeError": "Zusammenfassung fehlgeschlagen, Rohaktivität wird verwendet",
+		"view": "Ansehen"
 	},
 	"agentDiff": {
 		"showRemainingLines": "{count} verbleibende Zeilen anzeigen",
@@ -486,7 +488,9 @@
 		"questionNext": "Weiter",
 		"questionSubmit": "Bestätigen",
 		"queuedHint": "Wird nach der aktuellen Antwort gesendet",
-		"cancelQueued": "Wartende Nachricht abbrechen"
+		"cancelQueued": "Wartende Nachricht abbrechen",
+		"reconnecting": "Verbindung wird wiederhergestellt…",
+		"disconnectedBanner": "Verbindung verloren"
 	},
 	"archived": {
 		"title": "Archivierte Sitzungen",

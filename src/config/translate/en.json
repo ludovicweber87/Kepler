@@ -93,7 +93,8 @@
 		"stopSession": "Stop session",
 		"closeFile": "Close file",
 		"fileError": "Unable to read file",
-		"fileTruncated": "File truncated (too large to display fully)"
+		"fileTruncated": "File truncated (too large to display fully)",
+		"chipReader": "Reader"
 	},
 	"creationProgress": {
 		"title": "Preparing the workspace",
@@ -390,7 +391,8 @@
 		"reportPublishedFor": "Report published for {name}",
 		"publishError": "Error publishing report",
 		"synthesizing": "Synthesizing report…",
-		"synthesizeError": "Could not synthesize, using raw activity"
+		"synthesizeError": "Could not synthesize, using raw activity",
+		"view": "View"
 	},
 	"agentDiff": {
 		"showRemainingLines": "Show {count} remaining lines",
@@ -508,7 +510,9 @@
 		"questionNext": "Next",
 		"questionSubmit": "Submit",
 		"queuedHint": "Will be sent after the current response",
-		"cancelQueued": "Cancel queued message"
+		"cancelQueued": "Cancel queued message",
+		"reconnecting": "Reconnecting…",
+		"disconnectedBanner": "Connection lost"
 	},
 	"archived": {
 		"title": "Archived sessions",

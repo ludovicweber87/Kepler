@@ -93,7 +93,8 @@
 		"stopSession": "Arrêter la session",
 		"closeFile": "Fermer le fichier",
 		"fileError": "Impossible de lire le fichier",
-		"fileTruncated": "Fichier tronqué (trop volumineux pour tout afficher)"
+		"fileTruncated": "Fichier tronqué (trop volumineux pour tout afficher)",
+		"chipReader": "Lecture"
 	},
 	"creationProgress": {
 		"title": "Préparation de l'espace de travail",
@@ -390,7 +391,8 @@
 		"reportPublishedFor": "Rapport publie pour {name}",
 		"publishError": "Erreur lors de la publication du rapport",
 		"synthesizing": "Synthèse du rapport…",
-		"synthesizeError": "Synthèse impossible, activité brute utilisée"
+		"synthesizeError": "Synthèse impossible, activité brute utilisée",
+		"view": "Voir"
 	},
 	"agentDiff": {
 		"showRemainingLines": "Afficher {count} lignes restantes",
@@ -508,7 +510,9 @@
 		"questionNext": "Suivant",
 		"questionSubmit": "Valider",
 		"queuedHint": "Sera envoyé après la réponse en cours",
-		"cancelQueued": "Annuler le message en attente"
+		"cancelQueued": "Annuler le message en attente",
+		"reconnecting": "Reconnexion…",
+		"disconnectedBanner": "Connexion perdue"
 	},
 	"archived": {
 		"title": "Sessions archivées",
