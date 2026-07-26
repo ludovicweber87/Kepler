@@ -12,7 +12,7 @@ import Chip from '@mui/material/Chip';
 import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
 import Alert from '@mui/material/Alert';
-import { alpha } from '@mui/material/styles';
+import { alpha, type Theme } from '@mui/material/styles';
 import CircularProgress from '@mui/material/CircularProgress';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import TerminalRoundedIcon from '@mui/icons-material/TerminalRounded';
@@ -42,6 +42,7 @@ import { localFetch } from '@/lib/local-fetch';
 import { apiFetch } from '@/lib/api-fetch';
 import { slugify } from '@/lib/slug';
 import { MODELS, EFFORTS } from '@/lib/models';
+import { selectableCardSx } from '@/theme/selectableCard';
 import PersonaCards from './launch/PersonaCards';
 import AgentSettingsCards from './launch/AgentSettingsCards';
 
@@ -124,6 +125,20 @@ function issueDisplayName(issue: { issueNumber: number; issueTitle: string }): s
 	const t = issue.issueTitle.trim();
 	if (!t) return `#${issue.issueNumber}`;
 	return t.length > 72 ? `${t.slice(0, 71)}…` : t;
+}
+
+/** Card d'un mode de lancement (worktree / branche courante / branche existante). */
+function launchModeCardSx(theme: Theme, selected: boolean, accent: 'primary' | 'secondary') {
+	return {
+		...selectableCardSx(theme, {
+			selected,
+			color: theme.palette[accent].main,
+			radius: 1,
+			borderWidth: '2px',
+		}),
+		cursor: 'pointer',
+		textAlign: 'center' as const,
+	};
 }
 
 export default function AgentTerminalModal({
@@ -698,26 +713,17 @@ export default function AgentTerminalModal({
 									<Box
 										key={repo.repo_full_name}
 										onClick={() => handleSelectProject(repo.local_path)}
-										sx={{
+										sx={(theme) => ({
+											...selectableCardSx(theme, {
+												selected: isSelected,
+												color: theme.palette.primary.main,
+												radius: 1,
+												borderWidth: '2px',
+											}),
 											p: 2.5,
-											borderRadius: 1,
-											border: 2,
-											borderColor: isSelected ? 'primary.main' : 'divider',
-											bgcolor: isSelected
-												? (theme) => alpha(theme.palette.primary.main, 0.08)
-												: 'transparent',
 											cursor: 'pointer',
 											textAlign: 'center',
-											transition: 'all 0.15s',
-											'&:hover': {
-												borderColor: 'primary.main',
-												bgcolor: (theme) =>
-													alpha(theme.palette.primary.main, 0.06),
-												transform: 'translateY(-2px)',
-												boxShadow: (theme) =>
-													`0 4px 12px ${alpha(theme.palette.primary.main, 0.12)}`,
-											},
-										}}
+										})}
 									>
 										<FolderOpenRoundedIcon
 											sx={{
@@ -813,25 +819,11 @@ export default function AgentTerminalModal({
 						{/* Worktree option */}
 						<Box
 							onClick={() => setLaunchMode('worktree')}
-							sx={{
+							sx={(theme) => ({
+								...launchModeCardSx(theme, launchMode === 'worktree', 'primary'),
 								flex: 1,
 								p: 3,
-								borderRadius: 1,
-								border: 2,
-								borderColor: launchMode === 'worktree' ? 'primary.main' : 'divider',
-								bgcolor:
-									launchMode === 'worktree'
-										? (theme) => alpha(theme.palette.primary.main, 0.08)
-										: 'transparent',
-								cursor: 'pointer',
-								textAlign: 'center',
-								transition: 'all 0.15s',
-								'&:hover': {
-									borderColor: 'primary.main',
-									bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
-									transform: 'translateY(-2px)',
-								},
-							}}
+							})}
 						>
 							<AccountTreeRoundedIcon
 								sx={{ fontSize: 36, color: 'primary.main', mb: 1 }}
@@ -851,29 +843,15 @@ export default function AgentTerminalModal({
 						<Tooltip title={tl('currentBranchTooltip')} arrow placement="top">
 							<Box
 								onClick={() => setLaunchMode('current-branch')}
-								sx={{
+								sx={(theme) => ({
+									...launchModeCardSx(
+										theme,
+										launchMode === 'current-branch',
+										'secondary',
+									),
 									flex: 1,
 									p: 3,
-									borderRadius: 1,
-									border: 2,
-									borderColor:
-										launchMode === 'current-branch'
-											? 'secondary.main'
-											: 'divider',
-									bgcolor:
-										launchMode === 'current-branch'
-											? (theme) => alpha(theme.palette.secondary.main, 0.08)
-											: 'transparent',
-									cursor: 'pointer',
-									textAlign: 'center',
-									transition: 'all 0.15s',
-									'&:hover': {
-										borderColor: 'secondary.main',
-										bgcolor: (theme) =>
-											alpha(theme.palette.secondary.main, 0.06),
-										transform: 'translateY(-2px)',
-									},
-								}}
+								})}
 							>
 								<TerminalRoundedIcon
 									sx={{ fontSize: 36, color: 'secondary.main', mb: 1 }}
@@ -894,28 +872,15 @@ export default function AgentTerminalModal({
 						<Tooltip title={tl('existingBranchTooltip')} arrow placement="top">
 							<Box
 								onClick={() => setLaunchMode('existing-branch')}
-								sx={{
+								sx={(theme) => ({
+									...launchModeCardSx(
+										theme,
+										launchMode === 'existing-branch',
+										'primary',
+									),
 									flex: 1,
 									p: 3,
-									borderRadius: 1,
-									border: 2,
-									borderColor:
-										launchMode === 'existing-branch'
-											? 'primary.main'
-											: 'divider',
-									bgcolor:
-										launchMode === 'existing-branch'
-											? (theme) => alpha(theme.palette.primary.main, 0.08)
-											: 'transparent',
-									cursor: 'pointer',
-									textAlign: 'center',
-									transition: 'all 0.15s',
-									'&:hover': {
-										borderColor: 'primary.main',
-										bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
-										transform: 'translateY(-2px)',
-									},
-								}}
+								})}
 							>
 								<AltRouteRoundedIcon
 									sx={{ fontSize: 36, color: 'primary.main', mb: 1 }}

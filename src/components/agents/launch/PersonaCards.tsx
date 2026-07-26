@@ -4,8 +4,9 @@ import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
 import LockRoundedIcon from '@mui/icons-material/LockRounded';
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
-import { alpha } from '@mui/material/styles';
+import { alpha, type Theme } from '@mui/material/styles';
 import { useTranslations } from 'next-intl';
+import { selectableCardSx } from '@/theme/selectableCard';
 import type { Persona } from '@/types';
 import { modelLabelKey, EFFORTS } from '@/lib/models';
 import { MODES } from '../chat/AgentSettingsControls';
@@ -28,20 +29,11 @@ export default function PersonaCards({ personas, selectedPersonaId, onSelect }: 
 	const tc = useTranslations('common');
 	const tch = useTranslations('agentChat');
 
-	const cardSx = (selected: boolean, color: string) => ({
+	const cardSx = (selected: boolean, color: string) => (th: Theme) => ({
+		...selectableCardSx(th, { selected, color }),
 		position: 'relative' as const,
 		p: 1.75,
-		borderRadius: 1.25,
-		border: '1.5px solid',
-		borderColor: selected ? color : 'divider',
-		bgcolor: selected ? alpha(color, 0.08) : 'transparent',
 		cursor: 'pointer',
-		transition: 'all 0.15s',
-		'&:hover': {
-			borderColor: color,
-			transform: 'translateY(-2px)',
-			boxShadow: `0 4px 14px ${alpha(color, 0.15)}`,
-		},
 	});
 
 	return (
@@ -56,10 +48,10 @@ export default function PersonaCards({ personas, selectedPersonaId, onSelect }: 
 			{/* Sans persona */}
 			<Box
 				onClick={() => onSelect(null)}
-				sx={{
-					...cardSx(selectedPersonaId === null, DEFAULT_COLOR),
+				sx={(th) => ({
+					...cardSx(selectedPersonaId === null, DEFAULT_COLOR)(th),
 					borderStyle: 'dashed',
-				}}
+				})}
 			>
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
 					<Box

@@ -49,6 +49,8 @@ import {
 	DARK_SHADOW_TOP,
 	LIGHT_SHADOW_RIGHT,
 	LIGHT_SHADOW_TOP,
+	cardShadowRest,
+	cardShadowHover,
 } from '@/theme/theme';
 import { useAgentSessionHistory } from '@/hooks/useAgentSession';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -469,6 +471,13 @@ export default function Sidebar() {
 												px: 1,
 												flex: 1,
 												minWidth: 0,
+												transition:
+													'background-color 0.15s, box-shadow 0.15s',
+												'&:hover': {
+													backgroundColor:
+														theme.palette.surfaces.cardHover,
+													boxShadow: cardShadowHover(theme.palette.mode),
+												},
 											}}
 										>
 											<ExpandMoreRoundedIcon
@@ -621,6 +630,17 @@ export default function Sidebar() {
 																borderLeft: isCurrent
 																	? `2px solid ${theme.palette.primary.main}`
 																	: '2px solid transparent',
+																// Une ombre a besoin d'une surface
+																// pour décoller : au repos, seul
+																// l'item courant (fond teinté) en
+																// reçoit une.
+																boxShadow: isCurrent
+																	? cardShadowRest(
+																			theme.palette.mode,
+																		)
+																	: 'none',
+																transition:
+																	'background-color 0.15s, box-shadow 0.15s',
 																'&:hover': {
 																	bgcolor: isCurrent
 																		? alpha(
@@ -633,6 +653,10 @@ export default function Sidebar() {
 																					.primary.main,
 																				0.1,
 																			),
+																	boxShadow: cardShadowHover(
+																		theme.palette.mode,
+																		theme.palette.primary.main,
+																	),
 																},
 																'&:hover .wt-delete': {
 																	opacity: 1,

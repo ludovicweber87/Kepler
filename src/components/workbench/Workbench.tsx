@@ -27,6 +27,7 @@ import PublishRoundedIcon from '@mui/icons-material/PublishRounded';
 import { useTranslations } from 'next-intl';
 import { useAgentSessionHistory, useAgentSession } from '@/hooks/useAgentSession';
 import { useSessionActions } from '@/hooks/useSessionActions';
+import { useMarkSessionRead } from '@/hooks/useMarkSessionRead';
 import { useOverlayTerminal } from '@/hooks/useOverlayTerminal';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { classifySession } from '@/lib/sessionStatus';
@@ -68,6 +69,8 @@ export default function Workbench() {
 	const searchParams = useSearchParams();
 	const router = useRouter();
 	const sessionId = searchParams.get('session') ?? undefined;
+	// La session est à l'écran : ses notifs n'ont plus à porter de pastille.
+	useMarkSessionRead(sessionId);
 
 	const { data: allSessions = [] } = useAgentSessionHistory();
 	const { session, logs, updatePersona } = useAgentSession(sessionId);

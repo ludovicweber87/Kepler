@@ -7,6 +7,7 @@ import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { alpha, type Theme } from '@mui/material/styles';
 import { useTranslations } from 'next-intl';
+import { selectableCardSx } from '@/theme/selectableCard';
 import { MODEL_FAMILIES, EFFORTS, modelFamily, modelLabelKey } from '@/lib/models';
 
 interface Props {
@@ -61,15 +62,8 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 	);
 }
 
-function selectableSx(selected: boolean, color: string) {
-	return {
-		borderRadius: 1,
-		border: '1.5px solid',
-		borderColor: selected ? color : 'divider',
-		bgcolor: selected ? alpha(color, 0.1) : 'transparent',
-		transition: 'all 0.15s',
-		'&:hover': { borderColor: color, transform: 'translateY(-1px)' },
-	} as const;
+function selectableSx(th: Theme, selected: boolean, color: string) {
+	return selectableCardSx(th, { selected, color, radius: 1, lift: 1 });
 }
 
 /**
@@ -108,12 +102,12 @@ export default function AgentSettingsCards({
 							<ButtonBase
 								key={fam.id}
 								onClick={() => pickFamily(fam)}
-								sx={{
+								sx={(th) => ({
 									flex: 1,
 									flexDirection: 'column',
 									p: 1,
-									...selectableSx(selected, primary),
-								}}
+									...selectableSx(th, selected, primary),
+								})}
 							>
 								<Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
 									{tl(fam.labelKey)}
@@ -173,12 +167,12 @@ export default function AgentSettingsCards({
 								<ButtonBase
 									key={e.value}
 									onClick={() => onEffort(e.value)}
-									sx={{
+									sx={(th) => ({
 										flexDirection: 'column',
 										gap: 0.5,
 										py: 1,
-										...selectableSx(selected, primary),
-									}}
+										...selectableSx(th, selected, primary),
+									})}
 								>
 									<Bars level={i + 1} active={selected} />
 									<Typography
@@ -204,13 +198,13 @@ export default function AgentSettingsCards({
 								<ButtonBase
 									key={p.value}
 									onClick={() => onMode(p.value)}
-									sx={{
+									sx={(th) => ({
 										justifyContent: 'flex-start',
 										gap: 1,
 										px: 1.25,
 										py: 0.85,
-										...selectableSx(selected, p.color),
-									}}
+										...selectableSx(th, selected, p.color),
+									})}
 								>
 									<Icon sx={{ fontSize: 17, color: p.color }} />
 									<Box sx={{ textAlign: 'left' }}>
@@ -253,7 +247,10 @@ function VersionCard({
 	onClick: () => void;
 }) {
 	return (
-		<ButtonBase onClick={onClick} sx={{ py: 0.9, px: 1, ...selectableSx(selected, color) }}>
+		<ButtonBase
+			onClick={onClick}
+			sx={(th) => ({ py: 0.9, px: 1, ...selectableSx(th, selected, color) })}
+		>
 			<Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.72rem' }}>
 				{label}
 			</Typography>

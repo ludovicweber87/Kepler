@@ -42,10 +42,11 @@ export function useMarkNotifications() {
 		},
 	});
 
-	const markRead = useCallback(
-		(ids: string[]) => markReadMutation.mutate(ids),
-		[markReadMutation],
-	);
+	// `mutate` est référentiellement stable (contrairement à l'objet mutation, recréé à
+	// chaque render) : sans ça `markRead` change à chaque render et boucle dès qu'un
+	// appelant le met dans les deps d'un useEffect.
+	const { mutate } = markReadMutation;
+	const markRead = useCallback((ids: string[]) => mutate(ids), [mutate]);
 
 	return { markRead };
 }
