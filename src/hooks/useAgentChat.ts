@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { getAgentWsUrl } from '@/lib/local-fetch';
+import { useReconnectOnWake } from '@/hooks/useReconnectOnWake';
 import { reduceStreamEvent } from '@/lib/chatReducer';
 import type {
 	ChatImageInput,
@@ -61,6 +62,7 @@ export function useAgentChat(p: Params) {
 	const [pendingQuestions, setQuestions] = useState<PendingQuestion[]>([]);
 	const [queued, setQueued] = useState<QueuedMessage[]>([]);
 	const wsRef = useRef<WebSocket | null>(null);
+	const hasConnectedRef = useRef(false);
 	const lastSeqRef = useRef(0);
 	const statusRef = useRef<Status>('connecting');
 	const queuedRef = useRef<QueuedMessage[]>([]);
@@ -119,6 +121,7 @@ export function useAgentChat(p: Params) {
 					break;
 				}
 				case 'stream-ready':
+					hasConnectedRef.current = true;
 					setModelState(String(msg.model ?? ''));
 					setEffortState(String(msg.effort ?? ''));
 					setPermState(String(msg.permissionMode ?? ''));
@@ -239,6 +242,15 @@ export function useAgentChat(p: Params) {
 		sendCtl({ type: 'stream-interrupt' });
 	}, [sendCtl]);
 	const reconnect = useCallback(() => setReconnectNonce((n) => n + 1), []);
+
+	// Reconnexion auto au réveil du laptop : si le socket est mort (fermé/en
+	// fermeture) et que l'onglet redevient visible, on relance `startOrAttach`
+	// côté serveur, qui rejoue le transcript persisté (rien de perdu).
+	useReconnectOnWake(() => {
+		if (!p.enabled || !p.cwd || p.readOnly) return false;
+		const ws = wsRef.current;
+		return !ws || ws.readyState > 1; // CLOSING (2) ou CLOSED (3)
+	}, reconnect);
 	const resolvePermission = useCallback(
 		(id: string, decision: PermissionDecision) => {
 			setPending((prev) => prev.filter((x) => x.id !== id));
@@ -258,6 +270,9 @@ export function useAgentChat(p: Params) {
 	return {
 		messages,
 		status,
+		// `connecting` alors qu'on a déjà été connecté = reconnexion en cours
+		// (distinct de la toute première connexion).
+		reconnecting: status === 'connecting' && hasConnectedRef.current,
 		model,
 		effort,
 		permissionMode,

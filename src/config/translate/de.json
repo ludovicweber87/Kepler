@@ -486,7 +486,9 @@
 		"questionNext": "Weiter",
 		"questionSubmit": "Bestätigen",
 		"queuedHint": "Wird nach der aktuellen Antwort gesendet",
-		"cancelQueued": "Wartende Nachricht abbrechen"
+		"cancelQueued": "Wartende Nachricht abbrechen",
+		"reconnecting": "Verbindung wird wiederhergestellt…",
+		"disconnectedBanner": "Verbindung verloren"
 	},
 	"archived": {
 		"title": "Archivierte Sitzungen",

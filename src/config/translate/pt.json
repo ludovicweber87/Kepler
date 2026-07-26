@@ -487,7 +487,9 @@
 		"questionNext": "Próximo",
 		"questionSubmit": "Enviar",
 		"queuedHint": "Será enviado após a resposta atual",
-		"cancelQueued": "Cancelar mensagem na fila"
+		"cancelQueued": "Cancelar mensagem na fila",
+		"reconnecting": "Reconectando…",
+		"disconnectedBanner": "Conexão perdida"
 	},
 	"archived": {
 		"title": "Sessões arquivadas",

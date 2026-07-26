@@ -8,6 +8,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import { WebglAddon } from '@xterm/addon-webgl';
 import '@xterm/xterm/css/xterm.css';
 import { getAgentWsUrl } from '@/lib/local-fetch';
+import { useReconnectOnWake } from '@/hooks/useReconnectOnWake';
 import { useThemePrefs } from '@/hooks/useThemePrefs';
 import { terminalFontStack } from '@/lib/themePrefs';
 
@@ -36,6 +37,10 @@ const ShellTerminal = forwardRef<ShellTerminalHandle, ShellTerminalProps>(functi
 	const wsRef = useRef<WebSocket | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
 	const initialized = useRef(false);
+	// Empêche onclose d'écrire/reconnecter pendant le teardown (unmount).
+	const disposedRef = useRef(false);
+	// Rappelle la reconnexion du socket PTY (défini par l'effet d'init).
+	const reconnectRef = useRef<(() => void) | null>(null);
 
 	// Thème xterm dérivé du thème MUI (suit le mode clair/sombre choisi).
 	const xtermTheme = useMemo(
@@ -120,40 +125,58 @@ const ShellTerminal = forwardRef<ShellTerminalHandle, ShellTerminalProps>(functi
 
 		terminalRef.current = terminal;
 		fitAddonRef.current = fitAddon;
+		disposedRef.current = false;
 
-		const ws = new WebSocket(getAgentWsUrl());
-		wsRef.current = ws;
+		// Ouvre (ou rouvre) le socket PTY. Rappelable pour la reconnexion au réveil :
+		// un nouveau `init` refait un `tmux attach-session` côté serveur, qui
+		// redessine l'écran de la session tmux survivante (scrollback préservé).
+		const connect = () => {
+			if (disposedRef.current) return;
+			const ws = new WebSocket(getAgentWsUrl());
+			wsRef.current = ws;
 
-		ws.onopen = () => {
-			ws.send(
-				JSON.stringify({
-					type: 'init',
-					sessionId: shellSessionId,
-					cwd,
-					cols: terminal.cols,
-					rows: terminal.rows,
-				}),
-			);
-		};
+			ws.onopen = () => {
+				ws.send(
+					JSON.stringify({
+						type: 'init',
+						sessionId: shellSessionId,
+						cwd,
+						cols: terminal.cols,
+						rows: terminal.rows,
+					}),
+				);
+			};
 
-		ws.onmessage = (event) => {
-			if (typeof event.data === 'string') {
-				try {
-					const msg = JSON.parse(event.data);
-					if (msg.type === 'init-ack') return;
-				} catch {
-					/* terminal output */
+			ws.onmessage = (event) => {
+				if (typeof event.data === 'string') {
+					try {
+						const msg = JSON.parse(event.data);
+						if (msg.type === 'init-ack') return;
+					} catch {
+						/* terminal output */
+					}
+					terminal.write(event.data);
 				}
-				terminal.write(event.data);
-			}
+			};
+
+			ws.onclose = () => {
+				if (disposedRef.current) return;
+				terminal.write('\r\n\x1b[90m[Shell disconnected]\x1b[0m\r\n');
+			};
 		};
 
-		ws.onclose = () => {
-			terminal.write('\r\n\x1b[90m[Shell disconnected]\x1b[0m\r\n');
+		connect();
+		reconnectRef.current = () => {
+			if (disposedRef.current) return;
+			const ws = wsRef.current;
+			if (ws && ws.readyState <= 1) return; // déjà connecté/en cours
+			terminal.write('\r\n\x1b[90m[Reconnexion…]\x1b[0m\r\n');
+			connect();
 		};
 
 		terminal.onData((data) => {
-			if (ws.readyState === WebSocket.OPEN) {
+			const ws = wsRef.current;
+			if (ws && ws.readyState === WebSocket.OPEN) {
 				ws.send(JSON.stringify({ type: 'input', data }));
 			}
 		});
@@ -161,7 +184,8 @@ const ShellTerminal = forwardRef<ShellTerminalHandle, ShellTerminalProps>(functi
 		const handleWheel = (e: WheelEvent) => {
 			e.preventDefault();
 			e.stopPropagation();
-			if (ws.readyState !== WebSocket.OPEN) return;
+			const ws = wsRef.current;
+			if (!ws || ws.readyState !== WebSocket.OPEN) return;
 			const lines = Math.max(1, Math.round(Math.abs(e.deltaY) / 40));
 			const button = e.deltaY < 0 ? 64 : 65;
 			const seq = `\x1b[<${button};1;1M`;
@@ -176,7 +200,8 @@ const ShellTerminal = forwardRef<ShellTerminalHandle, ShellTerminalProps>(functi
 			if (resizeTimer) clearTimeout(resizeTimer);
 			resizeTimer = setTimeout(() => {
 				fitAddon.fit();
-				if (ws.readyState === WebSocket.OPEN) {
+				const ws = wsRef.current;
+				if (ws && ws.readyState === WebSocket.OPEN) {
 					ws.send(
 						JSON.stringify({
 							type: 'resize',
@@ -190,10 +215,12 @@ const ShellTerminal = forwardRef<ShellTerminalHandle, ShellTerminalProps>(functi
 		observer.observe(node);
 
 		return () => {
+			disposedRef.current = true;
+			reconnectRef.current = null;
 			node.removeEventListener('wheel', handleWheel);
 			if (resizeTimer) clearTimeout(resizeTimer);
 			observer.disconnect();
-			ws.close();
+			wsRef.current?.close();
 			terminal.dispose();
 			terminalRef.current = null;
 			wsRef.current = null;
@@ -202,6 +229,16 @@ const ShellTerminal = forwardRef<ShellTerminalHandle, ShellTerminalProps>(functi
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [node, ready, cwd, shellSessionId]);
+
+	// Reconnexion auto au réveil du laptop : si le socket PTY est mort, on refait
+	// un `init` (tmux attach) plutôt que de laisser [Shell disconnected] figé.
+	useReconnectOnWake(
+		() => {
+			const ws = wsRef.current;
+			return !disposedRef.current && (!ws || ws.readyState > 1);
+		},
+		() => reconnectRef.current?.(),
+	);
 
 	// Applique le thème à la volée quand le mode clair/sombre change,
 	// sans recréer le terminal (préserve scrollback & connexion).

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
+import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import { useTranslations } from 'next-intl';
@@ -226,9 +227,14 @@ export default function AgentChatTab({
 				bgcolor: 'background.default',
 			}}
 		>
-			{chat.status === 'error' && (
+			{chat.reconnecting && (
+				<Alert severity="info" icon={<CircularProgress size={16} />} sx={{ m: 1 }}>
+					{t('reconnecting')}
+				</Alert>
+			)}
+			{(chat.status === 'error' || chat.status === 'closed') && (
 				<Alert
-					severity="error"
+					severity={chat.status === 'error' ? 'error' : 'warning'}
 					sx={{ m: 1 }}
 					action={
 						<Button color="inherit" size="small" onClick={() => chat.reconnect()}>
@@ -236,7 +242,7 @@ export default function AgentChatTab({
 						</Button>
 					}
 				>
-					{t('errorBanner')}
+					{chat.status === 'error' ? t('errorBanner') : t('disconnectedBanner')}
 				</Alert>
 			)}
 			<Box ref={scrollRef} sx={{ flex: 1, overflowY: 'auto', py: 1 }}>
