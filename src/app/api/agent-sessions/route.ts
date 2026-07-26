@@ -124,6 +124,7 @@ export async function POST(req: NextRequest) {
 			effort,
 			permission_mode,
 			agent_color,
+			persona_id,
 		} = body;
 
 		// Check if already exists
@@ -171,6 +172,7 @@ export async function POST(req: NextRequest) {
 				effort: effort ?? null,
 				permission_mode: permission_mode ?? null,
 				agent_color: agent_color ?? null,
+				persona_id: persona_id ?? null,
 			})
 			.returning()
 			.all();

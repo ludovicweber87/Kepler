@@ -25,6 +25,7 @@ export interface AgentSession {
 	effort: string | null;
 	permission_mode: string | null;
 	agent_color: string | null;
+	persona_id: string | null;
 }
 
 export interface AgentActivityLog {
@@ -86,6 +87,7 @@ export function useAgentSession(sessionId: string | undefined) {
 			effort?: string | null;
 			permissionMode?: string | null;
 			agentColor?: string | null;
+			personaId?: string | null;
 		}) => {
 			const res = await apiFetch('/api/agent-sessions', {
 				method: 'POST',
@@ -108,6 +110,7 @@ export function useAgentSession(sessionId: string | undefined) {
 					effort: params.effort ?? null,
 					permission_mode: params.permissionMode ?? null,
 					agent_color: params.agentColor ?? null,
+					persona_id: params.personaId ?? null,
 				}),
 			});
 			if (!res.ok) throw new Error('Failed to ensure session');
@@ -163,6 +166,7 @@ export function useAgentSession(sessionId: string | undefined) {
 			patch: Partial<{
 				agent_name: string | null;
 				agent_color: string | null;
+				persona_id: string | null;
 				model: string | null;
 				effort: string | null;
 				permission_mode: string | null;

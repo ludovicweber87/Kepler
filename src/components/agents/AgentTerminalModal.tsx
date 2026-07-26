@@ -417,6 +417,7 @@ export default function AgentTerminalModal({
 				effort: persona ? (persona.effort ?? null) : settingsEffort,
 				permissionMode: persona ? (persona.permission_mode ?? null) : settingsMode,
 				agentColor: persona?.color ?? null,
+				personaId: persona?.id ?? null,
 			});
 			goToWorkbench(sessionId);
 		} catch (err) {
