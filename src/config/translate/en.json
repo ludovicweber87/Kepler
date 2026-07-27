@@ -96,7 +96,16 @@
 		"closeReader": "Close reader",
 		"fileError": "Unable to read file",
 		"fileTruncated": "File truncated (too large to display fully)",
-		"chipReader": "Reader"
+		"chipReader": "Reader",
+		"chipExplorer": "Explorer",
+		"explorerFilter": "Filter files",
+		"explorerClearFilter": "Clear filter",
+		"explorerEmpty": "No files to show",
+		"explorerNoMatch": "No file matches",
+		"explorerNotARepo": "This folder is not a git repository",
+		"explorerTruncated": "Too many files — the tree is partial",
+		"explorerError": "Unable to list files",
+		"fileNoHighlight": "Large file — syntax highlighting disabled"
 	},
 	"creationProgress": {
 		"title": "Preparing the workspace",
