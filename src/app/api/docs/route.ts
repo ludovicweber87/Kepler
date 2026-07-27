@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, isAuthError } from '@/lib/auth-utils';
 import { db } from '@/db';
 import { docs, docCategoryLinks } from '@/db/schema';
-import { eq, desc, sql } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import type { DocWithCategories } from '@/types';
 
 /** Construit la map doc_id → category_ids[] à partir de la table de liaison. */
@@ -113,7 +113,7 @@ export async function PATCH(req: NextRequest) {
 
 		let row = db.select().from(docs).where(eq(docs.id, id)).get() ?? null;
 		if (Object.keys(updates).length > 0) {
-			updates.updated_at = sql`(datetime('now'))`;
+			updates.updated_at = new Date().toISOString();
 			[row] = db.update(docs).set(updates).where(eq(docs.id, id)).returning().all();
 		}
 

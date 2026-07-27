@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, isAuthError } from '@/lib/auth-utils';
 import { db } from '@/db';
 import { notifications } from '@/db/schema';
-import { inArray, sql } from 'drizzle-orm';
+import { inArray } from 'drizzle-orm';
 
 export async function PATCH(req: NextRequest) {
 	const auth = await requireAuth();
@@ -16,7 +16,7 @@ export async function PATCH(req: NextRequest) {
 		}
 
 		db.update(notifications)
-			.set({ read_at: sql`datetime('now')` })
+			.set({ read_at: new Date().toISOString() })
 			.where(inArray(notifications.id, ids))
 			.run();
 

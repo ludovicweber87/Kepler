@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, isAuthError } from '@/lib/auth-utils';
 import { db } from '@/db';
 import { tasks } from '@/db/schema';
-import { eq, desc, sql } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 
 export async function GET(req: NextRequest) {
 	const auth = await requireAuth();
@@ -89,10 +89,10 @@ export async function PATCH(req: NextRequest) {
 
 		// Règle métier completed_at, pilotée par le passage de `done`.
 		if ('done' in body) {
-			updates.completed_at = body.done ? sql`(datetime('now'))` : null;
+			updates.completed_at = body.done ? new Date().toISOString() : null;
 		}
 
-		updates.updated_at = sql`(datetime('now'))`;
+		updates.updated_at = new Date().toISOString();
 
 		const [row] = db.update(tasks).set(updates).where(eq(tasks.id, id)).returning().all();
 
