@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { getAgentSseUrl } from '@/lib/local-fetch';
 import { prependNotification, titleFor } from '@/lib/notificationsReducer';
 import { isNotificationSoundMuted, playNotificationChime } from '@/lib/notificationSound';
+import { showOsNotification } from '@/lib/osNotification';
 import { NOTIFICATIONS_QUERY_KEY } from '@/hooks/useNotifications';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import type { AppNotification } from '@/types';
@@ -53,11 +54,11 @@ export function useNotificationsStream(): void {
 								? 'info'
 								: 'success';
 					const url = incoming.url;
-					snack(
-						title,
-						severity,
-						url?.startsWith('/') ? { onClick: () => r.push(url) } : undefined,
-					);
+					const onClick = url?.startsWith('/') ? () => r.push(url) : undefined;
+					snack(title, severity, onClick ? { onClick } : undefined);
+					// Notification système : no-op si la pref est coupée, la permission
+					// non accordée, ou si l'onglet a déjà le focus.
+					showOsNotification(title, { tag: incoming.id, onClick });
 				}
 			} catch {
 				// Ignore malformed events (e.g. comment/ping lines already filtered by EventSource).
