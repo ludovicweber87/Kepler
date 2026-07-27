@@ -47,6 +47,11 @@ interface Props {
 	onCreatePrStateChange?: (state: { available: boolean; trigger: () => void }) => void;
 	/** Remonte au parent la disponibilité + l'action « Commit and push » (rendue dans le header). */
 	onCommitPushStateChange?: (state: { available: boolean; trigger: () => void }) => void;
+	/**
+	 * Remonte un envoi stable, pour que le Workbench puisse pousser un message dans
+	 * le chat (scripts en mode `chat`). `null` quand le chat est en lecture seule.
+	 */
+	onSendReady?: (send: ((text: string) => void) | null) => void;
 }
 
 export default function AgentChatTab({
@@ -66,6 +71,7 @@ export default function AgentChatTab({
 	onTurnComplete,
 	onCreatePrStateChange,
 	onCommitPushStateChange,
+	onSendReady,
 }: Props) {
 	const t = useTranslations('agentChat');
 	const { session, updatePersona } = useAgentSession(sessionId);
@@ -224,6 +230,15 @@ export default function AgentChatTab({
 			trigger: triggerCommitPush,
 		});
 	}, [readOnly, canCommitPush, triggerCommitPush, onCommitPushStateChange]);
+
+	// Envoi stable exposé au Workbench (scripts en mode `chat`). Identité constante,
+	// donc l'effet ne se rejoue qu'au changement de `readOnly`. Envoyer pendant que
+	// l'agent travaille est sûr : useAgentChat met le message en file.
+	const sendScript = useCallback((text: string) => sendRef.current(text), []);
+	useEffect(() => {
+		onSendReady?.(readOnly ? null : sendScript);
+		return () => onSendReady?.(null);
+	}, [readOnly, sendScript, onSendReady]);
 
 	return (
 		<Box
