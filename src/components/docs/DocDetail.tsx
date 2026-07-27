@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Box from '@mui/material/Box';
@@ -20,27 +21,30 @@ import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
 import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
-import SendRoundedIcon from '@mui/icons-material/SendRounded';
-import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import { alpha } from '@mui/material/styles';
 import { useTranslations } from 'next-intl';
 import { useDoc } from '@/hooks/useDoc';
 import { useDocCategories } from '@/hooks/useDocCategories';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { slugify, extractToc } from '@/lib/docToc';
-
-const QUICK_KEYS = ['shorter', 'examples', 'technical', 'simpler'] as const;
+import DocChatPanel from './DocChatPanel';
 
 export default function DocDetail({ docId }: { docId: string }) {
 	const t = useTranslations('docs');
 	const router = useRouter();
-	const { doc, chat, isLoading, saveContent, saving, refine, retry } = useDoc(docId);
+	const { doc, isLoading, saveContent, saving, retry } = useDoc(docId);
 	const { categories } = useDocCategories();
 	const { showSnackbar } = useSnackbar();
+	const queryClient = useQueryClient();
+
+	// Les outils MCP du chat écrivent la doc côté serveur : on la relit à la fin
+	// de chaque tour de l'agent.
+	const onDocChanged = useCallback(() => {
+		queryClient.invalidateQueries({ queryKey: ['doc', docId] });
+	}, [queryClient, docId]);
 
 	const [mode, setMode] = useState<'read' | 'edit'>('read');
 	const [draft, setDraft] = useState('');
-	const [instruction, setInstruction] = useState('');
 	const [exportAnchor, setExportAnchor] = useState<HTMLElement | null>(null);
 
 	const enterEdit = () => {
@@ -89,12 +93,6 @@ export default function DocDetail({ docId }: { docId: string }) {
 		await saveContent(draft);
 		setMode('read');
 		showSnackbar(t('saved'), 'success');
-	};
-	const sendRefine = () => {
-		const v = instruction.trim();
-		if (!v) return;
-		refine(v);
-		setInstruction('');
 	};
 
 	return (
@@ -364,141 +362,13 @@ export default function DocDetail({ docId }: { docId: string }) {
 					)}
 				</Box>
 
-				{/* Refine panel */}
-				<Box
-					sx={{
-						width: 320,
-						borderLeft: '1px solid',
-						borderColor: 'divider',
-						display: { xs: 'none', lg: 'flex' },
-						flexDirection: 'column',
-						bgcolor: 'action.hover',
-					}}
-				>
-					<Box
-						sx={{
-							p: 1.5,
-							borderBottom: '1px solid',
-							borderColor: 'divider',
-							display: 'flex',
-							alignItems: 'center',
-							gap: 1,
-						}}
-					>
-						<AutoAwesomeRoundedIcon sx={{ fontSize: 18, color: 'primary.main' }} />
-						<Typography sx={{ fontWeight: 600, fontSize: '0.85rem' }}>
-							{t('refineTitle')}
-						</Typography>
-					</Box>
-
-					<Box sx={{ flex: 1, overflowY: 'auto', p: 1.5 }}>
-						{chat.length === 0 && (
-							<Typography variant="caption" sx={{ color: 'text.disabled' }}>
-								{t('refineEmpty')}
-							</Typography>
-						)}
-						{chat.map((m, i) => (
-							<Box key={i} sx={{ mb: 1.25 }}>
-								<Typography
-									variant="caption"
-									sx={{ color: 'text.disabled', display: 'block', mb: 0.25 }}
-								>
-									{m.role === 'user' ? t('you') : t('writer')}
-								</Typography>
-								<Box
-									sx={{
-										borderRadius: 2,
-										px: 1.25,
-										py: 0.75,
-										fontSize: '0.8rem',
-										bgcolor:
-											m.role === 'user'
-												? alpha('#7C5CFF', 0.16)
-												: 'background.paper',
-										border: m.role === 'user' ? 'none' : '1px solid',
-										borderColor: 'divider',
-										color: m.kind === 'error' ? 'error.main' : 'text.primary',
-									}}
-								>
-									{m.kind === 'ack'
-										? t('refineDone')
-										: m.kind === 'error'
-											? m.text || t('generationFailed')
-											: m.text}
-								</Box>
-							</Box>
-						))}
-						{busy && (
-							<Box
-								sx={{
-									display: 'flex',
-									alignItems: 'center',
-									gap: 1,
-									color: 'text.disabled',
-									mt: 1,
-								}}
-							>
-								<CircularProgress size={14} />
-								<Typography variant="caption">{t('working')}</Typography>
-							</Box>
-						)}
-					</Box>
-
-					<Box
-						sx={{
-							p: 1,
-							borderTop: '1px solid',
-							borderColor: 'divider',
-							display: 'flex',
-							flexWrap: 'wrap',
-							gap: 0.5,
-						}}
-					>
-						{QUICK_KEYS.map((k) => (
-							<Chip
-								key={k}
-								label={t(`quick.${k}`)}
-								size="small"
-								variant="outlined"
-								onClick={() => refine(t(`quickPrompt.${k}`))}
-								disabled={busy}
-								sx={{ fontSize: '0.68rem', height: 22 }}
-							/>
-						))}
-					</Box>
-
-					<Box
-						sx={{
-							p: 1,
-							borderTop: '1px solid',
-							borderColor: 'divider',
-							display: 'flex',
-							gap: 0.75,
-						}}
-					>
-						<TextField
-							size="small"
-							fullWidth
-							placeholder={t('refinePlaceholder')}
-							value={instruction}
-							onChange={(e) => setInstruction(e.target.value)}
-							onKeyDown={(e) => {
-								if (e.key === 'Enter' && !e.shiftKey) {
-									e.preventDefault();
-									sendRefine();
-								}
-							}}
-							disabled={busy}
-						/>
-						<IconButton
-							color="primary"
-							onClick={sendRefine}
-							disabled={busy || !instruction.trim()}
-						>
-							<SendRoundedIcon fontSize="small" />
-						</IconButton>
-					</Box>
-				</Box>
+				<DocChatPanel
+					docId={docId}
+					docStatus={doc.status}
+					hasContent={!!doc.content}
+					editing={mode === 'edit'}
+					onDocChanged={onDocChanged}
+				/>
 			</Box>
 		</Box>
 	);

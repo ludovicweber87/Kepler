@@ -1,5 +1,5 @@
 import { query as realQuery } from '@anthropic-ai/claude-agent-sdk';
-import { findClaude, cleanClaudeEnv } from '../helpers.js';
+import { findClaude, cleanClaudeEnv, NOW_ISO } from '../helpers.js';
 import { makePromptQueue, type PromptQueue } from './promptQueue.js';
 import { mapMessage } from './mapMessage.js';
 import { createPermissionController, type PermissionController, type PendingPermission, type PendingQuestion, type QuestionAnswers } from './permissions.js';
@@ -26,7 +26,7 @@ import {
 import { applyGeneratedTitle } from './generatedTitle.js';
 
 export interface StreamSocket { send(data: string): void; readyState?: number }
-export interface StartParams { cwd: string; systemPrompt?: string; model?: string; effort?: string; permissionMode?: string; resumeClaudeSessionId?: string; mcpServers?: Record<string, unknown>; retryLastUser?: boolean; observeOnly?: boolean; initialPrompt?: string }
+export interface StartParams { cwd: string; systemPrompt?: string; model?: string; effort?: string; permissionMode?: string; resumeClaudeSessionId?: string; mcpServers?: Record<string, unknown>; retryLastUser?: boolean; observeOnly?: boolean; initialPrompt?: string; toolGate?: (toolName: string) => boolean; scopeNote?: string; isDocSession?: boolean }
 export type QueryFn = typeof realQuery;
 
 interface QueryLike extends AsyncIterable<unknown> {
@@ -76,6 +76,12 @@ interface SessionState {
   // qu'il ne faut PAS interpréter comme une fin de tour utilisateur, sinon l'auto-rename
   // opportuniste se déclenche sur un simple changement de rôle. Consommé une seule fois.
   skipAutoRenameOnNextResult?: boolean;
+  // Sessions doc : portail d'outils (garantie serveur), rappel de périmètre
+  // réinjecté à CHAQUE tour (contrairement aux notes persona, one-shot), et
+  // drapeau qui neutralise notifications, listing et setters.
+  toolGate?: (toolName: string) => boolean;
+  scopeNote?: string;
+  isDocSession?: boolean;
 }
 
 export interface ActiveSdkSession { sessionId: string; cwd: string; createdAt: number; busy: boolean }
@@ -154,17 +160,19 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
                 writeActivityLog(sessionId, 'summary', sum),
               );
             }
-            try {
-              const type = ev.data.is_error ? 'agent_error' : 'agent_done';
-              insertAndEmit(getDb(), buildNotification({
-                type,
-                title: '',
-                url: `/workbench?session=${sessionId}`,
-                entityRef: { kind: 'session', id: sessionId },
-                payload: { session: sessionId },
-                dedupeParts: [sessionId, String(ev.data.num_turns)],
-              }));
-            } catch (err) { console.error('[notifications] agent result notif failed', err); }
+            if (!s.isDocSession) {
+              try {
+                const type = ev.data.is_error ? 'agent_error' : 'agent_done';
+                insertAndEmit(getDb(), buildNotification({
+                  type,
+                  title: '',
+                  url: `/workbench?session=${sessionId}`,
+                  entityRef: { kind: 'session', id: sessionId },
+                  payload: { session: sessionId },
+                  dedupeParts: [sessionId, String(ev.data.num_turns)],
+                }));
+              } catch (err) { console.error('[notifications] agent result notif failed', err); }
+            }
           }
           broadcast(s, { type: 'stream-event', seq, ...ev });
           // Fin de tour + move en attente → on déplace le dossier du worktree
@@ -350,7 +358,7 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
     try {
       const row = d.prepare('SELECT id FROM agent_sessions WHERE session_id = ?').get(sessionId) as { id: string } | undefined;
       if (!row) return;
-      d.prepare('INSERT INTO agent_activity_logs (id, agent_session_id, content, log_type) VALUES (?, ?, ?, ?)')
+      d.prepare(`INSERT INTO agent_activity_logs (id, agent_session_id, content, log_type, created_at) VALUES (?, ?, ?, ?, ${NOW_ISO})`)
         .run(randomUUID(), row.id, content, logType);
     } catch { /* best-effort */ }
   }
@@ -360,9 +368,13 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
 
     // Sessions SDK vivantes (chat modal) — pas de tmux, invisibles sinon dans "actifs".
     listActive(): ActiveSdkSession[] {
-      return [...sessions.entries()].map(([sessionId, s]) => ({
-        sessionId, cwd: s.cwd, createdAt: s.createdAt, busy: s.busy,
-      }));
+      return [...sessions.entries()]
+        // Les sessions doc ne sont pas des sessions de travail : les exposer ferait
+        // matcher `getActiveForPath` sur le path du dépôt d'une doc de repo.
+        .filter(([, s]) => !s.isDocSession)
+        .map(([sessionId, s]) => ({
+          sessionId, cwd: s.cwd, createdAt: s.createdAt, busy: s.busy,
+        }));
     },
 
     startOrAttach(sessionId: string, ws: StreamSocket, params: StartParams) {
@@ -389,17 +401,19 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
         queue,
         perms: createPermissionController((req: PendingPermission) => broadcast(s, { type: 'stream-permission-request', ...req }), () => s.permissionMode, (req: PendingQuestion) => {
           broadcast(s, { type: 'stream-question-request', ...req });
-          try {
-            insertAndEmit(getDb(), buildNotification({
-              type: 'agent_blocked',
-              title: '',
-              url: `/workbench?session=${sessionId}`,
-              entityRef: { kind: 'session', id: sessionId },
-              payload: { session: sessionId },
-              dedupeParts: [sessionId, req.id],
-            }));
-          } catch (err) { console.error('[notifications] agent_blocked notif failed', err); }
-        }),
+          if (!s.isDocSession) {
+            try {
+              insertAndEmit(getDb(), buildNotification({
+                type: 'agent_blocked',
+                title: '',
+                url: `/workbench?session=${sessionId}`,
+                entityRef: { kind: 'session', id: sessionId },
+                payload: { session: sessionId },
+                dedupeParts: [sessionId, req.id],
+              }));
+            } catch (err) { console.error('[notifications] agent_blocked notif failed', err); }
+          }
+        }, params.toolGate),
         clients: new Set([ws]),
         claudeSessionId: null,
         model: params.model ?? '', effort: params.effort ?? '', permissionMode: params.permissionMode ?? 'bypassPermissions',
@@ -413,6 +427,9 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
         mcpServers: params.mcpServers,
         epoch: 0,
         renameInFlight: false,
+        toolGate: params.toolGate,
+        scopeNote: params.scopeNote,
+        isDocSession: params.isDocSession,
       };
       const resumeId = params.resumeClaudeSessionId ?? readClaudeSessionId(sessionId);
       const options = buildQueryOptions(s, params.cwd, resumeId ?? null);
@@ -462,7 +479,9 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
       broadcast(s, { type: 'stream-event', seq, ...ev });
       // Le transcript/UI conserve le texte brut ; seul le flux SDK reçoit les marqueurs
       // de changement (persona + effort + mode, option A), consommés une seule fois.
-      const note = combineNotes(s.pendingPersonaNote, s.pendingEffortNote, s.pendingModeNote);
+      // `scopeNote` est persistante (jamais effacée en dessous) : c'est la couche 3
+      // des guardrails d'une session doc. Les autres notes restent one-shot.
+      const note = combineNotes(s.scopeNote, s.pendingPersonaNote, s.pendingEffortNote, s.pendingModeNote);
       s.queue.push(applyPersonaNote(note, text), validImages);
       s.pendingPersonaNote = undefined;
       s.pendingPersonaFrom = undefined;
@@ -478,12 +497,22 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
     setModel(sessionId: string, model?: string) {
       const s = sessions.get(sessionId);
       if (!s) return;
+      // Session doc : les réglages sont construits serveur et ne sont pas
+      // pilotables depuis le client (sinon la couche 1 des guardrails serait
+      // réécrivable, et quitter bypassPermissions parquerait une carte que le
+      // panneau doc ne sait pas rendre).
+      if (s.isDocSession) return;
       s.model = model ?? '';
       void s.q.setModel?.(model)?.catch(() => {});
     },
     setEffort(sessionId: string, effort: string) {
       const s = sessions.get(sessionId);
       if (!s) return;
+      // Session doc : les réglages sont construits serveur et ne sont pas
+      // pilotables depuis le client (sinon la couche 1 des guardrails serait
+      // réécrivable, et quitter bypassPermissions parquerait une carte que le
+      // panneau doc ne sait pas rendre).
+      if (s.isDocSession) return;
       const prev = s.effort;
       s.effort = effort;
       // Pas de setter dédié : la clé Settings est `effortLevel` (low|medium|high|xhigh).
@@ -506,6 +535,11 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
     setPermissionMode(sessionId: string, mode: string) {
       const s = sessions.get(sessionId);
       if (!s) return;
+      // Session doc : les réglages sont construits serveur et ne sont pas
+      // pilotables depuis le client (sinon la couche 1 des guardrails serait
+      // réécrivable, et quitter bypassPermissions parquerait une carte que le
+      // panneau doc ne sait pas rendre).
+      if (s.isDocSession) return;
       const prev = s.permissionMode;
       s.permissionMode = mode;
       void s.q.setPermissionMode?.(mode)?.catch(() => {});
@@ -530,6 +564,11 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
     setSystemPrompt(sessionId: string, prompt: string, personaName?: string) {
       const s = sessions.get(sessionId);
       if (!s) return;
+      // Session doc : les réglages sont construits serveur et ne sont pas
+      // pilotables depuis le client (sinon la couche 1 des guardrails serait
+      // réécrivable, et quitter bypassPermissions parquerait une carte que le
+      // panneau doc ne sait pas rendre).
+      if (s.isDocSession) return;
       s.systemPrompt = prompt || undefined;
       if (personaName) {
         // Marqueur transmis au modèle au prochain tour user (option A) : il « sait »

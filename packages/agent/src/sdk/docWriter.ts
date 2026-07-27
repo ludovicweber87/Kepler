@@ -78,33 +78,15 @@ export function buildDocBrief(brief: DocBrief): string {
 	return lines.join('\n');
 }
 
-/** Prompt d'un tour d'affinage : inclut le contenu COURANT comme base. */
-export function buildRefinePrompt(instruction: string, currentContent: string): string {
-	return `Voici la version actuelle de la documentation :
-
---- DÉBUT DOC ACTUELLE ---
-${currentContent}
---- FIN DOC ACTUELLE ---
-
-Demande de retouche : ${instruction}
-
-Applique cette demande et renvoie la documentation ENTIÈRE et mise à jour en Markdown (document complet, pas un extrait ni un diff).`;
-}
-
 /** Outils autorisés selon la source. Web autorisé best-effort (allowlist sans effet si l'outil n'existe pas). */
 export function toolPolicyFor(sourceType: DocSourceType): string[] {
 	if (sourceType === 'repo') return ['Read', 'Grep', 'Glob', 'WebSearch', 'WebFetch'];
 	return ['WebSearch', 'WebFetch'];
 }
 
-export interface DocAgentResult {
-	content: string;
-	claudeSessionId: string | null;
-}
-
 /**
  * Exécute le rédacteur en one-shot headless (pas de WebSocket). Retourne le
- * Markdown final + l'id de session SDK (pour permettre un `resume` à l'affinage).
+ * Markdown final.
  */
 export async function runDocWriterAgent(params: {
 	cwd: string;
@@ -112,10 +94,9 @@ export async function runDocWriterAgent(params: {
 	prompt: string;
 	allowedTools: string[];
 	model?: string;
-	resume?: string | null;
 	maxTurns?: number;
 	queryFn?: QueryFn;
-}): Promise<DocAgentResult> {
+}): Promise<string> {
 	const queryFn = params.queryFn ?? realQuery;
 	const options: Record<string, unknown> = {
 		cwd: params.cwd,
@@ -128,21 +109,17 @@ export async function runDocWriterAgent(params: {
 		maxTurns: params.maxTurns ?? 16,
 	};
 	if (params.model) options.model = params.model;
-	if (params.resume) options.resume = params.resume;
 
 	const q = queryFn({ prompt: params.prompt, options } as never) as AsyncIterable<unknown>;
 
 	let resultText = '';
 	let assistantText = '';
-	let claudeSessionId: string | null = null;
 	for await (const msg of q) {
 		const m = msg as {
 			type?: string;
 			result?: unknown;
-			session_id?: string;
 			message?: { content?: Array<{ type?: string; text?: string }> };
 		};
-		if (typeof m.session_id === 'string') claudeSessionId = m.session_id;
 		if (m.type === 'assistant' && Array.isArray(m.message?.content)) {
 			// Un nouveau tour assistant remplace le texte accumulé : on ne garde
 			// que la dernière réponse complète (le document final).
@@ -155,5 +132,5 @@ export async function runDocWriterAgent(params: {
 		if (m.type === 'result' && typeof m.result === 'string') resultText = m.result;
 	}
 
-	return { content: (resultText || assistantText).trim(), claudeSessionId };
+	return (resultText || assistantText).trim();
 }

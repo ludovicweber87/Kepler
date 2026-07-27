@@ -1,7 +1,7 @@
 import { IncomingMessage, ServerResponse } from 'node:http';
 import { execSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { readBody, sendJson, sendError, findTmux, findClaude } from '../helpers.js';
+import { readBody, sendJson, sendError, findTmux, findClaude, NOW_ISO } from '../helpers.js';
 import { getActiveSessions, sdkAgent } from '../terminal.js';
 import { getDb } from '../db.js';
 import { synthesizeReport } from '../sdk/reportSynth.js';
@@ -250,7 +250,7 @@ ${truncated}`;
 			if (!summary) return sendError(res, 'Empty summary');
 
 			db.prepare(
-				'INSERT INTO agent_activity_logs (id, agent_session_id, content, log_type) VALUES (?, ?, ?, ?)',
+				`INSERT INTO agent_activity_logs (id, agent_session_id, content, log_type, created_at) VALUES (?, ?, ?, ?, ${NOW_ISO})`,
 			).run(randomUUID(), session.id, summary, 'summary');
 
 			sendJson(res, { ok: true });

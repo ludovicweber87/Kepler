@@ -167,3 +167,11 @@ export function resolveGitHubToken(req: IncomingMessage): string | null {
 	if (header) return header;
 	return getLocalGithubToken();
 }
+
+/**
+ * Horodatage SQL au format ISO 8601 UTC avec millisecondes — le seul format
+ * écrit en base. `datetime('now')` produit de l'UTC sans marqueur de fuseau,
+ * que JavaScript relit comme de l'heure locale. Le `%f` (et non `%S`) est
+ * requis : mélanger les précisions casse le tri lexicographique.
+ */
+export const NOW_ISO = "strftime('%Y-%m-%dT%H:%M:%fZ','now')";

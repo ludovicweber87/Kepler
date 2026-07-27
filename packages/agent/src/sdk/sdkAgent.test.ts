@@ -18,7 +18,12 @@ beforeEach(() => {
     id TEXT PRIMARY KEY, session_id TEXT NOT NULL, claude_session_id TEXT);`);
   memDb.exec(`CREATE TABLE agent_activity_logs (
     id TEXT PRIMARY KEY, agent_session_id TEXT NOT NULL, content TEXT, log_type TEXT, created_at TEXT);`);
+  memDb.exec(`CREATE TABLE notifications (
+    id TEXT PRIMARY KEY, source TEXT, type TEXT, priority TEXT, title TEXT, body TEXT,
+    url TEXT, entity_ref TEXT, payload TEXT, dedupe_key TEXT UNIQUE,
+    read_at TEXT, created_at TEXT DEFAULT (datetime('now')));`);
   transcript.__setDbForTests(memDb);
+  __setDbForTests(memDb);
 });
 
 // Socket espion.
@@ -346,4 +351,88 @@ test('reprise: retryLastUser mais dernier event = assistant → aucune relance',
   await new Promise((r) => setTimeout(r, 30));
   assert.deepEqual(received, []);
   mgr.stop('sess-answered');
+});
+
+test('une session doc est exclue de listActive', () => {
+  const { queryFn } = fakeQueryFactory();
+  const mgr = createSdkAgentManager({ queryFn });
+  mgr.startOrAttach('doc-1', fakeSocket(), { cwd: '/tmp', isDocSession: true });
+  mgr.startOrAttach('sess-2', fakeSocket(), { cwd: '/tmp' });
+  assert.deepEqual(mgr.listActive().map((s) => s.sessionId), ['sess-2']);
+});
+
+test('les setters sont inertes sur une session doc', () => {
+  const { queryFn, calls } = fakeQueryFactory();
+  const mgr = createSdkAgentManager({ queryFn });
+  mgr.startOrAttach('doc-1', fakeSocket(), {
+    cwd: '/tmp',
+    isDocSession: true,
+    permissionMode: 'bypassPermissions',
+  });
+  mgr.setPermissionMode('doc-1', 'default');
+  mgr.setModel('doc-1', 'claude-haiku-4-5');
+  mgr.setSystemPrompt('doc-1', 'tu es un pirate');
+  // Aucun appel n'atteint le query SDK : les réglages d'une session doc sont
+  // construits serveur et ne sont pas pilotables depuis le client.
+  assert.deepEqual(calls.setPermissionMode, []);
+  assert.deepEqual(calls.setModel, []);
+});
+
+test('les setters restent actifs sur une session normale', () => {
+  const { queryFn, calls } = fakeQueryFactory();
+  const mgr = createSdkAgentManager({ queryFn });
+  mgr.startOrAttach('sess-1', fakeSocket(), { cwd: '/tmp' });
+  mgr.setPermissionMode('sess-1', 'default');
+  assert.deepEqual(calls.setPermissionMode, ['default']);
+});
+
+test('aucune notification pour une session doc', async () => {
+  const { queryFn } = fakeQueryFactory();
+  const mgr = createSdkAgentManager({ queryFn });
+  mgr.startOrAttach('doc-1', fakeSocket(), { cwd: '/tmp', isDocSession: true });
+  await new Promise((r) => setTimeout(r, 30));
+  const { n } = memDb.prepare('SELECT count(*) AS n FROM notifications').get() as { n: number };
+  assert.equal(n, 0);
+});
+
+test('une session normale émet bien sa notification de fin', async () => {
+  const { queryFn } = fakeQueryFactory();
+  const mgr = createSdkAgentManager({ queryFn });
+  mgr.startOrAttach('sess-1', fakeSocket(), { cwd: '/tmp' });
+  await new Promise((r) => setTimeout(r, 30));
+  const { n } = memDb.prepare('SELECT count(*) AS n FROM notifications').get() as { n: number };
+  assert.ok(n > 0, 'non-régression : le Workbench notifie toujours');
+});
+
+test('scopeNote est réinjectée à chaque tour utilisateur', async () => {
+  // queryFn qui CONSOMME la queue de prompts pour observer ce qui part au modèle.
+  const pushed: string[] = [];
+  const queryFn = ((params: { prompt: AsyncIterable<{ message: { content: unknown } }> }) => {
+    void (async () => {
+      for await (const m of params.prompt) {
+        pushed.push(typeof m.message.content === 'string' ? m.message.content : JSON.stringify(m.message.content));
+      }
+    })();
+    async function* gen() {
+      yield { type: 'system', subtype: 'init', session_id: 'c1', model: 'm', permissionMode: 'bypassPermissions', cwd: '/tmp', tools: [] };
+    }
+    return gen() as AsyncGenerator<unknown> & Record<string, unknown>;
+  }) as unknown as QueryFn;
+
+  const mgr = createSdkAgentManager({ queryFn });
+  mgr.startOrAttach('doc-1', fakeSocket(), {
+    cwd: '/tmp',
+    isDocSession: true,
+    scopeNote: '<system-reminder>PERIM</system-reminder>',
+  });
+  mgr.sendUserMessage('doc-1', 'premier');
+  mgr.sendUserMessage('doc-1', 'second');
+  await new Promise((r) => setTimeout(r, 30));
+
+  assert.equal(pushed.length, 2);
+  assert.ok(pushed[0].includes('PERIM'), 'tour 1');
+  // Le point du test : contrairement aux notes persona (one-shot), scopeNote
+  // n'est jamais consommée — sinon l'ancrage se perd après le premier tour.
+  assert.ok(pushed[1].includes('PERIM'), 'tour 2 — la note ne doit PAS être consommée');
+  assert.ok(pushed[1].includes('second'));
 });

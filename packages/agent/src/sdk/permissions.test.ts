@@ -122,3 +122,56 @@ test('abortAll deny aussi les questions en attente', async () => {
   assert.equal((await p).behavior, 'deny');
   assert.equal(ctrl.snapshotQuestions().length, 0);
 });
+
+test('toolGate refuse un outil avant tout court-circuit de mode', async () => {
+  const sent: PendingPermission[] = [];
+  const ctrl = createPermissionController(
+    (r) => sent.push(r),
+    () => 'bypassPermissions',
+    () => {},
+    (name) => name === 'WebSearch',
+  );
+  const res = await ctrl.canUseTool('Bash', { cmd: 'rm -rf /' }, {});
+  assert.equal(res.behavior, 'deny');
+  assert.equal(sent.length, 0);
+});
+
+test('toolGate laisse passer un outil autorisé vers le court-circuit bypass', async () => {
+  const ctrl = createPermissionController(
+    () => {},
+    () => 'bypassPermissions',
+    () => {},
+    (name) => name === 'WebSearch',
+  );
+  const res = await ctrl.canUseTool('WebSearch', { query: 'x' }, {});
+  assert.deepEqual(res, { behavior: 'allow', updatedInput: { query: 'x' } });
+});
+
+// Sans ce timeout, une régression dans l'ordre du gate entraînerait un hang du test au lieu d'une failure.
+test('toolGate court-circuite AskUserQuestion au lieu de le parquer', { timeout: 5000 }, async () => {
+  const asked: PendingQuestion[] = [];
+  const ctrl = createPermissionController(
+    () => {},
+    () => 'bypassPermissions',
+    (q) => asked.push(q),
+    () => false,
+  );
+  const res = await ctrl.canUseTool('AskUserQuestion', { questions: [] }, {});
+  assert.equal(res.behavior, 'deny');
+  assert.equal(asked.length, 0);
+  assert.equal(ctrl.snapshotQuestions().length, 0);
+});
+
+test('sans toolGate, le comportement est inchangé', async () => {
+  const asked: PendingQuestion[] = [];
+  const ctrl = createPermissionController(
+    () => {},
+    () => 'bypassPermissions',
+    (q) => asked.push(q),
+  );
+  const res = await ctrl.canUseTool('Bash', { cmd: 'ls' }, {});
+  assert.deepEqual(res, { behavior: 'allow', updatedInput: { cmd: 'ls' } });
+  void ctrl.canUseTool('AskUserQuestion', { questions: [] }, {});
+  assert.equal(asked.length, 1);
+  ctrl.abortAll();
+});

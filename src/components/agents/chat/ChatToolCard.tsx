@@ -3,8 +3,9 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
+import { useTranslations } from 'next-intl';
 import type { ChatToolCall } from '@/types';
-import { extractFilePath, toolChipLabel, prettyToolName } from '@/lib/toolCard';
+import { extractFilePath, toolChipLabel, prettyToolName, docToolLabelKey } from '@/lib/toolCard';
 
 export default function ChatToolCard({
 	call,
@@ -13,9 +14,11 @@ export default function ChatToolCard({
 	call: ChatToolCall;
 	onOpen?: (filePath: string) => void;
 }) {
+	const t = useTranslations('agentChat');
+	const docKey = docToolLabelKey(call.name);
 	const file = extractFilePath(call.input);
-	const label = toolChipLabel(call.input);
-	const clickable = !!file && !!onOpen;
+	const label = docKey ? t(docKey) : toolChipLabel(call.input);
+	const clickable = !docKey && !!file && !!onOpen;
 
 	return (
 		<Box
@@ -28,7 +31,7 @@ export default function ChatToolCard({
 			}}
 		>
 			<Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-				{prettyToolName(call.name)}
+				{docKey ? t('docTool') : prettyToolName(call.name)}
 			</Typography>
 
 			{label && (

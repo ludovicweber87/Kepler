@@ -42,6 +42,14 @@ interface Params {
 	 * (garde transcript vide), donc l'envoyer à chaque `stream-init` est sans risque.
 	 */
 	initialPrompt?: string;
+	/**
+	 * Chat sur une doc. Quand il est fourni, le `stream-init` n'envoie QUE ce
+	 * `docId` : le serveur résout lui-même cwd, prompt système, outils, portail
+	 * d'outils et périmètre depuis la ligne `docs`. Rien de ce qui porte une
+	 * garantie ne transite par le client — c'est ce qui rend les guardrails
+	 * infranchissables. `cwd` est alors inutile (passer `null`).
+	 */
+	docId?: string;
 }
 
 type Status = 'connecting' | 'idle' | 'busy' | 'error' | 'closed';
@@ -79,7 +87,7 @@ export function useAgentChat(p: Params) {
 	}, []);
 
 	useEffect(() => {
-		if (!p.enabled || !p.cwd || p.readOnly) return;
+		if (!p.enabled || (!p.cwd && !p.docId) || p.readOnly) return;
 		const ws = new WebSocket(getAgentWsUrl());
 		wsRef.current = ws;
 		lastSeqRef.current = 0;
@@ -88,6 +96,14 @@ export function useAgentChat(p: Params) {
 		setQueued([]);
 
 		ws.onopen = () => {
+			// Session doc : on n'envoie ni cwd, ni systemPrompt, ni réglages. Le
+			// serveur recalcule même le sessionId depuis le docId et ignore le nôtre.
+			if (p.docId) {
+				ws.send(
+					JSON.stringify({ type: 'stream-init', sessionId: p.sessionId, docId: p.docId }),
+				);
+				return;
+			}
 			const retryLastUser = p.resumeRetryRef?.current ?? false;
 			if (p.resumeRetryRef) p.resumeRetryRef.current = false;
 			ws.send(
@@ -163,7 +179,7 @@ export function useAgentChat(p: Params) {
 			wsRef.current = null;
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [p.enabled, p.cwd, p.readOnly, p.sessionId, reconnectNonce]);
+	}, [p.enabled, p.cwd, p.docId, p.readOnly, p.sessionId, reconnectNonce]);
 
 	const sendCtl = useCallback(
 		(obj: Record<string, unknown>) => {

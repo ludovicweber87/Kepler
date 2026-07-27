@@ -463,6 +463,9 @@
 		"effort": "Effort",
 		"mode": "Mode",
 		"thinking": "Denkt nach",
+		"docTool": "Doc",
+		"docUpdated": "Doc aktualisiert",
+		"docRead": "Doc gelesen",
 		"toolRunning": "läuft…",
 		"permissionTitle": "Berechtigung angefordert",
 		"allowOnce": "Erlauben",
@@ -700,13 +703,6 @@
 		"generationFailed": "Generierung fehlgeschlagen",
 		"retry": "Erneut versuchen",
 		"save": "Speichern",
-		"refineTitle": "Doc verfeinern",
-		"refineEmpty": "Bitte um eine Änderung in natürlicher Sprache — das Doc wird aktualisiert.",
-		"you": "Du",
-		"writer": "Autor",
-		"refineDone": "✓ Doc aktualisiert",
-		"working": "Arbeitet…",
-		"refinePlaceholder": "Um eine Änderung bitten…",
 		"quick": {
 			"shorter": "Kürzer",
 			"examples": "Beispiele hinzufügen",
@@ -718,6 +714,11 @@
 			"examples": "Füge konkrete Beispiele hinzu.",
 			"technical": "Mach das Doc technischer und detaillierter.",
 			"simpler": "Vereinfache die komplexen Stellen."
-		}
+		},
+		"chatTitle": "Über das Doc sprechen",
+		"chatEmpty": "Stelle eine Frage zum Thema oder bitte um eine Änderung — das Doc wird aktualisiert.",
+		"chatPlaceholder": "Stelle deine Frage…",
+		"chatDisabledEditing": "Schließe den manuellen Editor, um zu chatten.",
+		"chatDisabledGenerating": "Warte auf die Generierung des Docs."
 	}
 }

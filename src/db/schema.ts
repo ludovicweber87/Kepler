@@ -1,8 +1,12 @@
 import { sqliteTable, text, integer, uniqueIndex, index } from 'drizzle-orm/sqlite-core';
-import { sql } from 'drizzle-orm';
 import type { NotificationSource, NotificationType, EntityRef } from '@/types';
 
-const timestamp = () => text().default(sql`(datetime('now'))`);
+// Défaut côté JS et non côté SQL : `datetime('now')` produit de l'UTC sans
+// marqueur de fuseau, que `new Date()` relit ensuite comme de l'heure locale.
+// Le `.default(sql...)` ne doit PAS être conservé à côté : le dialecte SQLite de
+// Drizzle teste `col.default` avant `col.defaultFn`, donc les deux ensemble
+// laisseraient l'ancien format s'écrire.
+const timestamp = () => text().$defaultFn(() => new Date().toISOString());
 const uuid = () =>
 	text()
 		.primaryKey()

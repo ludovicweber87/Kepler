@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type Database from 'better-sqlite3';
+import { NOW_ISO } from '../helpers.js';
 import type { NewNotification } from './types.js';
 import { notificationStore, type EmittedNotification } from './store.js';
 
@@ -11,8 +12,8 @@ export function insertNotification(db: Database.Database, n: NewNotification): I
 	const id = randomUUID();
 	const info = db.prepare(
 		`INSERT OR IGNORE INTO notifications
-		 (id, source, type, priority, title, body, url, entity_ref, payload, dedupe_key, read_at)
-		 VALUES (@id, @source, @type, @priority, @title, @body, @url, @entity_ref, @payload, @dedupe_key, NULL)`
+		 (id, source, type, priority, title, body, url, entity_ref, payload, dedupe_key, read_at, created_at)
+		 VALUES (@id, @source, @type, @priority, @title, @body, @url, @entity_ref, @payload, @dedupe_key, NULL, ${NOW_ISO})`
 	).run({
 		id, source: n.source, type: n.type, priority: n.priority,
 		title: n.title, body: n.body, url: n.url,

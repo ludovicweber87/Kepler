@@ -30,7 +30,12 @@ interface QEntry { req: PendingQuestion; resolve: (r: PermissionResultLike) => v
 // Outils d'édition locale : auto-autorisés en mode acceptEdits.
 const EDIT_TOOLS = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit']);
 
-export function createPermissionController(broadcast: (req: PendingPermission) => void, getMode: () => string = () => '', broadcastQuestion: (req: PendingQuestion) => void = () => {}): PermissionController {
+export function createPermissionController(
+  broadcast: (req: PendingPermission) => void,
+  getMode: () => string = () => '',
+  broadcastQuestion: (req: PendingQuestion) => void = () => {},
+  toolGate?: (toolName: string) => boolean,
+): PermissionController {
   const pending = new Map<string, Entry>();
   const questions = new Map<string, QEntry>();
   let counter = 0;
@@ -41,6 +46,15 @@ export function createPermissionController(broadcast: (req: PendingPermission) =
   return {
     canUseTool(toolName, input, options) {
       if (options.signal?.aborted) return Promise.resolve(DENY_ABORT);
+      // Portail d'outils (sessions doc) : évalué avant la branche AskUserQuestion
+      // ET avant le court-circuit de mode — c'est la seule garantie qu'aucun
+      // changement de permissionMode ne peut ouvrir.
+      if (toolGate && !toolGate(toolName)) {
+        return Promise.resolve({
+          behavior: 'deny',
+          message: `Outil « ${toolName} » indisponible dans ce contexte. Si tu as besoin d'une précision, demande-la en texte dans ta réponse.`,
+        });
+      }
       // AskUserQuestion : ne suit pas les modes de permission — on parque
       // toujours et on attend les réponses de l'utilisateur (cartes cliquables).
       if (toolName === ASK_TOOL) {
