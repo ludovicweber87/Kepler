@@ -93,11 +93,9 @@ export default function CodeBlock({ code, path }: { code: string; path: string }
 	const tooLarge = code.length > MAX_HIGHLIGHT_CHARS;
 
 	useEffect(() => {
-		if (tooLarge) {
-			// eslint-disable-next-line react-hooks/set-state-in-effect -- reset synchrone du repli, pas une boucle de sync
-			setHtml(null);
-			return;
-		}
+		// Fichier trop volumineux : le rendu ci-dessous bascule sur `tooLarge` sans
+		// jamais lire `html`, inutile de tokeniser ni de réinitialiser un état.
+		if (tooLarge) return;
 		let cancelled = false;
 		getHighlighter()
 			.then((highlighter) => {
@@ -117,7 +115,7 @@ export default function CodeBlock({ code, path }: { code: string; path: string }
 		};
 	}, [code, path, mode, tooLarge]);
 
-	if (!html) {
+	if (tooLarge || !html) {
 		return (
 			<Box>
 				{tooLarge && (
