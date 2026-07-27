@@ -23,15 +23,30 @@ let highlighterPromise: Promise<Highlighter> | null = null;
 /**
  * Chargé une seule fois par session de navigation : le wasm Oniguruma et les
  * grammaires pèsent environ 1 Mo, d'où l'import dynamique.
+ *
+ * Si l'import ou `createHighlighter` échoue, la promesse rejetée reste mise en
+ * cache : un échec de bundle/wasm est déterministe, retenter à chaque fichier
+ * ouvert ne ferait que ré-échouer indéfiniment. Le `.catch` est attaché ici,
+ * à la création, pour ne logger l'échec qu'une seule fois pour toute la page
+ * — chaque appelant obtient ensuite la même promesse rejetée et gère son
+ * propre repli sans relogger.
  */
 function getHighlighter(): Promise<Highlighter> {
 	if (!highlighterPromise) {
-		highlighterPromise = import('shiki').then((shiki) =>
-			shiki.createHighlighter({
-				themes: [THEMES.dark, THEMES.light],
-				langs: SHIKI_LANGUAGES,
-			}),
-		);
+		highlighterPromise = import('shiki')
+			.then((shiki) =>
+				shiki.createHighlighter({
+					themes: [THEMES.dark, THEMES.light],
+					langs: SHIKI_LANGUAGES,
+				}),
+			)
+			.catch((error) => {
+				console.error(
+					'[CodeBlock] Échec du chargement de shiki : coloration syntaxique désactivée pour le reste de la page.',
+					error,
+				);
+				throw error;
+			});
 	}
 	return highlighterPromise;
 }
@@ -108,7 +123,8 @@ export default function CodeBlock({ code, path }: { code: string; path: string }
 				);
 			})
 			.catch(() => {
-				// Shiki indisponible : le repli en texte brut ci-dessous reste affiché.
+				// Déjà loggé une fois dans getHighlighter : ici on laisse simplement
+				// le repli en texte brut ci-dessous affiché, sans relogger.
 			});
 		return () => {
 			cancelled = true;
