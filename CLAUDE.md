@@ -21,13 +21,6 @@ Développeur frontend senior / expert :
 - **Emotion** — CSS-in-JS, animations, responsive design
 - **Architecture frontend** — state management, data fetching, composabilité
 
-## Skills & Plugins
-
-- **OBLIGATOIRE : Avant chaque tâche**, spawn le skill `brainstorming` en premier (via l'outil Skill). C'est un prérequis systématique avant toute action : recherche, implémentation, debug, refactoring, etc.
-- Ne jamais commencer à travailler sans avoir d'abord invoqué `brainstorming`
-
----
-
 ## Projet
 
 App locale de développement personnel pour piloter issues GitHub, PRs, todos, worktrees Git et **agents Claude (SDK)** depuis une interface unifiée. **Mono-utilisateur, tourne en local** : l'auth passe par la session `gh` CLI, la donnée par un SQLite local, et les opérations Git/terminal/chat par un serveur agent Node autonome (port 4001).
