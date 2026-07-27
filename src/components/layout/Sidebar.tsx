@@ -320,7 +320,7 @@ export default function Sidebar() {
 						animation: 'scaleIn 0.4s ease-out',
 					}}
 				>
-					<Logo fontSize={30} />
+					<Logo width={220} />
 				</Box>
 
 				<Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
