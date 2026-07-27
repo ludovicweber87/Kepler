@@ -237,6 +237,7 @@
 		"saved": "Apparence enregistrée",
 		"hexPlaceholder": "#7C5CFF",
 		"hexInvalid": "Code HEX invalide",
+		"pickColor": "Choisir la couleur : {label}",
 		"colors": {
 			"primary": "Primaire",
 			"secondary": "Secondaire",
