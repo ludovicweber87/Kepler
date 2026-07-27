@@ -98,14 +98,15 @@
 		"fileTruncated": "Arquivo truncado (muito grande para exibir por completo)",
 		"chipReader": "Leitura",
 		"chipExplorer": "Explorador",
-		"explorerFilter": "Filtrar ficheiros",
+		"explorerFilter": "Filtrar arquivos",
 		"explorerClearFilter": "Limpar o filtro",
-		"explorerEmpty": "Nenhum ficheiro a mostrar",
-		"explorerNoMatch": "Nenhum ficheiro corresponde",
+		"explorerEmpty": "Nenhum arquivo para mostrar",
+		"explorerNoMatch": "Nenhum arquivo corresponde",
 		"explorerNotARepo": "Esta pasta não é um repositório git",
-		"explorerTruncated": "Demasiados ficheiros — a árvore está incompleta",
-		"explorerError": "Não é possível listar os ficheiros",
-		"fileNoHighlight": "Ficheiro grande — realce de sintaxe desativado"
+		"explorerTruncated": "Muitos arquivos — a árvore está incompleta",
+		"explorerTooManyRows": "Mostrando os primeiros {count} resultados — refine seu filtro",
+		"explorerError": "Não é possível listar os arquivos",
+		"fileNoHighlight": "Arquivo grande — realce de sintaxe desativado"
 	},
 	"creationProgress": {
 		"title": "Preparando o espaço de trabalho",

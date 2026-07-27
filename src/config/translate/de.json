@@ -104,6 +104,7 @@
 		"explorerNoMatch": "Keine Datei gefunden",
 		"explorerNotARepo": "Dieser Ordner ist kein Git-Repository",
 		"explorerTruncated": "Zu viele Dateien — der Baum ist unvollständig",
+		"explorerTooManyRows": "Zeigt die ersten {count} Ergebnisse — Filter weiter eingrenzen",
 		"explorerError": "Dateien können nicht aufgelistet werden",
 		"fileNoHighlight": "Große Datei — Syntaxhervorhebung deaktiviert"
 	},

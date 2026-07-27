@@ -104,6 +104,7 @@
 		"explorerNoMatch": "Aucun fichier ne correspond",
 		"explorerNotARepo": "Ce dossier n'est pas un dépôt git",
 		"explorerTruncated": "Trop de fichiers — l'arbre est partiel",
+		"explorerTooManyRows": "Affiche les {count} premiers résultats — affinez votre filtre",
 		"explorerError": "Impossible de lister les fichiers",
 		"fileNoHighlight": "Fichier volumineux — coloration syntaxique désactivée"
 	},

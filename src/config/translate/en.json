@@ -104,6 +104,7 @@
 		"explorerNoMatch": "No file matches",
 		"explorerNotARepo": "This folder is not a git repository",
 		"explorerTruncated": "Too many files — the tree is partial",
+		"explorerTooManyRows": "Showing the first {count} results — narrow your filter",
 		"explorerError": "Unable to list files",
 		"fileNoHighlight": "Large file — syntax highlighting disabled"
 	},

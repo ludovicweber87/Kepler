@@ -17,6 +17,17 @@ import { useTranslations } from 'next-intl';
 import { useFileTree } from '@/hooks/useFileTree';
 import { buildFileTree, filterTree, flattenVisible, isActivePath } from '@/lib/fileTree';
 
+/**
+ * Cap du nombre de lignes réellement montées dans le DOM. Bien au-dessus de
+ * toute profondeur de navigation utile, bien en-dessous du seuil de freeze :
+ * un filtre large sur un monorepo de 20 000 fichiers peut faire remonter
+ * ~21 700 lignes (fichiers + ancêtres), soit ~65 000 éléments MUI stylés —
+ * un commit non interruptible qui bloque le thread principal. Pas de
+ * virtualisation ici (changement disproportionné pour ce bug) : on tronque
+ * et on le dit, jamais silencieusement.
+ */
+const MAX_EXPLORER_ROWS = 500;
+
 interface FileExplorerTabProps {
 	/** Racine de l'arborescence : worktree de la session, sinon dépôt principal. */
 	cwd: string | null;
@@ -107,7 +118,15 @@ export default function FileExplorerTab({ cwd, activePath, onOpenFile }: FileExp
 	}
 
 	const rows = useMemo(() => flattenVisible(nodes, expanded), [nodes, expanded]);
+	const visibleRows = useMemo(() => rows.slice(0, MAX_EXPLORER_ROWS), [rows]);
+	const rowsTruncated = rows.length > MAX_EXPLORER_ROWS;
 
+	// Invariant (RULING) : un clic sur un dossier fait TOUJOURS autorité sur son
+	// dépliage, filtre actif ou non. Conséquence acceptée : si l'utilisateur
+	// replie un parent puis affine la requête vers un descendant qui matche
+	// nouvellement, ce descendant reste invisible — le parent replié n'est
+	// jamais redéplié automatiquement. Délibéré, pas un oubli : voir le journal
+	// de la Task 4 (`.superpowers/sdd/2026-07-27-file-explorer/progress.md`).
 	const toggle = (path: string) => {
 		setExpanded((prev) => {
 			const next = new Set(prev);
@@ -208,7 +227,7 @@ export default function FileExplorerTab({ cwd, activePath, onOpenFile }: FileExp
 				<Box
 					sx={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', py: 0.5 }}
 				>
-					{rows.map((node) => {
+					{visibleRows.map((node) => {
 						const active = !node.isDir && isActivePath(node.path, activePath);
 						const open = expanded.has(node.path);
 						return (
@@ -289,6 +308,19 @@ export default function FileExplorerTab({ cwd, activePath, onOpenFile }: FileExp
 							</Box>
 						);
 					})}
+					{rowsTruncated && (
+						<Typography
+							variant="caption"
+							sx={{
+								display: 'block',
+								px: 1.5,
+								py: 0.5,
+								color: 'warning.main',
+							}}
+						>
+							{t('explorerTooManyRows', { count: MAX_EXPLORER_ROWS })}
+						</Typography>
+					)}
 				</Box>
 			)}
 		</Box>
