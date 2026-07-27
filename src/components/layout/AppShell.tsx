@@ -77,7 +77,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 						pb: 12,
 					}}
 				>
-					<Logo width={200} />
+					<Logo width={140} />
 					<Typography
 						variant="h5"
 						sx={{ fontWeight: 700, mt: 4, mb: 1, color: 'text.primary' }}
