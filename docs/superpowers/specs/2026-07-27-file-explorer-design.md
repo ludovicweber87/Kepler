@@ -20,16 +20,16 @@ Ce qui manque : un endpoint de listing (`filesystem.ts` n'expose que `pick-direc
 
 ## Décisions
 
-| Sujet | Décision | Raison |
-| ----- | -------- | ------ |
-| Thème | Suit le thème Devora, dark **et** light, via les tokens MUI | Pas de palette figée : cohérence avec le reste de l'app |
-| Périmètre des fichiers | Tout sauf ce qu'ignore git | Comportement VSCode par défaut ; `node_modules`, `.next`, `dist` disparaissent gratuitement |
-| Source de l'arbre | Un seul appel renvoyant une liste plate, arbre construit côté client | Un round-trip, filtre instantané, logique pure testable |
-| Interactions v1 | Plier/déplier, clic pour ouvrir, champ de filtre | Pas de menu contextuel pour l'instant |
-| Coloration syntaxique | Shiki, import dynamique côté client | Même moteur TextMate que VSCode, thèmes light et dark d'origine |
-| Libellé de l'onglet | `Explorer` / `Explorateur` | Tient dans un panneau à ~32 % sans déclencher les flèches de défilement des `Tabs` |
-| Numéros de ligne | Rendus par shiki, la gouttière manuelle disparaît | Une seule source de vérité, pas de désalignement possible |
-| Fichier modifié ouvert depuis l'explorateur | Affiche son diff (comportement de `matchFileDiff`) | Cohérent avec l'ouverture depuis la liste des changements |
+| Sujet                                       | Décision                                                             | Raison                                                                                      |
+| ------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Thème                                       | Suit le thème Devora, dark **et** light, via les tokens MUI          | Pas de palette figée : cohérence avec le reste de l'app                                     |
+| Périmètre des fichiers                      | Tout sauf ce qu'ignore git                                           | Comportement VSCode par défaut ; `node_modules`, `.next`, `dist` disparaissent gratuitement |
+| Source de l'arbre                           | Un seul appel renvoyant une liste plate, arbre construit côté client | Un round-trip, filtre instantané, logique pure testable                                     |
+| Interactions v1                             | Plier/déplier, clic pour ouvrir, champ de filtre                     | Pas de menu contextuel pour l'instant                                                       |
+| Coloration syntaxique                       | Shiki, import dynamique côté client                                  | Même moteur TextMate que VSCode, thèmes light et dark d'origine                             |
+| Libellé de l'onglet                         | `Explorer` / `Explorateur`                                           | Tient dans un panneau à ~32 % sans déclencher les flèches de défilement des `Tabs`          |
+| Numéros de ligne                            | Rendus par shiki, la gouttière manuelle disparaît                    | Une seule source de vérité, pas de désalignement possible                                   |
+| Fichier modifié ouvert depuis l'explorateur | Affiche son diff (comportement de `matchFileDiff`)                   | Cohérent avec l'ouverture depuis la liste des changements                                   |
 
 ## Architecture
 
@@ -56,18 +56,24 @@ GET /filesystem/tree?cwd=<chemin absolu>
 
 ```ts
 export interface TreeNode {
-  name: string;
-  path: string;        // chemin relatif depuis la racine
-  isDir: boolean;
-  children: TreeNode[]; // vide pour un fichier
+	name: string;
+	path: string; // chemin relatif depuis la racine
+	isDir: boolean;
+	children: TreeNode[]; // vide pour un fichier
 }
 
 export function buildFileTree(paths: string[]): TreeNode[];
-export function filterTree(nodes: TreeNode[], query: string): {
-  nodes: TreeNode[];
-  expand: Set<string>;  // dossiers à déplier pour révéler les correspondances
+export function filterTree(
+	nodes: TreeNode[],
+	query: string,
+): {
+	nodes: TreeNode[];
+	expand: Set<string>; // dossiers à déplier pour révéler les correspondances
 };
-export function flattenVisible(nodes: TreeNode[], expanded: Set<string>): Array<TreeNode & { depth: number }>;
+export function flattenVisible(
+	nodes: TreeNode[],
+	expanded: Set<string>,
+): Array<TreeNode & { depth: number }>;
 ```
 
 - `buildFileTree` : dossiers avant fichiers, tri alphabétique insensible à la casse à chaque niveau.
@@ -94,7 +100,7 @@ Props : `{ cwd: string | null; activePath: string | null; onOpenFile: (path: str
 
 - **En-tête fixe** : `TextField size="small"` avec icône loupe et bouton d'effacement. La valeur saisie est debouncée à 120 ms avant de traverser `filterTree`.
 - **Corps scrollable** : `flattenVisible` rendu en lignes de 22 px, indentation `pl: depth * 1.5`. Dossier = chevron `KeyboardArrowRightRounded` / `KeyboardArrowDownRounded` + `FolderRounded`. Fichier = `InsertDriveFileRounded`, cohérent avec `ChangedFilesList`.
-- **État de dépliage** : `expanded: Set<string>` local, réinitialisé au changement de `cwd`. Racine dépliée d'office. Quand un filtre est actif, l'union de `expanded` et du `expand` renvoyé par `filterTree` est utilisée pour le rendu, sans écraser l'état manuel — vider le filtre restaure l'arbre tel que l'utilisateur l'avait laissé.
+- **État de dépliage** : `expanded: Set<string>` local, réinitialisé au changement de `cwd`. Racine dépliée d'office. Quand un filtre est actif, l'union de `expanded` et du `expand` renvoyé par `filterTree` est utilisée pour le rendu, sans écraser l'état manuel — vider le filtre restaure l'arbre tel que l'utilisateur l'avait laissé. ⚠️ **Ce design a été écarté en implémentation, voir « Écarts assumés par rapport à l'implémentation » en fin de document.**
 - **Surlignage** : la ligne dont le `path` correspond à `activePath` (comparaison tolérant un chemin absolu par suffixe, comme `matchFileDiff`) reçoit `bgcolor: action.selected`.
 - **Couleurs** : tokens MUI uniquement — `text.secondary` pour les libellés, `text.disabled` pour les icônes de fichier, `primary.main` atténué pour les dossiers, `action.hover` au survol. Fonctionne en dark et en light sans branche conditionnelle.
 - **États** : `CircularProgress` centré pendant le chargement ; message `explorerEmpty` si zéro fichier ; message `explorerNotARepo` si `code: 'not_a_repo'` ; message `explorerNoMatch` si le filtre ne renvoie rien ; bandeau `explorerTruncated` en `warning.main` si `truncated`, dans le même style que le bandeau `fileTruncated` de `FileContentView`.
@@ -120,15 +126,15 @@ Props : `{ code: string; path: string }`. Consommé par `FileContentView` à la 
 
 ## Gestion des erreurs
 
-| Situation | Comportement |
-| --------- | ------------ |
-| Serveur agent injoignable | `localFetch` lève `AgentOfflineError`, la query passe en `error` → empty-state `explorerError` |
-| `cwd` absent (session sans worktree) | Hook désactivé, empty-state `explorerEmpty` |
-| Répertoire hors dépôt git | `code: 'not_a_repo'` → message dédié |
-| Plus de 20 000 fichiers | Liste coupée + bandeau d'avertissement visible |
-| Fichier supprimé entre le listing et le clic | `read-file` renvoie 404, `FileContentView` affiche déjà `fileError` |
-| Fichier binaire | Rendu en texte via shiki en `text` ; le cap 1 Mo serveur limite les dégâts |
-| Chargement de shiki en échec | Repli silencieux sur le texte brut |
+| Situation                                    | Comportement                                                                                   |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Serveur agent injoignable                    | `localFetch` lève `AgentOfflineError`, la query passe en `error` → empty-state `explorerError` |
+| `cwd` absent (session sans worktree)         | Hook désactivé, empty-state `explorerEmpty`                                                    |
+| Répertoire hors dépôt git                    | `code: 'not_a_repo'` → message dédié                                                           |
+| Plus de 20 000 fichiers                      | Liste coupée + bandeau d'avertissement visible                                                 |
+| Fichier supprimé entre le listing et le clic | `read-file` renvoie 404, `FileContentView` affiche déjà `fileError`                            |
+| Fichier binaire                              | Rendu en texte via shiki en `text` ; le cap 1 Mo serveur limite les dégâts                     |
+| Chargement de shiki en échec                 | Repli silencieux sur le texte brut                                                             |
 
 ## i18n
 
@@ -155,3 +161,14 @@ L'UI se vérifie par `npm run lint`, `tsc --noEmit`, `npm run build` et un passa
 - Recherche dans le contenu des fichiers (l'agent le fait mieux).
 - Décorations git par fichier (M/A/D en couleur) dans l'arbre.
 - Coloration syntaxique des blocs de code du chat markdown — `CodeBlock` sera réutilisable pour ça, mais c'est une itération séparée.
+
+## Écarts assumés par rapport à l'implémentation
+
+Ce spec a été écrit avant l'implémentation ; plusieurs points divergent de ce qui a été réellement livré, constatés en revue finale de branche. Dans le même esprit que la section « Écarts assumés par rapport au spec » du plan d'implémentation (`docs/superpowers/plans/2026-07-27-file-explorer.md`) : le code livré fait foi, ce spec n'a pas été réécrit rétroactivement pour ne pas effacer l'intention de départ.
+
+1. **Modèle d'expansion pendant le filtre (le plus important).** Le paragraphe « État de dépliage » ci-dessus décrit une union permanente de `expanded` et du `expand` renvoyé par `filterTree`. Ce design a bien été implémenté (Task 4), puis **explicitement écarté** après un premier fix round : il rendait certains clics muets (replier un dossier ouvert par le filtre ne faisait rien tant que le filtre restait actif, et l'ouverture survivait à l'effacement du filtre). L'implémentation livrée utilise un **unique set `expanded` faisant autorité** sur tout clic, avec un snapshot/restore (`preFilterExpanded`) au démarrage et à la fin du filtre — voir `src/components/workbench/FileExplorerTab.tsx`. Un lecteur qui suivrait ce paragraphe à la lettre réintroduirait le bug corrigé.
+2. **Identifiant du thème clair shiki.** Le spec écrit `github-light` ; le thème réellement bundlé et utilisé est `github-light-default` (même famille de nommage que `github-dark-default`, déjà correct dans ce document).
+3. **Numérotation de ligne.** Le spec dit « `codeToHtml` avec numérotation de ligne activée » — shiki n'a pas d'option de ce type. Les numéros sont rendus par un compteur CSS sur les `<span class="line">` que shiki émet (déjà noté dans le plan d'implémentation, écart n°1).
+4. **Debounce du filtre.** Le spec dit « la valeur saisie est debouncée à 120 ms ». L'implémentation utilise `useDeferredValue` de React 19, sans `setTimeout` (déjà noté dans le plan d'implémentation, écart n°3).
+5. **Nombre de clés i18n.** Le spec en liste 7. La Task 3 en a livré 9 (elle ajoute aussi `explorerClearFilter` et `fileNoHighlight`, absentes de cette liste), et la revue finale de branche en a ajouté une 10ᵉ, `explorerTooManyRows`, pour avertir quand le rendu de l'arbre est tronqué au-delà de 500 lignes.
+6. **Repli en cas d'échec de shiki.** La table « Gestion des erreurs » dit « Repli silencieux sur le texte brut ». Ce n'est plus le cas depuis un correctif de Task 6 : l'échec est loggé une fois par page (`console.error`), pour rester diagnosticable, tout en gardant le repli définitif sur le texte brut (retenter à chaque fichier ouvert ne servirait à rien pour un échec de bundle, déterministe).
