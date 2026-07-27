@@ -17,6 +17,12 @@ describe('clampDocChatWidth', () => {
 	it('clampe au-dessus du maximum', () => {
 		expect(clampDocChatWidth(2000)).toBe(DOC_CHAT_WIDTH_MAX);
 	});
+	it('retombe sur le défaut pour NaN et Infinity', () => {
+		// Le handler de drag appelle cette fonction directement : un NaN qui passe
+		// finirait dans une largeur CSS et casserait le layout sans bruit.
+		expect(clampDocChatWidth(NaN)).toBe(DOC_CHAT_WIDTH_DEFAULT);
+		expect(clampDocChatWidth(Infinity)).toBe(DOC_CHAT_WIDTH_DEFAULT);
+	});
 	it('arrondit les décimales', () => {
 		expect(clampDocChatWidth(420.7)).toBe(421);
 	});
@@ -36,5 +42,9 @@ describe('parseDocChatWidth', () => {
 	});
 	it('retombe sur le défaut si non numérique', () => {
 		expect(parseDocChatWidth('large')).toBe(DOC_CHAT_WIDTH_DEFAULT);
+	});
+	it("ne renvoie jamais NaN, y compris sur une chaîne d'espaces", () => {
+		// `Number(' ')` vaut 0 — la valeur est donc clampée au minimum, pas rejetée.
+		expect(parseDocChatWidth(' ')).toBe(DOC_CHAT_WIDTH_MIN);
 	});
 });
