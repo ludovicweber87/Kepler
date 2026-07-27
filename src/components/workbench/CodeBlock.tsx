@@ -53,14 +53,16 @@ function getHighlighter(): Promise<Highlighter> {
 
 /**
  * Rendu monospace sans couleur : état d'attente et repli si shiki échoue.
- * `pl` réserve la même largeur que la gouttière de `.line::before` ci-dessous
- * (3.5em + 12px de marge + 8px de padding) : sans ça, ouvrir un 2e fichier
- * peint d'abord ce repli sans gouttière puis shiki avec, et le code saute
- * horizontalement d'environ 5em entre les deux peintures.
+ * `pl` réserve la même largeur que la gouttière de `.line::before` ci-dessous.
+ * `box-sizing: border-box` (posé par CssBaseline) fait que la largeur 3.5em
+ * inclut déjà son padding (8px) et sa bordure (1px) ; seule la marge externe
+ * de 12px s'ajoute par-dessus. Sans ce même total (3.5em + 12px), ouvrir un
+ * 2e fichier peint d'abord ce repli sans gouttière puis shiki avec, et le
+ * code saute horizontalement entre les deux peintures.
  */
 const plainSx = {
 	m: 0,
-	pl: 'calc(3.5em + 20px)',
+	pl: 'calc(3.5em + 12px)',
 	pr: 1.5,
 	py: 1,
 	minWidth: 'max-content',
