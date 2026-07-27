@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { buildFileTree, filterTree, flattenVisible, isActivePath, type TreeNode } from './fileTree';
+import {
+	buildFileTree,
+	filterTree,
+	flattenVisible,
+	isActivePath,
+	relativizeActivePath,
+	type TreeNode,
+} from './fileTree';
 
 /** Résumé lisible d'un arbre : "dir/ > enfant" à plat, pour des assertions courtes. */
 function outline(nodes: TreeNode[], depth = 0): string[] {
@@ -137,5 +144,33 @@ describe('isActivePath', () => {
 
 	it('reconnaît toujours le fichier imbriqué correspondant dans ce même scénario', () => {
 		expect(isActivePath('docs/README.md', '/Users/x/repo/docs/README.md')).toBe(true);
+	});
+});
+
+describe('relativizeActivePath', () => {
+	it('relativise un chemin absolu qui commence par cwd', () => {
+		expect(relativizeActivePath('/Users/x/repo/README.md', '/Users/x/repo')).toBe('README.md');
+	});
+
+	it('relativise un chemin absolu imbriqué', () => {
+		expect(relativizeActivePath('/Users/x/repo/docs/README.md', '/Users/x/repo')).toBe(
+			'docs/README.md',
+		);
+	});
+
+	it('renvoie activePath tel quel quand il ne commence pas par cwd', () => {
+		expect(relativizeActivePath('/private/var/repo/README.md', '/var/repo')).toBe(
+			'/private/var/repo/README.md',
+		);
+	});
+
+	it('renvoie activePath tel quel sans cwd', () => {
+		expect(relativizeActivePath('/Users/x/repo/README.md', null)).toBe(
+			'/Users/x/repo/README.md',
+		);
+	});
+
+	it('renvoie null sans activePath', () => {
+		expect(relativizeActivePath(null, '/Users/x/repo')).toBeNull();
 	});
 });

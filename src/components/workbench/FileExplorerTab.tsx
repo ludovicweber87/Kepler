@@ -15,7 +15,13 @@ import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownR
 import { alpha } from '@mui/material/styles';
 import { useTranslations } from 'next-intl';
 import { useFileTree } from '@/hooks/useFileTree';
-import { buildFileTree, filterTree, flattenVisible, isActivePath } from '@/lib/fileTree';
+import {
+	buildFileTree,
+	filterTree,
+	flattenVisible,
+	isActivePath,
+	relativizeActivePath,
+} from '@/lib/fileTree';
 
 /**
  * Cap du nombre de lignes réellement montées dans le DOM. Bien au-dessus de
@@ -85,6 +91,17 @@ export default function FileExplorerTab({ cwd, activePath, onOpenFile }: FileExp
 		setPreFilterExpanded(null);
 		setPrevQuery('');
 	}
+
+	// L'arbre est toujours relatif au repo, mais l'onglet gauche actif peut
+	// porter un chemin absolu (ex. chip d'outil agent via extractFilePath). On
+	// relativise ici, une fois, plutôt que de laisser isActivePath deviner par
+	// suffixe : ça permet aux fichiers racine (README.md, package.json…) de
+	// matcher par égalité stricte au lieu de rester invisibles à cause du
+	// garde-fou anti-homonyme sur les nodePath à un seul segment.
+	const relativeActivePath = useMemo(
+		() => relativizeActivePath(activePath, cwd),
+		[activePath, cwd],
+	);
 
 	const tree = useMemo(() => buildFileTree(files), [files]);
 	const { nodes, expand } = useMemo(() => filterTree(tree, deferredQuery), [tree, deferredQuery]);
@@ -228,7 +245,7 @@ export default function FileExplorerTab({ cwd, activePath, onOpenFile }: FileExp
 					sx={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', py: 0.5 }}
 				>
 					{visibleRows.map((node) => {
-						const active = !node.isDir && isActivePath(node.path, activePath);
+						const active = !node.isDir && isActivePath(node.path, relativeActivePath);
 						const open = expanded.has(node.path);
 						return (
 							<Box

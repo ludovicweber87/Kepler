@@ -125,3 +125,19 @@ export function isActivePath(nodePath: string, activePath: string | null): boole
 	if (!nodePath.includes('/')) return false;
 	return activePath.endsWith(`/${nodePath}`);
 }
+
+/**
+ * Rend `activePath` relatif à `cwd` quand c'est possible, pour lever
+ * l'ambiguïté qu'`isActivePath` ne peut pas trancher seul sur un `nodePath` à
+ * un seul segment (un fichier racine et un homonyme dans un sous-dossier
+ * produisent tous deux un suffixe valide). Si `activePath` ne commence pas
+ * par `cwd` — ex. résolution de symlink macOS `/var` vs `/private/var` — il
+ * est renvoyé tel quel : le repli par suffixe d'`isActivePath` reste alors le
+ * seul recours, comme avant ce correctif.
+ */
+export function relativizeActivePath(activePath: string | null, cwd: string | null): string | null {
+	if (!activePath || !cwd) return activePath;
+	const prefix = cwd.endsWith('/') ? cwd : `${cwd}/`;
+	if (!activePath.startsWith(prefix)) return activePath;
+	return activePath.slice(prefix.length);
+}
