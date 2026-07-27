@@ -208,6 +208,7 @@ export default function WorkbenchShell({
 					sx={{
 						flex: `0 0 ${leftPct}%`,
 						minWidth: 0,
+						minHeight: 0,
 						display: 'flex',
 						flexDirection: 'column',
 					}}

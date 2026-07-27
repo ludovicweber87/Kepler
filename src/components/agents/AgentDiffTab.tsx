@@ -53,17 +53,19 @@ function SidePanel({
 	lineNo,
 	content,
 	type,
+	codeCh,
 }: {
 	lineNo?: number;
 	content: string;
 	type: 'del' | 'add' | 'ctx' | 'empty';
+	/** Largeur de code commune aux deux panneaux (en `ch`) — garde l'alignement gauche/droite. */
+	codeCh: number;
 }) {
 	return (
 		<Box
 			sx={{
 				flex: 1,
 				display: 'flex',
-				minWidth: 0,
 				bgcolor: getBgColor(type),
 				'&:hover': { bgcolor: getBgHover(type) },
 			}}
@@ -120,10 +122,8 @@ function SidePanel({
 					lineHeight: LINE_HEIGHT,
 					color: TEXT_COLORS[type] ?? 'text.secondary',
 					whiteSpace: 'pre',
-					overflow: 'hidden',
-					textOverflow: 'ellipsis',
 					pr: 1,
-					minWidth: 0,
+					minWidth: `${codeCh}ch`,
 				}}
 			>
 				{content}
@@ -136,15 +136,21 @@ function SidePanel({
 const MAX_ROWS_INITIAL = 120;
 
 /* ── Single row (memoized to avoid re-renders) ── */
-const DiffRow = memo(function DiffRow({ row }: { row: SideBySideRow }) {
+const DiffRow = memo(function DiffRow({ row, codeCh }: { row: SideBySideRow; codeCh: number }) {
 	return (
 		<Box sx={{ display: 'flex' }}>
-			<SidePanel lineNo={row.left.lineNo} content={row.left.content} type={row.left.type} />
+			<SidePanel
+				lineNo={row.left.lineNo}
+				content={row.left.content}
+				type={row.left.type}
+				codeCh={codeCh}
+			/>
 			<Box sx={{ width: '1px', flexShrink: 0, bgcolor: 'divider' }} />
 			<SidePanel
 				lineNo={row.right.lineNo}
 				content={row.right.content}
 				type={row.right.type}
+				codeCh={codeCh}
 			/>
 		</Box>
 	);
@@ -193,6 +199,18 @@ export const FileDiffView = memo(function FileDiffView({
 	const isTruncated = !showAll && allRows.length > MAX_ROWS_INITIAL;
 	const visibleRows = isTruncated ? allRows.slice(0, MAX_ROWS_INITIAL) : allRows;
 	const hiddenCount = allRows.length - MAX_ROWS_INITIAL;
+
+	// Largeur de code = ligne la plus longue affichée. Appliquée aux deux panneaux
+	// pour que les colonnes restent alignées pendant le scroll horizontal partagé.
+	const codeCh = useMemo(() => {
+		let max = 0;
+		for (const item of visibleRows) {
+			if (item.type !== 'row') continue;
+			const row = item as SideBySideRow;
+			max = Math.max(max, row.left.content.length, row.right.content.length);
+		}
+		return max;
+	}, [visibleRows]);
 
 	const toggleExpand = useCallback(() => setManualExpanded((p) => !p), []);
 
@@ -296,65 +314,73 @@ export const FileDiffView = memo(function FileDiffView({
 						borderRadius: 1,
 						border: 1,
 						borderColor: 'divider',
-						overflow: 'hidden',
+						overflowX: 'auto',
+						overflowY: 'hidden',
 					}}
 				>
-					{visibleRows.map((item, idx) => {
-						if (item.type === 'hunk-header') {
-							return (
-								<Box
-									key={`h${idx}`}
-									sx={{
-										px: 1.5,
-										py: 0.5,
-										bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
-										borderBottom: 1,
-										borderColor: 'divider',
-										...(idx > 0 && { borderTop: 1 }),
-									}}
-								>
-									<Typography
-										variant="caption"
+					{/* Sizer : impose la largeur de contenu commune à toutes les lignes
+					    (en-têtes de hunk inclus) pour un scroll horizontal partagé. */}
+					<Box sx={{ minWidth: 'max-content' }}>
+						{visibleRows.map((item, idx) => {
+							if (item.type === 'hunk-header') {
+								return (
+									<Box
+										key={`h${idx}`}
 										sx={{
-											fontFamily: FONT,
-											fontSize: '0.68rem',
-											color: 'text.disabled',
+											px: 1.5,
+											py: 0.5,
+											bgcolor: (theme) =>
+												alpha(theme.palette.primary.main, 0.06),
+											borderBottom: 1,
+											borderColor: 'divider',
+											...(idx > 0 && { borderTop: 1 }),
 										}}
 									>
-										{item.header}
-									</Typography>
-								</Box>
+										<Typography
+											variant="caption"
+											sx={{
+												fontFamily: FONT,
+												fontSize: '0.68rem',
+												color: 'text.disabled',
+											}}
+										>
+											{item.header}
+										</Typography>
+									</Box>
+								);
+							}
+							return (
+								<DiffRow key={idx} row={item as SideBySideRow} codeCh={codeCh} />
 							);
-						}
-						return <DiffRow key={idx} row={item as SideBySideRow} />;
-					})}
+						})}
 
-					{/* Truncation notice */}
-					{isTruncated && (
-						<Box
-							sx={{
-								display: 'flex',
-								justifyContent: 'center',
-								py: 1,
-								borderTop: 1,
-								borderColor: 'divider',
-								bgcolor: (theme) => alpha(theme.palette.primary.main, 0.03),
-							}}
-						>
-							<Button
-								size="small"
-								onClick={() => setShowAll(true)}
+						{/* Truncation notice */}
+						{isTruncated && (
+							<Box
 								sx={{
-									textTransform: 'none',
-									fontSize: '0.72rem',
-									fontWeight: 600,
-									color: 'primary.main',
+									display: 'flex',
+									justifyContent: 'center',
+									py: 1,
+									borderTop: 1,
+									borderColor: 'divider',
+									bgcolor: (theme) => alpha(theme.palette.primary.main, 0.03),
 								}}
 							>
-								{t('showRemainingLines', { count: hiddenCount })}
-							</Button>
-						</Box>
-					)}
+								<Button
+									size="small"
+									onClick={() => setShowAll(true)}
+									sx={{
+										textTransform: 'none',
+										fontSize: '0.72rem',
+										fontWeight: 600,
+										color: 'primary.main',
+									}}
+								>
+									{t('showRemainingLines', { count: hiddenCount })}
+								</Button>
+							</Box>
+						)}
+					</Box>
 				</Box>
 			</Collapse>
 		</Box>

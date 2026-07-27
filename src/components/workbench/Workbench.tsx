@@ -564,7 +564,14 @@ export default function Workbench() {
 							</Box>
 						)}
 						{!isSessionTab(activeTab) && (
-							<Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+							<Box
+								sx={{
+									flex: 1,
+									minHeight: 0,
+									overflowY: 'auto',
+									overflowX: 'hidden',
+								}}
+							>
 								{activeFileDiff ? (
 									<FileDiffView
 										key={activeTab}
