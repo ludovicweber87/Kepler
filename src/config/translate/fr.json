@@ -725,13 +725,6 @@
 		"generationFailed": "Échec de la génération",
 		"retry": "Réessayer",
 		"save": "Enregistrer",
-		"refineTitle": "Affiner la doc",
-		"refineEmpty": "Demande une retouche en langage naturel — la doc sera mise à jour.",
-		"you": "Toi",
-		"writer": "Rédacteur",
-		"refineDone": "✓ Doc mise à jour",
-		"working": "Travail en cours…",
-		"refinePlaceholder": "Demande une retouche…",
 		"quick": {
 			"shorter": "Plus court",
 			"examples": "Ajoute des exemples",
@@ -743,6 +736,11 @@
 			"examples": "Ajoute des exemples concrets.",
 			"technical": "Rends la doc plus technique et détaillée.",
 			"simpler": "Simplifie les passages complexes."
-		}
+		},
+		"chatTitle": "Discuter de la doc",
+		"chatEmpty": "Pose une question sur le sujet, ou demande une retouche — la doc sera mise à jour.",
+		"chatPlaceholder": "Pose ta question…",
+		"chatDisabledEditing": "Ferme l'éditeur manuel pour discuter.",
+		"chatDisabledGenerating": "En attente de la génération de la doc."
 	}
 }

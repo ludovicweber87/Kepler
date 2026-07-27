@@ -725,13 +725,6 @@
 		"generationFailed": "Generation failed",
 		"retry": "Retry",
 		"save": "Save",
-		"refineTitle": "Refine the doc",
-		"refineEmpty": "Ask for a change in plain language — the doc will be updated.",
-		"you": "You",
-		"writer": "Writer",
-		"refineDone": "✓ Doc updated",
-		"working": "Working…",
-		"refinePlaceholder": "Ask for a change…",
 		"quick": {
 			"shorter": "Shorter",
 			"examples": "Add examples",
@@ -743,6 +736,11 @@
 			"examples": "Add concrete examples.",
 			"technical": "Make the doc more technical and detailed.",
 			"simpler": "Simplify the complex parts."
-		}
+		},
+		"chatTitle": "Chat about this doc",
+		"chatEmpty": "Ask a question about the subject, or ask for a change — the doc will be updated.",
+		"chatPlaceholder": "Ask a question…",
+		"chatDisabledEditing": "Close the manual editor to chat.",
+		"chatDisabledGenerating": "Waiting for the doc to be generated."
 	}
 }
