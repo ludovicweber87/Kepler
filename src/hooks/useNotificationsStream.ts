@@ -57,8 +57,12 @@ export function useNotificationsStream(): void {
 					const onClick = url?.startsWith('/') ? () => r.push(url) : undefined;
 					snack(title, severity, onClick ? { onClick } : undefined);
 					// Notification système : no-op si la pref est coupée, la permission
-					// non accordée, ou si l'onglet a déjà le focus.
-					showOsNotification(title, { tag: incoming.id, onClick });
+					// non accordée, ou si l'onglet a déjà le focus. Tag par session pour
+					// que deux notifs sur la même session se remplacent au lieu de s'empiler.
+					showOsNotification(title, {
+						tag: incoming.entity_ref?.id ?? incoming.id,
+						onClick,
+					});
 				}
 			} catch {
 				// Ignore malformed events (e.g. comment/ping lines already filtered by EventSource).

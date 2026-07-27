@@ -22,10 +22,21 @@ export default function NotificationSettings() {
 	const [permission, setPermission] = useState<PermissionState>('unsupported');
 
 	useEffect(() => {
-		// eslint-disable-next-line react-hooks/set-state-in-effect -- hydratation unique post-SSR (localStorage/Notification.permission), pas une boucle de sync
-		setOsEnabled(isOsNotificationsEnabled());
+		// hydratation unique post-SSR (localStorage/Notification.permission), pas une boucle de sync
+		/* eslint-disable react-hooks/set-state-in-effect */
+		const perm: PermissionState =
+			'Notification' in window ? Notification.permission : 'unsupported';
+		setPermission(perm);
 		setSoundOn(!isNotificationSoundMuted());
-		setPermission('Notification' in window ? Notification.permission : 'unsupported');
+		// La pref localStorage et la permission navigateur peuvent diverger (ex.
+		// Chrome révoque silencieusement une permission inutilisée) : le switch ne
+		// doit être considéré actif que si la permission est bien accordée, et on
+		// nettoie la pref persistée pour qu'elle ne puisse pas ressusciter.
+		const stored = isOsNotificationsEnabled();
+		const effective = stored && perm === 'granted';
+		setOsEnabled(effective);
+		/* eslint-enable react-hooks/set-state-in-effect */
+		if (stored && !effective) setOsNotificationsEnabled(false);
 	}, []);
 
 	// La permission ne peut être demandée que sur un geste utilisateur : une
@@ -38,9 +49,15 @@ export default function NotificationSettings() {
 		}
 		let granted = permission === 'granted';
 		if (permission === 'default') {
-			const result = await Notification.requestPermission();
-			setPermission(result);
-			granted = result === 'granted';
+			try {
+				const result = await Notification.requestPermission();
+				setPermission(result);
+				granted = result === 'granted';
+			} catch {
+				// Contexte non sécurisé ou permission refusée par le navigateur —
+				// on considère simplement que ce n'est pas accordé.
+				granted = false;
+			}
 		}
 		setOsNotificationsEnabled(granted);
 		setOsEnabled(granted);

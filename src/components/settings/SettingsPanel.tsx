@@ -271,7 +271,6 @@ export default function SettingsPanel() {
 	const t = useTranslations('settings');
 	const tc = useTranslations('common');
 	const tAppearance = useTranslations('appearance');
-	const tNotif = useTranslations('settings.notifications');
 	const { configs, configsLoading, saveConfig, clearConfig } = useProjectConfig();
 	const { repoPaths, savePath, deletePath } = useRepoPaths();
 	const { isAgentOnline } = useAgentStatus();
@@ -587,7 +586,7 @@ export default function SettingsPanel() {
 								sx={{ color: 'text.secondary', fontSize: 22 }}
 							/>
 							<Typography variant="h6" sx={{ fontWeight: 600 }}>
-								{tNotif('title')}
+								{t('notifications.title')}
 							</Typography>
 						</Box>
 					</AccordionSummary>

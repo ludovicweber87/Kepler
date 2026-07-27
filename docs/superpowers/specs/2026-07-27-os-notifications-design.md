@@ -143,9 +143,18 @@ export function showOsNotification(
 ): void;
 ```
 
-`showOsNotification` construit `new Notification(title, { tag, icon: '/logo.png' })`.
-Le `tag` vaut l'id de la notification : l'OS remplace au lieu d'empiler. Le
-handler `onclick` appelle `window.focus()` puis le callback fourni.
+`showOsNotification` construit
+`new Notification(title, { tag, icon: '/logo.png', silent: true })`. Le `silent`
+est inconditionnel : l'onglet est nécessairement vivant pour que ce code
+s'exécute, donc `playNotificationChime()` se déclenche déjà pour le même
+événement dans `useNotificationsStream` — c'est le seul canal audio, et le
+switch « Son de notification » le gouverne entièrement (pas de double bip OS +
+carillon). Le `tag` vaut l'id de session (`entity_ref.id`, avec repli sur l'id
+de la notification si absent) : l'OS remplace la notification précédente de la
+même session au lieu de l'empiler — un `agent_blocked` suivi d'un `agent_done`
+sur la même session ne laisse qu'une notification, mais des sessions distinctes
+s'empilent normalement. Le handler `onclick` appelle `window.focus()` puis le
+callback fourni.
 
 `/logo.png` existe déjà dans `public/`.
 
@@ -158,7 +167,7 @@ navigue.
 
 ```ts
 showOsNotification(title, {
-  tag: incoming.id,
+  tag: incoming.entity_ref?.id ?? incoming.id,
   onClick: url?.startsWith('/') ? () => r.push(url) : undefined,
 });
 ```
@@ -253,3 +262,8 @@ d'application, vérifier la notification et le clic).
   premier montage du panneau de paramètres, acceptable.
 - **Bruit.** Trois types notifiés sans filtre. Si ça devient gênant en usage réel,
   la granularité par type est une évolution triviale (le point d'appel est unique).
+- **`document.hasFocus()` est par onglet.** Avec Devora ouvert dans deux onglets,
+  l'onglet qui n'a pas le focus déclenche une notification OS même si
+  l'utilisateur regarde l'autre onglet Devora à l'écran. Accepté pour une app
+  locale mono-utilisateur ; un `BroadcastChannel` entre onglets serait le
+  correctif si ça devient gênant en usage réel.
