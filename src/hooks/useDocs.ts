@@ -2,9 +2,27 @@ import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-fetch';
 import { localFetch } from '@/lib/local-fetch';
-import type { DocWithCategories, NewDoc, DocPatch } from '@/types';
+import type { Doc, DocWithCategories, NewDoc, DocPatch } from '@/types';
 
 const QUERY_KEY = ['docs'];
+
+/** Une doc « en cours » : créée mais pas encore rendue (ou échouée). */
+export const isDocPending = (doc: Pick<Doc, 'status'>) =>
+	doc.status === 'queued' || doc.status === 'generating';
+
+/** Nombre de docs en cours de génération. */
+export const countPendingDocs = (docs: Pick<Doc, 'status'>[] = []) =>
+	docs.filter(isDocPending).length;
+
+async function fetchDocs(): Promise<DocWithCategories[]> {
+	const res = await apiFetch('/api/docs');
+	if (!res.ok) throw new Error('Failed to fetch docs');
+	return (await res.json()) as DocWithCategories[];
+}
+
+/** Poll tant qu'au moins une doc est en cours de génération. */
+const docsRefetchInterval = (docs: DocWithCategories[] | undefined) =>
+	docs?.some(isDocPending) ? 4000 : (false as const);
 
 /** Déclenche la génération côté serveur agent (fire-and-forget). */
 async function triggerGeneration(docId: string) {
@@ -24,17 +42,8 @@ export function useDocs() {
 
 	const { data: docs = [], isLoading } = useQuery({
 		queryKey: QUERY_KEY,
-		queryFn: async () => {
-			const res = await apiFetch('/api/docs');
-			if (!res.ok) throw new Error('Failed to fetch docs');
-			return (await res.json()) as DocWithCategories[];
-		},
-		// Poll tant qu'au moins une doc est en cours de génération.
-		refetchInterval: (query) => {
-			const data = query.state.data as DocWithCategories[] | undefined;
-			const pending = data?.some((d) => d.status === 'queued' || d.status === 'generating');
-			return pending ? 4000 : false;
-		},
+		queryFn: fetchDocs,
+		refetchInterval: (query) => docsRefetchInterval(query.state.data),
 	});
 
 	const setDocs = (updater: (old: DocWithCategories[]) => DocWithCategories[]) =>
@@ -115,4 +124,22 @@ export function useDocs() {
 	);
 
 	return { docs, isLoading, createDoc, updateDoc, deleteDoc, retryDoc };
+}
+
+/**
+ * Nombre de docs en cours de génération, pour les indicateurs globaux (sidebar).
+ *
+ * Partage la query `['docs']` avec `useDocs()` : pas de fetch supplémentaire, et le
+ * polling conditionnel devient global (il continue hors de la page /docs, jusqu'à ce
+ * que la dernière génération se résolve). Le `select` ne notifie l'observateur que
+ * lorsque le compteur change, pas à chaque refetch de la liste.
+ */
+export function useGeneratingDocsCount(): number {
+	const { data = 0 } = useQuery({
+		queryKey: QUERY_KEY,
+		queryFn: fetchDocs,
+		refetchInterval: (query) => docsRefetchInterval(query.state.data),
+		select: countPendingDocs,
+	});
+	return data;
 }

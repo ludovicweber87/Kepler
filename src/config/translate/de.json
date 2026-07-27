@@ -40,7 +40,8 @@
 		"unreadAgentNotification": "Ungelesene Agent-Benachrichtigung",
 		"prOpen": "Offener PR",
 		"tasks": "Aufgaben",
-		"docs": "Docs"
+		"docs": "Docs",
+		"docsGenerating": "{count, plural, one {# Doc wird generiert} other {# Docs werden generiert}}"
 	},
 	"landing": {
 		"nav": {
