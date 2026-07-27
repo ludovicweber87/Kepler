@@ -50,9 +50,19 @@ export default function FileExplorerTab({ cwd, activePath, onOpenFile }: FileExp
 	// useDeferredValue plutôt qu'un debounce manuel : la saisie reste fluide et
 	// le filtrage de l'arbre est recalculé en arrière-plan par React.
 	const deferredQuery = useDeferredValue(query);
-	const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
-	// Changer de session change de racine : l'état de dépliage n'a plus de sens.
+	// `expanded` est l'unique source de vérité du rendu : un clic doit toujours
+	// le faire basculer, filtre actif ou non. Pas de second set fusionné au
+	// moment du rendu — une fusion rendrait certains clics muets (un dossier
+	// ouvert par le filtre resterait ouvert malgré le clic).
+	const [expanded, setExpanded] = useState<Set<string>>(new Set());
+	// Etat de dépliage figé au démarrage du filtre, restauré à l'identique quand
+	// il est effacé — y compris les dossiers repliés manuellement, à l'exclusion
+	// de tout dépliage dû au filtre ou à un clic pendant qu'il est actif.
+	const [preFilterExpanded, setPreFilterExpanded] = useState<Set<string> | null>(null);
+	const [prevQuery, setPrevQuery] = useState(deferredQuery);
+
+	// Changer de session change de racine : filtre et dépliage n'ont plus de sens.
 	// Ajustement pendant le rendu plutôt qu'un effet (pattern recommandé par React
 	// pour réinitialiser un state quand une prop change), pour éviter un rendu
 	// supplémentaire avec l'ancien state.
@@ -61,22 +71,34 @@ export default function FileExplorerTab({ cwd, activePath, onOpenFile }: FileExp
 		setPrevCwd(cwd);
 		setQuery('');
 		setExpanded(new Set());
+		setPreFilterExpanded(null);
+		setPrevQuery('');
 	}
 
 	const tree = useMemo(() => buildFileTree(files), [files]);
 	const { nodes, expand } = useMemo(() => filterTree(tree, deferredQuery), [tree, deferredQuery]);
 
-	// Pendant un filtre, on déplie en plus de l'état manuel sans l'écraser :
-	// vider le filtre restaure l'arbre tel que l'utilisateur l'avait laissé.
-	const effectiveExpanded = useMemo(
-		() => (expand.size === 0 ? expanded : new Set([...expanded, ...expand])),
-		[expanded, expand],
-	);
+	// Même pattern qu'au-dessus, appliqué à la transition du filtre. Démarrage :
+	// on fige l'état courant puis on révèle les matches dans `expanded`. Fin : on
+	// restaure l'état figé tel quel. Tant que le filtre reste actif, chaque
+	// changement de requête re-révèle ses nouveaux matches sans écraser les
+	// dépliages faits entretemps — mais jamais de fusion permanente des deux sets.
+	if (deferredQuery !== prevQuery) {
+		const wasFiltering = prevQuery.trim() !== '';
+		const isFiltering = deferredQuery.trim() !== '';
+		setPrevQuery(deferredQuery);
+		if (!wasFiltering && isFiltering) {
+			setPreFilterExpanded(expanded);
+			setExpanded(new Set([...expanded, ...expand]));
+		} else if (wasFiltering && !isFiltering) {
+			setExpanded(preFilterExpanded ?? expanded);
+			setPreFilterExpanded(null);
+		} else if (isFiltering) {
+			setExpanded((prev) => new Set([...prev, ...expand]));
+		}
+	}
 
-	const rows = useMemo(
-		() => flattenVisible(nodes, effectiveExpanded),
-		[nodes, effectiveExpanded],
-	);
+	const rows = useMemo(() => flattenVisible(nodes, expanded), [nodes, expanded]);
 
 	const toggle = (path: string) => {
 		setExpanded((prev) => {
@@ -180,7 +202,7 @@ export default function FileExplorerTab({ cwd, activePath, onOpenFile }: FileExp
 				>
 					{rows.map((node) => {
 						const active = !node.isDir && isActivePath(node.path, activePath);
-						const open = effectiveExpanded.has(node.path);
+						const open = expanded.has(node.path);
 						return (
 							<Box
 								key={node.path}
