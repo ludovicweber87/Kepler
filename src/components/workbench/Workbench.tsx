@@ -20,6 +20,7 @@ import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
 import TimelineRoundedIcon from '@mui/icons-material/TimelineRounded';
 import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
+import FolderCopyRoundedIcon from '@mui/icons-material/FolderCopyRounded';
 import StopCircleRoundedIcon from '@mui/icons-material/StopCircleRounded';
 import CallMergeRoundedIcon from '@mui/icons-material/CallMergeRounded';
 import MergeRoundedIcon from '@mui/icons-material/MergeRounded';
@@ -52,6 +53,7 @@ import AgentIssueTab from '@/components/agents/AgentIssueTab';
 import TerminalTabs, { type TerminalTabsHandle } from '@/components/agents/TerminalTabs';
 import CreationProgress from '@/components/workbench/CreationProgress';
 import FileContentView from '@/components/workbench/FileContentView';
+import FileExplorerTab from '@/components/workbench/FileExplorerTab';
 import EditableSessionName from '@/components/workbench/EditableSessionName';
 import {
 	matchFileDiff,
@@ -117,7 +119,7 @@ export default function Workbench() {
 			: `Résous l'issue #${resolved!.issue_number}.`;
 	}, [hasIssue, resolved]);
 
-	type RightTab = 'changes' | 'activity' | 'issue';
+	type RightTab = 'changes' | 'activity' | 'explorer' | 'issue';
 	const [rightTab, setRightTab] = useState<RightTab>('activity');
 	// Le lecteur markdown du flux d'activité n'apparaît qu'après clic sur « Voir ».
 	// C'est un onglet gauche (pleine largeur), pas un onglet du panneau droit.
@@ -551,6 +553,7 @@ export default function Workbench() {
 									onTurnComplete={() => {
 										queryClient.invalidateQueries({ queryKey: ['git-diff'] });
 										queryClient.invalidateQueries({ queryKey: ['git-status'] });
+										queryClient.invalidateQueries({ queryKey: ['file-tree'] });
 										queryClient.invalidateQueries({
 											queryKey: ['github', 'prs'],
 										});
@@ -613,6 +616,13 @@ export default function Workbench() {
 							label={t('chipActivity')}
 						/>
 					),
+					<Tab
+						key="explorer"
+						value="explorer"
+						iconPosition="start"
+						icon={<FolderCopyRoundedIcon sx={{ fontSize: 16 }} />}
+						label={t('chipExplorer')}
+					/>,
 					hasIssue && (
 						<Tab
 							key="issue"
@@ -636,6 +646,13 @@ export default function Workbench() {
 								session={resolved}
 								logs={logs}
 								onOpenReader={openReader}
+							/>
+						)}
+						{effectiveRightTab === 'explorer' && (
+							<FileExplorerTab
+								cwd={diffPath}
+								activePath={isSessionTab(activeTab) ? null : activeTab}
+								onOpenFile={openChanges}
 							/>
 						)}
 						{effectiveRightTab === 'issue' && hasIssue && (

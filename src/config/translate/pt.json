@@ -96,7 +96,17 @@
 		"closeReader": "Fechar leitura",
 		"fileError": "Não foi possível ler o arquivo",
 		"fileTruncated": "Arquivo truncado (muito grande para exibir por completo)",
-		"chipReader": "Leitura"
+		"chipReader": "Leitura",
+		"chipExplorer": "Explorador",
+		"explorerFilter": "Filtrar arquivos",
+		"explorerClearFilter": "Limpar o filtro",
+		"explorerEmpty": "Nenhum arquivo para mostrar",
+		"explorerNoMatch": "Nenhum arquivo corresponde",
+		"explorerNotARepo": "Esta pasta não é um repositório git",
+		"explorerTruncated": "Muitos arquivos — a árvore está incompleta",
+		"explorerTooManyRows": "Mostrando os primeiros {count} resultados — refine seu filtro",
+		"explorerError": "Não é possível listar os arquivos",
+		"fileNoHighlight": "Arquivo grande — realce de sintaxe desativado"
 	},
 	"creationProgress": {
 		"title": "Preparando o espaço de trabalho",

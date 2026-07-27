@@ -5,8 +5,7 @@ import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useTranslations } from 'next-intl';
 import { useFileContent } from '@/hooks/useFileContent';
-
-const FONT = '"JetBrains Mono", monospace';
+import CodeBlock from '@/components/workbench/CodeBlock';
 
 function Centered({ children }: { children: React.ReactNode }) {
 	return (
@@ -46,9 +45,6 @@ export default function FileContentView({ cwd, path }: { cwd: string | null; pat
 		);
 	}
 
-	const lines = data.content.split('\n');
-	const gutter = lines.map((_, i) => i + 1).join('\n');
-
 	return (
 		<Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
 			{data.truncated && (
@@ -66,47 +62,8 @@ export default function FileContentView({ cwd, path }: { cwd: string | null; pat
 					{t('fileTruncated')}
 				</Typography>
 			)}
-			<Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', display: 'flex' }}>
-				<Typography
-					component="pre"
-					sx={{
-						m: 0,
-						px: 1,
-						py: 1,
-						textAlign: 'right',
-						userSelect: 'none',
-						color: 'text.disabled',
-						fontFamily: FONT,
-						fontSize: '0.78rem',
-						lineHeight: 1.5,
-						borderRight: 1,
-						borderColor: 'divider',
-						flexShrink: 0,
-						position: 'sticky',
-						left: 0,
-						zIndex: 1,
-						bgcolor: 'background.paper',
-					}}
-				>
-					{gutter}
-				</Typography>
-				<Typography
-					component="pre"
-					sx={{
-						m: 0,
-						px: 1.5,
-						py: 1,
-						flexShrink: 0,
-						minWidth: 'max-content',
-						color: 'text.primary',
-						fontFamily: FONT,
-						fontSize: '0.78rem',
-						lineHeight: 1.5,
-						whiteSpace: 'pre',
-					}}
-				>
-					{data.content}
-				</Typography>
+			<Box sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+				<CodeBlock code={data.content} path={path} />
 			</Box>
 		</Box>
 	);

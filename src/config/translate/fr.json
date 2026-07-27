@@ -96,7 +96,17 @@
 		"closeReader": "Fermer la lecture",
 		"fileError": "Impossible de lire le fichier",
 		"fileTruncated": "Fichier tronqué (trop volumineux pour tout afficher)",
-		"chipReader": "Lecture"
+		"chipReader": "Lecture",
+		"chipExplorer": "Explorateur",
+		"explorerFilter": "Filtrer les fichiers",
+		"explorerClearFilter": "Effacer le filtre",
+		"explorerEmpty": "Aucun fichier à afficher",
+		"explorerNoMatch": "Aucun fichier ne correspond",
+		"explorerNotARepo": "Ce dossier n'est pas un dépôt git",
+		"explorerTruncated": "Trop de fichiers — l'arbre est partiel",
+		"explorerTooManyRows": "Affiche les {count} premiers résultats — affinez votre filtre",
+		"explorerError": "Impossible de lister les fichiers",
+		"fileNoHighlight": "Fichier volumineux — coloration syntaxique désactivée"
 	},
 	"creationProgress": {
 		"title": "Préparation de l'espace de travail",

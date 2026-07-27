@@ -3,6 +3,7 @@ import { execSync, execFileSync } from 'node:child_process';
 import { openSync, readSync, closeSync, statSync } from 'node:fs';
 import { isAbsolute, join } from 'node:path';
 import { sendJson, parseQuery, readBody } from '../helpers.js';
+import { parseLsFiles } from './parseLsFiles.js';
 
 const MAX_BYTES = 1024 * 1024; // 1 Mo
 
@@ -61,6 +62,49 @@ export async function handleFilesystemRoutes(
 			sendJson(res, { content: buf.toString('utf-8'), truncated, path: abs });
 		} catch (err) {
 			sendJson(res, { error: err instanceof Error ? err.message : 'read failed' }, 404);
+		}
+		return;
+	}
+
+	// ── List repository files (git-aware: .gitignore respected, .git excluded) ──
+
+	if (path === '/filesystem/tree' && method === 'GET') {
+		const q = parseQuery(req);
+		const cwd = q.get('cwd') ?? '';
+		if (!cwd || !isAbsolute(cwd)) {
+			sendJson(res, { error: 'absolute cwd required' }, 400);
+			return;
+		}
+		try {
+			if (!statSync(cwd).isDirectory()) {
+				sendJson(res, { error: 'not a directory' }, 400);
+				return;
+			}
+		} catch {
+			sendJson(res, { error: 'cwd not found' }, 404);
+			return;
+		}
+		try {
+			// execFile sans shell : cwd est un argument, jamais interpolé.
+			// --cached + --others --exclude-standard = fichiers suivis ET non-suivis
+			// non ignorés. .gitignore est respecté et .git/ exclu sans traitement.
+			const raw = execFileSync(
+				'git',
+				['-C', cwd, 'ls-files', '--cached', '--others', '--exclude-standard', '-z'],
+				{ encoding: 'utf-8', maxBuffer: 32 * 1024 * 1024, timeout: 20000 },
+			);
+			const { files, truncated } = parseLsFiles(raw);
+			sendJson(res, { files, truncated, root: cwd });
+		} catch (err) {
+			// Ne mappe sur `not_a_repo` que le vrai message de git : maxBuffer dépassé,
+			// binaire git absent ou timeout ne sont pas ce défaut, et le déguiser en
+			// tel rend le message d'erreur trompeur pour l'utilisateur.
+			const stderr = String((err as { stderr?: Buffer | string } | null)?.stderr ?? '');
+			if (stderr.includes('not a git repository')) {
+				sendJson(res, { error: 'not a git repository', code: 'not_a_repo' }, 404);
+			} else {
+				sendJson(res, { error: 'failed to list repository files' }, 500);
+			}
 		}
 		return;
 	}
