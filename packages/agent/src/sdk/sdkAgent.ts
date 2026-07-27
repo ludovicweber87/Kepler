@@ -1,5 +1,5 @@
 import { query as realQuery } from '@anthropic-ai/claude-agent-sdk';
-import { findClaude, cleanClaudeEnv } from '../helpers.js';
+import { findClaude, cleanClaudeEnv, NOW_ISO } from '../helpers.js';
 import { makePromptQueue, type PromptQueue } from './promptQueue.js';
 import { mapMessage } from './mapMessage.js';
 import { createPermissionController, type PermissionController, type PendingPermission, type PendingQuestion, type QuestionAnswers } from './permissions.js';
@@ -358,7 +358,7 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
     try {
       const row = d.prepare('SELECT id FROM agent_sessions WHERE session_id = ?').get(sessionId) as { id: string } | undefined;
       if (!row) return;
-      d.prepare('INSERT INTO agent_activity_logs (id, agent_session_id, content, log_type) VALUES (?, ?, ?, ?)')
+      d.prepare(`INSERT INTO agent_activity_logs (id, agent_session_id, content, log_type, created_at) VALUES (?, ?, ?, ?, ${NOW_ISO})`)
         .run(randomUUID(), row.id, content, logType);
     } catch { /* best-effort */ }
   }

@@ -1,6 +1,7 @@
 import { createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
 import { getDb } from '../db.js';
+import { NOW_ISO } from '../helpers.js';
 
 export type DocEditResult = { ok: true; content: string } | { ok: false; error: string };
 
@@ -43,7 +44,7 @@ export function readDocRow(docId: string): { title: string; content: string } | 
 export function writeDocContent(docId: string, content: string): void {
   const db = getDb();
   if (!db) return;
-  db.prepare("UPDATE docs SET content = ?, updated_at = datetime('now') WHERE id = ?").run(content, docId);
+  db.prepare(`UPDATE docs SET content = ?, updated_at = ${NOW_ISO} WHERE id = ?`).run(content, docId);
 }
 
 function ok(text: string) {

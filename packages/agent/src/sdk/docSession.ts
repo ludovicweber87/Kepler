@@ -3,6 +3,7 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { getDb } from '../db.js';
+import { NOW_ISO } from '../helpers.js';
 import { createDocToolServer } from './docTools.js';
 import {
   buildDocChatSystemPrompt,
@@ -67,7 +68,7 @@ export function ensureDocSessionRow(doc: DocRow, cwd: string): string {
   if (!existing) {
     db.prepare(
       `INSERT INTO agent_sessions (id, session_id, project_path, project_name, agent_name, status, origin, started_at)
-       VALUES (?, ?, ?, ?, ?, 'ready', 'doc', datetime('now'))`,
+       VALUES (?, ?, ?, ?, ?, 'ready', 'doc', ${NOW_ISO})`,
     ).run(randomUUID(), sessionId, cwd, doc.title, doc.title);
   }
   db.prepare('UPDATE docs SET agent_session_id = ? WHERE id = ?').run(sessionId, doc.id);

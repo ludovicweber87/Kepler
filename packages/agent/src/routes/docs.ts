@@ -2,7 +2,7 @@ import { IncomingMessage, ServerResponse } from 'node:http';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { readBody, sendJson, sendError } from '../helpers.js';
+import { readBody, sendJson, sendError, NOW_ISO } from '../helpers.js';
 import { getDb } from '../db.js';
 import {
 	buildDocWriterSystemPrompt,
@@ -52,7 +52,7 @@ function setStatus(docId: string, status: string, error: string | null = null) {
 	const db = getDb();
 	if (!db) return;
 	db.prepare(
-		"UPDATE docs SET status = ?, error = ?, updated_at = datetime('now') WHERE id = ?",
+		`UPDATE docs SET status = ?, error = ?, updated_at = ${NOW_ISO} WHERE id = ?`,
 	).run(status, error, docId);
 }
 
@@ -60,7 +60,7 @@ function setContent(docId: string, content: string) {
 	const db = getDb();
 	if (!db) return;
 	db.prepare(
-		"UPDATE docs SET content = ?, status = 'ready', error = NULL, updated_at = datetime('now') WHERE id = ?",
+		`UPDATE docs SET content = ?, status = 'ready', error = NULL, updated_at = ${NOW_ISO} WHERE id = ?`,
 	).run(content, docId);
 }
 

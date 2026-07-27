@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type Database from 'better-sqlite3';
 import { getDb } from '../db.js';
+import { NOW_ISO } from '../helpers.js';
 import type { StreamEvent } from './types.js';
 
 export const TRUNCATE_LIMIT = 50_000;
@@ -23,7 +24,7 @@ export function appendEvent(sessionId: string, seq: number, role: string, event:
   if (!d) return;
   const safe = truncateEvent(event);
   d.prepare(
-    'INSERT INTO agent_chat_messages (id, agent_session_id, seq, role, event_type, content) VALUES (?, ?, ?, ?, ?, ?)',
+    `INSERT INTO agent_chat_messages (id, agent_session_id, seq, role, event_type, content, created_at) VALUES (?, ?, ?, ?, ?, ?, ${NOW_ISO})`,
   ).run(randomUUID(), sessionId, seq, role, safe.event, JSON.stringify(safe));
 }
 
