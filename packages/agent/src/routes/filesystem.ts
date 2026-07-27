@@ -95,8 +95,16 @@ export async function handleFilesystemRoutes(
 			);
 			const { files, truncated } = parseLsFiles(raw);
 			sendJson(res, { files, truncated, root: cwd });
-		} catch {
-			sendJson(res, { error: 'not a git repository', code: 'not_a_repo' }, 404);
+		} catch (err) {
+			// Ne mappe sur `not_a_repo` que le vrai message de git : maxBuffer dépassé,
+			// binaire git absent ou timeout ne sont pas ce défaut, et le déguiser en
+			// tel rend le message d'erreur trompeur pour l'utilisateur.
+			const stderr = String((err as { stderr?: Buffer | string } | null)?.stderr ?? '');
+			if (stderr.includes('not a git repository')) {
+				sendJson(res, { error: 'not a git repository', code: 'not_a_repo' }, 404);
+			} else {
+				sendJson(res, { error: 'failed to list repository files' }, 500);
+			}
 		}
 		return;
 	}
