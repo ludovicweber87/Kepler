@@ -10,9 +10,12 @@ import { alpha, useTheme } from '@mui/material/styles';
 import { useSearchParams } from 'next/navigation';
 import { SIDEBAR_WIDTH } from './Sidebar';
 import EditorPicker from './EditorPicker';
+import WorktreeScripts from './WorktreeScripts';
 import { useColorMode } from '@/hooks/useColorMode';
 import { THEME_VARIANTS, THEME_VARIANT_SWATCH, type ThemeVariant } from '@/theme/theme';
 import { useAgentSession, useAgentSessionHistory } from '@/hooks/useAgentSession';
+import { useRepoPaths } from '@/hooks/useRepoPaths';
+import { resolveRepoFullName } from '@/lib/resolveRepoFullName';
 import { classifySession } from '@/lib/sessionStatus';
 import { useTranslations } from 'next-intl';
 
@@ -57,6 +60,9 @@ export default function Header() {
 	const activeWorktree =
 		resolved && classifySession(resolved) === 'active' ? resolved.worktree_path : null;
 
+	const { repoPaths } = useRepoPaths();
+	const repoFullName = resolveRepoFullName(resolved, repoPaths);
+
 	return (
 		<AppBar
 			position="fixed"
@@ -73,6 +79,11 @@ export default function Header() {
 		>
 			<Toolbar sx={{ px: { xs: 2, md: 4 }, py: 0.5, justifyContent: 'flex-end' }}>
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+					{/* Scripts declares pour ce repo (worktree actif uniquement) */}
+					{activeWorktree && sessionId && (
+						<WorktreeScripts repoFullName={repoFullName} sessionId={sessionId} />
+					)}
+
 					{/* Open worktree in editor (worktree actif uniquement) */}
 					{activeWorktree && <EditorPicker worktreePath={activeWorktree} />}
 

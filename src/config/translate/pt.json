@@ -246,7 +246,8 @@
 		"showAgents": "Mostrar workers",
 		"openInEditor": "Abrir em…",
 		"editorNotInstalled": "{editor} não está instalado",
-		"editorOpenError": "Não foi possível abrir o editor"
+		"editorOpenError": "Não foi possível abrir o editor",
+		"inThisWorktree": "Neste worktree"
 	},
 	"common": {
 		"loading": "Carregando...",
@@ -534,7 +535,17 @@
 		"qaColumn": "Coluna QA (ao mesclar)",
 		"qaColumnDesc": "Ao mesclar uma PR vinculada a uma issue, a issue é movida para esta coluna e o worktree é arquivado.",
 		"qaColumnNone": "— Não fazer nada",
-		"qaColumnNoBoard": "Nenhum projeto cobre este repo — configure um Project V2 nas configurações."
+		"qaColumnNoBoard": "Nenhum projeto cobre este repo — configure um Project V2 nas configurações.",
+		"scripts": "Scripts",
+		"scriptsDesc": "Comandos exibidos como botões na barra superior quando um worktree deste repo está aberto. O modo terminal abre uma nova aba de terminal; o modo chat envia o comando ao agente.",
+		"scriptName": "Nome",
+		"scriptNamePlaceholder": "Tests",
+		"scriptCommand": "Comando",
+		"scriptMode": "Modo",
+		"scriptModeTerminal": "Terminal",
+		"scriptModeChat": "Chat",
+		"addScript": "Adicionar um script",
+		"deleteScript": "Excluir este script"
 	},
 	"daily": {
 		"title": "Daily",

@@ -146,6 +146,26 @@ export const repoSettings = sqliteTable('repo_settings', {
 	updated_at: timestamp(),
 });
 
+// ─── Repo Scripts ────────────────────────────────────────
+// Commandes déclarées par repo et déclenchées à la main depuis la topbar. À ne
+// pas confondre avec `repo_settings.setup_script` / `archive_script`, qui sont
+// des hooks de cycle de vie du worktree, mono-valeur et sans bouton.
+
+export const repoScripts = sqliteTable(
+	'repo_scripts',
+	{
+		id: uuid(),
+		repo_full_name: text().notNull(),
+		name: text().notNull(),
+		script: text().notNull().default(''),
+		// 'terminal' → nouvel onglet terminal ; 'chat' → message envoyé à l'agent.
+		run_mode: text().notNull().default('terminal'),
+		sort_order: integer().default(0),
+		created_at: timestamp(),
+	},
+	(table) => [index('repo_scripts_repo').on(table.repo_full_name)],
+);
+
 // ─── Project Boards (SQLite cache of the GitHub Project V2 board) ──
 
 export const projectBoards = sqliteTable(

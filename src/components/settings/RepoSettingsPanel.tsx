@@ -8,6 +8,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Button from '@mui/material/Button';
 import { useTranslations } from 'next-intl';
 import { useRepoSettings } from '@/hooks/useRepoSettings';
+import RepoScriptsEditor from '@/components/settings/RepoScriptsEditor';
 import { useProjectConfig } from '@/hooks/useProjectConfig';
 import { resolveConfigForRepo } from '@/lib/repoIssueBoard';
 import { useSnackbar } from '@/hooks/useSnackbar';
@@ -162,6 +163,17 @@ export default function RepoSettingsPanel({ repoFullName }: { repoFullName: stri
 					onChange={(e) => setSetupScript(e.target.value)}
 					placeholder="pnpm install"
 				/>
+			</Box>
+
+			{/* Scripts déclenchés à la main depuis la topbar */}
+			<Box>
+				<Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+					{t('scripts')}
+				</Typography>
+				<Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+					{t('scriptsDesc')}
+				</Typography>
+				<RepoScriptsEditor repoFullName={repoFullName} />
 			</Box>
 
 			{/* Archive script */}

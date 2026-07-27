@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
@@ -16,6 +16,7 @@ import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useProjectConfig } from '@/hooks/useProjectConfig';
 import { useNotificationsStream } from '@/hooks/useNotificationsStream';
 import { OverlayTerminalContext, type OverlaySession } from '@/hooks/useOverlayTerminal';
+import { ScriptRunnerContext, type PendingScriptRun } from '@/hooks/useScriptRunner';
 import { appShadow } from '@/theme/shadows';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -24,6 +25,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 	const { configs } = useProjectConfig();
 	const t = useTranslations('onboarding');
 	const [overlaySession, setOverlaySession] = useState<OverlaySession | null>(null);
+	const [pendingScript, setPendingScript] = useState<PendingScriptRun | null>(null);
+	const scriptNonce = useRef(0);
 	const [onboardingDone, setOnboardingDone] = useState(false);
 	// Captured once (after repo paths load): did the user already have repos on entry?
 	const [skipOnboarding, setSkipOnboarding] = useState<boolean | null>(null);
@@ -34,6 +37,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 	const overlayCtx = useMemo(
 		() => ({ session: overlaySession, open: openOverlay, close: closeOverlay }),
 		[overlaySession, openOverlay, closeOverlay],
+	);
+
+	// Script cliqué dans la topbar, en attente d'exécution par le Workbench. Le nonce
+	// distingue deux clics successifs sur le même script.
+	const runScript = useCallback((payload: Omit<PendingScriptRun, 'nonce'>) => {
+		setPendingScript({ ...payload, nonce: ++scriptNonce.current });
+	}, []);
+	const consumeScript = useCallback(() => setPendingScript(null), []);
+
+	const scriptRunnerCtx = useMemo(
+		() => ({ pending: pendingScript, run: runScript, consume: consumeScript }),
+		[pendingScript, runScript, consumeScript],
 	);
 
 	if (repoPathsLoading) return <AppLoadingSplash />;
@@ -116,24 +131,26 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
 	return (
 		<OverlayTerminalContext.Provider value={overlayCtx}>
-			<Box sx={{ display: 'flex', minHeight: '100vh' }}>
-				<Sidebar />
-				<Header />
-				<Box
-					component="main"
-					sx={{
-						flexGrow: 1,
-						mt: '64px',
-						p: { xs: 2, md: 4 },
-						bgcolor: 'background.default',
-						height: 'calc(100vh - 64px)',
-						overflow: 'auto',
-					}}
-				>
-					{children}
+			<ScriptRunnerContext.Provider value={scriptRunnerCtx}>
+				<Box sx={{ display: 'flex', minHeight: '100vh' }}>
+					<Sidebar />
+					<Header />
+					<Box
+						component="main"
+						sx={{
+							flexGrow: 1,
+							mt: '64px',
+							p: { xs: 2, md: 4 },
+							bgcolor: 'background.default',
+							height: 'calc(100vh - 64px)',
+							overflow: 'auto',
+						}}
+					>
+						{children}
+					</Box>
 				</Box>
-			</Box>
-			<OverlayTerminal />
+				<OverlayTerminal />
+			</ScriptRunnerContext.Provider>
 		</OverlayTerminalContext.Provider>
 	);
 }

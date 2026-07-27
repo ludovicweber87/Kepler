@@ -394,6 +394,24 @@ export interface RepoSettings {
 	qa_column: string;
 }
 
+// ─── Repo Scripts ───────────────────────────────────────────
+
+/** `terminal` ouvre un onglet terminal ; `chat` envoie le script à l'agent. */
+export type RepoScriptRunMode = 'terminal' | 'chat';
+
+export const REPO_SCRIPT_RUN_MODES: RepoScriptRunMode[] = ['terminal', 'chat'];
+
+export interface RepoScript {
+	id: string;
+	repo_full_name: string;
+	name: string;
+	script: string;
+	run_mode: RepoScriptRunMode;
+	sort_order: number;
+	/** Départage deux scripts de même `sort_order`. */
+	created_at: string;
+}
+
 // ─── Daily Recaps ───────────────────────────────────────────
 export interface RecapItem {
 	time: string; // HH:MM local
@@ -545,7 +563,10 @@ export interface DocWithCategories extends Doc {
 // `category_ids` = catégories existantes à lier à la création.
 export type NewDoc = Pick<Doc, 'subject'> &
 	Partial<
-		Pick<Doc, 'title' | 'source_type' | 'repo_full_name' | 'level' | 'length' | 'format' | 'angle'>
+		Pick<
+			Doc,
+			'title' | 'source_type' | 'repo_full_name' | 'level' | 'length' | 'format' | 'angle'
+		>
 	> & { category_ids?: string[] };
 
 // Payload de mise à jour : id requis, tout le reste optionnel.

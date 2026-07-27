@@ -267,7 +267,8 @@
 		"showAgents": "Afficher workers",
 		"openInEditor": "Ouvrir dans…",
 		"editorNotInstalled": "{editor} n'est pas installé",
-		"editorOpenError": "Impossible d'ouvrir l'éditeur"
+		"editorOpenError": "Impossible d'ouvrir l'éditeur",
+		"inThisWorktree": "Dans ce worktree"
 	},
 	"common": {
 		"loading": "Chargement...",
@@ -555,7 +556,17 @@
 		"qaColumn": "Colonne QA (au merge)",
 		"qaColumnDesc": "Au merge d'une PR liée à une issue, l'issue est déplacée vers cette colonne et le worktree est archivé.",
 		"qaColumnNone": "— Ne rien faire",
-		"qaColumnNoBoard": "Aucun projet ne couvre ce repo — configure un Project V2 dans les réglages."
+		"qaColumnNoBoard": "Aucun projet ne couvre ce repo — configure un Project V2 dans les réglages.",
+		"scripts": "Scripts",
+		"scriptsDesc": "Commandes affichées en boutons dans la barre du haut quand un worktree de ce repo est ouvert. Le mode terminal ouvre un nouvel onglet terminal ; le mode chat envoie la commande à l'agent.",
+		"scriptName": "Nom",
+		"scriptNamePlaceholder": "Tests",
+		"scriptCommand": "Commande",
+		"scriptMode": "Mode",
+		"scriptModeTerminal": "Terminal",
+		"scriptModeChat": "Chat",
+		"addScript": "Ajouter un script",
+		"deleteScript": "Supprimer ce script"
 	},
 	"daily": {
 		"title": "Daily",

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import IconButton from '@mui/material/IconButton';
@@ -21,34 +21,52 @@ interface TerminalTabsProps {
 	autoStart?: boolean;
 }
 
-export default function TerminalTabs({
-	sessionId,
-	cwd,
-	ready = true,
-	autoStart = true,
-}: TerminalTabsProps) {
+export interface TerminalTabsHandle {
+	/** Ouvre un onglet neuf qui lance `cmd` dès que son PTY est attaché. */
+	openWithCommand: (cmd: string, label?: string) => void;
+}
+
+/** Un onglet : `label` et `initialCommand` ne sont posés que par `openWithCommand`. */
+interface TerminalTab {
+	id: number;
+	label?: string;
+	initialCommand?: string;
+}
+
+const TerminalTabs = forwardRef<TerminalTabsHandle, TerminalTabsProps>(function TerminalTabs(
+	{ sessionId, cwd, ready = true, autoStart = true },
+	ref,
+) {
 	const t = useTranslations('workbench');
 
-	const [terminals, setTerminals] = useState<number[]>(autoStart ? [1] : []);
+	const [terminals, setTerminals] = useState<TerminalTab[]>(autoStart ? [{ id: 1 }] : []);
 	const [activeId, setActiveId] = useState<number>(autoStart ? 1 : -1);
 	const counter = useRef(autoStart ? 2 : 1);
 	const handles = useRef<Map<number, ShellTerminalHandle>>(new Map());
 
-	const addTerminal = useCallback(() => {
+	const addTerminal = useCallback((tab?: Omit<TerminalTab, 'id'>) => {
 		const id = counter.current++;
-		setTerminals((prev) => [...prev, id]);
+		setTerminals((prev) => [...prev, { id, ...tab }]);
 		setActiveId(id);
 	}, []);
+
+	useImperativeHandle(
+		ref,
+		() => ({
+			openWithCommand: (cmd, label) => addTerminal({ label, initialCommand: cmd }),
+		}),
+		[addTerminal],
+	);
 
 	const closeTerminal = useCallback((id: number) => {
 		handles.current.get(id)?.kill();
 		handles.current.delete(id);
 		setTerminals((prev) => {
-			const next = prev.filter((x) => x !== id);
+			const next = prev.filter((x) => x.id !== id);
 			setActiveId((current) => {
 				if (current !== id) return current;
-				const idx = prev.indexOf(id);
-				return next[idx] ?? next[idx - 1] ?? next[0] ?? -1;
+				const idx = prev.findIndex((x) => x.id === id);
+				return (next[idx] ?? next[idx - 1] ?? next[0])?.id ?? -1;
 			});
 			return next;
 		});
@@ -70,14 +88,14 @@ export default function TerminalTabs({
 					overflowX: 'auto',
 				}}
 			>
-				{terminals.map((id) => {
+				{terminals.map(({ id, label }) => {
 					const selected = id === activeId;
 					return (
 						<Chip
 							key={id}
 							size="small"
 							icon={<TerminalRoundedIcon sx={{ fontSize: '14px !important' }} />}
-							label={t('terminalTab', { n: id })}
+							label={label ?? t('terminalTab', { n: id })}
 							onClick={() => setActiveId(id)}
 							onDelete={() => closeTerminal(id)}
 							deleteIcon={
@@ -102,7 +120,7 @@ export default function TerminalTabs({
 				<Tooltip title={t('addTerminal')} arrow>
 					<IconButton
 						size="small"
-						onClick={addTerminal}
+						onClick={() => addTerminal()}
 						sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
 					>
 						<AddRoundedIcon sx={{ fontSize: 18 }} />
@@ -129,14 +147,14 @@ export default function TerminalTabs({
 						<Button
 							size="small"
 							startIcon={<AddRoundedIcon />}
-							onClick={addTerminal}
+							onClick={() => addTerminal()}
 							sx={{ textTransform: 'none' }}
 						>
 							{t('addTerminal')}
 						</Button>
 					</Box>
 				) : (
-					terminals.map((id) => (
+					terminals.map(({ id, initialCommand }) => (
 						<Box
 							key={id}
 							sx={{
@@ -154,6 +172,7 @@ export default function TerminalTabs({
 								cwd={cwd}
 								active={id === activeId}
 								ready={ready}
+								initialCommand={initialCommand}
 							/>
 						</Box>
 					))
@@ -161,4 +180,6 @@ export default function TerminalTabs({
 			</Box>
 		</Box>
 	);
-}
+});
+
+export default TerminalTabs;

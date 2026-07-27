@@ -29,6 +29,7 @@ import { useAgentSessionHistory, useAgentSession } from '@/hooks/useAgentSession
 import { useSessionActions } from '@/hooks/useSessionActions';
 import { useMarkSessionRead } from '@/hooks/useMarkSessionRead';
 import { useOverlayTerminal } from '@/hooks/useOverlayTerminal';
+import { useScriptRunner } from '@/hooks/useScriptRunner';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { classifySession } from '@/lib/sessionStatus';
 import { resolveEffectivePath } from '@/lib/effectivePath';
@@ -48,7 +49,7 @@ import SessionRecap from '@/components/agents/SessionRecap';
 import AgentActivityTab from '@/components/agents/AgentActivityTab';
 import AgentActivityReaderTab from '@/components/agents/AgentActivityReaderTab';
 import AgentIssueTab from '@/components/agents/AgentIssueTab';
-import TerminalTabs from '@/components/agents/TerminalTabs';
+import TerminalTabs, { type TerminalTabsHandle } from '@/components/agents/TerminalTabs';
 import CreationProgress from '@/components/workbench/CreationProgress';
 import FileContentView from '@/components/workbench/FileContentView';
 import EditableSessionName from '@/components/workbench/EditableSessionName';
@@ -201,6 +202,38 @@ export default function Workbench() {
 		available: false,
 		trigger: () => {},
 	});
+
+	// Cibles d'exécution des scripts de la topbar. En `useState` et non en `ref` :
+	// l'effet consommateur doit se rejouer quand une cible devient disponible
+	// (changement de session, reconnexion du chat) alors qu'un script attend déjà.
+	const [chatSend, setChatSend] = useState<((text: string) => void) | null>(null);
+	const [terminalApi, setTerminalApi] = useState<TerminalTabsHandle | null>(null);
+
+	// Identités stables : passées en callback ref / prop d'effet, une nouvelle
+	// identité à chaque render relancerait l'enregistrement en boucle.
+	const handleSendReady = useCallback(
+		(send: ((text: string) => void) | null) => setChatSend(() => send),
+		[],
+	);
+	const handleTerminalRef = useCallback(
+		(api: TerminalTabsHandle | null) => setTerminalApi(api),
+		[],
+	);
+
+	// Exécute le script cliqué dans la topbar. Tant que la cible n'est pas prête,
+	// l'action reste en attente dans le contexte et l'effet se rejoue.
+	const { pending: pendingScript, consume: consumeScript } = useScriptRunner();
+	useEffect(() => {
+		if (!pendingScript || pendingScript.sessionId !== sessionId) return;
+		if (pendingScript.mode === 'chat') {
+			if (!chatSend) return;
+			chatSend(pendingScript.script);
+		} else {
+			if (!terminalApi) return;
+			terminalApi.openWithCommand(pendingScript.script, pendingScript.name);
+		}
+		consumeScript();
+	}, [pendingScript, sessionId, chatSend, terminalApi, consumeScript]);
 
 	const effectivePath = useMemo(
 		() =>
@@ -514,6 +547,7 @@ export default function Workbench() {
 									onOpenChanges={openChanges}
 									onCreatePrStateChange={setPrState}
 									onCommitPushStateChange={setCommitPushState}
+									onSendReady={handleSendReady}
 									onTurnComplete={() => {
 										queryClient.invalidateQueries({ queryKey: ['git-diff'] });
 										queryClient.invalidateQueries({ queryKey: ['git-status'] });
@@ -609,6 +643,7 @@ export default function Workbench() {
 				terminal={
 					<TerminalTabs
 						key={sessionId}
+						ref={handleTerminalRef}
 						sessionId={sessionId}
 						cwd={effectivePath}
 						ready={!!resolved}

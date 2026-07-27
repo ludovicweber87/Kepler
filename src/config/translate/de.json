@@ -245,7 +245,8 @@
 		"showAgents": "Workers einblenden",
 		"openInEditor": "Öffnen in…",
 		"editorNotInstalled": "{editor} ist nicht installiert",
-		"editorOpenError": "Editor konnte nicht geöffnet werden"
+		"editorOpenError": "Editor konnte nicht geöffnet werden",
+		"inThisWorktree": "In diesem Worktree"
 	},
 	"common": {
 		"loading": "Wird geladen...",
@@ -533,7 +534,17 @@
 		"qaColumn": "QA-Spalte (beim Merge)",
 		"qaColumnDesc": "Beim Merge einer mit einer Issue verknüpften PR wird die Issue in diese Spalte verschoben und der Worktree archiviert.",
 		"qaColumnNone": "— Nichts tun",
-		"qaColumnNoBoard": "Kein Projekt deckt dieses Repo ab — konfiguriere ein Project V2 in den Einstellungen."
+		"qaColumnNoBoard": "Kein Projekt deckt dieses Repo ab — konfiguriere ein Project V2 in den Einstellungen.",
+		"scripts": "Skripte",
+		"scriptsDesc": "Befehle, die als Schaltflächen in der oberen Leiste erscheinen, wenn ein Worktree dieses Repos geöffnet ist. Der Terminal-Modus öffnet einen neuen Terminal-Tab; der Chat-Modus sendet den Befehl an den Agenten.",
+		"scriptName": "Name",
+		"scriptNamePlaceholder": "Tests",
+		"scriptCommand": "Befehl",
+		"scriptMode": "Modus",
+		"scriptModeTerminal": "Terminal",
+		"scriptModeChat": "Chat",
+		"addScript": "Skript hinzufügen",
+		"deleteScript": "Dieses Skript löschen"
 	},
 	"daily": {
 		"title": "Daily",

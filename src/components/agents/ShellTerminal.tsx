@@ -18,6 +18,12 @@ interface ShellTerminalProps {
 	cwd: string | null;
 	active: boolean;
 	ready?: boolean;
+	/**
+	 * Commande lancée une seule fois, dès que le PTY est attaché (`init-ack`).
+	 * Passer par le handle `runCommand` ne conviendrait pas : rien ne garantit que
+	 * le socket soit ouvert au moment de l'appel.
+	 */
+	initialCommand?: string;
 }
 
 export interface ShellTerminalHandle {
@@ -27,7 +33,7 @@ export interface ShellTerminalHandle {
 }
 
 const ShellTerminal = forwardRef<ShellTerminalHandle, ShellTerminalProps>(function ShellTerminal(
-	{ shellSessionId, cwd, active, ready = true },
+	{ shellSessionId, cwd, active, ready = true, initialCommand },
 	ref,
 ) {
 	const theme = useTheme();
@@ -41,6 +47,9 @@ const ShellTerminal = forwardRef<ShellTerminalHandle, ShellTerminalProps>(functi
 	const disposedRef = useRef(false);
 	// Rappelle la reconnexion du socket PTY (défini par l'effet d'init).
 	const reconnectRef = useRef<(() => void) | null>(null);
+	// `initialCommand` n'est envoyée qu'une fois : une reconnexion au réveil refait un
+	// `init` et donc un `init-ack`, qui ne doit pas relancer la commande.
+	const initialCommandSent = useRef(false);
 
 	// Thème xterm dérivé du thème MUI (suit le mode clair/sombre choisi).
 	const xtermTheme = useMemo(
@@ -151,7 +160,20 @@ const ShellTerminal = forwardRef<ShellTerminalHandle, ShellTerminalProps>(functi
 				if (typeof event.data === 'string') {
 					try {
 						const msg = JSON.parse(event.data);
-						if (msg.type === 'init-ack') return;
+						if (msg.type === 'init-ack') {
+							// `initialCommand` est figée à la création de l'onglet, donc
+							// la lire dans cette closure suffit.
+							if (initialCommand && !initialCommandSent.current) {
+								initialCommandSent.current = true;
+								ws.send(
+									JSON.stringify({
+										type: 'input',
+										data: initialCommand + '\r',
+									}),
+								);
+							}
+							return;
+						}
 					} catch {
 						/* terminal output */
 					}
