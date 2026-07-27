@@ -1070,34 +1070,6 @@ export default function AgentTerminalModal({
 						{tl('branchDesc')}
 					</Typography>
 
-					{/* F2 — optional GitHub issue for agent context (hidden when launched from an issue) */}
-					{!issueContext && (
-						<Box sx={{ width: '100%', maxWidth: 500 }}>
-							<TextField
-								fullWidth
-								size="small"
-								placeholder={tl('issueUrl')}
-								value={issueUrl}
-								onChange={(e) => setIssueUrl(e.target.value)}
-								onBlur={() => issueUrl.trim() && fetchIssueContext(issueUrl.trim())}
-								disabled={isCreating}
-								InputProps={{
-									endAdornment: issueFetching ? (
-										<CircularProgress size={14} />
-									) : undefined,
-								}}
-							/>
-							{issueLoaded && (
-								<Typography
-									variant="caption"
-									sx={{ color: 'success.main', mt: 0.5, display: 'block' }}
-								>
-									✓ {issueLoaded}
-								</Typography>
-							)}
-						</Box>
-					)}
-
 					{/* Récap de l'agent / des réglages choisis aux étapes précédentes */}
 					<Box
 						sx={{
@@ -1152,6 +1124,34 @@ export default function AgentTerminalModal({
 							sx={{ height: 24, fontSize: '0.7rem' }}
 						/>
 					</Box>
+
+					{/* F2 — optional GitHub issue for agent context (hidden when launched from an issue) */}
+					{!issueContext && (
+						<Box sx={{ width: '100%', maxWidth: 500 }}>
+							<TextField
+								fullWidth
+								size="small"
+								placeholder={tl('issueUrl')}
+								value={issueUrl}
+								onChange={(e) => setIssueUrl(e.target.value)}
+								onBlur={() => issueUrl.trim() && fetchIssueContext(issueUrl.trim())}
+								disabled={isCreating}
+								InputProps={{
+									endAdornment: issueFetching ? (
+										<CircularProgress size={14} />
+									) : undefined,
+								}}
+							/>
+							{issueLoaded && (
+								<Typography
+									variant="caption"
+									sx={{ color: 'success.main', mt: 0.5, display: 'block' }}
+								>
+									✓ {issueLoaded}
+								</Typography>
+							)}
+						</Box>
+					)}
 
 					<Box
 						component="form"
