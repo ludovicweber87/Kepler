@@ -113,9 +113,15 @@ export function flattenVisible(nodes: TreeNode[], expanded: Set<string>): Visibl
 /**
  * Vrai si `activePath` désigne `nodePath`. L'onglet gauche actif peut porter un
  * chemin absolu alors que l'arbre est relatif : on tolère le match par suffixe,
- * comme `matchFileDiff`.
+ * comme `matchFileDiff`. Un `nodePath` à un seul segment (fichier ou dossier
+ * racine, ex. `README.md`) n'a aucune frontière de dossier à faire valoir : il
+ * serait un « suffixe complet » tout aussi valide d'un `docs/README.md` situé
+ * ailleurs dans l'arbre. Seule l'égalité stricte est donc fiable dans ce cas ;
+ * le match par suffixe reste réservé aux chemins à plusieurs segments.
  */
 export function isActivePath(nodePath: string, activePath: string | null): boolean {
 	if (!activePath) return false;
-	return activePath === nodePath || activePath.endsWith(`/${nodePath}`);
+	if (activePath === nodePath) return true;
+	if (!nodePath.includes('/')) return false;
+	return activePath.endsWith(`/${nodePath}`);
 }

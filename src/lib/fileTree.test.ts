@@ -130,4 +130,12 @@ describe('isActivePath', () => {
 	it("ne confond pas deux fichiers dont un nom est le suffixe de l'autre", () => {
 		expect(isActivePath('src/a.ts', '/Users/x/repo/src/bba.ts')).toBe(false);
 	});
+
+	it('ne confond pas un fichier racine avec un homonyme dans un sous-dossier', () => {
+		expect(isActivePath('README.md', '/Users/x/repo/docs/README.md')).toBe(false);
+	});
+
+	it('reconnaît toujours le fichier imbriqué correspondant dans ce même scénario', () => {
+		expect(isActivePath('docs/README.md', '/Users/x/repo/docs/README.md')).toBe(true);
+	});
 });

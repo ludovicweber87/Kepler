@@ -51,10 +51,17 @@ function getHighlighter(): Promise<Highlighter> {
 	return highlighterPromise;
 }
 
-/** Rendu monospace sans couleur : état d'attente et repli si shiki échoue. */
+/**
+ * Rendu monospace sans couleur : état d'attente et repli si shiki échoue.
+ * `pl` réserve la même largeur que la gouttière de `.line::before` ci-dessous
+ * (3.5em + 12px de marge + 8px de padding) : sans ça, ouvrir un 2e fichier
+ * peint d'abord ce repli sans gouttière puis shiki avec, et le code saute
+ * horizontalement d'environ 5em entre les deux peintures.
+ */
 const plainSx = {
 	m: 0,
-	px: 1.5,
+	pl: 'calc(3.5em + 20px)',
+	pr: 1.5,
 	py: 1,
 	minWidth: 'max-content',
 	color: 'text.primary',
