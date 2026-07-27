@@ -9,6 +9,7 @@ import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import { useTranslations } from 'next-intl';
 import { useColorMode } from '@/hooks/useColorMode';
 import { useThemePrefs } from '@/hooks/useThemePrefs';
@@ -22,6 +23,7 @@ import {
 	type ThemePrefs,
 } from '@/lib/themePrefs';
 import { APP_FONT_MIN, APP_FONT_MAX } from '@/lib/appFontScale';
+import ColorPickerPopover from './ColorPickerPopover';
 
 export default function AppearanceSettings() {
 	const t = useTranslations('appearance');
@@ -63,6 +65,8 @@ export default function AppearanceSettings() {
 					{THEME_VARIANTS.map((v) => {
 						const [c1, c2] = THEME_VARIANT_SWATCH[v];
 						const selected = v === variant;
+						// Le thème custom n'a pas de couleur fixe : carré neutre « à définir ».
+						const isCustom = v === 'custom';
 						return (
 							<Box
 								key={v}
@@ -81,13 +85,23 @@ export default function AppearanceSettings() {
 									height: 44,
 									borderRadius: 1.5,
 									cursor: 'pointer',
-									background: `linear-gradient(135deg, ${c1} 50%, ${c2} 50%)`,
+									display: 'flex',
+									alignItems: 'center',
+									justifyContent: 'center',
+									color: 'text.secondary',
+									background: isCustom
+										? 'transparent'
+										: `linear-gradient(135deg, ${c1} 50%, ${c2} 50%)`,
 									border: 2,
+									borderStyle: isCustom ? 'dashed' : 'solid',
 									borderColor: selected ? 'primary.main' : 'divider',
 									boxShadow: selected ? 3 : 0,
 									transition: 'all 0.15s ease',
+									'&:hover': { borderColor: 'primary.main' },
 								}}
-							/>
+							>
+								{isCustom && <AddRoundedIcon fontSize="small" />}
+							</Box>
 						);
 					})}
 				</Box>
@@ -136,6 +150,7 @@ export default function AppearanceSettings() {
 								label={t(`colors.${key}`)}
 								placeholder={t('hexPlaceholder')}
 								invalidLabel={t('hexInvalid')}
+								pickLabel={t('pickColor', { label: t(`colors.${key}`) })}
 								value={draft.customTokens[key]}
 								onColor={(hex) => setColor(key, hex)}
 							/>
@@ -240,17 +255,20 @@ function ColorField({
 	label,
 	placeholder,
 	invalidLabel,
+	pickLabel,
 	value,
 	onColor,
 }: {
 	label: string;
 	placeholder: string;
 	invalidLabel: string;
+	pickLabel: string;
 	value: string;
 	onColor: (hex: string) => void;
 }) {
 	const [text, setText] = useState(value);
 	const [lastValue, setLastValue] = useState(value);
+	const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
 	// Re-sync when the stored value changes from the outside (e.g. prefs reload),
 	// but keep the raw text the user is currently typing if it already resolves
@@ -271,7 +289,17 @@ function ColorField({
 			</Typography>
 			<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
 				<Box
-					aria-hidden
+					role="button"
+					tabIndex={0}
+					aria-label={pickLabel}
+					aria-haspopup="dialog"
+					onClick={(e) => setAnchorEl(e.currentTarget)}
+					onKeyDown={(e) => {
+						if (e.key === 'Enter' || e.key === ' ') {
+							if (e.key === ' ') e.preventDefault();
+							setAnchorEl(e.currentTarget);
+						}
+					}}
 					sx={{
 						width: 28,
 						height: 28,
@@ -280,7 +308,19 @@ function ColorField({
 						borderColor: 'divider',
 						borderRadius: 1,
 						bgcolor: swatch,
+						cursor: 'pointer',
+						transition: 'border-color 0.15s ease',
+						'&:hover, &:focus-visible': { borderColor: 'primary.main' },
 					}}
+				/>
+				<ColorPickerPopover
+					anchorEl={anchorEl}
+					value={swatch}
+					onChange={(hex) => {
+						setText(hex);
+						onColor(hex);
+					}}
+					onClose={() => setAnchorEl(null)}
 				/>
 				<TextField
 					size="small"

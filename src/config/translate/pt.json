@@ -216,6 +216,7 @@
 		"saved": "Aparência guardada",
 		"hexPlaceholder": "#7C5CFF",
 		"hexInvalid": "Código HEX inválido",
+		"pickColor": "Escolher a cor: {label}",
 		"colors": {
 			"primary": "Primário",
 			"secondary": "Secundário",

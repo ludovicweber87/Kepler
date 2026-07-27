@@ -215,6 +215,7 @@
 		"saved": "Erscheinungsbild gespeichert",
 		"hexPlaceholder": "#7C5CFF",
 		"hexInvalid": "Ungültiger HEX-Code",
+		"pickColor": "Farbe wählen: {label}",
 		"colors": {
 			"primary": "Primär",
 			"secondary": "Sekundär",
