@@ -1,53 +1,39 @@
 'use client';
 
 import Box from '@mui/material/Box';
-import {
-	LOGO_LETTER_SPACING_EM,
-	LOGO_MARK_HEIGHT_EM,
-	LOGO_MARK_PATHS,
-	LOGO_MARK_VIEWBOX,
-	LOGO_MARK_WIDTH_EM,
-	LOGO_NAME,
-	LOGO_WORDMARK,
-} from './logoMark';
+
+const LOGO_NAME = 'Devora';
+const LOGO_SRC = '/logo.png';
+
+// public/logo.png : lockup vertical (goutte + wordmark), recadré au plus juste sur les tracés.
+const LOGO_ASPECT_RATIO = 500 / 286;
 
 type LogoProps = {
-	fontSize?: number;
+	width?: number;
 };
 
-export default function Logo({ fontSize = 32 }: LogoProps) {
+// Le lockup est un raster noir sur fond transparent : on l'utilise en masque plutôt qu'en
+// <img>, pour que la couleur reste pilotée par le thème (et donc lisible en dark comme en light).
+export default function Logo({ width = 220 }: LogoProps) {
 	return (
 		<Box
 			role="img"
 			aria-label={LOGO_NAME}
 			sx={{
-				display: 'inline-flex',
-				alignItems: 'baseline',
+				width,
 				maxWidth: '100%',
-				color: 'primary.main',
-				fontSize: `${fontSize}px`,
-				fontWeight: 700,
-				lineHeight: 1,
-				letterSpacing: `${LOGO_LETTER_SPACING_EM}em`,
+				aspectRatio: `${LOGO_ASPECT_RATIO}`,
+				bgcolor: 'primary.main',
+				maskImage: `url(${LOGO_SRC})`,
+				WebkitMaskImage: `url(${LOGO_SRC})`,
+				maskSize: 'contain',
+				WebkitMaskSize: 'contain',
+				maskRepeat: 'no-repeat',
+				WebkitMaskRepeat: 'no-repeat',
+				maskPosition: 'center',
+				WebkitMaskPosition: 'center',
 				userSelect: 'none',
 			}}
-		>
-			<Box component="span">{LOGO_WORDMARK}</Box>
-			<Box
-				component="svg"
-				aria-hidden
-				viewBox={LOGO_MARK_VIEWBOX}
-				sx={{
-					width: `${LOGO_MARK_WIDTH_EM}em`,
-					height: `${LOGO_MARK_HEIGHT_EM}em`,
-					flexShrink: 0,
-					fill: 'currentColor',
-				}}
-			>
-				{LOGO_MARK_PATHS.map((d) => (
-					<path key={d} d={d} />
-				))}
-			</Box>
-		</Box>
+		/>
 	);
 }
