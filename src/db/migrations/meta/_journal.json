@@ -176,6 +176,13 @@
       "when": 1786100000000,
       "tag": "0024_timestamps_utc",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1786200000000,
+      "tag": "0025_repo_scripts",
+      "breakpoints": true
     }
   ]
 }
