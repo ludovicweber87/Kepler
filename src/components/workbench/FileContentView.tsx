@@ -82,6 +82,10 @@ export default function FileContentView({ cwd, path }: { cwd: string | null; pat
 						borderRight: 1,
 						borderColor: 'divider',
 						flexShrink: 0,
+						position: 'sticky',
+						left: 0,
+						zIndex: 1,
+						bgcolor: 'background.paper',
 					}}
 				>
 					{gutter}
@@ -92,7 +96,8 @@ export default function FileContentView({ cwd, path }: { cwd: string | null; pat
 						m: 0,
 						px: 1.5,
 						py: 1,
-						flex: 1,
+						flexShrink: 0,
+						minWidth: 'max-content',
 						color: 'text.primary',
 						fontFamily: FONT,
 						fontSize: '0.78rem',
