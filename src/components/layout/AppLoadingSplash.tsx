@@ -32,7 +32,7 @@ export default function AppLoadingSplash() {
 				animation: `${fadeIn} 0.4s ease-out`,
 			}}
 		>
-			<Logo width={260} />
+			<Logo width={170} />
 			<LinearProgress
 				sx={{
 					mt: 3,
