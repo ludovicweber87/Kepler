@@ -77,24 +77,32 @@ export default function FileExplorerTab({ cwd, activePath, onOpenFile }: FileExp
 
 	const tree = useMemo(() => buildFileTree(files), [files]);
 	const { nodes, expand } = useMemo(() => filterTree(tree, deferredQuery), [tree, deferredQuery]);
+	// Précédent `expand` : sert à isoler les dossiers nouvellement matchés d'une
+	// frappe à l'autre (voir branche « filtre en cours » ci-dessous).
+	const [prevExpand, setPrevExpand] = useState(expand);
 
 	// Même pattern qu'au-dessus, appliqué à la transition du filtre. Démarrage :
 	// on fige l'état courant puis on révèle les matches dans `expanded`. Fin : on
 	// restaure l'état figé tel quel. Tant que le filtre reste actif, chaque
-	// changement de requête re-révèle ses nouveaux matches sans écraser les
-	// dépliages faits entretemps — mais jamais de fusion permanente des deux sets.
+	// changement de requête ne révèle que les dossiers qui matchent pour la
+	// première fois (absents de l'ancien `expand`) : un dossier déjà présent dans
+	// l'ancien et le nouveau `expand` n'est pas réinjecté, ce qui laisse survivre
+	// un clic de fermeture fait pendant que le filtre reste actif. Jamais de
+	// fusion permanente des deux sets, jamais de clic annulé.
 	if (deferredQuery !== prevQuery) {
 		const wasFiltering = prevQuery.trim() !== '';
 		const isFiltering = deferredQuery.trim() !== '';
 		setPrevQuery(deferredQuery);
+		setPrevExpand(expand);
 		if (!wasFiltering && isFiltering) {
 			setPreFilterExpanded(expanded);
-			setExpanded(new Set([...expanded, ...expand]));
+			setExpanded((prev) => new Set([...prev, ...expand]));
 		} else if (wasFiltering && !isFiltering) {
 			setExpanded(preFilterExpanded ?? expanded);
 			setPreFilterExpanded(null);
 		} else if (isFiltering) {
-			setExpanded((prev) => new Set([...prev, ...expand]));
+			const newlyMatched = [...expand].filter((path) => !prevExpand.has(path));
+			setExpanded((prev) => new Set([...prev, ...newlyMatched]));
 		}
 	}
 
