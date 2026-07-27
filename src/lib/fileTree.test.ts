@@ -79,6 +79,12 @@ describe('filterTree', () => {
 	it('renvoie un arbre vide quand rien ne correspond', () => {
 		expect(filterTree(tree, 'zzz').nodes).toEqual([]);
 	});
+
+	it("ne déplie qu'un niveau sous un dossier qui correspond", () => {
+		const tree = buildFileTree(['src/lib/a.ts', 'src/hooks/b.ts']);
+		const res = filterTree(tree, 'src');
+		expect([...res.expand]).toEqual(['src']);
+	});
 });
 
 describe('flattenVisible', () => {

@@ -12,7 +12,7 @@ export interface VisibleNode extends TreeNode {
 
 export interface FilterResult {
 	nodes: TreeNode[];
-	/** Dossiers à déplier pour révéler les correspondances. */
+	/** Dossiers dont le chemin correspond : dépliés un seul niveau. Descendants d'un dossier match gardent leur état de repliage (choix délibéré pour éviter de noyer le panneau sur une requête large). */
 	expand: Set<string>;
 }
 
