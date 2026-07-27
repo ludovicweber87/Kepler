@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Box from '@mui/material/Box';
@@ -15,6 +15,7 @@ import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import SvgIcon, { type SvgIconProps } from '@mui/material/SvgIcon';
 import Tooltip from '@mui/material/Tooltip';
+import CircularProgress from '@mui/material/CircularProgress';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Dialog from '@mui/material/Dialog';
@@ -46,6 +47,7 @@ import { useMe } from '@/hooks/useMe';
 import { useTranslations } from 'next-intl';
 import { appShadow } from '@/theme/shadows';
 import { useAgentSessionHistory } from '@/hooks/useAgentSession';
+import { useGeneratingDocsCount } from '@/hooks/useDocs';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useMarkNotifications } from '@/hooks/useMarkNotifications';
 import { unreadAgentIdsBySession } from '@/lib/notificationsReducer';
@@ -82,6 +84,7 @@ export default function Sidebar() {
 	const router = useRouter();
 	const { me } = useMe();
 	const t = useTranslations('sidebar');
+	const generatingDocs = useGeneratingDocsCount();
 	const { notifications } = useNotifications();
 	const { markRead } = useMarkNotifications();
 	// Ids des notifs d'agent non lues, groupés par session → pastille sur le worktree.
@@ -281,11 +284,40 @@ export default function Sidebar() {
 			setRenameBusy(false);
 		}
 	};
-	const mainItems = [
+	const mainItems: {
+		label: string;
+		href: string;
+		icon: ReactNode;
+		adornment?: ReactNode;
+	}[] = [
 		{ label: t('issues'), href: '/issues', icon: <BugReportRoundedIcon /> },
 		{ label: t('prs'), href: '/prs', icon: <MergeTypeRoundedIcon /> },
 		{ label: t('tasks'), href: '/tasks', icon: <ChecklistRoundedIcon /> },
-		{ label: t('docs'), href: '/docs', icon: <MenuBookRoundedIcon /> },
+		{
+			label: t('docs'),
+			href: '/docs',
+			icon: <MenuBookRoundedIcon />,
+			adornment: generatingDocs > 0 && (
+				<Tooltip title={t('docsGenerating', { count: generatingDocs })}>
+					<Box
+						sx={{
+							display: 'flex',
+							alignItems: 'center',
+							gap: 0.5,
+							color: 'primary.light',
+						}}
+					>
+						<CircularProgress size={12} thickness={5} color="inherit" />
+						<Typography
+							component="span"
+							sx={{ fontSize: '0.7rem', fontWeight: 700, lineHeight: 1 }}
+						>
+							{generatingDocs}
+						</Typography>
+					</Box>
+				</Tooltip>
+			),
+		},
 		// "Daily" reste non traduit dans toutes les locales (choix produit).
 		{ label: 'Daily', href: '/daily', icon: <TodayRoundedIcon /> },
 	];
@@ -388,6 +420,7 @@ export default function Sidebar() {
 												fontWeight: 500,
 											}}
 										/>
+										{item.adornment}
 									</ListItemButton>
 								</Link>
 							);

@@ -40,7 +40,8 @@
 		"unreadAgentNotification": "Unread agent notification",
 		"prOpen": "Open PR",
 		"tasks": "Tasks",
-		"docs": "Docs"
+		"docs": "Docs",
+		"docsGenerating": "{count, plural, one {# doc generating} other {# docs generating}}"
 	},
 	"landing": {
 		"nav": {
