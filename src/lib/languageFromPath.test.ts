@@ -13,7 +13,7 @@ describe('languageFromPath', () => {
 		expect(languageFromPath('ci.yml')).toBe('yaml');
 	});
 
-	it('est insensible a la casse de l extension', () => {
+	it("est insensible à la casse de l'extension", () => {
 		expect(languageFromPath('A.TS')).toBe('typescript');
 	});
 
@@ -27,12 +27,12 @@ describe('languageFromPath', () => {
 		expect(languageFromPath('.gitignore')).toBe('ini');
 	});
 
-	it('mappe un nom complet suffixe', () => {
+	it('mappe un nom complet suffixé', () => {
 		expect(languageFromPath('.env.local')).toBe('ini');
 		expect(languageFromPath('Dockerfile.dev')).toBe('dockerfile');
 	});
 
-	it('utilise la derniere extension d un nom a plusieurs points', () => {
+	it("utilise la dernière extension d'un nom à plusieurs points", () => {
 		expect(languageFromPath('.eslintrc.json')).toBe('json');
 		expect(languageFromPath('vitest.config.ts')).toBe('typescript');
 	});
@@ -52,7 +52,7 @@ describe('SHIKI_LANGUAGES', () => {
 		expect(new Set(SHIKI_LANGUAGES).size).toBe(SHIKI_LANGUAGES.length);
 	});
 
-	it('n inclut pas le fallback, que shiki traite comme un langage special', () => {
+	it("n'inclut pas le fallback, que shiki traite comme un langage spécial", () => {
 		expect(SHIKI_LANGUAGES).not.toContain(FALLBACK_LANGUAGE);
 	});
 
