@@ -41,7 +41,7 @@ import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined';
 import Collapse from '@mui/material/Collapse';
 import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
 import TheaterComedyRoundedIcon from '@mui/icons-material/TheaterComedyRounded';
-import Image from 'next/image';
+import Logo from './Logo';
 import { useMe } from '@/hooks/useMe';
 import { useTranslations } from 'next-intl';
 import { appShadow } from '@/theme/shadows';
@@ -320,7 +320,7 @@ export default function Sidebar() {
 						animation: 'scaleIn 0.4s ease-out',
 					}}
 				>
-					<Image src="/logo.svg" alt="Devora" width={170} height={40} priority />
+					<Logo fontSize={30} />
 				</Box>
 
 				<Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>

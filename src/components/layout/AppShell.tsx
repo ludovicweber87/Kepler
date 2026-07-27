@@ -4,13 +4,13 @@ import { useState, useMemo, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
-import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import OverlayTerminal from './OverlayTerminal';
 import AppLoadingSplash from './AppLoadingSplash';
+import Logo from './Logo';
 import SettingsPanel from '@/components/settings/SettingsPanel';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useProjectConfig } from '@/hooks/useProjectConfig';
@@ -62,7 +62,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 						pb: 12,
 					}}
 				>
-					<Image src="/logo.svg" alt="Devora" width={200} height={48} priority />
+					<Logo fontSize={36} />
 					<Typography
 						variant="h5"
 						sx={{ fontWeight: 700, mt: 4, mb: 1, color: 'text.primary' }}

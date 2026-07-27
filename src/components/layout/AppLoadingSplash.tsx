@@ -2,9 +2,9 @@
 
 import Box from '@mui/material/Box';
 import LinearProgress from '@mui/material/LinearProgress';
-import Image from 'next/image';
 import { keyframes } from '@emotion/react';
 import { alpha, useTheme } from '@mui/material/styles';
+import Logo from './Logo';
 
 const fadeIn = keyframes`
   from {
@@ -32,7 +32,7 @@ export default function AppLoadingSplash() {
 				animation: `${fadeIn} 0.4s ease-out`,
 			}}
 		>
-			<Image src="/logo.svg" alt="Devora" width={170} height={40} priority />
+			<Logo fontSize={30} />
 			<LinearProgress
 				sx={{
 					mt: 3,
