@@ -4,6 +4,7 @@
 --    filtre pas sur event_type : ces lignes seraient parsées comme des StreamEvent
 --    et rejouées en vrac dans le nouveau chat.
 DELETE FROM agent_chat_messages WHERE event_type = 'doc_refine';
+--> statement-breakpoint
 
 -- 2. `startOrAttach` reprend inconditionnellement claude_session_id depuis la DB.
 --    Sans ce reset, le premier chat d'une doc DÉJÀ générée reprendrait la session

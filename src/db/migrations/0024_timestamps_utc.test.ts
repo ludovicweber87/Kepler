@@ -26,10 +26,12 @@ function seed() {
  */
 function applyFor(db: Database.Database, tables: string[]) {
 	const wanted = new Set(tables);
-	for (const stmt of MIGRATION.split(';')) {
+	for (const stmt of MIGRATION.split('--> statement-breakpoint')) {
 		const s = stmt.trim();
 		if (!s) continue;
-		const table = /^UPDATE\s+(\w+)\s/.exec(s)?.[1];
+		// Le premier bloc porte aussi l'en-tête de commentaire : on cherche l'UPDATE
+		// où qu'il soit dans le bloc, plutôt que d'exiger qu'il l'ouvre.
+		const table = /^UPDATE\s+(\w+)\s/m.exec(s)?.[1];
 		if (table && wanted.has(table)) db.exec(s);
 	}
 }
