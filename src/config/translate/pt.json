@@ -199,7 +199,16 @@
 		"assigneeLabel": "Login do GitHub",
 		"assigneeHelp": "Vazio = usuário atual do gh CLI",
 		"assigneeInvalid": "Usuário do GitHub não encontrado",
-		"assigneeSaved": "Usuário do GitHub salvo"
+		"assigneeSaved": "Usuário do GitHub salvo",
+		"notifications": {
+			"title": "Notificações",
+			"os": "Notificações do sistema",
+			"osDesc": "Mostra uma notificação do sistema quando um agente termina, falha ou faz uma pergunta. Apenas quando o Devora não está em primeiro plano.",
+			"osDenied": "As notificações estão bloqueadas para este site. Permita-as nas definições do teu navegador.",
+			"osUnsupported": "O teu navegador não suporta notificações.",
+			"sound": "Som de notificação",
+			"soundDesc": "Reproduz um toque breve a cada nova notificação."
+		}
 	},
 	"appearance": {
 		"title": "Aparência",

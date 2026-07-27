@@ -33,10 +33,12 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import PaletteRoundedIcon from '@mui/icons-material/PaletteRounded';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
+import NotificationsRoundedIcon from '@mui/icons-material/NotificationsRounded';
 import type { OrgWithProjects } from './projectListUtils';
 import { ProjectList } from './ProjectList';
 import AppearanceSettings from './AppearanceSettings';
 import GitHubAssigneeSettings from './GitHubAssigneeSettings';
+import NotificationSettings from './NotificationSettings';
 import { useProjectConfig } from '@/hooks/useProjectConfig';
 import { useTranslations } from 'next-intl';
 import { localFetch } from '@/lib/local-fetch';
@@ -269,6 +271,7 @@ export default function SettingsPanel() {
 	const t = useTranslations('settings');
 	const tc = useTranslations('common');
 	const tAppearance = useTranslations('appearance');
+	const tNotif = useTranslations('settings.notifications');
 	const { configs, configsLoading, saveConfig, clearConfig } = useProjectConfig();
 	const { repoPaths, savePath, deletePath } = useRepoPaths();
 	const { isAgentOnline } = useAgentStatus();
@@ -562,6 +565,34 @@ export default function SettingsPanel() {
 					</AccordionSummary>
 					<AccordionDetails sx={{ px: 2, pb: 2 }}>
 						<GitHubAssigneeSettings />
+					</AccordionDetails>
+				</Accordion>
+
+				{/* Accordion: Notifications */}
+				<Accordion
+					disableGutters
+					sx={{
+						bgcolor: 'transparent',
+						boxShadow: 'none',
+						'&:before': { display: 'none' },
+						border: 1,
+						borderColor: 'divider',
+						borderRadius: '8px !important',
+						overflow: 'hidden',
+					}}
+				>
+					<AccordionSummary expandIcon={<ExpandMoreRoundedIcon />} sx={{ px: 2 }}>
+						<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1 }}>
+							<NotificationsRoundedIcon
+								sx={{ color: 'text.secondary', fontSize: 22 }}
+							/>
+							<Typography variant="h6" sx={{ fontWeight: 600 }}>
+								{tNotif('title')}
+							</Typography>
+						</Box>
+					</AccordionSummary>
+					<AccordionDetails sx={{ px: 2, pb: 2 }}>
+						<NotificationSettings />
 					</AccordionDetails>
 				</Accordion>
 

@@ -220,7 +220,16 @@
 		"assigneeLabel": "Login GitHub",
 		"assigneeHelp": "Vide = utilisateur gh CLI courant",
 		"assigneeInvalid": "Utilisateur GitHub introuvable",
-		"assigneeSaved": "Utilisateur GitHub enregistré"
+		"assigneeSaved": "Utilisateur GitHub enregistré",
+		"notifications": {
+			"title": "Notifications",
+			"os": "Notifications système",
+			"osDesc": "Affiche une notification de ton système quand un agent termine, échoue ou pose une question. Uniquement quand Devora n'est pas au premier plan.",
+			"osDenied": "Les notifications sont bloquées pour ce site. Autorise-les dans les réglages de ton navigateur.",
+			"osUnsupported": "Ton navigateur ne supporte pas les notifications.",
+			"sound": "Son de notification",
+			"soundDesc": "Joue un carillon court à chaque nouvelle notification."
+		}
 	},
 	"appearance": {
 		"title": "Apparence",

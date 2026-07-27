@@ -220,7 +220,16 @@
 		"assigneeLabel": "GitHub login",
 		"assigneeHelp": "Empty = current gh CLI user",
 		"assigneeInvalid": "GitHub user not found",
-		"assigneeSaved": "GitHub user saved"
+		"assigneeSaved": "GitHub user saved",
+		"notifications": {
+			"title": "Notifications",
+			"os": "System notifications",
+			"osDesc": "Shows a system notification when an agent finishes, fails, or asks a question. Only when Devora is not in the foreground.",
+			"osDenied": "Notifications are blocked for this site. Allow them in your browser settings.",
+			"osUnsupported": "Your browser does not support notifications.",
+			"sound": "Notification sound",
+			"soundDesc": "Plays a short chime on every new notification."
+		}
 	},
 	"appearance": {
 		"title": "Appearance",

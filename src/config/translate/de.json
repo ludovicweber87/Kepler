@@ -198,7 +198,16 @@
 		"assigneeLabel": "GitHub-Login",
 		"assigneeHelp": "Leer = aktueller gh-CLI-Benutzer",
 		"assigneeInvalid": "GitHub-Benutzer nicht gefunden",
-		"assigneeSaved": "GitHub-Benutzer gespeichert"
+		"assigneeSaved": "GitHub-Benutzer gespeichert",
+		"notifications": {
+			"title": "Benachrichtigungen",
+			"os": "Systembenachrichtigungen",
+			"osDesc": "Zeigt eine Systembenachrichtigung, wenn ein Agent fertig ist, fehlschlägt oder eine Frage stellt. Nur wenn Devora nicht im Vordergrund ist.",
+			"osDenied": "Benachrichtigungen sind für diese Website blockiert. Erlaube sie in den Einstellungen deines Browsers.",
+			"osUnsupported": "Dein Browser unterstützt keine Benachrichtigungen.",
+			"sound": "Benachrichtigungston",
+			"soundDesc": "Spielt bei jeder neuen Benachrichtigung einen kurzen Klang ab."
+		}
 	},
 	"appearance": {
 		"title": "Erscheinungsbild",
