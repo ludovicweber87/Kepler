@@ -1,6 +1,6 @@
-# Devora
+# Kepler
 
-Tu es **Devora**, l'assistant développeur de Ludovic. Tu es un binôme technique au quotidien, pas un simple outil.
+Tu es **Kepler**, l'assistant développeur de Ludovic. Tu es un binôme technique au quotidien, pas un simple outil.
 
 ## Identité & Communication
 
@@ -32,7 +32,7 @@ App locale de développement personnel pour piloter issues GitHub, PRs, todos, w
 | **App Next.js** (`src/`, port 4000) | UI + API routes (GitHub proxy, CRUD SQLite) |
 | **Serveur agent** (`packages/agent/`, port 4001) | Git/worktrees, terminal (node-pty + tmux via WebSocket), chat **Agent SDK**, picker fichier. Tape dans le **même** SQLite. |
 
-En dev, `scripts/dev-auto-port.mjs` lance les deux via `concurrently` et injecte `DEVORA_DB_PATH` pour partager la DB.
+En dev, `scripts/dev-auto-port.mjs` lance les deux via `concurrently` et injecte `KEPLER_DB_PATH` pour partager la DB.
 
 ### Stack technique
 
@@ -146,7 +146,7 @@ Page de travail plein écran (remplace l'ancien Dashboard) :
 ### Authentification
 
 - **Pas de NextAuth, pas de page de login, pas de middleware.** App locale mono-utilisateur.
-- Le token GitHub vient de la **session `gh` CLI** (`gh auth token`), avec fallback `GITHUB_TOKEN` (injecté par le wrapper CLI `devora`). Voir `src/lib/auth-utils.ts`.
+- Le token GitHub vient de la **session `gh` CLI** (`gh auth token`), avec fallback `GITHUB_TOKEN` (injecté par le wrapper CLI `kepler`). Voir `src/lib/auth-utils.ts`.
 - `requireAuth()` (API routes) renvoie le contexte `{ userId, login, accessToken }` ou une `401 gh_not_authenticated` (message : lance `gh auth login`).
 - `getCurrentUser()` alimente `/api/me` (login/avatar pour l'UI).
 - `api-fetch.ts` : wrapper client qui détecte 401 et déclenche un logout global.
@@ -228,10 +228,10 @@ useAgentChat.ts  ──WebSocket──▶  terminal.ts (stream-*)  ──▶  sd
 
 ### Base de données (SQLite + Drizzle)
 
-- **Fichier** : `data/devora.db` (racine, gitignored, créé au runtime). WAL activé.
+- **Fichier** : `data/kepler.db` (racine, gitignored, créé au runtime). WAL activé.
 - **App Next** : `src/db/index.ts` — better-sqlite3 + Drizzle, joue les migrations à l'import (`src/db/migrations/`).
 - **Serveur agent** : `packages/agent/src/db.ts` — `getDb()` ouvre le **même** fichier (`fileMustExist: true`), SQL brut, **ne joue pas** les migrations.
-- **Chemin partagé** : `DEVORA_DB_PATH` (injecté par `scripts/dev-auto-port.mjs`) + fallback.
+- **Chemin partagé** : `KEPLER_DB_PATH` (injecté par `scripts/dev-auto-port.mjs`) + fallback.
 - IDs `text` + `randomUUID()` ; timestamps `text` défaut `datetime('now')` ; JSON `text({ mode: 'json' })`. Pas de `user_id`/RLS (mono-utilisateur).
 
 **Tables** (`src/db/schema.ts`) :
@@ -385,7 +385,7 @@ Composants PascalCase (par feature) · hooks `use*` · types PascalCase · route
 - `ANTHROPIC_API_KEY` / `ANTHROPIC_AUTH_TOKEN` / `ANTHROPIC_BASE_URL` — pour l'Agent SDK / le CLI `claude`
 - `CLAUDE_BIN` — (optionnel) chemin du binaire `claude`
 - `NEXT_PUBLIC_AGENT_URL` — URL serveur agent (défaut `http://localhost:4001`)
-- `DEVORA_AGENT_PORT` — port serveur agent (défaut 4001)
-- `DEVORA_DB_PATH` — chemin absolu de la DB partagée (injecté auto en dev)
-- `DEVORA_ORIGIN` — (optionnel) origine autorisée CORS côté agent
+- `KEPLER_AGENT_PORT` — port serveur agent (défaut 4001)
+- `KEPLER_DB_PATH` — chemin absolu de la DB partagée (injecté auto en dev)
+- `KEPLER_ORIGIN` — (optionnel) origine autorisée CORS côté agent
 ```

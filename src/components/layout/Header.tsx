@@ -21,6 +21,7 @@ import { classifySession } from '@/lib/sessionStatus';
 import { useTranslations } from 'next-intl';
 
 const VARIANT_LABEL_KEY: Record<ThemeVariant, string> = {
+	'dark-kepler': 'themeDarkKepler',
 	dark: 'themeDark',
 	'dark-teal': 'themeDarkTeal',
 	'dark-amber': 'themeDarkAmber',

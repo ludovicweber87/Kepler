@@ -9,7 +9,8 @@ import {
 	nextAttachmentId,
 } from './composerDraft';
 
-const DRAFTS_KEY = 'devora.composerDrafts';
+const DRAFTS_KEY = 'kepler.composerDrafts';
+const LEGACY_DRAFTS_KEY = 'devora.composerDrafts';
 
 const image = (id: string) => ({ id, name: `${id}.png`, mediaType: 'image/png', data: 'AAAA' });
 
@@ -27,6 +28,26 @@ describe('composer draft persistence', () => {
 
 	it('returns an empty draft when nothing is stored', () => {
 		expect(getComposerDraft('s1')).toBe('');
+	});
+
+	it('still reads drafts stored under the former key name', () => {
+		window.localStorage.setItem(
+			LEGACY_DRAFTS_KEY,
+			JSON.stringify({ s1: { text: 'écrit avant le renommage', updatedAt: 1 } }),
+		);
+		expect(getComposerDraft('s1')).toBe('écrit avant le renommage');
+	});
+
+	it('prefers the current key when both are present', () => {
+		window.localStorage.setItem(
+			LEGACY_DRAFTS_KEY,
+			JSON.stringify({ s1: { text: 'ancien', updatedAt: 1 } }),
+		);
+		window.localStorage.setItem(
+			DRAFTS_KEY,
+			JSON.stringify({ s1: { text: 'nouveau', updatedAt: 2 } }),
+		);
+		expect(getComposerDraft('s1')).toBe('nouveau');
 	});
 
 	it('keeps one draft per session', () => {

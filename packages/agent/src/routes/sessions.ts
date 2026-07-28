@@ -11,6 +11,7 @@ import {
 	NOW_ISO,
 } from '../helpers.js';
 import { getActiveSessions, sdkAgent } from '../terminal.js';
+import { stripSessionPrefix } from '../sessionFilter.js';
 import { getDb } from '../db.js';
 import { synthesizeReport } from '../sdk/reportSynth.js';
 import { loadTranscript } from '../sdk/transcriptStore.js';
@@ -58,7 +59,7 @@ function deriveAgentName(sessionId: string, branch: string | null): string | nul
 	if (branch && branch !== 'main' && branch !== 'master') {
 		return branchToLabel(branch);
 	}
-	const base = sessionId.replace('devora-', '');
+	const base = stripSessionPrefix(sessionId);
 	const parts = base.split('-');
 	const last = parts[parts.length - 1];
 	// Detect uid suffixes: pure digits OR base36-like alphanumeric (6+ chars)

@@ -10,7 +10,7 @@
  * Défauts :
  *   --source : worktree principal (git worktree list, première entrée)
  *   --target : répertoire courant
- *   --files  : lu depuis le réglage `files_to_copy` du repo (DB Devora) ; sinon `.env*` racine.
+ *   --files  : lu depuis le réglage `files_to_copy` du repo (DB Kepler) ; sinon `.env*` racine.
  */
 import { readdirSync, existsSync, copyFileSync, mkdirSync } from 'node:fs';
 import { join, dirname, sep, resolve } from 'node:path';
@@ -101,8 +101,13 @@ function defaultSource() {
 }
 
 async function readFilesToCopyFromDb(sourcePath) {
+	// Les entrées `.devora` / `devora.db` sont les emplacements d'avant le renommage :
+	// tant qu'une machine n'a pas été migrée, c'est là que vit la vraie base.
 	const candidates = [
+		process.env.KEPLER_DB_PATH,
 		process.env.DEVORA_DB_PATH,
+		join(homedir(), '.kepler', 'kepler.db'),
+		join(process.cwd(), 'data', 'kepler.db'),
 		join(homedir(), '.devora', 'devora.db'),
 		join(process.cwd(), 'data', 'devora.db'),
 	].filter(Boolean);

@@ -12,10 +12,10 @@ import { join } from 'node:path';
 import WebSocket from 'ws';
 
 const PORT = 4599;
-const cwd = mkdtempSync(join(tmpdir(), 'devora-it-'));
+const cwd = mkdtempSync(join(tmpdir(), 'kepler-it-'));
 const server = spawn('npx', ['tsx', 'src/index.ts'], {
   cwd: new URL('..', import.meta.url).pathname,
-  env: { ...process.env, DEVORA_AGENT_PORT: String(PORT) },
+  env: { ...process.env, KEPLER_AGENT_PORT: String(PORT) },
   stdio: 'inherit',
   detached: true,
 });

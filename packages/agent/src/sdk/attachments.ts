@@ -1,8 +1,8 @@
 import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { dirname, join, normalize } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { fileURLToPath } from 'node:url';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { resolveDbPath } from '../dbPath.js';
 
 const EXT: Record<string, string> = {
 	'image/png': 'png',
@@ -30,10 +30,7 @@ export function attachmentRelUrl(sessionId: string, file: string): string {
 }
 
 export function attachmentsDir(): string {
-	const dbPath =
-		process.env.DEVORA_DB_PATH ??
-		fileURLToPath(new URL('../../../../data/devora.db', import.meta.url));
-	return join(dirname(dbPath), 'attachments');
+	return join(dirname(resolveDbPath()), 'attachments');
 }
 
 export function saveAttachment(

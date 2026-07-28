@@ -18,5 +18,5 @@ export function runStatus() {
 		);
 	}
 
-	if (!anyRunning) console.log('\nDevora is not running. Start it with `devora start`.');
+	if (!anyRunning) console.log('\nKepler is not running. Start it with `kepler start`.');
 }

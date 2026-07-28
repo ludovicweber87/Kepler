@@ -7,7 +7,7 @@ export function runLogs(service) {
 	const files = services.map(logFile).filter(existsSync);
 
 	if (files.length === 0) {
-		console.log('No logs yet. Start Devora with `devora start`.');
+		console.log('No logs yet. Start Kepler with `kepler start`.');
 		return;
 	}
 

@@ -104,7 +104,7 @@ function summarize(msg) {
 const SCENARIO = process.argv[2] === 'edit' ? 'edit' : 'plan';
 const runCwd =
 	SCENARIO === 'edit'
-		? mkdtempSync(join(tmpdir(), 'devora-spike-'))
+		? mkdtempSync(join(tmpdir(), 'kepler-spike-'))
 		: tmpdir();
 
 const prompt = makePromptQueue();

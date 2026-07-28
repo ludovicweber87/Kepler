@@ -1,7 +1,27 @@
 import Database from 'better-sqlite3';
+import { existsSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 
-const DB_PATH =
-	process.env.DEVORA_DB_PATH || '/Users/ludovic.weber/.devora/devora.db';
+/**
+ * Même résolution que le CLI (`packages/cli/core/paths.mjs`) : le chemin était
+ * codé en dur sur une machine, ce qui seedait la base de quelqu'un d'autre — ou
+ * en créait une vide. Les entrées `.devora` couvrent une machine pas encore migrée.
+ */
+const DB_PATH = [
+	process.env.KEPLER_DB_PATH,
+	process.env.DEVORA_DB_PATH,
+	join(homedir(), '.kepler', 'kepler.db'),
+	join(process.cwd(), 'data', 'kepler.db'),
+	join(homedir(), '.devora', 'devora.db'),
+	join(process.cwd(), 'data', 'devora.db'),
+].find((p) => p && existsSync(p));
+
+if (!DB_PATH) {
+	console.error("✗ Aucune base trouvée — lance l'app une fois, ou passe KEPLER_DB_PATH.");
+	process.exit(1);
+}
+
 const db = new Database(DB_PATH);
 const now = new Date().toISOString();
 
@@ -16,7 +36,7 @@ const personas = [
 		effort: 'high',
 		permission_mode: 'plan',
 		system_prompt:
-			"Tu es l'Architecte. Ta mission : analyser la demande, explorer le code existant et produire un plan technique clair et découpé AVANT toute implémentation. Stack : React 19, Next.js 16 (App Router), TypeScript strict, MUI 7 + Emotion. Respecte les patterns et la structure du repo Devora. Tu ne codes pas : tu cadres l'approche, identifies les fichiers impactés, les risques et l'ordre des étapes. Termine en déclarant l'outcome 'done' avec ton plan en résumé.",
+			"Tu es l'Architecte. Ta mission : analyser la demande, explorer le code existant et produire un plan technique clair et découpé AVANT toute implémentation. Stack : React 19, Next.js 16 (App Router), TypeScript strict, MUI 7 + Emotion. Respecte les patterns et la structure du repo Kepler. Tu ne codes pas : tu cadres l'approche, identifies les fichiers impactés, les risques et l'ordre des étapes. Termine en déclarant l'outcome 'done' avec ton plan en résumé.",
 	},
 	{
 		id: 'p-dev',
@@ -27,7 +47,7 @@ const personas = [
 		effort: 'medium',
 		permission_mode: 'acceptEdits',
 		system_prompt:
-			"Tu es le Développeur. Tu implémentes proprement en suivant le plan fourni et les patterns existants du repo Devora (React 19, Next 16 App Router, TS strict, MUI 7, next-intl pour TOUT texte). Pas de texte en dur, types centralisés dans src/types. Fais simple et propre, pas de refactoring hors-scope. Quand l'implémentation est prête, déclare l'outcome 'done'.",
+			"Tu es le Développeur. Tu implémentes proprement en suivant le plan fourni et les patterns existants du repo Kepler (React 19, Next 16 App Router, TS strict, MUI 7, next-intl pour TOUT texte). Pas de texte en dur, types centralisés dans src/types. Fais simple et propre, pas de refactoring hors-scope. Quand l'implémentation est prête, déclare l'outcome 'done'.",
 	},
 	{
 		id: 'p-reviewer',
@@ -38,7 +58,7 @@ const personas = [
 		effort: 'high',
 		permission_mode: 'default',
 		system_prompt:
-			"Tu es le Reviewer. Tu relis le diff pour la correctness d'abord (bugs, cas limites, régressions) puis la qualité (simplicité, réutilisation, patterns Devora, i18n, types). Sois précis et actionnable. Déclare 'approve' si le diff est bon, ou 'request-changes' en listant clairement les corrections nécessaires.",
+			"Tu es le Reviewer. Tu relis le diff pour la correctness d'abord (bugs, cas limites, régressions) puis la qualité (simplicité, réutilisation, patterns Kepler, i18n, types). Sois précis et actionnable. Déclare 'approve' si le diff est bon, ou 'request-changes' en listant clairement les corrections nécessaires.",
 	},
 	{
 		id: 'p-testeur',
@@ -49,7 +69,7 @@ const personas = [
 		effort: 'medium',
 		permission_mode: 'acceptEdits',
 		system_prompt:
-			"Tu es le Testeur. Tu vérifies le travail : écris/complète les tests de logique pure (Vitest) si pertinent, puis lance lint, tsc --noEmit et build. Convention Devora : pas de tests UI, logique pure uniquement. Déclare 'pass' si tout est vert, sinon 'fail' en résumant les erreurs à corriger.",
+			"Tu es le Testeur. Tu vérifies le travail : écris/complète les tests de logique pure (Vitest) si pertinent, puis lance lint, tsc --noEmit et build. Convention Kepler : pas de tests UI, logique pure uniquement. Déclare 'pass' si tout est vert, sinon 'fail' en résumant les erreurs à corriger.",
 	},
 	{
 		id: 'p-enqueteur',
@@ -93,9 +113,27 @@ const groups = [
 		description: 'Construire une feature : plan → implémentation → tests → PR',
 		nodes: [
 			n('f-start', 'start', { label: 'Start' }, 0, 200),
-			n('f-arch', 'persona', { personaId: 'p-architecte', label: 'Architecte', outputs: ['done'] }, 240, 200),
-			n('f-dev', 'persona', { personaId: 'p-dev', label: 'Développeur', outputs: ['done'] }, 500, 200),
-			n('f-test', 'persona', { personaId: 'p-testeur', label: 'Testeur', outputs: ['pass', 'fail'] }, 760, 200),
+			n(
+				'f-arch',
+				'persona',
+				{ personaId: 'p-architecte', label: 'Architecte', outputs: ['done'] },
+				240,
+				200,
+			),
+			n(
+				'f-dev',
+				'persona',
+				{ personaId: 'p-dev', label: 'Développeur', outputs: ['done'] },
+				500,
+				200,
+			),
+			n(
+				'f-test',
+				'persona',
+				{ personaId: 'p-testeur', label: 'Testeur', outputs: ['pass', 'fail'] },
+				760,
+				200,
+			),
 			n('f-check', 'checkpoint', { label: 'Revue humaine' }, 1020, 120),
 			n('f-end', 'end', { label: 'PR', endAction: 'create-pr' }, 1280, 120),
 		],
@@ -114,8 +152,24 @@ const groups = [
 		description: 'Relire un diff/PR : review → corrections → re-review',
 		nodes: [
 			n('r-start', 'start', { label: 'Start' }, 0, 200),
-			n('r-rev', 'persona', { personaId: 'p-reviewer', label: 'Reviewer', outputs: ['approve', 'request-changes'] }, 240, 200),
-			n('r-dev', 'persona', { personaId: 'p-dev', label: 'Développeur', outputs: ['done'] }, 500, 320),
+			n(
+				'r-rev',
+				'persona',
+				{
+					personaId: 'p-reviewer',
+					label: 'Reviewer',
+					outputs: ['approve', 'request-changes'],
+				},
+				240,
+				200,
+			),
+			n(
+				'r-dev',
+				'persona',
+				{ personaId: 'p-dev', label: 'Développeur', outputs: ['done'] },
+				500,
+				320,
+			),
 			n('r-end', 'end', { label: 'Fin', endAction: 'none' }, 500, 120),
 		],
 		edges: [
@@ -131,11 +185,39 @@ const groups = [
 		description: 'Corriger un bug : repro → root cause → fix → vérif → PR',
 		nodes: [
 			n('b-start', 'start', { label: 'Start' }, 0, 200),
-			n('b-repro', 'persona', { personaId: 'p-reproducteur', label: 'Reproducteur', outputs: ['reproduced', 'cannot-reproduce'] }, 240, 200),
+			n(
+				'b-repro',
+				'persona',
+				{
+					personaId: 'p-reproducteur',
+					label: 'Reproducteur',
+					outputs: ['reproduced', 'cannot-reproduce'],
+				},
+				240,
+				200,
+			),
 			n('b-check', 'checkpoint', { label: 'Info humaine' }, 240, 380),
-			n('b-enq', 'persona', { personaId: 'p-enqueteur', label: 'Enquêteur', outputs: ['done'] }, 500, 200),
-			n('b-dev', 'persona', { personaId: 'p-dev', label: 'Développeur', outputs: ['done'] }, 760, 200),
-			n('b-test', 'persona', { personaId: 'p-testeur', label: 'Testeur', outputs: ['pass', 'fail'] }, 1020, 200),
+			n(
+				'b-enq',
+				'persona',
+				{ personaId: 'p-enqueteur', label: 'Enquêteur', outputs: ['done'] },
+				500,
+				200,
+			),
+			n(
+				'b-dev',
+				'persona',
+				{ personaId: 'p-dev', label: 'Développeur', outputs: ['done'] },
+				760,
+				200,
+			),
+			n(
+				'b-test',
+				'persona',
+				{ personaId: 'p-testeur', label: 'Testeur', outputs: ['pass', 'fail'] },
+				1020,
+				200,
+			),
 			n('b-end', 'end', { label: 'PR', endAction: 'create-pr' }, 1280, 200),
 		],
 		edges: [

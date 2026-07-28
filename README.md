@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/logo.svg" alt="Devora" width="280" />
+  <img src="public/logo.svg" alt="Kepler" width="280" />
 </p>
 
 <p align="center">
@@ -22,11 +22,11 @@
 
 You're a developer juggling **5 tabs of GitHub**, a terminal running Claude, a todo list somewhere, PRs to review, branches and worktrees to track. Context-switching kills your flow. Your AI agents run in the background but you have **zero visibility** on what they're doing.
 
-**Devora fixes all of that.**
+**Kepler fixes all of that.**
 
-## What is Devora?
+## What is Kepler?
 
-Devora is a **local, single-user developer cockpit** that brings your entire workflow into one screen: Claude agents with reusable personalities, git worktrees, GitHub issues, pull requests, tasks, daily recaps and real-time notifications — all wired together.
+Kepler is a **local, single-user developer cockpit** that brings your entire workflow into one screen: Claude agents with reusable personalities, git worktrees, GitHub issues, pull requests, tasks, daily recaps and real-time notifications — all wired together.
 
 At its core is the **Workbench**: an agent chat powered by the **Claude Agent SDK**, side-by-side with the files it changes, its live activity, the linked issue, and an embedded terminal. No API keys to manage — GitHub access comes straight from your local `gh` CLI session.
 
@@ -80,7 +80,7 @@ Tune each repository from a dedicated settings page: custom **create-PR** and **
 
 #### 📅 Daily recaps
 
-A **calendar of AI-generated daily recaps**, per repository. Devora turns each day's git and agent activity into a concise summary, aggregates **points onto the calendar cells**, and opens a day's full recap in a modal on click. Generate or delete any day on demand.
+A **calendar of AI-generated daily recaps**, per repository. Kepler turns each day's git and agent activity into a concise summary, aggregates **points onto the calendar cells**, and opens a day's full recap in a modal on click. Generate or delete any day on demand.
 
 #### 🔔 Notifications
 
@@ -88,7 +88,7 @@ A **real-time notification center** for your agents. When an agent **finishes, e
 
 #### 📈 Activity timeline & session continuity
 
-Instead of running Claude in a terminal and hoping for the best, Devora derives a **live activity timeline** from the SDK event stream:
+Instead of running Claude in a terminal and hoping for the best, Kepler derives a **live activity timeline** from the SDK event stream:
 
 - **info** — decisions taken, analysis started
 - **file_change** — files created, modified, deleted
@@ -100,11 +100,11 @@ Closed a tab or killed an agent? The full transcript stays in SQLite. Reopen any
 
 <br/>
 
-## Why Devora?
+## Why Kepler?
 
 ### Save Hours Every Day
 
-| Without Devora                                                                        | With Devora                                        |
+| Without Kepler                                                                        | With Kepler                                        |
 | ------------------------------------------------------------------------------------- | -------------------------------------------------- |
 | Open GitHub → find issue → copy branch name → open terminal → checkout → start Claude | Launch an agent from the issue in one click        |
 | Re-explain your conventions to the agent every time                                   | Reusable **personas** with model/effort/prompt     |
@@ -116,7 +116,7 @@ Closed a tab or killed an agent? The full transcript stays in SQLite. Reopen any
 
 ### Runs Entirely Locally, Zero Secrets
 
-Devora is **single-user and local-first**. GitHub access uses your **`gh` CLI** session (`gh auth token`) — no OAuth app, no `AUTH_SECRET`, no login page. Data lives in a **local SQLite** file. The only external calls are to GitHub and to Claude.
+Kepler is **single-user and local-first**. GitHub access uses your **`gh` CLI** session (`gh auth token`) — no OAuth app, no `AUTH_SECRET`, no login page. Data lives in a **local SQLite** file. The only external calls are to GitHub and to Claude.
 
 <br/>
 
@@ -148,16 +148,16 @@ Devora is **single-user and local-first**. GitHub access uses your **`gh` CLI** 
 
 ### Install (recommended)
 
-One command clones a dedicated copy into `~/.devora/repo`, builds it, and puts a stable `devora` command on your `PATH`:
+One command clones a dedicated copy into `~/.kepler/repo`, builds it, and puts a stable `kepler` command on your `PATH`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ludovicweber87/Devora/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ludovicweber87/Kepler/main/install.sh | bash
 ```
 
 Open a new terminal (so the updated `PATH` takes effect), then:
 
 ```bash
-devora start
+kepler start
 ```
 
 This builds on first run, starts the agent server (`:4001`) and the web app (first free port from `4000`) as background services, and opens the desktop window. GitHub access comes from your `gh` session — **there is nothing else to configure.**
@@ -166,31 +166,31 @@ This builds on first run, starts the agent server (`:4001`) and the web app (fir
 
 | Command             | What it does                                                        |
 | ------------------- | ------------------------------------------------------------------- |
-| `devora start`      | Build (if needed), launch the services, open the window             |
-| `devora stop`       | Stop the agent, web app and desktop window                          |
-| `devora restart`    | Stop then start (use this to apply an update)                       |
-| `devora status`     | Show each service (agent / web / desktop) with pid and URL          |
-| `devora logs [svc]` | Tail logs — all, or one of `agent` / `web` / `desktop`              |
-| `devora update`     | Pull latest `main`, reinstall, rebuild, refresh the CLI symlink     |
+| `kepler start`      | Build (if needed), launch the services, open the window             |
+| `kepler stop`       | Stop the agent, web app and desktop window                          |
+| `kepler restart`    | Stop then start (use this to apply an update)                       |
+| `kepler status`     | Show each service (agent / web / desktop) with pid and URL          |
+| `kepler logs [svc]` | Tail logs — all, or one of `agent` / `web` / `desktop`              |
+| `kepler update`     | Pull latest `main`, reinstall, rebuild, refresh the CLI symlink     |
 
-Runtime state (SQLite db, pids, logs) lives in `~/.devora/` and survives updates. Optional overrides go in `~/.devora/.env` (e.g. `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`).
+Runtime state (SQLite db, pids, logs) lives in `~/.kepler/` and survives updates. Optional overrides go in `~/.kepler/.env` (e.g. `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`).
 
 ### Run from source (contributors)
 
 ```bash
-git clone https://github.com/ludovicweber87/Devora.git
-cd Devora
+git clone https://github.com/ludovicweber87/Kepler.git
+cd Kepler
 npm install
 npm run dev
 ```
 
-`npm run dev` launches both processes via `concurrently` — the Next.js app on **:4000** and the agent server on **:4001**, sharing the same SQLite database. Don't run it at the same time as `devora start` (port `4001` collides). Open [http://localhost:4000](http://localhost:4000).
+`npm run dev` launches both processes via `concurrently` — the Next.js app on **:4000** and the agent server on **:4001**, sharing the same SQLite database. Don't run it at the same time as `kepler start` (port `4001` collides). Open [http://localhost:4000](http://localhost:4000).
 
 <br/>
 
 ## Architecture
 
-Devora runs as **two processes** sharing one local SQLite database:
+Kepler runs as **two processes** sharing one local SQLite database:
 
 ```
 ┌──────────────────────────────────────────────────────────┐
@@ -213,7 +213,7 @@ Devora runs as **two processes** sharing one local SQLite database:
                 └───────────────┬─────────────────┘
                                 ▼
                    ┌──────────────────────────┐
-                   │  SQLite  (data/devora.db) │
+                   │  SQLite  (data/kepler.db) │
                    │  Drizzle ORM · shared     │
                    └──────────────────────────┘
                                 ▲
@@ -224,7 +224,7 @@ Devora runs as **two processes** sharing one local SQLite database:
 
 - **App Next.js (`src/`, :4000)** — UI + API routes (GitHub proxy, CRUD SQLite). Runs Drizzle migrations on start.
 - **Agent server (`packages/agent/`, :4001)** — git/worktrees, terminal (node-pty + tmux over WebSocket), the Agent SDK chat, daily-recap generation, and the notifications SSE stream. Taps the **same** SQLite file.
-- In dev, `scripts/dev-auto-port.mjs` boots both with `concurrently` and injects `DEVORA_DB_PATH` to share the database.
+- In dev, `scripts/dev-auto-port.mjs` boots both with `concurrently` and injects `KEPLER_DB_PATH` to share the database.
 
 Persisted state lives in a handful of SQLite tables (Drizzle): `agentSessions` + `agentChatMessages` + `agentActivityLogs` (agents), `personas`, `tasks`, `dailyRecaps`, `notifications`, `repoSettings` / `repoPaths`, plus `projectConfigs` / `projectBoards` (Projects V2 cache), `tabOrders` and `appSettings`.
 
@@ -247,11 +247,11 @@ MIT
 
 Vous êtes développeur. Vous jonglez entre **5 onglets GitHub**, un terminal avec Claude, une todo list quelque part, des PRs à reviewer, des branches et worktrees à suivre. Le changement de contexte permanent tue votre productivité. Vos agents IA tournent en arrière-plan mais vous n'avez **aucune visibilité** sur ce qu'ils font.
 
-**Devora règle tout ça.**
+**Kepler règle tout ça.**
 
-## Qu'est-ce que Devora ?
+## Qu'est-ce que Kepler ?
 
-Devora est un **cockpit développeur local et mono-utilisateur** qui rassemble tout votre workflow sur un seul écran : des agents Claude dotés de personnalités réutilisables, vos worktrees git, vos issues GitHub, vos pull requests, vos tâches, vos recaps quotidiens et des notifications temps réel — le tout connecté.
+Kepler est un **cockpit développeur local et mono-utilisateur** qui rassemble tout votre workflow sur un seul écran : des agents Claude dotés de personnalités réutilisables, vos worktrees git, vos issues GitHub, vos pull requests, vos tâches, vos recaps quotidiens et des notifications temps réel — le tout connecté.
 
 En son cœur, le **Workbench** : un chat d'agent propulsé par le **Claude Agent SDK**, côte à côte avec les fichiers qu'il modifie, son activité en direct, l'issue liée, et un terminal embarqué. Aucune clé API à gérer — l'accès GitHub vient directement de votre session `gh` CLI locale.
 
@@ -305,7 +305,7 @@ Réglez chaque repository depuis une page dédiée : prompts personnalisés de *
 
 #### 📅 Recaps quotidiens
 
-Un **calendrier de recaps quotidiens générés par IA**, par repository. Devora transforme l'activité git et agent de chaque journée en un résumé concis, agrège des **points sur les cellules du calendrier**, et ouvre le recap complet d'un jour dans une modale au clic. Générez ou supprimez n'importe quel jour à la demande.
+Un **calendrier de recaps quotidiens générés par IA**, par repository. Kepler transforme l'activité git et agent de chaque journée en un résumé concis, agrège des **points sur les cellules du calendrier**, et ouvre le recap complet d'un jour dans une modale au clic. Générez ou supprimez n'importe quel jour à la demande.
 
 #### 🔔 Notifications
 
@@ -313,7 +313,7 @@ Un **centre de notifications temps réel** pour vos agents. Quand un agent **ter
 
 #### 📈 Timeline d'activité & continuité des sessions
 
-Plutôt qu'un Claude lancé dans un terminal sans suivi, Devora dérive une **timeline d'activité en direct** depuis le flux d'events du SDK :
+Plutôt qu'un Claude lancé dans un terminal sans suivi, Kepler dérive une **timeline d'activité en direct** depuis le flux d'events du SDK :
 
 - **info** — décisions prises, analyses lancées
 - **file_change** — fichiers créés, modifiés, supprimés
@@ -325,11 +325,11 @@ Onglet fermé ou agent tué ? Le transcript complet reste en SQLite. Rouvrez n'i
 
 <br/>
 
-## Pourquoi Devora ?
+## Pourquoi Kepler ?
 
 ### Gagnez des heures chaque jour
 
-| Sans Devora                                                                                                | Avec Devora                                             |
+| Sans Kepler                                                                                                | Avec Kepler                                             |
 | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
 | Ouvrir GitHub → trouver l'issue → copier le nom de branche → ouvrir le terminal → checkout → lancer Claude | Lancer un agent depuis l'issue en un clic               |
 | Ré-expliquer vos conventions à l'agent à chaque fois                                                       | **Personas** réutilisables (modèle/effort/prompt)       |
@@ -341,7 +341,7 @@ Onglet fermé ou agent tué ? Le transcript complet reste en SQLite. Rouvrez n'i
 
 ### 100 % local, zéro secret
 
-Devora est **mono-utilisateur et local-first**. L'accès GitHub utilise votre session **`gh` CLI** (`gh auth token`) — pas d'OAuth app, pas d'`AUTH_SECRET`, pas de page de login. Les données vivent dans un fichier **SQLite local**. Les seuls appels externes vont vers GitHub et Claude.
+Kepler est **mono-utilisateur et local-first**. L'accès GitHub utilise votre session **`gh` CLI** (`gh auth token`) — pas d'OAuth app, pas d'`AUTH_SECRET`, pas de page de login. Les données vivent dans un fichier **SQLite local**. Les seuls appels externes vont vers GitHub et Claude.
 
 <br/>
 
@@ -373,16 +373,16 @@ Devora est **mono-utilisateur et local-first**. L'accès GitHub utilise votre se
 
 ### Installation (recommandé)
 
-Une commande clone une copie dédiée dans `~/.devora/repo`, la build, et place une commande `devora` stable sur votre `PATH` :
+Une commande clone une copie dédiée dans `~/.kepler/repo`, la build, et place une commande `kepler` stable sur votre `PATH` :
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ludovicweber87/Devora/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ludovicweber87/Kepler/main/install.sh | bash
 ```
 
 Ouvrez un nouveau terminal (pour que le `PATH` mis à jour prenne effet), puis :
 
 ```bash
-devora start
+kepler start
 ```
 
 Build au premier lancement, démarre le serveur agent (`:4001`) et l'app web (premier port libre depuis `4000`) en services d'arrière-plan, et ouvre la fenêtre desktop. L'accès GitHub vient de votre session `gh` — **il n'y a rien d'autre à configurer.**
@@ -391,35 +391,35 @@ Build au premier lancement, démarre le serveur agent (`:4001`) et l'app web (pr
 
 | Commande            | Rôle                                                                |
 | ------------------- | ------------------------------------------------------------------- |
-| `devora start`      | Build (si besoin), lance les services, ouvre la fenêtre             |
-| `devora stop`       | Arrête l'agent, l'app web et la fenêtre desktop                     |
-| `devora restart`    | Stop puis start (à utiliser pour appliquer une mise à jour)         |
-| `devora status`     | Affiche chaque service (agent / web / desktop) avec pid et URL      |
-| `devora logs [svc]` | Suit les logs — tous, ou l'un de `agent` / `web` / `desktop`        |
-| `devora update`     | Récupère le dernier `main`, réinstalle, rebuild, rafraîchit le lien |
+| `kepler start`      | Build (si besoin), lance les services, ouvre la fenêtre             |
+| `kepler stop`       | Arrête l'agent, l'app web et la fenêtre desktop                     |
+| `kepler restart`    | Stop puis start (à utiliser pour appliquer une mise à jour)         |
+| `kepler status`     | Affiche chaque service (agent / web / desktop) avec pid et URL      |
+| `kepler logs [svc]` | Suit les logs — tous, ou l'un de `agent` / `web` / `desktop`        |
+| `kepler update`     | Récupère le dernier `main`, réinstalle, rebuild, rafraîchit le lien |
 
-L'état runtime (base SQLite, pids, logs) vit dans `~/.devora/` et survit aux mises à jour. Les overrides optionnels vont dans `~/.devora/.env` (ex. `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`).
+L'état runtime (base SQLite, pids, logs) vit dans `~/.kepler/` et survit aux mises à jour. Les overrides optionnels vont dans `~/.kepler/.env` (ex. `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`).
 
 ### Lancer depuis les sources (contributeurs)
 
 ```bash
-git clone https://github.com/ludovicweber87/Devora.git
-cd Devora
+git clone https://github.com/ludovicweber87/Kepler.git
+cd Kepler
 npm install
 npm run dev
 ```
 
-`npm run dev` lance les deux process via `concurrently` — l'app Next.js sur **:4000** et le serveur agent sur **:4001**, partageant la même base SQLite. Ne le lancez pas en même temps que `devora start` (le port `4001` entre en conflit). Ouvrez [http://localhost:4000](http://localhost:4000).
+`npm run dev` lance les deux process via `concurrently` — l'app Next.js sur **:4000** et le serveur agent sur **:4001**, partageant la même base SQLite. Ne le lancez pas en même temps que `kepler start` (le port `4001` entre en conflit). Ouvrez [http://localhost:4000](http://localhost:4000).
 
 <br/>
 
 ## Architecture
 
-Devora tourne en **deux process** partageant une base SQLite locale :
+Kepler tourne en **deux process** partageant une base SQLite locale :
 
 - **App Next.js (`src/`, :4000)** — UI + API routes (proxy GitHub, CRUD SQLite). Joue les migrations Drizzle au démarrage.
 - **Serveur agent (`packages/agent/`, :4001)** — git/worktrees, terminal (node-pty + tmux en WebSocket), le chat Agent SDK, la génération des recaps quotidiens, et le stream SSE des notifications. Tape dans le **même** fichier SQLite.
-- En dev, `scripts/dev-auto-port.mjs` démarre les deux via `concurrently` et injecte `DEVORA_DB_PATH` pour partager la base.
+- En dev, `scripts/dev-auto-port.mjs` démarre les deux via `concurrently` et injecte `KEPLER_DB_PATH` pour partager la base.
 
 L'état persisté vit dans quelques tables SQLite (Drizzle) : `agentSessions` + `agentChatMessages` + `agentActivityLogs` (agents), `personas`, `tasks`, `dailyRecaps`, `notifications`, `repoSettings` / `repoPaths`, plus `projectConfigs` / `projectBoards` (cache Projects V2), `tabOrders` et `appSettings`.
 

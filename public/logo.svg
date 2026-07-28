@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Kepler</title>
+  <!--
+    Icône d'application : le mark seul, sur le vert de marque. Contrairement au
+    composant `src/components/layout/Logo.tsx`, les couleurs sont figées — un
+    badge de notification système ou une icône de fenêtre n'a pas de thème.
+  -->
+  <rect width="512" height="512" rx="112" fill="#143A31"/>
+  <g transform="translate(97.5 133) scale(0.4662)" fill="#EDF4F2">
+    <path d="M0 0 H272 V528 A272 380 0 0 1 0 148 Z"/>
+    <path d="M296 356 H680 V400 A384 128 0 0 1 296 528 Z"/>
+    <path d="M296 0 H466 V70 A170 260 0 0 1 296 330 Z" fill="#57C97E"/>
+  </g>
+</svg>

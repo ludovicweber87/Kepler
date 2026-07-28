@@ -1,13 +1,11 @@
-const OS_ENABLED_KEY = 'devora.notif.os';
+import { readStoredItem } from '@/lib/legacyStorage';
+
+const OS_ENABLED_KEY = 'kepler.notif.os';
+const LEGACY_OS_ENABLED_KEY = 'devora.notif.os';
 
 /** True si les notifications système sont activées (persisté en localStorage). SSR-safe. */
 export function isOsNotificationsEnabled(): boolean {
-	if (typeof window === 'undefined') return false;
-	try {
-		return window.localStorage.getItem(OS_ENABLED_KEY) === '1';
-	} catch {
-		return false;
-	}
+	return readStoredItem(OS_ENABLED_KEY, LEGACY_OS_ENABLED_KEY) === '1';
 }
 
 /** Persiste l'activation des notifications système. SSR-safe. */

@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { resolveCopyTargets } from './resolveCopyTargets.js';
 
 function makeTree(): string {
-	const root = mkdtempSync(join(tmpdir(), 'devora-copy-'));
+	const root = mkdtempSync(join(tmpdir(), 'kepler-copy-'));
 	writeFileSync(join(root, '.env'), 'ROOT');
 	writeFileSync(join(root, '.env.local'), 'ROOT_LOCAL');
 	mkdirSync(join(root, 'packages', 'agent'), { recursive: true });

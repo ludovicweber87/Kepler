@@ -13,9 +13,11 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-fetch';
 import { DEFAULT_THEME_PREFS, normalizeThemePrefs, type ThemePrefs } from '@/lib/themePrefs';
+import { readStoredItem } from '@/lib/legacyStorage';
 
-const STORAGE_KEY = 'devora-theme-prefs';
-const CHANGE_EVENT = 'devora-theme-prefs-change';
+const STORAGE_KEY = 'kepler-theme-prefs';
+const LEGACY_STORAGE_KEY = 'devora-theme-prefs';
+const CHANGE_EVENT = 'kepler-theme-prefs-change';
 const DB_KEY = 'theme_prefs';
 
 interface ThemePrefsContextValue {
@@ -39,7 +41,7 @@ let cachedRaw: string | null = null;
 let cachedPrefs: ThemePrefs = DEFAULT_THEME_PREFS;
 
 function getSnapshot(): ThemePrefs {
-	const raw = localStorage.getItem(STORAGE_KEY);
+	const raw = readStoredItem(STORAGE_KEY, LEGACY_STORAGE_KEY);
 	if (raw !== cachedRaw) {
 		cachedRaw = raw;
 		try {

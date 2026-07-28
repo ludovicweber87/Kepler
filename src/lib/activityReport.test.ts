@@ -16,7 +16,7 @@ describe('buildReport', () => {
 	it('includes the title header and footer', () => {
 		const md = buildReport(baseSession, [], labels);
 		expect(md).toContain('## 🤖 Rapport agent');
-		expect(md).toContain('*Published by [Devora](https://github.com)*');
+		expect(md).toContain('*Published by [Kepler](https://github.com)*');
 	});
 
 	it('includes the branch line when the session has a branch', () => {

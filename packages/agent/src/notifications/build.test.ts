@@ -31,7 +31,7 @@ describe('buildNotification', () => {
 			title: 'blocked',
 			url: '/workbench?session=s1',
 			entityRef: { kind: 'session', id: 's1' },
-			payload: { agent: 'Devora' },
+			payload: { agent: 'Kepler' },
 			dedupeParts: ['s1', 'q1'],
 		});
 		expect(n.source).toBe('agent');

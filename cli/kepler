@@ -1,0 +1,5 @@
+#!/usr/bin/env node
+// Stable entrypoint. Its path is the only thing the install/update contract
+// depends on: ~/.kepler/bin/kepler -> <repo>/cli/kepler. The symlink never
+// moves; only the code behind it changes, so `kepler update` just works.
+import('../packages/cli/index.mjs');

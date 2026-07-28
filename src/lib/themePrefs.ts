@@ -55,6 +55,9 @@ export const DEFAULT_THEME_PREFS: ThemePrefs = {
 	terminalFontSize: 14,
 };
 
+/** Police du wordmark « Kepler ». Fixe : c'est un élément d'identité, pas un réglage. */
+export const BRAND_FONT_STACK = '"Alfa Slab One", "Roboto Slab", Georgia, serif';
+
 export const APP_FONTS = ['Poppins', 'Inter', 'Roboto', 'System UI', 'Nunito'];
 export const TERMINAL_FONTS = ['JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Source Code Pro', 'Menlo'];
 
@@ -154,6 +157,9 @@ export function terminalFontStack(name: string): string {
 // Only Google-hosted families (System UI, Cascadia Code, Menlo are local/system).
 export function googleFontsHref(): string {
 	const families = [
+		// Le wordmark du logo, et lui seul : volontairement hors de `APP_FONTS`, la police
+		// de marque ne doit pas suivre le choix de police de l'utilisateur.
+		'Alfa+Slab+One',
 		'Poppins:wght@400;500;600;700',
 		'Inter:wght@400;500;600;700',
 		'Roboto:wght@400;500;700',

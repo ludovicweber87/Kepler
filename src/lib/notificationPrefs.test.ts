@@ -22,7 +22,18 @@ describe('os notifications preference persistence', () => {
 	});
 
 	it('treats an unrelated stored value as disabled', () => {
-		window.localStorage.setItem('devora.notif.os', 'yes');
+		window.localStorage.setItem('kepler.notif.os', 'yes');
+		expect(isOsNotificationsEnabled()).toBe(false);
+	});
+
+	it('still reads the preference stored under the former key name', () => {
+		window.localStorage.setItem('devora.notif.os', '1');
+		expect(isOsNotificationsEnabled()).toBe(true);
+	});
+
+	it('prefers the current key when both are present', () => {
+		window.localStorage.setItem('devora.notif.os', '1');
+		window.localStorage.setItem('kepler.notif.os', '0');
 		expect(isOsNotificationsEnabled()).toBe(false);
 	});
 });

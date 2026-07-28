@@ -19,7 +19,7 @@ async function waitFor(url, label, timeoutMs = 30000) {
 		}
 		await new Promise((r) => setTimeout(r, 400));
 	}
-	throw new Error(`${label} did not come up within ${timeoutMs / 1000}s (see \`devora logs\`)`);
+	throw new Error(`${label} did not come up within ${timeoutMs / 1000}s (see \`kepler logs\`)`);
 }
 
 export async function runStart(opts = {}) {
@@ -27,7 +27,7 @@ export async function runStart(opts = {}) {
 	const repoDir = resolveRepoDir();
 
 	if (CORE_SERVICES.some((s) => isAlive(readPid(s)))) {
-		console.log('Devora is already running.');
+		console.log('Kepler is already running.');
 		// Reopen the window if it was closed but services are still up.
 		if (opts.window !== false && !isAlive(readPid('desktop'))) {
 			const ports = readPorts();
@@ -44,12 +44,12 @@ export async function runStart(opts = {}) {
 	if (!gh.ok) {
 		console.error('\n✗ GitHub is not connected.\n');
 		console.error(`  → ${gh.fix}\n`);
-		console.error('Then run `devora start` again.\n');
+		console.error('Then run `kepler start` again.\n');
 		return;
 	}
 
 	if (!isBuilt(repoDir)) {
-		console.log('First run — building Devora (this can take a few minutes)...');
+		console.log('First run — building Kepler (this can take a few minutes)...');
 		build(repoDir, { ...process.env });
 	}
 
@@ -66,8 +66,8 @@ export async function runStart(opts = {}) {
 	const env = {
 		...process.env,
 		...parseEnvFile(ENV_FILE),
-		DEVORA_DB_PATH: DB_PATH,
-		DEVORA_AGENT_PORT: String(agent),
+		KEPLER_DB_PATH: DB_PATH,
+		KEPLER_AGENT_PORT: String(agent),
 		NEXT_PUBLIC_AGENT_URL: `http://localhost:${agent}`,
 		// Injected so the detached server needn't call gh at runtime.
 		...(token ? { GITHUB_TOKEN: token } : {}),
@@ -89,7 +89,7 @@ export async function runStart(opts = {}) {
 	await waitFor(`http://localhost:${web}`, 'web');
 
 	const url = `http://localhost:${web}`;
-	console.log(`\n✓ Devora running at ${url}`);
+	console.log(`\n✓ Kepler running at ${url}`);
 
 	if (opts.window !== false) {
 		launchDesktop(repoDir, web);

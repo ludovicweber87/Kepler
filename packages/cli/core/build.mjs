@@ -13,7 +13,7 @@ function headSha(repoDir) {
 	}
 }
 
-const shaFile = (repoDir) => join(repoDir, '.next', 'DEVORA_BUILT_SHA');
+const shaFile = (repoDir) => join(repoDir, '.next', 'KEPLER_BUILT_SHA');
 
 /**
  * A usable prod build exists AND matches the checked-out commit.
