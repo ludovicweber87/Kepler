@@ -88,6 +88,7 @@
 		"terminal": "Terminal",
 		"terminalTab": "Terminal {n}",
 		"addTerminal": "New terminal",
+		"toggleTerminal": "Toggle terminal (⌘J)",
 		"closeTerminal": "Close terminal",
 		"noTerminal": "No terminal",
 		"newSession": "New session",

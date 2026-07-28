@@ -19,6 +19,8 @@ interface TerminalTabsProps {
 	cwd: string | null;
 	ready?: boolean;
 	autoStart?: boolean;
+	/** Faux quand le panneau est replié : coupe `active`, ce qui refait un fit au retour. */
+	visible?: boolean;
 }
 
 export interface TerminalTabsHandle {
@@ -34,7 +36,7 @@ interface TerminalTab {
 }
 
 const TerminalTabs = forwardRef<TerminalTabsHandle, TerminalTabsProps>(function TerminalTabs(
-	{ sessionId, cwd, ready = true, autoStart = true },
+	{ sessionId, cwd, ready = true, autoStart = true, visible = true },
 	ref,
 ) {
 	const t = useTranslations('workbench');
@@ -170,7 +172,7 @@ const TerminalTabs = forwardRef<TerminalTabsHandle, TerminalTabsProps>(function 
 								}}
 								shellSessionId={`${sessionId}-shell-${id}`}
 								cwd={cwd}
-								active={id === activeId}
+								active={visible && id === activeId}
 								ready={ready}
 								initialCommand={initialCommand}
 							/>
