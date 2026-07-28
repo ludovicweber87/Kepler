@@ -60,3 +60,13 @@ export function partitionTasks(tasks: Task[], now: Date): PartitionedTasks {
 
 	return { pinned, active, done };
 }
+
+/**
+ * Tasks non terminées dont l'échéance est dépassée, la plus en retard en tête.
+ * Épinglées comprises : le retard prime sur la mise en avant.
+ */
+export function selectOverdueTasks(tasks: Task[], now: Date): Task[] {
+	return tasks
+		.filter((task) => !task.done && computeUrgency(task.due_date, now).level === 'overdue')
+		.sort(byUrgency(now));
+}
