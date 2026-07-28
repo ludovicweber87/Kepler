@@ -8,6 +8,7 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
+import Tooltip from '@mui/material/Tooltip';
 import { alpha, useTheme } from '@mui/material/styles';
 import TranslateRoundedIcon from '@mui/icons-material/TranslateRounded';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
@@ -23,7 +24,7 @@ const LOCALES: { code: Locale; flag: string; label: string }[] = [
 	{ code: 'pt', flag: '🇧🇷', label: 'Português' },
 ];
 
-export default function LocaleSwitcher() {
+export default function LocaleSwitcher({ collapsed = false }: { collapsed?: boolean }) {
 	const theme = useTheme();
 	const currentLocale = useLocale();
 	const router = useRouter();
@@ -42,33 +43,48 @@ export default function LocaleSwitcher() {
 
 	return (
 		<>
-			<ListItemButton
-				onClick={(e) => setAnchorEl(e.currentTarget)}
-				disabled={isPending}
-				sx={{
-					borderRadius: 1,
-					mb: 0.5,
-					px: 2,
-					py: 1,
-					opacity: isPending ? 0.5 : 1,
-					transition: 'background-color 0.15s, transform 0.15s',
-					'&:hover': {
-						bgcolor: alpha(theme.palette.primary.main, 0.1),
-						transform: 'translateX(4px)',
-					},
-				}}
+			<Tooltip
+				title={collapsed ? tc('language') : ''}
+				placement="right"
+				disableHoverListener={!collapsed}
 			>
-				<ListItemIcon sx={{ minWidth: 36, color: 'text.secondary' }}>
-					<TranslateRoundedIcon />
-				</ListItemIcon>
-				<ListItemText
-					primary={tc('language')}
-					primaryTypographyProps={{
-						fontSize: '0.85rem',
-						fontWeight: 500,
+				<ListItemButton
+					onClick={(e) => setAnchorEl(e.currentTarget)}
+					disabled={isPending}
+					sx={{
+						borderRadius: 1,
+						mb: 0.5,
+						px: collapsed ? 1 : 2,
+						py: 1,
+						justifyContent: collapsed ? 'center' : 'flex-start',
+						opacity: isPending ? 0.5 : 1,
+						transition: 'background-color 0.15s, transform 0.15s',
+						'&:hover': {
+							bgcolor: alpha(theme.palette.primary.main, 0.1),
+							transform: collapsed ? 'none' : 'translateX(4px)',
+						},
 					}}
-				/>
-			</ListItemButton>
+				>
+					<ListItemIcon
+						sx={{
+							minWidth: collapsed ? 0 : 36,
+							justifyContent: 'center',
+							color: 'text.secondary',
+						}}
+					>
+						<TranslateRoundedIcon />
+					</ListItemIcon>
+					{!collapsed && (
+						<ListItemText
+							primary={tc('language')}
+							primaryTypographyProps={{
+								fontSize: '0.85rem',
+								fontWeight: 500,
+							}}
+						/>
+					)}
+				</ListItemButton>
+			</Tooltip>
 			<Menu
 				anchorEl={anchorEl}
 				open={!!anchorEl}
@@ -104,7 +120,9 @@ export default function LocaleSwitcher() {
 						<span>{flag}</span>
 						{label}
 						{currentLocale === code && (
-							<CheckRoundedIcon sx={{ fontSize: 16, ml: 'auto', color: theme.palette.primary.main }} />
+							<CheckRoundedIcon
+								sx={{ fontSize: 16, ml: 'auto', color: theme.palette.primary.main }}
+							/>
 						)}
 					</MenuItem>
 				))}

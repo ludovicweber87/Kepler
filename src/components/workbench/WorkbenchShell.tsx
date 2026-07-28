@@ -7,13 +7,23 @@ import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import Tabs from '@mui/material/Tabs';
 import { alpha } from '@mui/material/styles';
+import { useTranslations } from 'next-intl';
 import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
 import StopCircleRoundedIcon from '@mui/icons-material/StopCircleRounded';
 import PictureInPictureAltRoundedIcon from '@mui/icons-material/PictureInPictureAltRounded';
 import { appShadow } from '@/theme/shadows';
 import { FILE_TAB_WIDTH } from '@/components/shared/FileTab';
 import { useAppSetting } from '@/hooks/useAppSetting';
+import { useHotkey } from '@/hooks/useHotkey';
 import { clampSplitPct, parseSplitPct, SPLIT_DEFAULT } from '@/lib/workbenchSplit';
+
+const TERM_HEIGHT_DEFAULT = 340;
+
+/** Borne la hauteur du terminal : jamais sous 120px, jamais au point d'écraser le panneau. */
+function clampTermHeight(px: number): number {
+	if (!Number.isFinite(px)) return TERM_HEIGHT_DEFAULT;
+	return Math.max(120, Math.min(window.innerHeight - 200, px));
+}
 
 interface WorkbenchShellProps {
 	/** Left side of the header: title + branch/status chips. */
@@ -47,8 +57,13 @@ interface WorkbenchShellProps {
 	/** Content below the right tabs (caller toggles per active tab). */
 	rightContent: ReactNode;
 
-	/** Terminal area, stacked below the right panel with a vertical resize handle. */
-	terminal: ReactNode;
+	/**
+	 * Terminal area, stacked below the right panel with a vertical resize handle.
+	 * Reçoit `visible` (faux quand le panneau est replié par ⌘J) : le terminal reste
+	 * monté — le démonter tuerait le scrollback xterm et le WebSocket PTY — et se
+	 * contente de se refit quand il redevient visible.
+	 */
+	terminal: (visible: boolean) => ReactNode;
 }
 
 /**
@@ -74,27 +89,59 @@ export default function WorkbenchShell({
 	rightContent,
 	terminal,
 }: WorkbenchShellProps) {
-	// Vertical resize of the terminal area (px from the bottom).
-	const [termHeight, setTermHeight] = useState(340);
+	const t = useTranslations('workbench');
+
+	// Vertical resize of the terminal area (px from the bottom). Persisté en DB,
+	// même pattern que `workbench_split_pct` plus bas.
+	const {
+		valueOrDefault: termHeightRaw,
+		isLoading: termHeightLoading,
+		save: saveTermHeight,
+	} = useAppSetting('workbench_terminal_height', String(TERM_HEIGHT_DEFAULT));
+	const [termHeight, setTermHeight] = useState(TERM_HEIGHT_DEFAULT);
+	const termHeightRef = useRef(TERM_HEIGHT_DEFAULT);
+	const termHydrated = useRef(false);
 	const resizing = useRef(false);
-	const startResize = useCallback((e: React.MouseEvent) => {
-		resizing.current = true;
-		e.preventDefault();
-		const onMove = (ev: MouseEvent) => {
-			if (!resizing.current) return;
-			const fromBottom = window.innerHeight - ev.clientY;
-			setTermHeight(Math.max(120, Math.min(window.innerHeight - 200, fromBottom)));
-		};
-		const onUp = () => {
-			resizing.current = false;
-			document.removeEventListener('mousemove', onMove);
-			document.removeEventListener('mouseup', onUp);
-			document.body.style.userSelect = '';
-		};
-		document.body.style.userSelect = 'none';
-		document.addEventListener('mousemove', onMove);
-		document.addEventListener('mouseup', onUp);
-	}, []);
+
+	// Replié par ⌘J. Non persisté : au chargement le terminal est toujours ouvert.
+	const [termCollapsed, setTermCollapsed] = useState(false);
+	useHotkey('j', () => setTermCollapsed((prev) => !prev));
+
+	useEffect(() => {
+		if (termHeightLoading || termHydrated.current || resizing.current) return;
+		const next = clampTermHeight(Number(termHeightRaw));
+		termHeightRef.current = next;
+		// eslint-disable-next-line react-hooks/set-state-in-effect -- hydratation unique depuis la DB (React Query), pas une boucle de sync
+		setTermHeight(next);
+		termHydrated.current = true;
+	}, [termHeightLoading, termHeightRaw]);
+
+	const startResize = useCallback(
+		(e: React.MouseEvent) => {
+			resizing.current = true;
+			e.preventDefault();
+			// Tirer la poignée d'un panneau replié le déplie.
+			setTermCollapsed(false);
+			const onMove = (ev: MouseEvent) => {
+				if (!resizing.current) return;
+				const next = clampTermHeight(window.innerHeight - ev.clientY);
+				termHeightRef.current = next;
+				setTermHeight(next);
+			};
+			const onUp = () => {
+				resizing.current = false;
+				document.removeEventListener('mousemove', onMove);
+				document.removeEventListener('mouseup', onUp);
+				document.body.style.userSelect = '';
+				// Best-effort : ne pas propager d'unhandled rejection si l'API est offline.
+				void saveTermHeight(String(Math.round(termHeightRef.current))).catch(() => {});
+			};
+			document.body.style.userSelect = 'none';
+			document.addEventListener('mousemove', onMove);
+			document.addEventListener('mouseup', onUp);
+		},
+		[saveTermHeight],
+	);
 
 	// Resize horizontal du split gauche/droite (pourcentage de largeur gauche).
 	const {
@@ -283,29 +330,32 @@ export default function WorkbenchShell({
 
 					<Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>{rightContent}</Box>
 
-					{/* Handle de resize */}
-					<Box
-						onMouseDown={startResize}
-						sx={{
-							height: 6,
-							flexShrink: 0,
-							cursor: 'row-resize',
-							bgcolor: 'divider',
-							'&:hover': { bgcolor: 'primary.main' },
-						}}
-					/>
+					{/* Handle de resize — porte aussi l'indice ⌘J, seule affordance du repli. */}
+					<Tooltip title={t('toggleTerminal')} enterDelay={700} disableInteractive>
+						<Box
+							onMouseDown={startResize}
+							sx={{
+								height: 6,
+								flexShrink: 0,
+								cursor: 'row-resize',
+								bgcolor: 'divider',
+								'&:hover': { bgcolor: 'primary.main' },
+							}}
+						/>
+					</Tooltip>
 
 					{/* Terminaux empilés */}
 					<Box
 						sx={{
-							height: termHeight,
+							height: termCollapsed ? 0 : termHeight,
 							flexShrink: 0,
 							display: 'flex',
 							flexDirection: 'column',
 							minHeight: 0,
+							overflow: 'hidden',
 						}}
 					>
-						{terminal}
+						{terminal(!termCollapsed)}
 					</Box>
 				</Box>
 			</Box>

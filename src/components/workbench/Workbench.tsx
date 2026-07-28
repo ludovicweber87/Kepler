@@ -664,7 +664,7 @@ export default function Workbench() {
 						)}
 					</>
 				}
-				terminal={
+				terminal={(visible) => (
 					<TerminalTabs
 						key={sessionId}
 						ref={handleTerminalRef}
@@ -672,8 +672,9 @@ export default function Workbench() {
 						cwd={effectivePath}
 						ready={!!resolved}
 						autoStart={!isArchived}
+						visible={visible}
 					/>
-				}
+				)}
 			/>
 
 			{/* Confirm stop */}
