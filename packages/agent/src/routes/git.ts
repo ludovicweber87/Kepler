@@ -11,6 +11,7 @@ import {
 	sendError,
 	resolveGitHubToken,
 	findClaude,
+	cleanClaudeEnv,
 	findTmux,
 	startSSE,
 	sendSSE,
@@ -764,16 +765,11 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 Issue title: "${issueTitle}"`;
 
 			const escaped = prompt.replace(/'/g, "'\\''");
-			const { CLAUDECODE, CLAUDE_CODE_ENTRYPOINT, ...cleanEnv } = process.env as Record<
-				string,
-				string | undefined
-			>;
-
 			const slug = execSync(`${CLAUDE_BIN} --print '${escaped}'`, {
 				encoding: 'utf-8',
 				timeout: 15_000,
 				maxBuffer: 1024 * 512,
-				env: cleanEnv as NodeJS.ProcessEnv,
+				env: cleanClaudeEnv(),
 			})
 				.trim()
 				.toLowerCase()
