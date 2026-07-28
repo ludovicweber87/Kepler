@@ -1,14 +1,12 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Drawer from '@mui/material/Drawer';
 import List from '@mui/material/List';
 import ListItemButton from '@mui/material/ListItemButton';
-import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Avatar from '@mui/material/Avatar';
 import Typography from '@mui/material/Typography';
@@ -42,7 +40,12 @@ import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined';
 import Collapse from '@mui/material/Collapse';
 import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
 import TheaterComedyRoundedIcon from '@mui/icons-material/TheaterComedyRounded';
+import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded';
+import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
 import Logo from './Logo';
+import SidebarNavItem, { type SidebarNavEntry } from './SidebarNavItem';
+import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
+import { useHotkey } from '@/hooks/useHotkey';
 import { useMe } from '@/hooks/useMe';
 import { useTranslations } from 'next-intl';
 import { appShadow } from '@/theme/shadows';
@@ -66,6 +69,7 @@ import LocaleSwitcher from '@/components/LocaleSwitcher';
 import AgentTerminalModal from '@/components/agents/AgentTerminalModal';
 
 export const SIDEBAR_WIDTH = 260;
+export const SIDEBAR_WIDTH_COLLAPSED = 64;
 
 // Logo GitHub "pull-request" (octicon 16px) rendu en SvgIcon MUI.
 function PullRequestIcon(props: SvgIconProps) {
@@ -114,6 +118,9 @@ export default function Sidebar() {
 	const { archive, remove, rename } = useSessionActions();
 	const { repoPaths } = useRepoPaths();
 	const { showSnackbar } = useSnackbar();
+	const { collapsed, toggle } = useSidebarCollapsed();
+	useHotkey('b', toggle);
+	const width = collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH;
 
 	// Drag & drop pour réordonner les projets (persiste via le groupe 'views' —
 	// même ordre partagé par le select Daily et les tabs PRs). Clé = view.label.
@@ -284,12 +291,7 @@ export default function Sidebar() {
 			setRenameBusy(false);
 		}
 	};
-	const mainItems: {
-		label: string;
-		href: string;
-		icon: ReactNode;
-		adornment?: ReactNode;
-	}[] = [
+	const mainItems: SidebarNavEntry[] = [
 		{ label: t('issues'), href: '/issues', icon: <BugReportRoundedIcon /> },
 		{ label: t('prs'), href: '/prs', icon: <MergeTypeRoundedIcon /> },
 		{ label: t('tasks'), href: '/tasks', icon: <ChecklistRoundedIcon /> },
@@ -297,6 +299,7 @@ export default function Sidebar() {
 			label: t('docs'),
 			href: '/docs',
 			icon: <MenuBookRoundedIcon />,
+			badgeCount: generatingDocs,
 			adornment: generatingDocs > 0 && (
 				<Tooltip title={t('docsGenerating', { count: generatingDocs })}>
 					<Box
@@ -322,114 +325,122 @@ export default function Sidebar() {
 		{ label: 'Daily', href: '/daily', icon: <TodayRoundedIcon /> },
 	];
 
-	const bottomItems = [
+	const bottomItems: SidebarNavEntry[] = [
 		{ label: t('personas'), href: '/personas', icon: <TheaterComedyRoundedIcon /> },
 		{ label: t('archived'), href: '/archived', icon: <Inventory2OutlinedIcon /> },
 		{ label: t('settings'), href: '/settings', icon: <SettingsRoundedIcon /> },
 	];
+
+	// L'arbre PROJETS ne tient pas dans 64px : en réduit on ne rend rien.
+	// Le drag & drop et l'auto-focus de session restent intacts, ils ne dépendent
+	// pas de ce rendu.
+	const visibleViews = collapsed ? [] : views;
 
 	return (
 		<>
 			<Drawer
 				variant="permanent"
 				sx={{
-					width: SIDEBAR_WIDTH,
+					width,
 					flexShrink: 0,
+					transition: 'width 0.2s',
 					'& .MuiDrawer-paper': {
-						width: SIDEBAR_WIDTH,
+						width,
 						boxSizing: 'border-box',
 						borderRight: 'none',
+						overflowX: 'hidden',
+						transition: 'width 0.2s',
 						boxShadow: appShadow(theme.palette.mode),
 					},
 				}}
 			>
 				<Box
 					sx={{
-						p: 2,
+						// 64px de large : 2×16px de padding ne laisseraient pas la place au chevron.
+						p: collapsed ? 1 : 2,
 						display: 'flex',
 						alignItems: 'center',
-						justifyContent: 'center',
+						justifyContent: collapsed ? 'center' : 'space-between',
+						gap: 1,
 						animation: 'scaleIn 0.4s ease-out',
 					}}
 				>
-					<Logo width={100} />
+					{/* Le lockup contient le wordmark : illisible à 40px, on le masque en réduit. */}
+					{!collapsed && <Logo width={100} />}
+					<Tooltip
+						title={collapsed ? t('expandSidebar') : t('collapseSidebar')}
+						placement="right"
+					>
+						<IconButton
+							size="small"
+							onClick={toggle}
+							sx={{ color: 'text.disabled', '&:hover': { color: 'primary.main' } }}
+						>
+							{collapsed ? (
+								<ChevronRightRoundedIcon sx={{ fontSize: 20 }} />
+							) : (
+								<ChevronLeftRoundedIcon sx={{ fontSize: 20 }} />
+							)}
+						</IconButton>
+					</Tooltip>
 				</Box>
 
 				<Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
 					<Box sx={{ px: 1.5, mt: 2, mb: 1.5 }}>
-						<Button
-							variant="contained"
-							fullWidth
-							startIcon={<RocketLaunchRoundedIcon sx={{ fontSize: 18 }} />}
-							onClick={() => setModalConfig({})}
-							sx={{
-								bgcolor: 'primary.main',
-								textTransform: 'none',
-								fontWeight: 600,
-								fontSize: '0.8rem',
-								py: 1,
-								mb: 4,
-								borderRadius: 1,
-								'&:hover': { bgcolor: 'primary.dark' },
-							}}
-						>
-							{t('launchAgent')}
-						</Button>
+						{collapsed ? (
+							<Tooltip title={t('launchAgent')} placement="right">
+								<Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
+									<IconButton
+										onClick={() => setModalConfig({})}
+										sx={{
+											bgcolor: 'primary.main',
+											color: 'primary.contrastText',
+											'&:hover': { bgcolor: 'primary.dark' },
+										}}
+									>
+										<RocketLaunchRoundedIcon sx={{ fontSize: 18 }} />
+									</IconButton>
+								</Box>
+							</Tooltip>
+						) : (
+							<Button
+								variant="contained"
+								fullWidth
+								startIcon={<RocketLaunchRoundedIcon sx={{ fontSize: 18 }} />}
+								onClick={() => setModalConfig({})}
+								sx={{
+									bgcolor: 'primary.main',
+									textTransform: 'none',
+									fontWeight: 600,
+									fontSize: '0.8rem',
+									py: 1,
+									mb: 4,
+									borderRadius: 1,
+									'&:hover': { bgcolor: 'primary.dark' },
+								}}
+							>
+								{t('launchAgent')}
+							</Button>
+						)}
 					</Box>
 
 					<List sx={{ px: 1.5 }}>
-						{mainItems.map((item, index) => {
-							const active = pathname.startsWith(item.href);
-							return (
-								<Link
-									key={item.label}
-									href={item.href}
-									style={{ textDecoration: 'none', color: 'inherit' }}
-								>
-									<ListItemButton
-										selected={active}
-										sx={{
-											borderRadius: 1,
-											mb: 0.5,
-											px: 2,
-											py: 1,
-											animation: `slideInLeft 0.35s ease-out ${index * 0.05}s both`,
-											transition: 'background-color 0.15s, transform 0.15s',
-											'&.Mui-selected': {
-												bgcolor: alpha(theme.palette.primary.main, 0.18),
-												color: 'primary.light',
-												'& .MuiListItemIcon-root': {
-													color: 'primary.light',
-												},
-											},
-											'&:hover': {
-												bgcolor: alpha(theme.palette.primary.main, 0.1),
-												transform: 'translateX(4px)',
-											},
-										}}
-									>
-										<ListItemIcon
-											sx={{ minWidth: 36, color: 'text.secondary' }}
-										>
-											{item.icon}
-										</ListItemIcon>
-										<ListItemText
-											primary={item.label}
-											primaryTypographyProps={{
-												fontSize: '0.85rem',
-												fontWeight: 500,
-											}}
-										/>
-										{item.adornment}
-									</ListItemButton>
-								</Link>
-							);
-						})}
+						{mainItems.map((item, index) => (
+							<SidebarNavItem
+								key={item.label}
+								{...item}
+								collapsed={collapsed}
+								active={pathname.startsWith(item.href)}
+								delay={index * 0.05}
+							/>
+						))}
 					</List>
 
-					{/* PROJETS — each configured repo, with active worktrees (F3) */}
+					{/* PROJETS — each configured repo, with active worktrees (F3).
+					    Masquée en mode réduit : un arbre à deux niveaux avec labels,
+					    pastilles et menus d'actions ne tient pas dans 64px. */}
 					<Box sx={{ flex: 1, overflowY: 'auto', px: 1.5, mt: 1 }}>
-						{views.length > 0 && (
+						{visibleViews.length > 0 && (
 							<Typography
 								variant="caption"
 								sx={{
@@ -443,7 +454,7 @@ export default function Sidebar() {
 								{t('projects')}
 							</Typography>
 						)}
-						{views.map((view, idx) => {
+						{visibleViews.map((view, idx) => {
 							const allWorktrees = byPath.get(view.path) ?? [];
 							// Hide worktrees whose session is archived (archived → Archives page only).
 							const worktrees = allWorktrees.filter((wt) => {
@@ -820,88 +831,60 @@ export default function Sidebar() {
 							boxShadow: appShadow(theme.palette.mode),
 						}}
 					>
-						<LocaleSwitcher />
-						{bottomItems.map((item, index) => {
-							const active = pathname.startsWith(item.href);
-							return (
-								<Link
-									key={item.label}
-									href={item.href}
-									style={{ textDecoration: 'none', color: 'inherit' }}
-								>
-									<ListItemButton
-										selected={active}
-										sx={{
-											borderRadius: 1,
-											mb: 0.5,
-											px: 2,
-											py: 1,
-											animation: `slideInLeft 0.35s ease-out ${(mainItems.length + index) * 0.05}s both`,
-											transition: 'background-color 0.15s, transform 0.15s',
-											'&.Mui-selected': {
-												bgcolor: alpha(theme.palette.primary.main, 0.18),
-												color: 'primary.light',
-												'& .MuiListItemIcon-root': {
-													color: 'primary.light',
-												},
-											},
-											'&:hover': {
-												bgcolor: alpha(theme.palette.primary.main, 0.1),
-												transform: 'translateX(4px)',
-											},
-										}}
-									>
-										<ListItemIcon
-											sx={{ minWidth: 36, color: 'text.secondary' }}
-										>
-											{item.icon}
-										</ListItemIcon>
-										<ListItemText
-											primary={item.label}
-											primaryTypographyProps={{
-												fontSize: '0.85rem',
-												fontWeight: 500,
-											}}
-										/>
-									</ListItemButton>
-								</Link>
-							);
-						})}
+						<LocaleSwitcher collapsed={collapsed} />
+						{bottomItems.map((item, index) => (
+							<SidebarNavItem
+								key={item.label}
+								{...item}
+								collapsed={collapsed}
+								active={pathname.startsWith(item.href)}
+								delay={(mainItems.length + index) * 0.05}
+							/>
+						))}
 					</List>
 
 					{me && (
 						<Box
 							sx={{
-								px: 2,
+								px: collapsed ? 1 : 2,
 								pb: 2,
 								pt: 1,
 								borderTop: '1px solid',
 								borderColor: 'divider',
 								display: 'flex',
 								alignItems: 'center',
+								justifyContent: collapsed ? 'center' : 'flex-start',
 								gap: 1.5,
 							}}
 						>
-							<Avatar
-								src={me.avatarUrl ?? undefined}
-								alt={me.name ?? me.login}
-								sx={{ width: 32, height: 32 }}
-							/>
-							<Box sx={{ flex: 1, minWidth: 0 }}>
-								<Typography
-									variant="body2"
-									sx={{
-										fontWeight: 600,
-										fontSize: '0.8rem',
-										lineHeight: 1.2,
-										overflow: 'hidden',
-										textOverflow: 'ellipsis',
-										whiteSpace: 'nowrap',
-									}}
-								>
-									{me.login}
-								</Typography>
-							</Box>
+							<Tooltip
+								title={collapsed ? me.login : ''}
+								placement="right"
+								disableHoverListener={!collapsed}
+							>
+								<Avatar
+									src={me.avatarUrl ?? undefined}
+									alt={me.name ?? me.login}
+									sx={{ width: 32, height: 32 }}
+								/>
+							</Tooltip>
+							{!collapsed && (
+								<Box sx={{ flex: 1, minWidth: 0 }}>
+									<Typography
+										variant="body2"
+										sx={{
+											fontWeight: 600,
+											fontSize: '0.8rem',
+											lineHeight: 1.2,
+											overflow: 'hidden',
+											textOverflow: 'ellipsis',
+											whiteSpace: 'nowrap',
+										}}
+									>
+										{me.login}
+									</Typography>
+								</Box>
+							)}
 						</Box>
 					)}
 				</Box>

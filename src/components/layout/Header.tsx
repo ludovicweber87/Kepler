@@ -8,7 +8,8 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useSearchParams } from 'next/navigation';
-import { SIDEBAR_WIDTH } from './Sidebar';
+import { SIDEBAR_WIDTH, SIDEBAR_WIDTH_COLLAPSED } from './Sidebar';
+import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
 import EditorPicker from './EditorPicker';
 import WorktreeScripts from './WorktreeScripts';
 import { useColorMode } from '@/hooks/useColorMode';
@@ -63,13 +64,19 @@ export default function Header() {
 	const { repoPaths } = useRepoPaths();
 	const repoFullName = resolveRepoFullName(resolved, repoPaths);
 
+	// Doit suivre la sidebar avec la même durée d'animation, sinon le header
+	// se désynchronise visiblement pendant la transition.
+	const { collapsed } = useSidebarCollapsed();
+	const sidebarWidth = collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH;
+
 	return (
 		<AppBar
 			position="fixed"
 			elevation={0}
 			sx={{
-				width: `calc(100% - ${SIDEBAR_WIDTH}px)`,
-				ml: `${SIDEBAR_WIDTH}px`,
+				width: `calc(100% - ${sidebarWidth}px)`,
+				ml: `${sidebarWidth}px`,
+				transition: 'width 0.2s, margin-left 0.2s',
 				bgcolor: 'transparent',
 				backdropFilter: 'blur(12px)',
 				borderBottom: 1,

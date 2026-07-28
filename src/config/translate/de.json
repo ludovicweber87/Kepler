@@ -16,6 +16,8 @@
 		"signOut": "Abmelden",
 		"launchAgent": "Agent starten",
 		"projects": "Projekte",
+		"collapseSidebar": "Seitenleiste einklappen (⌘B)",
+		"expandSidebar": "Seitenleiste ausklappen (⌘B)",
 		"noWorktrees": "Keine Worktrees",
 		"deleteWorktree": "Worktree löschen",
 		"deleteWorktreeOnly": "Nur Worktree",

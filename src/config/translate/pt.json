@@ -16,6 +16,8 @@
 		"signOut": "Sair",
 		"launchAgent": "Iniciar agente",
 		"projects": "Projetos",
+		"collapseSidebar": "Recolher a barra lateral (⌘B)",
+		"expandSidebar": "Expandir a barra lateral (⌘B)",
 		"noWorktrees": "Nenhum worktree",
 		"deleteWorktree": "Excluir worktree",
 		"deleteWorktreeOnly": "Apenas worktree",

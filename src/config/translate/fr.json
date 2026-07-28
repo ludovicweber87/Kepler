@@ -16,6 +16,8 @@
 		"signOut": "Se deconnecter",
 		"launchAgent": "Lancer un agent",
 		"projects": "Projets",
+		"collapseSidebar": "Réduire la sidebar (⌘B)",
+		"expandSidebar": "Déplier la sidebar (⌘B)",
 		"noWorktrees": "Aucun worktree",
 		"deleteWorktree": "Supprimer le worktree",
 		"deleteWorktreeOnly": "Worktree seulement",
