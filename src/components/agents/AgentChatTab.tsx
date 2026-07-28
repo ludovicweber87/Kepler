@@ -310,6 +310,7 @@ export default function AgentChatTab({
 			) : (
 				<>
 					<ChatComposer
+						sessionId={sessionId}
 						disabled={
 							chat.status === 'connecting' ||
 							chat.status === 'closed' ||
