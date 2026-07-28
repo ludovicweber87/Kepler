@@ -151,8 +151,10 @@ Kepler is **single-user and local-first**. GitHub access uses your **`gh` CLI** 
 One command clones a dedicated copy into `~/.kepler/repo`, builds it, and puts a stable `kepler` command on your `PATH`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ludovicweber87/Kepler/main/install.sh | bash
+gh api repos/ludovicweber87/Kepler/contents/install.sh -H "Accept: application/vnd.github.raw" | bash
 ```
+
+> The repo is private, so the fetch goes through your authenticated `gh` session. A plain `curl` on `raw.githubusercontent.com` returns **404** (GitHub hides private repos rather than returning 403).
 
 Open a new terminal (so the updated `PATH` takes effect), then:
 
@@ -376,8 +378,10 @@ Kepler est **mono-utilisateur et local-first**. L'accès GitHub utilise votre se
 Une commande clone une copie dédiée dans `~/.kepler/repo`, la build, et place une commande `kepler` stable sur votre `PATH` :
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ludovicweber87/Kepler/main/install.sh | bash
+gh api repos/ludovicweber87/Kepler/contents/install.sh -H "Accept: application/vnd.github.raw" | bash
 ```
+
+> Le repo est privé : le téléchargement passe par votre session `gh` authentifiée. Un `curl` direct sur `raw.githubusercontent.com` renvoie **404** (GitHub masque les repos privés au lieu de renvoyer 403).
 
 Ouvrez un nouveau terminal (pour que le `PATH` mis à jour prenne effet), puis :
 
