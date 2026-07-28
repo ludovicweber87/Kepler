@@ -329,6 +329,11 @@ export interface ChatImageInput {
 	data: string;
 }
 
+/** Image attachée dans le composer, en attente d'envoi. */
+export interface ComposerAttachment extends ChatImageInput {
+	id: string;
+}
+
 export interface ChatMessage {
 	id: string;
 	role: ChatRole;
