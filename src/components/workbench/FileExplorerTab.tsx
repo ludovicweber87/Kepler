@@ -142,8 +142,7 @@ export default function FileExplorerTab({ cwd, activePath, onOpenFile }: FileExp
 	// dépliage, filtre actif ou non. Conséquence acceptée : si l'utilisateur
 	// replie un parent puis affine la requête vers un descendant qui matche
 	// nouvellement, ce descendant reste invisible — le parent replié n'est
-	// jamais redéplié automatiquement. Délibéré, pas un oubli : voir le journal
-	// de la Task 4 (`.superpowers/sdd/2026-07-27-file-explorer/progress.md`).
+	// jamais redéplié automatiquement. Délibéré, pas un oubli.
 	const toggle = (path: string) => {
 		setExpanded((prev) => {
 			const next = new Set(prev);
