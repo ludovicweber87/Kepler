@@ -8,19 +8,21 @@ import {
 	useSyncExternalStore,
 	type ReactNode,
 } from 'react';
-import type { PaletteMode } from '@mui/material/styles';
 import { DEFAULT_THEME_VARIANT, THEME_VARIANTS, type ThemeVariant } from '@/theme/theme';
 
+/**
+ * Volontairement sans `mode` dark/light : il ne se déduit pas du nom du variant
+ * (`custom` porte le sien dans `customTokens.mode`). Pour connaître le mode,
+ * lire `useTheme().palette.mode` — `getTheme` a déjà tranché le cas custom.
+ */
 interface ColorModeContextValue {
 	variant: ThemeVariant;
 	setVariant: (variant: ThemeVariant) => void;
-	mode: PaletteMode;
 }
 
 const ColorModeContext = createContext<ColorModeContextValue>({
 	variant: DEFAULT_THEME_VARIANT,
 	setVariant: () => {},
-	mode: 'dark',
 });
 
 const STORAGE_KEY = 'devora-color-mode';
@@ -39,9 +41,6 @@ export function resolveStoredVariant(stored: string | null): ThemeVariant {
 	if (stored === 'light-near-white') return 'light-bright';
 	return DEFAULT_THEME_VARIANT;
 }
-
-const modeForVariant = (variant: ThemeVariant): PaletteMode =>
-	variant.startsWith('dark') ? 'dark' : 'light';
 
 function subscribe(callback: () => void) {
 	window.addEventListener('storage', callback);
@@ -64,10 +63,7 @@ export function ColorModeProvider({ children }: { children: ReactNode }) {
 		window.dispatchEvent(new Event(CHANGE_EVENT));
 	}, []);
 
-	const value = useMemo(
-		() => ({ variant, setVariant, mode: modeForVariant(variant) }),
-		[variant, setVariant],
-	);
+	const value = useMemo(() => ({ variant, setVariant }), [variant, setVariant]);
 
 	return <ColorModeContext.Provider value={value}>{children}</ColorModeContext.Provider>;
 }
