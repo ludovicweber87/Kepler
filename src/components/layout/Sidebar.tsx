@@ -375,21 +375,33 @@ export default function Sidebar() {
 						p: collapsed ? 1 : 2,
 						display: 'flex',
 						alignItems: 'center',
-						justifyContent: collapsed ? 'center' : 'space-between',
-						gap: 1,
+						justifyContent: 'center',
+						position: 'relative',
 						animation: 'scaleIn 0.4s ease-out',
 					}}
 				>
 					{/* Le lockup contient le wordmark : illisible à 40px, on le masque en réduit. */}
-					{!collapsed && <Logo width={100} />}
+					{!collapsed && <Logo width={80} />}
 					<Tooltip
 						title={collapsed ? t('expandSidebar') : t('collapseSidebar')}
 						placement="right"
 					>
+						{/* Hors du flux quand la sidebar est ouverte : le logo reste centré sur la sidebar. */}
 						<IconButton
 							size="small"
 							onClick={toggle}
-							sx={{ color: 'text.disabled', '&:hover': { color: 'primary.main' } }}
+							sx={{
+								color: 'text.disabled',
+								'&:hover': { color: 'primary.main' },
+								...(collapsed
+									? {}
+									: {
+											position: 'absolute',
+											right: 8,
+											top: '50%',
+											transform: 'translateY(-50%)',
+										}),
+							}}
 						>
 							{collapsed ? (
 								<ChevronRightRoundedIcon sx={{ fontSize: 20 }} />
