@@ -1,14 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <title>Kepler</title>
-  <!--
-    Icône d'application : le mark seul, sur le vert de marque. Contrairement au
-    composant `src/components/layout/Logo.tsx`, les couleurs sont figées — un
-    badge de notification système ou une icône de fenêtre n'a pas de thème.
-  -->
-  <rect width="512" height="512" rx="112" fill="#143A31"/>
-  <g transform="translate(97.5 133) scale(0.4662)" fill="#EDF4F2">
-    <path d="M0 0 H272 V528 A272 380 0 0 1 0 148 Z"/>
-    <path d="M296 356 H680 V400 A384 128 0 0 1 296 528 Z"/>
-    <path d="M296 0 H466 V70 A170 260 0 0 1 296 330 Z" fill="#57C97E"/>
-  </g>
+	<title>Kepler</title>
+	<!--
+		Icône d'application : le mark seul, sur le vert de marque. Contrairement au
+		composant `src/components/layout/Logo.tsx`, les couleurs sont figées — un
+		badge de notification système ou une icône de fenêtre n'a pas de thème.
+		`public/logo.png` et `src/app/icon.png` sont des rendus de ce fichier.
+	-->
+	<defs>
+		<linearGradient id="quillBody" gradientUnits="userSpaceOnUse" x1="362.452" y1="92.529" x2="110.665" y2="307.139">
+			<stop offset="0" stop-color="#7FDCA0"/>
+			<stop offset="1" stop-color="#3AA862"/>
+		</linearGradient>
+		<linearGradient id="quillDetail" gradientUnits="userSpaceOnUse" x1="248.707" y1="241.025" x2="287.148" y2="114.131">
+			<stop offset="0" stop-color="#7FDCA0"/>
+			<stop offset="1" stop-color="#3AA862"/>
+		</linearGradient>
+	</defs>
+	<rect width="512" height="512" rx="112" fill="#143A31"/>
+	<g transform="translate(76 83.84) scale(1.8512) translate(-152.767 -108.253)">
+		<path fill="#EDF4F2" d="M197.994 207.187 L187.994 207.187 L187.994 108.253 L192.994 108.253 C213.099 108.253 229.455 124.609 229.455 144.714 L229.455 177.883 L219.455 177.883 L219.455 144.714 C219.455 131.832 210.202 121.071 197.994 118.727 L197.994 207.187 Z"/>
+		<path fill="#EDF4F2" d="M229.455 292.174 L187.994 292.174 L187.994 254.071 L197.994 254.071 L197.994 282.174 L219.455 282.174 L219.455 245.813 L229.455 245.813 L229.455 292.174 Z"/>
+		<path fill="#EDF4F2" d="M305.018 294.246 L255.171 244.398 L262.243 237.327 L304.683 279.768 C311.658 269.477 310.591 255.326 301.483 246.216 L282.39 227.125 L289.462 220.054 L308.554 239.146 C322.77 253.362 322.77 276.493 308.554 290.71 L305.018 294.246 Z"/>
+		<path fill="url(#quillBody)" d="M344.818 122.868 L344.818 122.869 C346.294 120.419 347.233 118.796 347.233 118.796 C347.233 118.796 228.935 158.073 152.767 280.478 L188.266 241.438 C188.266 241.438 249.365 158.8 344.818 122.868 Z"/>
+		<path fill="url(#quillDetail)" d="M213.732 239.697 C213.732 239.697 213.222 231.511 202.651 228.092 C202.651 228.092 207.606 226.644 216.304 229.911 C225.003 233.178 229.836 234.992 229.836 234.992 C229.836 234.992 279.648 213.612 323.661 151.803 C323.661 151.803 307.463 153.687 298.397 147.185 C298.397 147.185 322.934 150.203 328.61 145.696 C332.761 142.399 340.798 129.541 344.818 122.869 L344.818 122.868 C249.365 158.8 188.266 241.438 188.266 241.438 C188.266 241.438 203.247 244.858 213.732 239.697 Z"/>
+	</g>
 </svg>

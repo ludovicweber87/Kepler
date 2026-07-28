@@ -1,34 +1,53 @@
 'use client';
 
+import { useId } from 'react';
 import Box from '@mui/material/Box';
+import { useTheme } from '@mui/material/styles';
 import { BRAND_FONT_STACK } from '@/lib/themePrefs';
 
 const WORDMARK = 'Kepler';
 
 /**
- * Le K est formé de trois feuilles. Chacune suit la même construction : deux côtés
- * droits qui forment l'angle net, puis un arc d'ellipse qui rejoint leurs extrémités
- * libres — d'où le galbe asymétrique de la feuille. Tous les arcs vont dans le sens
- * horaire (`large-arc 0, sweep 1`), les gouttières entre feuilles font 24 unités.
+ * Le mark est un K filaire traversé d'une plume d'écriture. Les cinq tracés sont les
+ * opérateurs PostScript de l'EPS d'origine convertis un pour un (`mo`/`li`/`cv` →
+ * `M`/`L`/`C`) : la géométrie est exacte, pas approchée. Le fût du K est en deux
+ * morceaux parce que la plume le coupe à mi-hauteur.
  *
- * Tracés reconstruits d'après le lockup de référence (raster) : la silhouette et les
- * proportions y sont fidèles, mais les courbes sont une approximation. Remplacer les
- * trois `d` par ceux de l'export SVG d'origine suffit à rendre le mark exact.
+ * `viewBox` est recadrée sur la bbox du mark et le groupe ramène cette bbox à
+ * l'origine — ce qui laisse les coordonnées des dégradés (relevées dans la matrice
+ * `ct` de l'EPS) utilisables telles quelles en `userSpaceOnUse`.
  */
-const MARK_VIEWBOX = '0 0 680 528';
-/** Fût vertical du K, coiffé de la grande feuille : galbe vers le bas-gauche. */
-const LEAF_STEM = 'M0 0 H272 V528 A272 380 0 0 1 0 148 Z';
-/** Bras haut-droit — la seule feuille colorée du lockup. */
-const LEAF_ACCENT = 'M296 0 H466 V70 A170 260 0 0 1 296 330 Z';
-/** Bras bas-droit, galbe vers le bas-droite. */
-const LEAF_ARM = 'M296 356 H680 V400 A384 128 0 0 1 296 528 Z';
+const MARK_VIEWBOX = '0 0 194.466 185.993';
+const MARK_ORIGIN = 'translate(-152.767 -108.253)';
+
+/** Fût vertical du K, coiffé de l'arc haut-gauche. */
+const K_TOP_LEFT =
+	'M197.994 207.187 L187.994 207.187 L187.994 108.253 L192.994 108.253 C213.099 108.253 229.455 124.609 229.455 144.714 L229.455 177.883 L219.455 177.883 L219.455 144.714 C219.455 131.832 210.202 121.071 197.994 118.727 L197.994 207.187 Z';
+/** Talon bas-gauche du fût, là où la plume l'a interrompu. */
+const K_BOTTOM_LEFT =
+	'M229.455 292.174 L187.994 292.174 L187.994 254.071 L197.994 254.071 L197.994 282.174 L219.455 282.174 L219.455 245.813 L229.455 245.813 L229.455 292.174 Z';
+/** Jambe bas-droite, en équerre puis arc de raccord. */
+const K_BOTTOM_RIGHT =
+	'M305.018 294.246 L255.171 244.398 L262.243 237.327 L304.683 279.768 C311.658 269.477 310.591 255.326 301.483 246.216 L282.39 227.125 L289.462 220.054 L308.554 239.146 C322.77 253.362 322.77 276.493 308.554 290.71 L305.018 294.246 Z';
+/** Lame de la plume, du bec en haut-droite à la pointe en bas-gauche. */
+const QUILL_BLADE =
+	'M344.818 122.868 L344.818 122.869 C346.294 120.419 347.233 118.796 347.233 118.796 C347.233 118.796 228.935 158.073 152.767 280.478 L188.266 241.438 C188.266 241.438 249.365 158.8 344.818 122.868 Z';
+/** Hampe et barbes : repasse sur la lame avec un dégradé orienté à l'inverse, d'où le galbe. */
+const QUILL_SHAFT =
+	'M213.732 239.697 C213.732 239.697 213.222 231.511 202.651 228.092 C202.651 228.092 207.606 226.644 216.304 229.911 C225.003 233.178 229.836 234.992 229.836 234.992 C229.836 234.992 279.648 213.612 323.661 151.803 C323.661 151.803 307.463 153.687 298.397 147.185 C298.397 147.185 322.934 150.203 328.61 145.696 C332.761 142.399 340.798 129.541 344.818 122.869 L344.818 122.868 C249.365 158.8 188.266 241.438 188.266 241.438 C188.266 241.438 203.247 244.858 213.732 239.697 Z';
+
+/** Axes des deux dégradés, relevés dans l'EPS. Les sens opposés sont voulus. */
+const GRAD_BLADE = { x1: 362.452, y1: 92.529, x2: 110.665, y2: 307.139 };
+const GRAD_SHAFT = { x1: 248.707, y1: 241.025, x2: 287.148, y2: 114.131 };
 
 /**
- * Proportions relevées sur le lockup de référence : le wordmark est ~1,9× plus
- * large que le mark, d'où un mark à 52 % de la largeur totale en vertical.
+ * Fractions de la largeur totale du lockup. En vertical, `mark` reprend le rapport
+ * mark/wordmark du lockup d'origine (~0,47) pour un mark quasi carré. En horizontal il
+ * est plus généreux que ce rapport : le K est filaire, en dessous de ~34px de haut ses
+ * traits ne se lisent plus, et le header de la sidebar n'a pas de hauteur contrainte.
  */
-const VERTICAL = { mark: 0.52, gap: 0.06, font: 0.25 };
-const HORIZONTAL = { mark: 0.22, gap: 0.05, font: 0.22 };
+const VERTICAL = { mark: 0.44, gap: 0.06, font: 0.25 };
+const HORIZONTAL = { mark: 0.24, gap: 0.05, font: 0.22 };
 
 type LogoProps = {
 	width?: number;
@@ -37,13 +56,24 @@ type LogoProps = {
 };
 
 /**
- * Le mark est tracé en SVG plutôt qu'importé en raster : les deux feuilles neutres
- * suivent `text.primary` et la feuille d'accent `primary.main`, donc le logo reste
- * lisible et cohérent sur les sept variantes de thème, en clair comme en sombre.
+ * Le mark est tracé en SVG plutôt qu'importé en raster : le K suit `text.primary` et la
+ * plume un dégradé `primary.light` → `primary.dark`, donc le logo reste lisible et
+ * cohérent sur les huit variantes de thème, en clair comme en sombre.
+ *
+ * Les couleurs passent par `useTheme()` et non par `sx` : la config `sx` de MUI ne rend
+ * `palette` accessible qu'à `color`, `bgcolor` et `borderColor` — `fill` et `stopColor`
+ * y recevraient la chaîne brute et seraient ignorés.
  */
 export default function Logo({ width = 220, orientation = 'vertical' }: LogoProps) {
 	const vertical = orientation === 'vertical';
 	const scale = vertical ? VERTICAL : HORIZONTAL;
+	const { palette } = useTheme();
+
+	// Deux instances du logo peuvent coexister (splash + sidebar) : les identifiants de
+	// dégradé sont uniques par instance, sinon la première définition gagne pour tout le document.
+	const uid = useId();
+	const bladeGradient = `${uid}-blade`;
+	const shaftGradient = `${uid}-shaft`;
 
 	return (
 		<Box
@@ -69,9 +99,31 @@ export default function Logo({ width = 220, orientation = 'vertical' }: LogoProp
 					overflow: 'visible',
 				}}
 			>
-				<Box component="path" d={LEAF_STEM} sx={{ fill: 'text.primary' }} />
-				<Box component="path" d={LEAF_ARM} sx={{ fill: 'text.primary' }} />
-				<Box component="path" d={LEAF_ACCENT} sx={{ fill: 'primary.main' }} />
+				<defs>
+					<linearGradient
+						id={bladeGradient}
+						gradientUnits="userSpaceOnUse"
+						{...GRAD_BLADE}
+					>
+						<stop offset="0" stopColor={palette.primary.light} />
+						<stop offset="1" stopColor={palette.primary.dark} />
+					</linearGradient>
+					<linearGradient
+						id={shaftGradient}
+						gradientUnits="userSpaceOnUse"
+						{...GRAD_SHAFT}
+					>
+						<stop offset="0" stopColor={palette.primary.light} />
+						<stop offset="1" stopColor={palette.primary.dark} />
+					</linearGradient>
+				</defs>
+				<g transform={MARK_ORIGIN}>
+					<path d={K_TOP_LEFT} fill={palette.text.primary} />
+					<path d={K_BOTTOM_LEFT} fill={palette.text.primary} />
+					<path d={K_BOTTOM_RIGHT} fill={palette.text.primary} />
+					<path d={QUILL_BLADE} fill={`url(#${bladeGradient})`} />
+					<path d={QUILL_SHAFT} fill={`url(#${shaftGradient})`} />
+				</g>
 			</Box>
 
 			<Box
