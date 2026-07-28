@@ -380,9 +380,9 @@ export default function Sidebar() {
 						animation: 'scaleIn 0.4s ease-out',
 					}}
 				>
-					{/* Le lockup contient le wordmark : illisible à 40px, on le masque en réduit.
-					    Version horizontale ici — le lockup vertical doublerait la hauteur du header. */}
-					{!collapsed && <Logo width={150} orientation="horizontal" />}
+					{/* Mark seul : le wordmark est redondant avec le titre de l'app, et le retirer
+					    laisse la place d'agrandir le K sans gonfler la hauteur du header. */}
+					{!collapsed && <Logo width={46} wordmark={false} />}
 					<Tooltip
 						title={collapsed ? t('expandSidebar') : t('collapseSidebar')}
 						placement="right"

@@ -53,6 +53,8 @@ type LogoProps = {
 	width?: number;
 	/** `vertical` reprend le lockup de la marque ; `horizontal` tient dans une barre. */
 	orientation?: 'vertical' | 'horizontal';
+	/** À `false`, seul le mark est rendu et `width` s'applique directement à lui. */
+	wordmark?: boolean;
 };
 
 /**
@@ -64,7 +66,11 @@ type LogoProps = {
  * `palette` accessible qu'à `color`, `bgcolor` et `borderColor` — `fill` et `stopColor`
  * y recevraient la chaîne brute et seraient ignorés.
  */
-export default function Logo({ width = 220, orientation = 'vertical' }: LogoProps) {
+export default function Logo({
+	width = 220,
+	orientation = 'vertical',
+	wordmark = true,
+}: LogoProps) {
 	const vertical = orientation === 'vertical';
 	const scale = vertical ? VERTICAL : HORIZONTAL;
 	const { palette } = useTheme();
@@ -93,7 +99,7 @@ export default function Logo({ width = 220, orientation = 'vertical' }: LogoProp
 				viewBox={MARK_VIEWBOX}
 				aria-hidden
 				sx={{
-					width: width * scale.mark,
+					width: wordmark ? width * scale.mark : width,
 					flexShrink: 0,
 					display: 'block',
 					overflow: 'visible',
@@ -126,19 +132,21 @@ export default function Logo({ width = 220, orientation = 'vertical' }: LogoProp
 				</g>
 			</Box>
 
-			<Box
-				component="span"
-				sx={{
-					fontFamily: BRAND_FONT_STACK,
-					fontSize: `${width * scale.font}px`,
-					lineHeight: 1,
-					letterSpacing: '-0.01em',
-					color: 'text.primary',
-					whiteSpace: 'nowrap',
-				}}
-			>
-				{WORDMARK}
-			</Box>
+			{wordmark && (
+				<Box
+					component="span"
+					sx={{
+						fontFamily: BRAND_FONT_STACK,
+						fontSize: `${width * scale.font}px`,
+						lineHeight: 1,
+						letterSpacing: '-0.01em',
+						color: 'text.primary',
+						whiteSpace: 'nowrap',
+					}}
+				>
+					{WORDMARK}
+				</Box>
+			)}
 		</Box>
 	);
 }
