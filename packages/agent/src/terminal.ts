@@ -5,7 +5,7 @@ import { execSync, execFileSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { findTmux, findClaude } from './helpers.js';
+import { findTmux, findClaude, CLAUDE_ENV_STRIP_KEYS } from './helpers.js';
 import { isAgentSession } from './sessionFilter.js';
 import { createSdkAgentManager } from './sdk/sdkAgent.js';
 import { buildDocStartParams } from './sdk/docSession.js';
@@ -273,9 +273,10 @@ function launchClaudeInSession(sessionId: string, systemPrompt: string): void {
 	const promptFile = join(tmpdir(), `devora-sysprompt-${sessionId}.md`);
 	writeFileSync(promptFile, systemPrompt, 'utf-8');
 	const claude = findClaude();
-	// `$(...)`-free: the pane shell reads the file path literally; unset avoids
-	// Claude thinking it runs inside another Claude session.
-	const command = `unset CLAUDECODE CLAUDE_CODE_ENTRYPOINT && ${claude} --system-prompt-file ${JSON.stringify(promptFile)}`;
+	// `$(...)`-free: the pane shell reads the file path literally. Le `unset` reprend
+	// la liste partagée : sans lui, un ANTHROPIC_* de l'env détourne l'auth du CLI, et
+	// CLAUDECODE ferait croire à Claude qu'il tourne dans une autre session Claude.
+	const command = `unset ${CLAUDE_ENV_STRIP_KEYS.join(' ')} && ${claude} --system-prompt-file ${JSON.stringify(promptFile)}`;
 	execFileSync(TMUX, ['send-keys', '-t', sessionId, command, 'Enter']);
 }
 

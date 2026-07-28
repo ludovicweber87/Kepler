@@ -1,6 +1,6 @@
 import { IncomingMessage, ServerResponse } from 'node:http';
 import { spawn } from 'node:child_process';
-import { readBody, sendSSE, startSSE, sendError, findClaude } from '../helpers.js';
+import { readBody, sendSSE, startSSE, sendError, findClaude, cleanClaudeEnv } from '../helpers.js';
 
 export async function handleChatRoutes(req: IncomingMessage, res: ServerResponse) {
 	try {
@@ -21,14 +21,10 @@ export async function handleChatRoutes(req: IncomingMessage, res: ServerResponse
 
 		startSSE(res);
 
-		const { CLAUDECODE, CLAUDE_CODE_ENTRYPOINT, ...cleanEnv } = process.env as Record<
-			string,
-			string | undefined
-		>;
 		const proc = spawn(CLAUDE_BIN, args, {
 			cwd,
 			env: {
-				...cleanEnv,
+				...cleanClaudeEnv(),
 				PATH: process.env.PATH || '/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin',
 			} as NodeJS.ProcessEnv,
 		});

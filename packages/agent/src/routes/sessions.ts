@@ -1,7 +1,15 @@
 import { IncomingMessage, ServerResponse } from 'node:http';
 import { execSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { readBody, sendJson, sendError, findTmux, findClaude, NOW_ISO } from '../helpers.js';
+import {
+	readBody,
+	sendJson,
+	sendError,
+	findTmux,
+	findClaude,
+	cleanClaudeEnv,
+	NOW_ISO,
+} from '../helpers.js';
 import { getActiveSessions, sdkAgent } from '../terminal.js';
 import { getDb } from '../db.js';
 import { synthesizeReport } from '../sdk/reportSynth.js';
@@ -236,15 +244,11 @@ ${truncated}`;
 			const escaped = prompt.replace(/'/g, "'\\''");
 			const CLAUDE_BIN = findClaude();
 
-			const { CLAUDECODE, CLAUDE_CODE_ENTRYPOINT, ...cleanEnv } = process.env as Record<
-				string,
-				string | undefined
-			>;
 			const summary = execSync(`${CLAUDE_BIN} --print '${escaped}'`, {
 				encoding: 'utf-8',
 				timeout: 30_000,
 				maxBuffer: 1024 * 1024,
-				env: cleanEnv as NodeJS.ProcessEnv,
+				env: cleanClaudeEnv(),
 			}).trim();
 
 			if (!summary) return sendError(res, 'Empty summary');

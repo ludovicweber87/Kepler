@@ -1,5 +1,5 @@
 import { query as realQuery } from '@anthropic-ai/claude-agent-sdk';
-import { findClaude } from '../helpers.js';
+import { findClaude, cleanClaudeEnv } from '../helpers.js';
 
 export type QueryFn = typeof realQuery;
 
@@ -10,19 +10,11 @@ export interface RecapItemLike {
 }
 
 /**
- * Env épuré pour un run headless : on retire les variables ANTHROPIC_* et les
- * marqueurs d'entrypoint pour que le CLI utilise sa propre authentification,
- * exactement comme le fait le chat SDK. C'est ce qui distingue ce chemin de
- * l'ancien `claude --print` (qui, lui, gardait ANTHROPIC_* et pouvait échouer).
+ * Env épuré pour un run headless, via la liste unique de `helpers.ts` : le CLI
+ * doit utiliser sa propre authentification, exactement comme le chat SDK.
  */
 export function recapCleanEnv(): Record<string, string> {
-	const env = { ...process.env } as Record<string, string>;
-	delete env.ANTHROPIC_API_KEY;
-	delete env.CLAUDECODE;
-	delete env.CLAUDE_CODE_ENTRYPOINT;
-	delete env.ANTHROPIC_AUTH_TOKEN;
-	delete env.ANTHROPIC_BASE_URL;
-	return env;
+	return cleanClaudeEnv() as Record<string, string>;
 }
 
 /**

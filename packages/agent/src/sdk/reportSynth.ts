@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { findClaude } from '../helpers.js';
+import { findClaude, cleanClaudeEnv } from '../helpers.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -24,14 +24,10 @@ ${body}`;
 
 async function defaultRun(prompt: string): Promise<string> {
 	const CLAUDE_BIN = findClaude();
-	const { CLAUDECODE, CLAUDE_CODE_ENTRYPOINT, ...cleanEnv } = process.env as Record<
-		string,
-		string | undefined
-	>;
 	const { stdout } = await execFileAsync(CLAUDE_BIN, ['--print', '--model', 'haiku', prompt], {
 		timeout: 60_000,
 		maxBuffer: 1024 * 1024,
-		env: cleanEnv as NodeJS.ProcessEnv,
+		env: cleanClaudeEnv(),
 	});
 	return stdout;
 }
