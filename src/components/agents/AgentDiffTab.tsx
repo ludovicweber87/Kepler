@@ -53,18 +53,19 @@ function SidePanel({
 	lineNo,
 	content,
 	type,
-	codeCh,
 }: {
 	lineNo?: number;
 	content: string;
 	type: 'del' | 'add' | 'ctx' | 'empty';
-	/** Largeur de code commune aux deux panneaux (en `ch`) — garde l'alignement gauche/droite. */
-	codeCh: number;
 }) {
 	return (
 		<Box
 			sx={{
-				flex: 1,
+				// `flex-basis: 0` + `minWidth: 0` : chaque côté fait exactement la moitié
+				// du visible. Sans le minWidth, un flex item refuse de passer sous la
+				// largeur de son contenu et le panneau gauche repousse le droit hors écran.
+				flex: '1 1 0',
+				minWidth: 0,
 				display: 'flex',
 				bgcolor: getBgColor(type),
 				'&:hover': { bgcolor: getBgHover(type) },
@@ -116,14 +117,18 @@ function SidePanel({
 				component="pre"
 				sx={{
 					flex: 1,
+					minWidth: 0,
 					m: 0,
 					fontFamily: FONT,
 					fontSize: FONT_SIZE,
 					lineHeight: LINE_HEIGHT,
 					color: TEXT_COLORS[type] ?? 'text.secondary',
-					whiteSpace: 'pre',
+					// `pre-wrap` conserve l'indentation mais replie les lignes trop longues,
+					// plutôt que de gonfler le panneau. `anywhere` couvre le cas d'un token
+					// insécable (URL, chaîne minifiée) plus large que la demi-colonne.
+					whiteSpace: 'pre-wrap',
+					overflowWrap: 'anywhere',
 					pr: 1,
-					minWidth: `${codeCh}ch`,
 				}}
 			>
 				{content}
@@ -136,21 +141,20 @@ function SidePanel({
 const MAX_ROWS_INITIAL = 120;
 
 /* ── Single row (memoized to avoid re-renders) ── */
-const DiffRow = memo(function DiffRow({ row, codeCh }: { row: SideBySideRow; codeCh: number }) {
+/**
+ * Les deux côtés partagent une même ligne flex : la rangée prend la hauteur du
+ * côté le plus haut, donc l'alignement gauche/droite survit au repli des lignes
+ * longues sans qu'on ait à mesurer quoi que ce soit.
+ */
+const DiffRow = memo(function DiffRow({ row }: { row: SideBySideRow }) {
 	return (
 		<Box sx={{ display: 'flex' }}>
-			<SidePanel
-				lineNo={row.left.lineNo}
-				content={row.left.content}
-				type={row.left.type}
-				codeCh={codeCh}
-			/>
+			<SidePanel lineNo={row.left.lineNo} content={row.left.content} type={row.left.type} />
 			<Box sx={{ width: '1px', flexShrink: 0, bgcolor: 'divider' }} />
 			<SidePanel
 				lineNo={row.right.lineNo}
 				content={row.right.content}
 				type={row.right.type}
-				codeCh={codeCh}
 			/>
 		</Box>
 	);
@@ -199,18 +203,6 @@ export const FileDiffView = memo(function FileDiffView({
 	const isTruncated = !showAll && allRows.length > MAX_ROWS_INITIAL;
 	const visibleRows = isTruncated ? allRows.slice(0, MAX_ROWS_INITIAL) : allRows;
 	const hiddenCount = allRows.length - MAX_ROWS_INITIAL;
-
-	// Largeur de code = ligne la plus longue affichée. Appliquée aux deux panneaux
-	// pour que les colonnes restent alignées pendant le scroll horizontal partagé.
-	const codeCh = useMemo(() => {
-		let max = 0;
-		for (const item of visibleRows) {
-			if (item.type !== 'row') continue;
-			const row = item as SideBySideRow;
-			max = Math.max(max, row.left.content.length, row.right.content.length);
-		}
-		return max;
-	}, [visibleRows]);
 
 	const toggleExpand = useCallback(() => setManualExpanded((p) => !p), []);
 
@@ -314,13 +306,12 @@ export const FileDiffView = memo(function FileDiffView({
 						borderRadius: 1,
 						border: 1,
 						borderColor: 'divider',
-						overflowX: 'auto',
-						overflowY: 'hidden',
+						// Plus de scroll horizontal : les lignes longues se replient dans
+						// leur moitié, donc rien ne dépasse jamais de la largeur visible.
+						overflow: 'hidden',
 					}}
 				>
-					{/* Sizer : impose la largeur de contenu commune à toutes les lignes
-					    (en-têtes de hunk inclus) pour un scroll horizontal partagé. */}
-					<Box sx={{ minWidth: 'max-content' }}>
+					<Box>
 						{visibleRows.map((item, idx) => {
 							if (item.type === 'hunk-header') {
 								return (
@@ -349,9 +340,7 @@ export const FileDiffView = memo(function FileDiffView({
 									</Box>
 								);
 							}
-							return (
-								<DiffRow key={idx} row={item as SideBySideRow} codeCh={codeCh} />
-							);
+							return <DiffRow key={idx} row={item as SideBySideRow} />;
 						})}
 
 						{/* Truncation notice */}
