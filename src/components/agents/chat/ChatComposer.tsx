@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, type KeyboardEvent, type ClipboardEvent, type DragEvent } from 'react';
+import { useState, type KeyboardEvent, type ClipboardEvent, type DragEvent } from 'react';
 import Box from '@mui/material/Box';
 import InputBase from '@mui/material/InputBase';
 import IconButton from '@mui/material/IconButton';
@@ -17,6 +17,7 @@ import { alpha, keyframes, type Theme } from '@mui/material/styles';
 import { useTranslations } from 'next-intl';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { validateImageFile, readFileAsDataUrl, stripDataUrlPrefix } from '@/lib/imageAttach';
+import { useComposerDraft } from '@/hooks/useComposerDraft';
 import { normalizeEffort } from '@/lib/models';
 import { RAINBOW_GRADIENT } from '@/theme/theme';
 import { appShadow } from '@/theme/shadows';
@@ -31,6 +32,8 @@ const rainbowBorderShift = keyframes`
 `;
 
 interface Props {
+	/** Session courante — scope le brouillon, préservé d'un worktree à l'autre. */
+	sessionId: string;
 	disabled?: boolean;
 	busy?: boolean;
 	model: string;
@@ -54,6 +57,7 @@ interface Props {
 }
 
 export default function ChatComposer({
+	sessionId,
 	disabled,
 	busy,
 	model,
@@ -73,11 +77,10 @@ export default function ChatComposer({
 	const t = useTranslations('agentChat');
 	const tc = useTranslations('common');
 	const { showSnackbar } = useSnackbar();
-	const [text, setText] = useState('');
+	// Le brouillon vit dans un store scopé à la session : chaque worktree garde le sien.
+	const { text, setText, attachments, addAttachment, removeAttachment, clear } =
+		useComposerDraft(sessionId);
 	const [personaAnchor, setPersonaAnchor] = useState<null | HTMLElement>(null);
-	type Attachment = { id: string; name: string; mediaType: string; data: string };
-	const [attachments, setAttachments] = useState<Attachment[]>([]);
-	const attachId = useRef(0);
 	const [dragOver, setDragOver] = useState(false);
 
 	const addFiles = async (files: File[]) => {
@@ -89,10 +92,7 @@ export default function ChatComposer({
 			}
 			const dataUrl = await readFileAsDataUrl(file);
 			const { mediaType, data } = stripDataUrlPrefix(dataUrl);
-			setAttachments((prev) => [
-				...prev,
-				{ id: `a${attachId.current++}`, name: file.name || 'image', mediaType, data },
-			]);
+			addAttachment({ name: file.name || 'image', mediaType, data });
 		}
 	};
 
@@ -109,9 +109,6 @@ export default function ChatComposer({
 		const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('image/'));
 		if (files.length) void addFiles(files);
 	};
-	const removeAttachment = (id: string) =>
-		setAttachments((prev) => prev.filter((a) => a.id !== id));
-
 	const submit = () => {
 		if (!text.trim() && attachments.length === 0) return;
 		onSend(
@@ -120,8 +117,7 @@ export default function ChatComposer({
 				? attachments.map((a) => ({ name: a.name, mediaType: a.mediaType, data: a.data }))
 				: undefined,
 		);
-		setText('');
-		setAttachments([]);
+		clear();
 	};
 	const onKey = (e: KeyboardEvent) => {
 		if (e.key === 'Enter' && !e.shiftKey) {
