@@ -662,7 +662,9 @@
 		"createIssueNoRepo": "Adicione um repositório nas Configurações para criar uma issue.",
 		"issueCreated": "Issue #{number} criada",
 		"issueCreateError": "Falha ao criar a issue",
-		"noDescription": "Sem descrição"
+		"noDescription": "Sem descrição",
+		"overdueBadgeTitle": "{count, plural, one {# tarefa atrasada} other {# tarefas atrasadas}}",
+		"overdueMore": "e mais {count}"
 	},
 	"docs": {
 		"title": "Docs",

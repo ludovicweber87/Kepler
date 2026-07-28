@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { partitionTasks } from './taskSort';
+import { partitionTasks, selectOverdueTasks } from './taskSort';
 import type { Task } from '@/types';
 
 const NOW = new Date('2026-07-23T12:00:00');
@@ -61,5 +61,50 @@ describe('partitionTasks', () => {
 		];
 		const { done } = partitionTasks(tasks, NOW);
 		expect(done.map((t) => t.id)).toEqual(['recent', 'old']);
+	});
+});
+
+describe('selectOverdueTasks', () => {
+	it('ne garde que les échéances dépassées', () => {
+		const tasks = [
+			makeTask({ id: 'overdue', due_date: '2026-07-20' }),
+			makeTask({ id: 'today', due_date: '2026-07-23' }),
+			makeTask({ id: 'future', due_date: '2026-08-10' }),
+			makeTask({ id: 'background' }),
+		];
+		expect(selectOverdueTasks(tasks, NOW).map((t) => t.id)).toEqual(['overdue']);
+	});
+
+	it('exclut les tasks terminées, même en retard', () => {
+		const tasks = [
+			makeTask({ id: 'done', due_date: '2026-07-01', done: true }),
+			makeTask({ id: 'late', due_date: '2026-07-01' }),
+		];
+		expect(selectOverdueTasks(tasks, NOW).map((t) => t.id)).toEqual(['late']);
+	});
+
+	it('inclut les épinglées et trie la plus en retard en tête', () => {
+		const tasks = [
+			makeTask({ id: 'late2d', due_date: '2026-07-21' }),
+			makeTask({ id: 'late22d', due_date: '2026-07-01', pinned: true }),
+			makeTask({ id: 'late9d', due_date: '2026-07-14' }),
+		];
+		expect(selectOverdueTasks(tasks, NOW).map((t) => t.id)).toEqual([
+			'late22d',
+			'late9d',
+			'late2d',
+		]);
+	});
+
+	it('départage deux mêmes échéances par récence de création', () => {
+		const tasks = [
+			makeTask({ id: 'older', due_date: '2026-07-20', created_at: '2026-06-01T00:00:00' }),
+			makeTask({ id: 'newer', due_date: '2026-07-20', created_at: '2026-06-15T00:00:00' }),
+		];
+		expect(selectOverdueTasks(tasks, NOW).map((t) => t.id)).toEqual(['newer', 'older']);
+	});
+
+	it('renvoie un tableau vide quand rien n’est en retard', () => {
+		expect(selectOverdueTasks([makeTask({ id: 'a' })], NOW)).toEqual([]);
 	});
 });

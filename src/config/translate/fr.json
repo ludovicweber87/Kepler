@@ -683,7 +683,9 @@
 		"createIssueNoRepo": "Ajoute un dépôt dans les Paramètres pour créer une issue.",
 		"issueCreated": "Issue #{number} créée",
 		"issueCreateError": "Échec de la création de l'issue",
-		"noDescription": "Aucune description"
+		"noDescription": "Aucune description",
+		"overdueBadgeTitle": "{count, plural, one {# tâche en retard} other {# tâches en retard}}",
+		"overdueMore": "et {count} de plus"
 	},
 	"docs": {
 		"title": "Docs",

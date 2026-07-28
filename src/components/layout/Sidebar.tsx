@@ -44,6 +44,7 @@ import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
 import Logo from './Logo';
 import SidebarNavItem, { type SidebarNavEntry } from './SidebarNavItem';
+import TasksOverdueBadge from './TasksOverdueBadge';
 import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
 import { useHotkey } from '@/hooks/useHotkey';
 import { useMe } from '@/hooks/useMe';
@@ -51,6 +52,8 @@ import { useTranslations } from 'next-intl';
 import { appShadow } from '@/theme/shadows';
 import { useAgentSessionHistory } from '@/hooks/useAgentSession';
 import { useGeneratingDocsCount } from '@/hooks/useDocs';
+import { useTasks } from '@/hooks/useTasks';
+import { selectOverdueTasks } from '@/lib/taskSort';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useMarkNotifications } from '@/hooks/useMarkNotifications';
 import { unreadAgentIdsBySession } from '@/lib/notificationsReducer';
@@ -89,6 +92,11 @@ export default function Sidebar() {
 	const { me } = useMe();
 	const t = useTranslations('sidebar');
 	const generatingDocs = useGeneratingDocsCount();
+	// Même query key ['tasks'] que la page Tasks : aucun fetch en plus, et le
+	// badge se remet à jour à chaque mutation de task.
+	const { tasks } = useTasks();
+	const tasksNow = useMemo(() => new Date(), []);
+	const overdueTasks = useMemo(() => selectOverdueTasks(tasks, tasksNow), [tasks, tasksNow]);
 	const { notifications } = useNotifications();
 	const { markRead } = useMarkNotifications();
 	// Ids des notifs d'agent non lues, groupés par session → pastille sur le worktree.
@@ -294,7 +302,14 @@ export default function Sidebar() {
 	const mainItems: SidebarNavEntry[] = [
 		{ label: t('issues'), href: '/issues', icon: <BugReportRoundedIcon /> },
 		{ label: t('prs'), href: '/prs', icon: <MergeTypeRoundedIcon /> },
-		{ label: t('tasks'), href: '/tasks', icon: <ChecklistRoundedIcon /> },
+		{
+			label: t('tasks'),
+			href: '/tasks',
+			icon: <ChecklistRoundedIcon />,
+			badgeCount: overdueTasks.length,
+			badgeColor: 'error',
+			adornment: <TasksOverdueBadge tasks={overdueTasks} now={tasksNow} />,
+		},
 		{
 			label: t('docs'),
 			href: '/docs',

@@ -17,6 +17,8 @@ export interface SidebarNavEntry {
 	adornment?: ReactNode;
 	/** Valeur du badge posé sur l'icône en mode réduit (l'adornment n'a plus de place). */
 	badgeCount?: number;
+	/** Couleur de ce badge. `error` pour un signal d'alerte (retard), `primary` pour une activité en cours. */
+	badgeColor?: 'primary' | 'error';
 }
 
 interface SidebarNavItemProps extends SidebarNavEntry {
@@ -32,6 +34,7 @@ export default function SidebarNavItem({
 	icon,
 	adornment,
 	badgeCount,
+	badgeColor = 'primary',
 	collapsed,
 	active,
 	delay,
@@ -71,7 +74,7 @@ export default function SidebarNavItem({
 						}}
 					>
 						{collapsed && badgeCount ? (
-							<Badge badgeContent={badgeCount} color="primary">
+							<Badge badgeContent={badgeCount} color={badgeColor}>
 								{icon}
 							</Badge>
 						) : (
