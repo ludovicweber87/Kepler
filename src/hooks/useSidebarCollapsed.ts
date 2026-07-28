@@ -1,9 +1,11 @@
 'use client';
 
 import { useCallback, useSyncExternalStore } from 'react';
+import { readStoredItem } from '@/lib/legacyStorage';
 
-const STORAGE_KEY = 'devora-sidebar-collapsed';
-const CHANGE_EVENT = 'devora-sidebar-collapsed-change';
+const STORAGE_KEY = 'kepler-sidebar-collapsed';
+const LEGACY_STORAGE_KEY = 'devora-sidebar-collapsed';
+const CHANGE_EVENT = 'kepler-sidebar-collapsed-change';
 
 /** Résout la valeur persistée : tout ce qui n'est pas exactement 'true' vaut déplié. */
 export function resolveStoredCollapsed(stored: string | null): boolean {
@@ -19,7 +21,8 @@ function subscribe(callback: () => void) {
 	};
 }
 
-const getSnapshot = (): boolean => resolveStoredCollapsed(localStorage.getItem(STORAGE_KEY));
+const getSnapshot = (): boolean =>
+	resolveStoredCollapsed(readStoredItem(STORAGE_KEY, LEGACY_STORAGE_KEY));
 
 const getServerSnapshot = (): boolean => false;
 
@@ -37,7 +40,7 @@ export function useSidebarCollapsed() {
 	}, []);
 
 	const toggle = useCallback(() => {
-		setCollapsed(!resolveStoredCollapsed(localStorage.getItem(STORAGE_KEY)));
+		setCollapsed(!resolveStoredCollapsed(readStoredItem(STORAGE_KEY, LEGACY_STORAGE_KEY)));
 	}, [setCollapsed]);
 
 	return { collapsed, setCollapsed, toggle };

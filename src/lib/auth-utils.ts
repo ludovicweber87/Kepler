@@ -25,7 +25,7 @@ function readGhToken(): string | null {
 	const now = Date.now();
 	if (tokenCache && now - tokenCache.at < TOKEN_TTL) return tokenCache.token;
 
-	// Prefer an injected token — the `devora` CLI reads gh in the user's session
+	// Prefer an injected token — the `kepler` CLI reads gh in the user's session
 	// and passes it via GITHUB_TOKEN, so the detached server never calls gh.
 	const envToken = process.env.GITHUB_TOKEN?.trim();
 	if (envToken) {
@@ -71,7 +71,7 @@ async function fetchGhUser(token: string): Promise<GhUser | null> {
 			headers: {
 				Authorization: `Bearer ${token}`,
 				Accept: 'application/vnd.github+json',
-				'User-Agent': 'devora',
+				'User-Agent': 'kepler',
 			},
 		});
 		if (!res.ok) return null;

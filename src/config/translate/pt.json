@@ -1,8 +1,8 @@
 {
 	"onboarding": {
-		"welcome": "Bem-vindo ao Devora",
-		"description": "Devora é o seu painel de desenvolvimento pessoal. Gerencie suas issues do GitHub, pull requests, todos, worktrees do Git e lance agentes Claude — tudo numa única interface. Comece adicionando um repositório abaixo.",
-		"launch": "Iniciar Devora"
+		"welcome": "Bem-vindo ao Kepler",
+		"description": "Kepler é o seu painel de desenvolvimento pessoal. Gerencie suas issues do GitHub, pull requests, todos, worktrees do Git e lance agentes Claude — tudo numa única interface. Comece adicionando um repositório abaixo.",
+		"launch": "Iniciar Kepler"
 	},
 	"sidebar": {
 		"issues": "Issues",
@@ -184,7 +184,7 @@
 		"mergeError": "Falha ao mesclar: {message}",
 		"issueMovedToColumn": "Issue #{number} movida para {column}",
 		"issueMoveFailed": "Não foi possível mover a issue #{number}",
-		"mergeTriageNoLink": "PR mesclada — nenhuma issue Devora vinculada, nada a mover",
+		"mergeTriageNoLink": "PR mesclada — nenhuma issue Kepler vinculada, nada a mover",
 		"mergeTriageNoColumn": "Issue #{number} não movida — configure a coluna de destino nas definições do repo",
 		"worktreeArchived": "Worktree arquivado",
 		"worktreeArchiveFailed": "Falha ao arquivar o worktree"
@@ -216,7 +216,7 @@
 		"notifications": {
 			"title": "Notificações",
 			"os": "Notificações do sistema",
-			"osDesc": "Mostra uma notificação do sistema quando um agente termina, falha ou faz uma pergunta. Apenas quando o Devora não está em primeiro plano.",
+			"osDesc": "Mostra uma notificação do sistema quando um agente termina, falha ou faz uma pergunta. Apenas quando o Kepler não está em primeiro plano.",
 			"osDenied": "As notificações estão bloqueadas para este site. Permita-as nas configurações do seu navegador.",
 			"osUnsupported": "O seu navegador não suporta notificações.",
 			"sound": "Som de notificação",
@@ -259,6 +259,7 @@
 	},
 	"header": {
 		"themeSelector": "Tema",
+		"themeDarkKepler": "Escuro — Kepler",
 		"themeDark": "Escuro — Violeta",
 		"themeDarkTeal": "Escuro — Teal",
 		"themeDarkAmber": "Escuro — Âmbar",
@@ -545,14 +546,14 @@
 		"commitPushPrompt": "Prompt de Commit & push",
 		"commitPushPromptDesc": "Mensagem enviada ao agente ao clicar em «Commit & push».",
 		"filesToCopy": "Arquivos para copiar",
-		"filesToCopyDesc": "O Devora copiará automaticamente estes arquivos para cada novo worktree (um caminho por linha).",
+		"filesToCopyDesc": "O Kepler copiará automaticamente estes arquivos para cada novo worktree (um caminho por linha).",
 		"setupScript": "Script de configuração",
 		"setupScriptDesc": "Executa quando um worktree é criado (ex. pnpm install).",
 		"archiveScript": "Script de arquivamento",
 		"archiveScriptDesc": "Executa antes de arquivar um worktree.",
 		"save": "Salvar",
 		"saved": "Salvo",
-		"shareHint": "Compartilhar com sua equipe? Crie um arquivo .devora/settings.toml.",
+		"shareHint": "Compartilhar com sua equipe? Crie um arquivo .kepler/settings.toml.",
 		"setupScriptName": "Nome da etapa",
 		"setupScriptNameDesc": "Rótulo exibido para esta etapa durante a criação do worktree (opcional).",
 		"setupScriptNamePlaceholder": "Script de configuração",

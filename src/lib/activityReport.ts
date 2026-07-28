@@ -35,6 +35,6 @@ export function buildReport(
 
 	lines.push('');
 	lines.push('---');
-	lines.push('*Published by [Devora](https://github.com)*');
+	lines.push('*Published by [Kepler](https://github.com)*');
 	return lines.join('\n');
 }

@@ -9,6 +9,7 @@ import {
 	type ReactNode,
 } from 'react';
 import { DEFAULT_THEME_VARIANT, THEME_VARIANTS, type ThemeVariant } from '@/theme/theme';
+import { readStoredItem } from '@/lib/legacyStorage';
 
 /**
  * Volontairement sans `mode` dark/light : il ne se déduit pas du nom du variant
@@ -25,8 +26,9 @@ const ColorModeContext = createContext<ColorModeContextValue>({
 	setVariant: () => {},
 });
 
-const STORAGE_KEY = 'devora-color-mode';
-const CHANGE_EVENT = 'devora-color-mode-change';
+const STORAGE_KEY = 'kepler-color-mode';
+const LEGACY_STORAGE_KEY = 'devora-color-mode';
+const CHANGE_EVENT = 'kepler-color-mode-change';
 
 /** Resolve a persisted value (including legacy 'light'/'dark') to a variant. */
 export function resolveStoredVariant(stored: string | null): ThemeVariant {
@@ -51,7 +53,8 @@ function subscribe(callback: () => void) {
 	};
 }
 
-const getSnapshot = (): ThemeVariant => resolveStoredVariant(localStorage.getItem(STORAGE_KEY));
+const getSnapshot = (): ThemeVariant =>
+	resolveStoredVariant(readStoredItem(STORAGE_KEY, LEGACY_STORAGE_KEY));
 
 const getServerSnapshot = (): ThemeVariant => DEFAULT_THEME_VARIANT;
 

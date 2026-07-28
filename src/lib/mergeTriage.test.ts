@@ -4,7 +4,7 @@ import { planMergeTriage, type TriageSession } from './mergeTriage';
 const base: TriageSession = {
 	session_id: 'sess-1',
 	issue_owner: 'acme',
-	issue_repo: 'devora',
+	issue_repo: 'kepler',
 	issue_number: 92,
 	archived_at: null,
 };
@@ -25,7 +25,7 @@ describe('planMergeTriage', () => {
 
 	it('déplace vers la colonne QA et archive quand tout est présent', () => {
 		expect(planMergeTriage(base, 'QA')).toEqual({
-			issueMove: { owner: 'acme', repo: 'devora', issueNumber: 92, newStatus: 'QA' },
+			issueMove: { owner: 'acme', repo: 'kepler', issueNumber: 92, newStatus: 'QA' },
 			archiveSessionId: 'sess-1',
 		});
 	});
@@ -43,7 +43,7 @@ describe('planMergeTriage', () => {
 	it('ne ré-archive pas une session déjà archivée', () => {
 		const s: TriageSession = { ...base, archived_at: '2026-01-01T00:00:00Z' };
 		expect(planMergeTriage(s, 'QA')).toEqual({
-			issueMove: { owner: 'acme', repo: 'devora', issueNumber: 92, newStatus: 'QA' },
+			issueMove: { owner: 'acme', repo: 'kepler', issueNumber: 92, newStatus: 'QA' },
 			archiveSessionId: null,
 		});
 	});

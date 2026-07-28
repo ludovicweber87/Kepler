@@ -11,8 +11,14 @@ import { handleDocRoutes } from './routes/docs.js';
 import { handleNotificationsStream } from './routes/notifications.js';
 import { serveAttachment } from './sdk/attachments.js';
 
-const PORT = parseInt(process.env.DEVORA_AGENT_PORT ?? '4001', 10);
-const ALLOWED_ORIGINS = (process.env.DEVORA_ORIGIN ?? 'http://localhost:4000')
+// `DEVORA_*` : anciens noms de ces variables, tolérés le temps que les shells et
+// les process lancés avant le renommage aient été relancés.
+const PORT = parseInt(process.env.KEPLER_AGENT_PORT ?? process.env.DEVORA_AGENT_PORT ?? '4001', 10);
+const ALLOWED_ORIGINS = (
+	process.env.KEPLER_ORIGIN ??
+	process.env.DEVORA_ORIGIN ??
+	'http://localhost:4000'
+)
 	.split(',')
 	.map((o) => o.trim());
 
@@ -22,7 +28,9 @@ function setCors(req: IncomingMessage, res: ServerResponse) {
 	const allowed =
 		ALLOWED_ORIGINS.includes(origin) ||
 		/^https?:\/\/localhost(:\d+)?$/.test(origin) ||
-		/^https:\/\/devora[a-z0-9-]*\.vercel\.app$/.test(origin);
+		// `devora-*` : le projet Vercel porte encore l'ancien nom tant qu'il n'a pas
+		// été renommé de son côté — le retirer couperait le déploiement en cours.
+		/^https:\/\/(kepler|devora)[a-z0-9-]*\.vercel\.app$/.test(origin);
 	if (allowed) {
 		res.setHeader('Access-Control-Allow-Origin', origin);
 	}
@@ -99,10 +107,10 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
 
 // ── Resilience: a terminal/pty error must never take down the whole agent ──
 process.on('unhandledRejection', (reason) => {
-	console.error('[devora-agent] Unhandled rejection:', reason);
+	console.error('[kepler-agent] Unhandled rejection:', reason);
 });
 process.on('uncaughtException', (err) => {
-	console.error('[devora-agent] Uncaught exception:', err);
+	console.error('[kepler-agent] Uncaught exception:', err);
 });
 
 // ── Start ──
@@ -122,17 +130,17 @@ server.on('error', (err: NodeJS.ErrnoException) => {
 	if (err.code === 'EADDRINUSE' && listenRetries < MAX_LISTEN_RETRIES) {
 		listenRetries++;
 		console.warn(
-			`[devora-agent] Port ${PORT} occupé, nouvelle tentative ${listenRetries}/${MAX_LISTEN_RETRIES}...`,
+			`[kepler-agent] Port ${PORT} occupé, nouvelle tentative ${listenRetries}/${MAX_LISTEN_RETRIES}...`,
 		);
 		setTimeout(() => server.listen(PORT), 500);
 		return;
 	}
-	console.error(`[devora-agent] Impossible de démarrer sur le port ${PORT}: ${err.message}`);
+	console.error(`[kepler-agent] Impossible de démarrer sur le port ${PORT}: ${err.message}`);
 	process.exit(1);
 });
 
 server.listen(PORT, () => {
 	listenRetries = 0;
-	console.log(`[devora-agent] Running on http://localhost:${PORT}`);
-	console.log(`[devora-agent] CORS origins: ${ALLOWED_ORIGINS.join(', ')}`);
+	console.log(`[kepler-agent] Running on http://localhost:${PORT}`);
+	console.log(`[kepler-agent] CORS origins: ${ALLOWED_ORIGINS.join(', ')}`);
 });

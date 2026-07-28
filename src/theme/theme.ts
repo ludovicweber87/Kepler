@@ -17,6 +17,7 @@ import {
 } from '@/lib/themePrefs';
 
 export type ThemeVariant =
+	| 'dark-kepler'
 	| 'dark'
 	| 'dark-teal'
 	| 'dark-amber'
@@ -26,6 +27,7 @@ export type ThemeVariant =
 	| 'custom';
 
 export const PRESET_VARIANTS: ThemeVariant[] = [
+	'dark-kepler',
 	'dark',
 	'dark-teal',
 	'dark-amber',
@@ -36,7 +38,8 @@ export const PRESET_VARIANTS: ThemeVariant[] = [
 
 export const THEME_VARIANTS: ThemeVariant[] = [...PRESET_VARIANTS, 'custom'];
 
-export const DEFAULT_THEME_VARIANT: ThemeVariant = 'dark';
+/** Le thème de marque : vert feuille et vert profond, repris du logo. */
+export const DEFAULT_THEME_VARIANT: ThemeVariant = 'dark-kepler';
 
 // Dégradé arc-en-ciel de l'effort « ultracode ». La dernière teinte reprend la première
 // pour boucler sans couture quand on anime `background-position` (background-size 200%).
@@ -46,6 +49,7 @@ export const RAINBOW_GRADIENT =
 /** [background, primary] pair used to render the variant swatch: left half signals
  * dark/light mode (the surface), right half shows the primary accent. */
 export const THEME_VARIANT_SWATCH: Record<ThemeVariant, [string, string]> = {
+	'dark-kepler': ['#0D2721', '#57C97E'],
 	dark: ['#1A1A1A', '#7C5CFF'],
 	'dark-teal': ['#0F1E1B', '#2DD4BF'],
 	'dark-amber': ['#1B1611', '#FFB74D'],
@@ -90,6 +94,29 @@ interface VariantTokens {
 }
 
 const TOKENS: Record<Exclude<ThemeVariant, 'custom'>, VariantTokens> = {
+	// Repris du logo : le vert de la feuille d'accent en primary, le vert profond du
+	// fond en surfaces, et l'off-white des deux autres feuilles en texte. Le secondary
+	// est un miel désaturé — le complémentaire du vert, seule teinte du lot qui reste
+	// distinguable du primary sur une chip.
+	'dark-kepler': {
+		mode: 'dark',
+		chipStyle: 'filled',
+		primary: { main: '#57C97E', light: '#7FDCA0', dark: '#3AA862' },
+		secondary: { main: '#E5B567', light: '#F0CE95', dark: '#C7954A' },
+		error: '#F87171',
+		warning: '#FBBF24',
+		success: '#4ADE80',
+		info: '#5EEAD4',
+		background: { default: '#0D2721', paper: '#143A31' },
+		text: { primary: '#EDF4F2', secondary: '#9BBDB2' },
+		divider: '#255045',
+		surfaces: {
+			cardHover: '#1A473C',
+			cardBorderHover: '#2E6153',
+			drawer: '#0D2721',
+			drawerBorder: '#255045',
+		},
+	},
 	dark: {
 		mode: 'dark',
 		chipStyle: 'filled',

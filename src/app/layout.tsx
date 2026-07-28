@@ -7,7 +7,7 @@ import { googleFontsHref } from '@/lib/themePrefs';
 import './globals.css';
 
 export const metadata: Metadata = {
-	title: 'Devora — Developer Dashboard',
+	title: 'Kepler — Developer Dashboard',
 	description: 'Personal developer dashboard for tracking tasks and issues',
 };
 

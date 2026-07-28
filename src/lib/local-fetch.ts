@@ -1,5 +1,5 @@
 /**
- * Fetch wrapper for the local devora-agent (runs on localhost:4001).
+ * Fetch wrapper for the local kepler-agent (runs on localhost:4001).
  * Does NOT throw AuthError on 401 — the agent has no auth layer.
  * In dev mode, falls back to apiFetch if the agent is offline.
  */
@@ -32,7 +32,7 @@ export function getAgentSseUrl(): string {
 	return AGENT_BASE_URL.replace(/\/$/, '') + '/notifications/stream';
 }
 
-/** Thrown when the devora-agent is unreachable (offline / wrong port / CORS). */
+/** Thrown when the kepler-agent is unreachable (offline / wrong port / CORS). */
 export class AgentOfflineError extends Error {
 	constructor(public path: string) {
 		super(

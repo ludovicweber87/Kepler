@@ -270,7 +270,7 @@ function createTmuxSession(sessionId: string, cwd: string): void {
  * array (execFileSync), so the command string needs no outer-shell quoting either.
  */
 function launchClaudeInSession(sessionId: string, systemPrompt: string): void {
-	const promptFile = join(tmpdir(), `devora-sysprompt-${sessionId}.md`);
+	const promptFile = join(tmpdir(), `kepler-sysprompt-${sessionId}.md`);
 	writeFileSync(promptFile, systemPrompt, 'utf-8');
 	const claude = findClaude();
 	// `$(...)`-free: the pane shell reads the file path literally. Le `unset` reprend
@@ -296,13 +296,13 @@ function spawnTmuxAttach(sessionId: string, cols: number, rows: number): IPty {
 
 export function startTerminalServer(httpServer: HttpServer) {
 	const wss = new WebSocketServer({ server: httpServer });
-	console.log('[devora-agent] WebSocket terminal server attached');
+	console.log('[kepler-agent] WebSocket terminal server attached');
 
 	// `ws` re-emits the HTTP server's 'error' onto the WSS. Without this handler
 	// that re-emit throws (no listener) and preempts the server's own 'error'
 	// handler — leaving the agent as a zombie on port conflicts.
 	wss.on('error', (err) => {
-		console.error('[devora-agent] WebSocket server error:', err.message);
+		console.error('[kepler-agent] WebSocket server error:', err.message);
 	});
 
 	wss.on('connection', (ws: WebSocket) => {
@@ -330,7 +330,7 @@ export function startTerminalServer(httpServer: HttpServer) {
 						execSync(`${TMUX} kill-session -t ${msg.sessionId}`, { stdio: 'ignore' });
 					}
 				} catch (err) {
-					console.error('[devora-agent] kill-session failed:', err);
+					console.error('[kepler-agent] kill-session failed:', err);
 				}
 				return;
 			}
@@ -447,7 +447,7 @@ export function startTerminalServer(httpServer: HttpServer) {
 						});
 					} catch (err) {
 						// A tmux/pty spawn failure must not crash the whole agent.
-						console.error('[devora-agent] Terminal init failed:', err);
+						console.error('[kepler-agent] Terminal init failed:', err);
 						if (ws.readyState === WebSocket.OPEN) {
 							ws.send(JSON.stringify({ type: 'init-error', reason: 'spawn_failed' }));
 						}

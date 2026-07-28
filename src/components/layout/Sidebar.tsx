@@ -380,8 +380,9 @@ export default function Sidebar() {
 						animation: 'scaleIn 0.4s ease-out',
 					}}
 				>
-					{/* Le lockup contient le wordmark : illisible à 40px, on le masque en réduit. */}
-					{!collapsed && <Logo width={80} />}
+					{/* Le lockup contient le wordmark : illisible à 40px, on le masque en réduit.
+					    Version horizontale ici — le lockup vertical doublerait la hauteur du header. */}
+					{!collapsed && <Logo width={150} orientation="horizontal" />}
 					<Tooltip
 						title={collapsed ? t('expandSidebar') : t('collapseSidebar')}
 						placement="right"

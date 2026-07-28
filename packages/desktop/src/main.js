@@ -1,8 +1,8 @@
 const { app, BrowserWindow, shell } = require('electron');
 
-app.setName('Devora');
+app.setName('Kepler');
 
-const PORT = process.env.DEVORA_WEB_PORT || '4000';
+const PORT = process.env.KEPLER_WEB_PORT || '4000';
 const SERVER_URL = `http://localhost:${PORT}`;
 
 function loadWithRetry(win, attempts = 0) {
@@ -19,7 +19,7 @@ function createWindow() {
 		height: 900,
 		minWidth: 900,
 		minHeight: 600,
-		title: 'Devora',
+		title: 'Kepler',
 		backgroundColor: '#1A1A1A',
 		autoHideMenuBar: true,
 		webPreferences: { contextIsolation: true },

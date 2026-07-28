@@ -9,7 +9,7 @@ import type { AgentSession } from '@/hooks/useAgentSession';
 import type { GitHubPullRequest, RepoSettings } from '@/types';
 
 /**
- * Après le merge d'une PR liée à une issue (via un worktree Devora) : déplace l'issue
+ * Après le merge d'une PR liée à une issue (via un worktree Kepler) : déplace l'issue
  * vers la colonne configurée (`repo_settings.qa_column`) puis archive le worktree.
  * Best-effort : le merge a déjà réussi, aucune étape ne doit bloquer ou lever.
  */

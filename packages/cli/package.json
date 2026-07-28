@@ -1,10 +1,10 @@
 {
-	"name": "devora-cli",
+	"name": "kepler-cli",
 	"version": "0.1.0",
 	"private": true,
 	"type": "module",
 	"bin": {
-		"devora": "./index.mjs"
+		"kepler": "./index.mjs"
 	},
 	"dependencies": {
 		"commander": "^12.1.0"

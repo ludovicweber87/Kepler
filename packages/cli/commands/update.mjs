@@ -7,10 +7,10 @@ function run(cmd, args, cwd) {
 	execFileSync(cmd, args, { cwd, stdio: 'inherit' });
 }
 
-/** Keep ~/.devora/bin/devora pointing at <repo>/cli/devora (self-updatable CLI). */
+/** Keep ~/.kepler/bin/kepler pointing at <repo>/cli/kepler (self-updatable CLI). */
 function ensureSymlink(repoDir) {
-	const target = join(repoDir, 'cli', 'devora');
-	const link = join(BIN_DIR, 'devora');
+	const target = join(repoDir, 'cli', 'kepler');
+	const link = join(BIN_DIR, 'kepler');
 	mkdirSync(BIN_DIR, { recursive: true });
 	try {
 		execFileSync('chmod', ['+x', target]);
@@ -66,5 +66,5 @@ export function runUpdate() {
 
 	ensureSymlink(repoDir);
 
-	console.log('\n✓ Updated. Running instance is unchanged — apply with: devora restart');
+	console.log('\n✓ Updated. Running instance is unchanged — apply with: kepler restart');
 }

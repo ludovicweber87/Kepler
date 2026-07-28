@@ -37,5 +37,5 @@ export async function runStop() {
 		for (const port of [ports.web, ports.agent].filter(Boolean)) killByPort(port);
 	}
 
-	console.log(stopped ? '\n✓ Devora stopped.' : 'Devora was not running.');
+	console.log(stopped ? '\n✓ Kepler stopped.' : 'Kepler was not running.');
 }

@@ -43,7 +43,7 @@ function repoLocalPath(repoFullName: string): string | null {
 
 /** Dossier de travail pour une doc « savoir général » : scratch dédié, sans code. */
 function scratchDir(docId: string): string {
-	const dir = join(tmpdir(), 'devora-docs', docId);
+	const dir = join(tmpdir(), 'kepler-docs', docId);
 	mkdirSync(dir, { recursive: true });
 	return dir;
 }

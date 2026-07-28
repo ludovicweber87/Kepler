@@ -1,13 +1,11 @@
-const MUTED_KEY = 'devora.notif.muted';
+import { readStoredItem } from '@/lib/legacyStorage';
+
+const MUTED_KEY = 'kepler.notif.muted';
+const LEGACY_MUTED_KEY = 'devora.notif.muted';
 
 /** True si le son de notification est coupé (persisté en localStorage). SSR-safe. */
 export function isNotificationSoundMuted(): boolean {
-	if (typeof window === 'undefined') return false;
-	try {
-		return window.localStorage.getItem(MUTED_KEY) === '1';
-	} catch {
-		return false;
-	}
+	return readStoredItem(MUTED_KEY, LEGACY_MUTED_KEY) === '1';
 }
 
 /** Persiste l'état mute du son de notification. SSR-safe. */

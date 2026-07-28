@@ -75,12 +75,12 @@ function buildSessionId(
 ): string {
 	const uid = Date.now().toString(36);
 	if (issueContext) {
-		return `devora-${issueContext.owner}-${issueContext.repo}-${issueContext.issueNumber}-${uid}`;
+		return `kepler-${issueContext.owner}-${issueContext.repo}-${issueContext.issueNumber}-${uid}`;
 	}
 	const base = projectPath?.replace(/[^a-zA-Z0-9]/g, '-') ?? 'unknown';
 	const suffix =
 		agentFile?.filename?.replace(/\.md$/, '').replace(/[^a-zA-Z0-9]/g, '-') ?? 'session';
-	return `devora-${base}-${suffix}-${uid}`;
+	return `kepler-${base}-${suffix}-${uid}`;
 }
 
 // Auto-generated worktree name. The `wip-` prefix marks it as un-named: the server

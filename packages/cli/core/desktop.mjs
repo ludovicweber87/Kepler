@@ -20,6 +20,6 @@ export function launchDesktop(repoDir, webPort) {
 	const electronBin = ensureElectron(repoDir);
 	spawnDetached('desktop', electronBin, [desktopDir], {
 		cwd: repoDir,
-		env: { ...process.env, DEVORA_WEB_PORT: String(webPort) },
+		env: { ...process.env, KEPLER_WEB_PORT: String(webPort) },
 	});
 }

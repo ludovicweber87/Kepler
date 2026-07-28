@@ -47,7 +47,7 @@ function repoLocalPath(repoFullName: string): string | null {
 }
 
 function scratchDir(docId: string): string {
-  const dir = join(tmpdir(), 'devora-docs', docId);
+  const dir = join(tmpdir(), 'kepler-docs', docId);
   mkdirSync(dir, { recursive: true });
   return dir;
 }

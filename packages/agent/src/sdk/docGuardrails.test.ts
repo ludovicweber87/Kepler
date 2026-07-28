@@ -15,10 +15,10 @@ const KNOWLEDGE: DocGuardrailInput = {
   repoResolved: false,
 };
 const REPO: DocGuardrailInput = {
-  title: 'Architecture Devora',
-  subject: "l'architecture de Devora",
+  title: 'Architecture Kepler',
+  subject: "l'architecture de Kepler",
   source_type: 'repo',
-  repoFullName: 'ludo/devora',
+  repoFullName: 'ludo/kepler',
   repoResolved: true,
 };
 
@@ -42,7 +42,7 @@ test('le prompt système interdit les questions par outil', () => {
 
 test('le prompt système ne mentionne le dépôt que pour une doc de repo', () => {
   assert.doesNotMatch(buildDocChatSystemPrompt(KNOWLEDGE), /d[ée]p[ôo]t/i);
-  assert.match(buildDocChatSystemPrompt(REPO), /ludo\/devora/);
+  assert.match(buildDocChatSystemPrompt(REPO), /ludo\/kepler/);
 });
 
 test('le prompt système exige une édition sur demande explicite', () => {

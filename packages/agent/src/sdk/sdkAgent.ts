@@ -234,7 +234,7 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
       canUseTool: s.perms.canUseTool,
     };
     if (s.model) options.model = s.model;
-    // À l'init, l'Option SDK `effort` comprend `max` (pas le label Devora `ultracode`) →
+    // À l'init, l'Option SDK `effort` comprend `max` (pas le label Kepler `ultracode`) →
     // on remappe. Une valeur legacy `max` déjà stockée passe telle quelle.
     if (s.effort) options.effort = s.effort === 'ultracode' ? 'max' : s.effort;
     if (s.systemPrompt) options.systemPrompt = s.systemPrompt;

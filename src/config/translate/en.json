@@ -1,8 +1,8 @@
 {
 	"onboarding": {
-		"welcome": "Welcome to Devora",
-		"description": "Devora is your personal development dashboard. Manage your GitHub issues, pull requests, todos, Git worktrees, and launch Claude agents — all from a single interface. Start by adding a repository below to get going.",
-		"launch": "Launch Devora"
+		"welcome": "Welcome to Kepler",
+		"description": "Kepler is your personal development dashboard. Manage your GitHub issues, pull requests, todos, Git worktrees, and launch Claude agents — all from a single interface. Start by adding a repository below to get going.",
+		"launch": "Launch Kepler"
 	},
 	"sidebar": {
 		"issues": "Issues",
@@ -184,7 +184,7 @@
 		"mergeError": "Merge failed: {message}",
 		"issueMovedToColumn": "Issue #{number} moved to {column}",
 		"issueMoveFailed": "Couldn't move issue #{number}",
-		"mergeTriageNoLink": "PR merged — no linked Devora issue, nothing to move",
+		"mergeTriageNoLink": "PR merged — no linked Kepler issue, nothing to move",
 		"mergeTriageNoColumn": "Issue #{number} not moved — set the target column in the repo settings",
 		"worktreeArchived": "Worktree archived",
 		"worktreeArchiveFailed": "Failed to archive worktree"
@@ -237,7 +237,7 @@
 		"notifications": {
 			"title": "Notifications",
 			"os": "System notifications",
-			"osDesc": "Shows a system notification when an agent finishes, fails, or asks a question. Only when Devora is not in the foreground.",
+			"osDesc": "Shows a system notification when an agent finishes, fails, or asks a question. Only when Kepler is not in the foreground.",
 			"osDenied": "Notifications are blocked for this site. Allow them in your browser settings.",
 			"osUnsupported": "Your browser does not support notifications.",
 			"sound": "Notification sound",
@@ -280,6 +280,7 @@
 	},
 	"header": {
 		"themeSelector": "Theme",
+		"themeDarkKepler": "Dark — Kepler",
 		"themeDark": "Dark — Violet",
 		"themeDarkTeal": "Dark — Teal",
 		"themeDarkAmber": "Dark — Amber",
@@ -566,14 +567,14 @@
 		"commitPushPrompt": "Commit & push prompt",
 		"commitPushPromptDesc": "Message sent to the agent when you click \"Commit & push\".",
 		"filesToCopy": "Files to copy",
-		"filesToCopyDesc": "Devora will automatically copy these files into every new worktree (one path per line).",
+		"filesToCopyDesc": "Kepler will automatically copy these files into every new worktree (one path per line).",
 		"setupScript": "Setup script",
 		"setupScriptDesc": "Runs when a worktree is created (e.g. pnpm install).",
 		"archiveScript": "Archive script",
 		"archiveScriptDesc": "Runs before a worktree is archived.",
 		"save": "Save",
 		"saved": "Saved",
-		"shareHint": "Share with your team? Create a .devora/settings.toml file.",
+		"shareHint": "Share with your team? Create a .kepler/settings.toml file.",
 		"setupScriptName": "Step name",
 		"setupScriptNameDesc": "Label shown for this step during worktree creation (optional).",
 		"setupScriptNamePlaceholder": "Setup script",

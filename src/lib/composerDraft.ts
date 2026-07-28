@@ -1,7 +1,9 @@
 import type { ComposerAttachment } from '@/types';
+import { readStoredItem } from '@/lib/legacyStorage';
 
-const DRAFTS_KEY = 'devora.composerDrafts';
-const CHANGE_EVENT = 'devora-composer-draft-change';
+const DRAFTS_KEY = 'kepler.composerDrafts';
+const LEGACY_DRAFTS_KEY = 'devora.composerDrafts';
+const CHANGE_EVENT = 'kepler-composer-draft-change';
 /** Au-delà, les brouillons les moins récemment édités sont évincés. */
 const MAX_DRAFTS = 50;
 
@@ -12,7 +14,7 @@ function readAll(): DraftMap {
 	if (typeof window === 'undefined') return {};
 	let parsed: unknown;
 	try {
-		const raw = window.localStorage.getItem(DRAFTS_KEY);
+		const raw = readStoredItem(DRAFTS_KEY, LEGACY_DRAFTS_KEY);
 		if (!raw) return {};
 		parsed = JSON.parse(raw);
 	} catch {

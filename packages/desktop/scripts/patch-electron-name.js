@@ -1,4 +1,4 @@
-// Rename the unpackaged Electron.app to "Devora" so macOS shows "Devora"
+// Rename the unpackaged Electron.app to "Kepler" so macOS shows "Kepler"
 // (not "Electron") in the menu bar, dock and About panel.
 // Runs as a postinstall of packages/desktop.
 const { execFileSync } = require('node:child_process');
@@ -36,6 +36,6 @@ function set(key, value) {
 	}
 }
 
-set('CFBundleName', 'Devora');
-set('CFBundleDisplayName', 'Devora');
-console.log('[devora-desktop] Electron.app renamed to "Devora"');
+set('CFBundleName', 'Kepler');
+set('CFBundleDisplayName', 'Kepler');
+console.log('[kepler-desktop] Electron.app renamed to "Kepler"');
