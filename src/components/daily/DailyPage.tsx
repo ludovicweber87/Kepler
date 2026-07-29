@@ -19,6 +19,7 @@ import { useAgentViews } from '@/hooks/useAgentViews';
 import { useRecaps, useGenerateRecap, useDeleteRecap, useGeneratingDates } from '@/hooks/useRecaps';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { aggregatePointsByDay } from '@/lib/recap';
+import { PageContainer, PageHeader } from '@/components/layout/PageContainer';
 import RecapCalendar from './RecapCalendar';
 import RecapDayModal from './RecapDayModal';
 
@@ -84,10 +85,8 @@ export default function DailyPage() {
 
 	return (
 		<LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={fr}>
-			<Box sx={{ maxWidth: 1100, mx: 'auto' }}>
-				<Typography variant="h4" sx={{ fontWeight: 700, mb: 2 }}>
-					{t('title')}
-				</Typography>
+			<PageContainer>
+				<PageHeader title={t('title')} />
 
 				<Paper
 					variant="outlined"
@@ -158,7 +157,7 @@ export default function DailyPage() {
 					onGenerate={() => selectedKey && runGenerate(selectedKey)}
 					onDelete={handleDelete}
 				/>
-			</Box>
+			</PageContainer>
 		</LocalizationProvider>
 	);
 }

@@ -23,13 +23,13 @@ import KanbanColumn from './KanbanColumn';
 import CreateIssueModal from './CreateIssueModal';
 import IssueDetail from '@/components/dashboard/IssueDetail';
 import RefetchIntervalSelect from '@/components/shared/RefetchIntervalSelect';
+import { PageContainer, PageHeader } from '@/components/layout/PageContainer';
 import { useProjectConfig } from '@/hooks/useProjectConfig';
 import { useRepoIssues } from '@/hooks/useRepoIssues';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useRefetchInterval } from '@/hooks/useRefetchInterval';
 import { useUpdateIssueStatus } from '@/hooks/useUpdateIssueStatus';
 import { useTranslations } from 'next-intl';
-import { useTheme } from '@mui/material/styles';
 import { GitHubIssue } from '@/types';
 import type { BoardIssue } from '@/lib/boardMerge';
 
@@ -61,7 +61,6 @@ function buildColumns(
 }
 
 export default function IssuesList() {
-	const theme = useTheme();
 	const t = useTranslations('issues');
 	const { configs, configsLoading } = useProjectConfig();
 	const hasConnectedProject = configs.some((c) => c.connected);
@@ -168,121 +167,99 @@ export default function IssuesList() {
 
 	if (configsLoading) {
 		return (
-			<Box>
-				<Skeleton
-					variant="rounded"
-					height={40}
-					width={120}
-					sx={{ mb: 3, borderRadius: 1 }}
-				/>
+			<PageContainer bleed>
+				<PageHeader title={t('title')} />
 				<Skeleton variant="rounded" height={36} sx={{ mb: 2, borderRadius: 1 }} />
 				{columnAreaSkeleton}
-			</Box>
+			</PageContainer>
 		);
 	}
 
 	return (
-		<Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-			<Box
-				sx={{
-					display: 'flex',
-					justifyContent: 'space-between',
-					alignItems: 'center',
-					mb: 3,
-					flexShrink: 0,
-				}}
-			>
-				<Typography
-					variant="h4"
-					sx={{
-						fontWeight: 700,
-						background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.light} 30%, ${theme.palette.secondary.main} 100%)`,
-						backgroundClip: 'text',
-						WebkitBackgroundClip: 'text',
-						WebkitTextFillColor: 'transparent',
-					}}
-				>
-					{t('title')}
-				</Typography>
-				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-					<TextField
-						size="small"
-						placeholder={t('searchPlaceholder')}
-						value={search}
-						onChange={(e) => setSearch(e.target.value)}
-						slotProps={{
-							input: {
-								startAdornment: (
-									<InputAdornment position="start">
-										<SearchRoundedIcon
-											sx={{ fontSize: 18, color: 'text.secondary' }}
-										/>
-									</InputAdornment>
-								),
-								endAdornment: search ? (
-									<InputAdornment position="end">
-										<IconButton
-											size="small"
-											onClick={() => setSearch('')}
-											sx={{ p: 0.25 }}
-										>
-											<ClearRoundedIcon
-												sx={{ fontSize: 16, color: 'text.secondary' }}
+		<PageContainer fullHeight bleed>
+			<PageHeader
+				title={t('title')}
+				actions={
+					<>
+						<TextField
+							size="small"
+							placeholder={t('searchPlaceholder')}
+							value={search}
+							onChange={(e) => setSearch(e.target.value)}
+							slotProps={{
+								input: {
+									startAdornment: (
+										<InputAdornment position="start">
+											<SearchRoundedIcon
+												sx={{ fontSize: 18, color: 'text.secondary' }}
 											/>
-										</IconButton>
-									</InputAdornment>
-								) : null,
-							},
-						}}
-						sx={{
-							width: 240,
-							'& .MuiOutlinedInput-root': {
-								fontSize: '0.82rem',
-								borderRadius: 1,
-								bgcolor: 'background.paper',
-								'& fieldset': { borderColor: 'divider' },
-							},
-						}}
-					/>
-					{fetchedAt && (
-						<Typography
-							variant="caption"
-							sx={{ color: 'text.disabled', whiteSpace: 'nowrap' }}
-						>
-							{t('updated', {
-								time: new Date(fetchedAt).toLocaleTimeString(undefined, {
-									hour: '2-digit',
-									minute: '2-digit',
-								}),
-							})}
-						</Typography>
-					)}
-					<RefetchIntervalSelect value={refetchMs} onChange={setRefetchMs} />
-					<Tooltip title={t('refresh')}>
-						<span>
-							<IconButton
-								onClick={handleRefresh}
-								disabled={refreshing}
-								sx={{
-									color: 'text.secondary',
-									animation: refreshing ? 'spin 1s linear infinite' : 'none',
-								}}
+										</InputAdornment>
+									),
+									endAdornment: search ? (
+										<InputAdornment position="end">
+											<IconButton
+												size="small"
+												onClick={() => setSearch('')}
+												sx={{ p: 0.25 }}
+											>
+												<ClearRoundedIcon
+													sx={{ fontSize: 16, color: 'text.secondary' }}
+												/>
+											</IconButton>
+										</InputAdornment>
+									) : null,
+								},
+							}}
+							sx={{
+								width: 240,
+								'& .MuiOutlinedInput-root': {
+									fontSize: '0.82rem',
+									borderRadius: 1,
+									bgcolor: 'background.paper',
+									'& fieldset': { borderColor: 'divider' },
+								},
+							}}
+						/>
+						{fetchedAt && (
+							<Typography
+								variant="caption"
+								sx={{ color: 'text.disabled', whiteSpace: 'nowrap' }}
 							>
-								<RefreshRoundedIcon />
-							</IconButton>
-						</span>
-					</Tooltip>
-					<Button
-						variant="contained"
-						startIcon={<AddRoundedIcon />}
-						onClick={() => setCreateOpen(true)}
-						disabled={!effectiveRepo}
-						sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}
-					>
-						{t('createIssue')}
-					</Button>
-				</Box>
-			</Box>
+								{t('updated', {
+									time: new Date(fetchedAt).toLocaleTimeString(undefined, {
+										hour: '2-digit',
+										minute: '2-digit',
+									}),
+								})}
+							</Typography>
+						)}
+						<RefetchIntervalSelect value={refetchMs} onChange={setRefetchMs} />
+						<Tooltip title={t('refresh')}>
+							<span>
+								<IconButton
+									onClick={handleRefresh}
+									disabled={refreshing}
+									sx={{
+										color: 'text.secondary',
+										animation: refreshing ? 'spin 1s linear infinite' : 'none',
+									}}
+								>
+									<RefreshRoundedIcon />
+								</IconButton>
+							</span>
+						</Tooltip>
+						<Button
+							variant="contained"
+							startIcon={<AddRoundedIcon />}
+							onClick={() => setCreateOpen(true)}
+							disabled={!effectiveRepo}
+							sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+						>
+							{t('createIssue')}
+						</Button>
+					</>
+				}
+			/>
 
 			{repoPaths.length === 0 ? (
 				<Box sx={{ textAlign: 'center', py: 8 }}>
@@ -418,6 +395,6 @@ export default function IssuesList() {
 				repo={effectiveRepo}
 				statusColumns={statusColumns}
 			/>
-		</Box>
+		</PageContainer>
 	);
 }

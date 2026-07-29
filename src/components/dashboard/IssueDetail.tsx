@@ -40,6 +40,7 @@ import MenuItem from '@mui/material/MenuItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
@@ -48,6 +49,7 @@ import { useTranslations } from 'next-intl';
 import { useIssue, useDashboard } from '@/hooks/useGitHub';
 import { useRefetchInterval } from '@/hooks/useRefetchInterval';
 import RefetchIntervalSelect from '@/components/shared/RefetchIntervalSelect';
+import { PageContainer, PageHeader } from '@/components/layout/PageContainer';
 import { GitHubComment } from '@/types';
 import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
 import IssueTimelineModal from '@/components/dashboard/IssueTimelineModal';
@@ -568,43 +570,43 @@ export default function IssueDetail({
 
 	if (isLoading) {
 		return (
-			<Box sx={{ maxWidth: 860, mx: 'auto' }}>
-				<Skeleton
-					variant="rounded"
-					width={180}
-					height={36}
-					sx={{ mb: 3, borderRadius: 1 }}
-				/>
+			<PageContainer>
+				<PageHeader title={`#${number}`} />
 				<Skeleton variant="rounded" height={400} sx={{ borderRadius: 1 }} />
-			</Box>
+			</PageContainer>
 		);
 	}
 
 	if (error) {
 		return (
-			<Box sx={{ maxWidth: 860, mx: 'auto' }}>
-				{onClose ? (
-					<Button
-						startIcon={<ArrowBackRoundedIcon />}
-						onClick={onClose}
-						sx={{ mb: 3, color: 'text.secondary' }}
-					>
-						{t('backToIssues')}
-					</Button>
-				) : (
-					<Link href="/issues" style={{ textDecoration: 'none' }}>
-						<Button
-							startIcon={<ArrowBackRoundedIcon />}
-							sx={{ mb: 3, color: 'text.secondary' }}
-						>
-							{t('backToIssues')}
-						</Button>
-					</Link>
-				)}
+			<PageContainer>
+				<PageHeader
+					title={`#${number}`}
+					startAdornment={
+						<Tooltip title={t('backToIssues')}>
+							{onClose ? (
+								<IconButton
+									onClick={onClose}
+									sx={{ color: 'text.secondary', ml: -1 }}
+								>
+									<ArrowBackRoundedIcon />
+								</IconButton>
+							) : (
+								<IconButton
+									component={Link}
+									href="/issues"
+									sx={{ color: 'text.secondary', ml: -1 }}
+								>
+									<ArrowBackRoundedIcon />
+								</IconButton>
+							)}
+						</Tooltip>
+					}
+				/>
 				<Alert severity="error" sx={{ borderRadius: 1 }}>
 					{t('loadError', { message: error.message })}
 				</Alert>
-			</Box>
+			</PageContainer>
 		);
 	}
 
@@ -615,36 +617,28 @@ export default function IssueDetail({
 	const stateColor = isOpen ? theme.palette.success.main : theme.palette.text.disabled;
 	const stateLabel = isOpen ? 'Open' : 'Closed';
 	return (
-		<Box sx={{ maxWidth: 860, mx: 'auto' }}>
-			<Box
-				sx={{
-					display: 'flex',
-					alignItems: 'center',
-					justifyContent: 'space-between',
-					gap: 1,
-					mb: 3,
-				}}
-			>
-				{onClose ? (
-					<Button
-						startIcon={<ArrowBackRoundedIcon />}
-						onClick={onClose}
-						sx={{ color: 'text.secondary' }}
-					>
-						{t('backToIssues')}
-					</Button>
-				) : (
-					<Link href="/issues" style={{ textDecoration: 'none' }}>
-						<Button
-							startIcon={<ArrowBackRoundedIcon />}
-							sx={{ color: 'text.secondary' }}
-						>
-							{t('backToIssues')}
-						</Button>
-					</Link>
-				)}
-				<RefetchIntervalSelect value={refetchMs} onChange={setRefetchMs} />
-			</Box>
+		<PageContainer>
+			<PageHeader
+				title={`#${issue.number}`}
+				startAdornment={
+					<Tooltip title={t('backToIssues')}>
+						{onClose ? (
+							<IconButton onClick={onClose} sx={{ color: 'text.secondary', ml: -1 }}>
+								<ArrowBackRoundedIcon />
+							</IconButton>
+						) : (
+							<IconButton
+								component={Link}
+								href="/issues"
+								sx={{ color: 'text.secondary', ml: -1 }}
+							>
+								<ArrowBackRoundedIcon />
+							</IconButton>
+						)}
+					</Tooltip>
+				}
+				actions={<RefetchIntervalSelect value={refetchMs} onChange={setRefetchMs} />}
+			/>
 
 			<Card sx={{ mb: 3, animation: 'fadeInUp 0.4s ease-out both' }}>
 				<CardContent sx={{ p: 4, '&:last-child': { pb: 4 } }}>
@@ -1091,6 +1085,6 @@ export default function IssueDetail({
 					labels: issue.labels.map((l) => l.name),
 				}}
 			/>
-		</Box>
+		</PageContainer>
 	);
 }
