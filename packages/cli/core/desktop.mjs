@@ -10,6 +10,17 @@ function ensureElectron(repoDir) {
 	if (!existsSync(electronBin)) {
 		console.log('Installing the desktop window (Electron, first run only)...');
 		execFileSync('npm', ['install'], { cwd: desktopDir, stdio: 'inherit' });
+		return electronBin;
+	}
+	// Electron was already installed, so its postinstall won't run again: replay the
+	// name/icon patch here. It self-skips when the bundle is already up to date.
+	try {
+		execFileSync('node', ['scripts/patch-electron-app.js'], {
+			cwd: desktopDir,
+			stdio: 'ignore',
+		});
+	} catch {
+		/* cosmetic only — never block the launch */
 	}
 	return electronBin;
 }

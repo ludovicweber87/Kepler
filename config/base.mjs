@@ -45,6 +45,11 @@ const baseConfig = [
 			],
 		},
 	},
+	{
+		// L'hôte Electron est du CommonJS par contrat (`main` du package, pas de bundler).
+		files: ['packages/desktop/**/*.js'],
+		rules: { '@typescript-eslint/no-require-imports': 'off' },
+	},
 	prettierConfig,
 ];
 
