@@ -21,6 +21,7 @@ import { useAgentSessionHistory, type AgentSession } from '@/hooks/useAgentSessi
 import { useSessionActions } from '@/hooks/useSessionActions';
 import { useAllWorktrees } from '@/hooks/useAllWorktrees';
 import { classifySession } from '@/lib/sessionStatus';
+import { PageContainer, PageHeader } from '@/components/layout/PageContainer';
 import { useSnackbar } from '@/hooks/useSnackbar';
 
 const AgentTerminalModal = dynamic(() => import('@/components/agents/AgentTerminalModal'), {
@@ -88,24 +89,8 @@ export default function ArchivedPage() {
 
 	return (
 		<>
-			<Box
-				sx={{
-					p: 4,
-					maxWidth: 1000,
-					mx: 'auto',
-					height: '100vh',
-					display: 'flex',
-					flexDirection: 'column',
-					gap: 2,
-					overflow: 'hidden',
-				}}
-			>
-				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
-					<Inventory2OutlinedIcon sx={{ color: 'text.secondary' }} />
-					<Typography variant="h4" sx={{ fontWeight: 700 }}>
-						{t('title')}
-					</Typography>
-				</Box>
+			<PageContainer fullHeight>
+				<PageHeader title={t('title')} />
 
 				{projects.length > 0 && (
 					<Tabs
@@ -115,6 +100,7 @@ export default function ArchivedPage() {
 						scrollButtons="auto"
 						sx={{
 							minHeight: 40,
+							mb: 2,
 							flexShrink: 0,
 							'& .MuiTab-root': { textTransform: 'none', minHeight: 40 },
 						}}
@@ -267,7 +253,7 @@ export default function ArchivedPage() {
 						})}
 					</Box>
 				)}
-			</Box>
+			</PageContainer>
 
 			<Menu
 				anchorEl={deleteMenu?.el}

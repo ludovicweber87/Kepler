@@ -18,6 +18,7 @@ import { useTasks } from '@/hooks/useTasks';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { partitionTasks } from '@/lib/taskSort';
 import type { Task } from '@/types';
+import { PageContainer, PageHeader } from '@/components/layout/PageContainer';
 import TaskRow from './TaskRow';
 import TaskFormModal from './TaskFormModal';
 import TaskViewModal from './TaskViewModal';
@@ -92,49 +93,40 @@ export default function TasksPage() {
 			dateAdapter={AdapterDateFns}
 			adapterLocale={DATE_LOCALES[locale as keyof typeof DATE_LOCALES] ?? enUS}
 		>
-			<Box sx={{ maxWidth: 900, mx: 'auto' }}>
-				<Box
-					sx={{
-						display: 'flex',
-						alignItems: 'center',
-						justifyContent: 'space-between',
-						gap: 2,
-						mb: 3,
-						flexWrap: 'wrap',
-					}}
-				>
-					<Typography variant="h4" sx={{ fontWeight: 700 }}>
-						{t('title')}
-					</Typography>
-					<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-						<Select
-							size="small"
-							value={repoFilter}
-							onChange={(e) => setRepoFilter(e.target.value)}
-							startAdornment={
-								<FolderOpenRoundedIcon
-									sx={{ fontSize: 16, mr: 0.75, color: 'text.secondary' }}
-								/>
-							}
-							sx={{ minWidth: 200, fontSize: '0.85rem' }}
-						>
-							<MenuItem value="all">{t('allRepos')}</MenuItem>
-							{repoPaths.map((r) => (
-								<MenuItem key={r.repo_full_name} value={r.repo_full_name}>
-									{r.repo_full_name}
-								</MenuItem>
-							))}
-						</Select>
-						<Button
-							variant="contained"
-							startIcon={<AddRoundedIcon />}
-							onClick={openCreate}
-							sx={{ textTransform: 'none', fontWeight: 600 }}
-						>
-							{t('newTask')}
-						</Button>
-					</Box>
-				</Box>
+			<PageContainer>
+				<PageHeader
+					title={t('title')}
+					actions={
+						<>
+							<Select
+								size="small"
+								value={repoFilter}
+								onChange={(e) => setRepoFilter(e.target.value)}
+								startAdornment={
+									<FolderOpenRoundedIcon
+										sx={{ fontSize: 16, mr: 0.75, color: 'text.secondary' }}
+									/>
+								}
+								sx={{ minWidth: 200, fontSize: '0.85rem' }}
+							>
+								<MenuItem value="all">{t('allRepos')}</MenuItem>
+								{repoPaths.map((r) => (
+									<MenuItem key={r.repo_full_name} value={r.repo_full_name}>
+										{r.repo_full_name}
+									</MenuItem>
+								))}
+							</Select>
+							<Button
+								variant="contained"
+								startIcon={<AddRoundedIcon />}
+								onClick={openCreate}
+								sx={{ textTransform: 'none', fontWeight: 600 }}
+							>
+								{t('newTask')}
+							</Button>
+						</>
+					}
+				/>
 
 				{isLoading ? (
 					<Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
@@ -177,7 +169,7 @@ export default function TasksPage() {
 					onUpdate={updateTask}
 					onDelete={deleteTask}
 				/>
-			</Box>
+			</PageContainer>
 		</LocalizationProvider>
 	);
 }

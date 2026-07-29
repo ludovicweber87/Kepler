@@ -28,6 +28,7 @@ import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
 import DraggableTabs from '@/components/shared/DraggableTabs';
+import { PageContainer, PageHeader } from '@/components/layout/PageContainer';
 import { useAgentViews } from '@/hooks/useAgentViews';
 import { usePullRequests, useMergePR } from '@/hooks/usePullRequests';
 import { usePostMergeTriage } from '@/hooks/usePostMergeTriage';
@@ -451,19 +452,8 @@ export default function PullRequestsList() {
 	// No views
 	if (views.length === 0) {
 		return (
-			<Box sx={{ p: 4, maxWidth: 900, mx: 'auto' }}>
-				<Typography
-					variant="h4"
-					sx={(theme) => ({
-						fontWeight: 700,
-						mb: 4,
-						background: `linear-gradient(135deg, ${theme.palette.success.main} 0%, ${theme.palette.primary.main} 100%)`,
-						WebkitBackgroundClip: 'text',
-						WebkitTextFillColor: 'transparent',
-					})}
-				>
-					{t('title')}
-				</Typography>
+			<PageContainer>
+				<PageHeader title={t('title')} />
 				<Box
 					sx={{
 						display: 'flex',
@@ -482,44 +472,34 @@ export default function PullRequestsList() {
 						{t('addRepoFirst')}
 					</Typography>
 				</Box>
-			</Box>
+			</PageContainer>
 		);
 	}
 
 	return (
-		<Box sx={{ p: 4, maxWidth: 900, mx: 'auto' }}>
-			{/* Header */}
-			<Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 3 }}>
-				<Typography
-					variant="h4"
-					sx={(theme) => ({
-						fontWeight: 700,
-						background: `linear-gradient(135deg, ${theme.palette.success.main} 0%, ${theme.palette.primary.main} 100%)`,
-						WebkitBackgroundClip: 'text',
-						WebkitTextFillColor: 'transparent',
-					})}
-				>
-					{t('title')}
-				</Typography>
-				<Tooltip title={tc('refresh')}>
-					<IconButton
-						size="small"
-						onClick={() => refetch()}
-						disabled={isFetching}
-						sx={{
-							ml: 'auto',
-							color: 'text.disabled',
-							'&:hover': { color: 'success.main' },
-						}}
-					>
-						{isFetching ? (
-							<CircularProgress size={16} sx={{ color: 'text.disabled' }} />
-						) : (
-							<RefreshRoundedIcon fontSize="small" />
-						)}
-					</IconButton>
-				</Tooltip>
-			</Box>
+		<PageContainer>
+			<PageHeader
+				title={t('title')}
+				actions={
+					<Tooltip title={tc('refresh')}>
+						<IconButton
+							size="small"
+							onClick={() => refetch()}
+							disabled={isFetching}
+							sx={{
+								color: 'text.disabled',
+								'&:hover': { color: 'success.main' },
+							}}
+						>
+							{isFetching ? (
+								<CircularProgress size={16} sx={{ color: 'text.disabled' }} />
+							) : (
+								<RefreshRoundedIcon fontSize="small" />
+							)}
+						</IconButton>
+					</Tooltip>
+				}
+			/>
 
 			{/* Tabs per repo */}
 			<DraggableTabs
@@ -645,6 +625,6 @@ export default function PullRequestsList() {
 					</Button>
 				</DialogActions>
 			</Dialog>
-		</Box>
+		</PageContainer>
 	);
 }

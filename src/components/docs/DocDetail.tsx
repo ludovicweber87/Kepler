@@ -27,6 +27,7 @@ import { useDoc } from '@/hooks/useDoc';
 import { useDocCategories } from '@/hooks/useDocCategories';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { slugify, extractToc } from '@/lib/docToc';
+import { PAGE_MAX_WIDTH } from '@/components/layout/PageContainer';
 import DocChatPanel from './DocChatPanel';
 
 export default function DocDetail({ docId }: { docId: string }) {
@@ -96,7 +97,16 @@ export default function DocDetail({ docId }: { docId: string }) {
 	};
 
 	return (
-		<Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+		<Box
+			sx={{
+				height: '100%',
+				width: '100%',
+				maxWidth: PAGE_MAX_WIDTH,
+				mx: 'auto',
+				display: 'flex',
+				flexDirection: 'column',
+			}}
+		>
 			{/* Toolbar */}
 			<Box
 				sx={{

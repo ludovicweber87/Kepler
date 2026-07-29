@@ -23,7 +23,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
-import { alpha, useTheme } from '@mui/material/styles';
+import { alpha } from '@mui/material/styles';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
 import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded';
@@ -39,6 +39,7 @@ import { ProjectList } from './ProjectList';
 import AppearanceSettings from './AppearanceSettings';
 import GitHubAssigneeSettings from './GitHubAssigneeSettings';
 import NotificationSettings from './NotificationSettings';
+import { PageContainer, PageHeader } from '@/components/layout/PageContainer';
 import { useProjectConfig } from '@/hooks/useProjectConfig';
 import { useTranslations } from 'next-intl';
 import { localFetch } from '@/lib/local-fetch';
@@ -267,7 +268,6 @@ function AddRepoCard({
 }
 
 export default function SettingsPanel() {
-	const theme = useTheme();
 	const t = useTranslations('settings');
 	const tc = useTranslations('common');
 	const tAppearance = useTranslations('appearance');
@@ -386,20 +386,8 @@ export default function SettingsPanel() {
 	};
 
 	return (
-		<Box>
-			<Typography
-				variant="h4"
-				sx={{
-					fontWeight: 700,
-					mb: 4,
-					background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.light} 30%, ${theme.palette.secondary.main} 100%)`,
-					backgroundClip: 'text',
-					WebkitBackgroundClip: 'text',
-					WebkitTextFillColor: 'transparent',
-				}}
-			>
-				{t('title')}
-			</Typography>
+		<PageContainer>
+			<PageHeader title={t('title')} />
 
 			<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
 				{/* Accordion: Repo Local Paths */}
@@ -661,6 +649,6 @@ export default function SettingsPanel() {
 					</Button>
 				</DialogActions>
 			</Dialog>
-		</Box>
+		</PageContainer>
 	);
 }

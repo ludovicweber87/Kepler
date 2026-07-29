@@ -9,6 +9,7 @@ import Button from '@mui/material/Button';
 import { useTranslations } from 'next-intl';
 import { useRepoSettings } from '@/hooks/useRepoSettings';
 import RepoScriptsEditor from '@/components/settings/RepoScriptsEditor';
+import { PageContainer, PageHeader } from '@/components/layout/PageContainer';
 import { useProjectConfig } from '@/hooks/useProjectConfig';
 import { resolveConfigForRepo } from '@/lib/repoIssueBoard';
 import { useSnackbar } from '@/hooks/useSnackbar';
@@ -69,166 +70,157 @@ export default function RepoSettingsPanel({ repoFullName }: { repoFullName: stri
 	};
 
 	return (
-		<Box
-			sx={{
-				p: 4,
-				maxWidth: 800,
-				mx: 'auto',
-				display: 'flex',
-				flexDirection: 'column',
-				gap: 4,
-			}}
-		>
-			<Typography variant="h4" sx={{ fontWeight: 700 }}>
-				{t('title')} — {repoFullName}
-			</Typography>
+		<PageContainer>
+			<PageHeader title={`${t('title')} — ${repoFullName}`} />
 
-			{/* Create PR prompt */}
-			<Box>
-				<Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-					{t('createPrPrompt')}
-				</Typography>
-				<Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
-					{t('createPrPromptDesc')}
-				</Typography>
-				<TextField
-					fullWidth
-					multiline
-					minRows={2}
-					value={prPrompt}
-					placeholder={DEFAULT_CREATE_PR_PROMPT}
-					onChange={(e) => setPrPrompt(e.target.value)}
-				/>
-			</Box>
+			<Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+				{/* Create PR prompt */}
+				<Box>
+					<Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+						{t('createPrPrompt')}
+					</Typography>
+					<Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+						{t('createPrPromptDesc')}
+					</Typography>
+					<TextField
+						fullWidth
+						multiline
+						minRows={2}
+						value={prPrompt}
+						placeholder={DEFAULT_CREATE_PR_PROMPT}
+						onChange={(e) => setPrPrompt(e.target.value)}
+					/>
+				</Box>
 
-			{/* Commit and push prompt */}
-			<Box>
-				<Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-					{t('commitPushPrompt')}
-				</Typography>
-				<Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
-					{t('commitPushPromptDesc')}
-				</Typography>
-				<TextField
-					fullWidth
-					multiline
-					minRows={2}
-					value={commitPushPrompt}
-					placeholder={DEFAULT_COMMIT_PUSH_PROMPT}
-					onChange={(e) => setCommitPushPrompt(e.target.value)}
-				/>
-			</Box>
+				{/* Commit and push prompt */}
+				<Box>
+					<Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+						{t('commitPushPrompt')}
+					</Typography>
+					<Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+						{t('commitPushPromptDesc')}
+					</Typography>
+					<TextField
+						fullWidth
+						multiline
+						minRows={2}
+						value={commitPushPrompt}
+						placeholder={DEFAULT_COMMIT_PUSH_PROMPT}
+						onChange={(e) => setCommitPushPrompt(e.target.value)}
+					/>
+				</Box>
 
-			{/* Files to copy */}
-			<Box>
-				<Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-					{t('filesToCopy')}
-				</Typography>
-				<Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
-					{t('filesToCopyDesc')}
-				</Typography>
-				<TextField
-					fullWidth
-					multiline
-					minRows={3}
-					value={filesToCopy}
-					onChange={(e) => setFilesToCopy(e.target.value)}
-					placeholder={'.env\n.env.local'}
-				/>
-			</Box>
+				{/* Files to copy */}
+				<Box>
+					<Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+						{t('filesToCopy')}
+					</Typography>
+					<Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+						{t('filesToCopyDesc')}
+					</Typography>
+					<TextField
+						fullWidth
+						multiline
+						minRows={3}
+						value={filesToCopy}
+						onChange={(e) => setFilesToCopy(e.target.value)}
+						placeholder={'.env\n.env.local'}
+					/>
+				</Box>
 
-			{/* Setup script */}
-			<Box>
-				<Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-					{t('setupScript')}
-				</Typography>
-				<Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
-					{t('setupScriptDesc')}
-				</Typography>
-				<TextField
-					fullWidth
-					size="small"
-					sx={{ mb: 1 }}
-					label={t('setupScriptName')}
-					helperText={t('setupScriptNameDesc')}
-					value={setupScriptName}
-					onChange={(e) => setSetupScriptName(e.target.value)}
-					placeholder={t('setupScriptNamePlaceholder')}
-				/>
-				<TextField
-					fullWidth
-					multiline
-					minRows={2}
-					value={setupScript}
-					onChange={(e) => setSetupScript(e.target.value)}
-					placeholder="pnpm install"
-				/>
-			</Box>
+				{/* Setup script */}
+				<Box>
+					<Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+						{t('setupScript')}
+					</Typography>
+					<Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+						{t('setupScriptDesc')}
+					</Typography>
+					<TextField
+						fullWidth
+						size="small"
+						sx={{ mb: 1 }}
+						label={t('setupScriptName')}
+						helperText={t('setupScriptNameDesc')}
+						value={setupScriptName}
+						onChange={(e) => setSetupScriptName(e.target.value)}
+						placeholder={t('setupScriptNamePlaceholder')}
+					/>
+					<TextField
+						fullWidth
+						multiline
+						minRows={2}
+						value={setupScript}
+						onChange={(e) => setSetupScript(e.target.value)}
+						placeholder="pnpm install"
+					/>
+				</Box>
 
-			{/* Scripts déclenchés à la main depuis la topbar */}
-			<Box>
-				<Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-					{t('scripts')}
-				</Typography>
-				<Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
-					{t('scriptsDesc')}
-				</Typography>
-				<RepoScriptsEditor repoFullName={repoFullName} />
-			</Box>
+				{/* Scripts déclenchés à la main depuis la topbar */}
+				<Box>
+					<Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+						{t('scripts')}
+					</Typography>
+					<Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+						{t('scriptsDesc')}
+					</Typography>
+					<RepoScriptsEditor repoFullName={repoFullName} />
+				</Box>
 
-			{/* Archive script */}
-			<Box>
-				<Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-					{t('archiveScript')}
-				</Typography>
-				<Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
-					{t('archiveScriptDesc')}
-				</Typography>
-				<TextField
-					fullWidth
-					multiline
-					minRows={2}
-					value={archiveScript}
-					onChange={(e) => setArchiveScript(e.target.value)}
-				/>
-			</Box>
+				{/* Archive script */}
+				<Box>
+					<Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+						{t('archiveScript')}
+					</Typography>
+					<Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+						{t('archiveScriptDesc')}
+					</Typography>
+					<TextField
+						fullWidth
+						multiline
+						minRows={2}
+						value={archiveScript}
+						onChange={(e) => setArchiveScript(e.target.value)}
+					/>
+				</Box>
 
-			{/* QA column — where a linked issue moves after its PR is merged */}
-			<Box>
-				<Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-					{t('qaColumn')}
-				</Typography>
-				<Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
-					{t('qaColumnDesc')}
-				</Typography>
-				<TextField
-					select
-					fullWidth
-					size="small"
-					value={qaColumn}
-					onChange={(e) => setQaColumn(e.target.value)}
-					helperText={boardColumns.length === 0 ? t('qaColumnNoBoard') : undefined}
-				>
-					<MenuItem value="">
-						<em>{t('qaColumnNone')}</em>
-					</MenuItem>
-					{qaColumnOptions.map((col) => (
-						<MenuItem key={col} value={col}>
-							{col}
+				{/* QA column — where a linked issue moves after its PR is merged */}
+				<Box>
+					<Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+						{t('qaColumn')}
+					</Typography>
+					<Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+						{t('qaColumnDesc')}
+					</Typography>
+					<TextField
+						select
+						fullWidth
+						size="small"
+						value={qaColumn}
+						onChange={(e) => setQaColumn(e.target.value)}
+						helperText={boardColumns.length === 0 ? t('qaColumnNoBoard') : undefined}
+					>
+						<MenuItem value="">
+							<em>{t('qaColumnNone')}</em>
 						</MenuItem>
-					))}
-				</TextField>
-			</Box>
+						{qaColumnOptions.map((col) => (
+							<MenuItem key={col} value={col}>
+								{col}
+							</MenuItem>
+						))}
+					</TextField>
+				</Box>
 
-			<Box>
-				<Button variant="contained" disabled={isSaving} onClick={handleSave}>
-					{t('save')}
-				</Button>
-			</Box>
+				<Box>
+					<Button variant="contained" disabled={isSaving} onClick={handleSave}>
+						{t('save')}
+					</Button>
+				</Box>
 
-			<Typography variant="caption" sx={{ color: 'text.disabled' }}>
-				{t('shareHint')}
-			</Typography>
-		</Box>
+				<Typography variant="caption" sx={{ color: 'text.disabled' }}>
+					{t('shareHint')}
+				</Typography>
+			</Box>
+		</PageContainer>
 	);
 }

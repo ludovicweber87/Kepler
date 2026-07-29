@@ -17,6 +17,7 @@ import { useDocCategories } from '@/hooks/useDocCategories';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import type { DocWithCategories, NewDoc } from '@/types';
+import { PageContainer, PageHeader } from '@/components/layout/PageContainer';
 import DocCard from './DocCard';
 import CategoryTabs from './CategoryTabs';
 import DocFormDrawer from './DocFormDrawer';
@@ -71,49 +72,41 @@ export default function DocsPage() {
 	};
 
 	return (
-		<Box sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
-			<Box
-				sx={{
-					display: 'flex',
-					alignItems: 'center',
-					justifyContent: 'space-between',
-					mb: 2,
-				}}
-			>
-				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-					<MenuBookRoundedIcon sx={{ color: 'primary.main' }} />
-					<Typography variant="h5" sx={{ fontWeight: 700 }}>
-						{t('title')}
-					</Typography>
+		<PageContainer fullHeight>
+			<PageHeader
+				title={t('title')}
+				titleSuffix={
 					<Typography variant="body2" sx={{ color: 'text.disabled' }}>
 						· {docs.length}
 					</Typography>
-				</Box>
-				<Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
-					<TextField
-						size="small"
-						placeholder={t('searchPlaceholder')}
-						value={search}
-						onChange={(e) => setSearch(e.target.value)}
-						InputProps={{
-							startAdornment: (
-								<InputAdornment position="start">
-									<SearchRoundedIcon sx={{ fontSize: 18 }} />
-								</InputAdornment>
-							),
-						}}
-						sx={{ width: 240 }}
-					/>
-					<Button
-						variant="contained"
-						startIcon={<AddRoundedIcon />}
-						onClick={() => setDrawerOpen(true)}
-						sx={{ textTransform: 'none', fontWeight: 600 }}
-					>
-						{t('newDoc')}
-					</Button>
-				</Box>
-			</Box>
+				}
+				actions={
+					<>
+						<TextField
+							size="small"
+							placeholder={t('searchPlaceholder')}
+							value={search}
+							onChange={(e) => setSearch(e.target.value)}
+							InputProps={{
+								startAdornment: (
+									<InputAdornment position="start">
+										<SearchRoundedIcon sx={{ fontSize: 18 }} />
+									</InputAdornment>
+								),
+							}}
+							sx={{ width: 240 }}
+						/>
+						<Button
+							variant="contained"
+							startIcon={<AddRoundedIcon />}
+							onClick={() => setDrawerOpen(true)}
+							sx={{ textTransform: 'none', fontWeight: 600 }}
+						>
+							{t('newDoc')}
+						</Button>
+					</>
+				}
+			/>
 
 			<CategoryTabs
 				categories={categories}
@@ -164,6 +157,6 @@ export default function DocsPage() {
 				repoPaths={repoPaths}
 				onCreateCategory={handleCreateCategory}
 			/>
-		</Box>
+		</PageContainer>
 	);
 }
