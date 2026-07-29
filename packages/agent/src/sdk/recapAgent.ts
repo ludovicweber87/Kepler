@@ -1,7 +1,8 @@
-import { query as realQuery } from '@anthropic-ai/claude-agent-sdk';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { findClaude, cleanClaudeEnv } from '../helpers.js';
 
-export type QueryFn = typeof realQuery;
+const execFileAsync = promisify(execFile);
 
 export interface RecapItemLike {
 	time: string;
@@ -17,86 +18,58 @@ export function recapCleanEnv(): Record<string, string> {
 	return cleanClaudeEnv() as Record<string, string>;
 }
 
+const MAX_ITEMS = 60;
+const MAX_ITEM_LEN = 160;
+const MAX_ACTIVITY_LEN = 4000;
+
 /**
- * Construit le prompt du rapport de daily. Fonction pure → testable sans SDK.
- * L'agent reçoit l'activité déjà collectée ET l'autorisation d'explorer git
- * en lecture seule dans `cwd` si le contexte fourni paraît incomplet.
+ * Construit le prompt du rapport de daily. Fonction pure → testable sans CLI.
+ * L'activité est déjà collectée en amont (git, PRs, logs d'agents) : l'agent ne
+ * fait que la synthétiser, il n'explore pas le dépôt (c'était le coût principal).
  */
 export function buildRecapPrompt(
 	repoFullName: string,
 	date: string,
 	items: RecapItemLike[],
 ): string {
-	const activity =
-		items.length === 0
-			? '(aucune activité pré-collectée — inspecte toi-même le dépôt)'
-			: items
-					.map((it) => `- ${it.time || '--:--'} [${it.type}] ${it.text}`)
-					.join('\n')
-					.slice(0, 9000);
+	const activity = items
+		.slice(0, MAX_ITEMS)
+		.map(
+			(it) =>
+				`- ${it.time || '--:--'} [${it.type}] ${(it.text ?? '').replace(/\s+/g, ' ').trim().slice(0, MAX_ITEM_LEN)}`,
+		)
+		.join('\n')
+		.slice(0, MAX_ACTIVITY_LEN);
 
-	return `Tu rédiges un compte-rendu de "daily" (méthode agile) en français pour le dépôt ${repoFullName}, pour la journée du ${date} (date locale).
+	return `Compte-rendu de daily (agile) en français pour ${repoFullName}, journée du ${date}.
 
-Tu travailles dans le dossier local du dépôt. Tu peux, EN LECTURE SEULE, inspecter l'historique git pour compléter le contexte, par exemple :
-- \`git log --all --no-merges --since="${date} 00:00:00" --until="${date} 23:59:59" --format='%aI %s (%an)'\`
-- \`git show\` / \`git diff\` sur les commits du jour si besoin de détail.
-Tu ne DOIS jamais modifier, committer, push ou exécuter la moindre commande qui change l'état du dépôt.
+Synthétise l'activité ci-dessous en 3 à 6 puces courtes à la première personne ("J'ai …"), regroupées par sujet. N'invente rien, n'explore pas le dépôt, n'utilise aucun outil. Réponds UNIQUEMENT avec les puces markdown, sans titre ni préambule.
 
-Consignes de rédaction :
-- Écris à la première personne ("J'ai …").
-- Puces courtes, regroupe ce qui va ensemble.
-- Ne mentionne QUE ce qui a réellement eu lieu ce jour-là, n'invente rien.
-- Si vraiment rien ne s'est passé ce jour-là, réponds exactement : "_Aucune activité enregistrée pour ce jour._"
-- Pas de préambule ni de conclusion. Réponds UNIQUEMENT avec le rapport en markdown.
-
-Activité déjà collectée :
+Activité :
 ${activity}`;
 }
 
+async function defaultRun(prompt: string, cwd: string, model: string): Promise<string> {
+	const { stdout } = await execFileAsync(findClaude(), ['--print', '--model', model, prompt], {
+		cwd,
+		timeout: 60_000,
+		maxBuffer: 1024 * 1024,
+		env: recapCleanEnv(),
+	});
+	return stdout;
+}
+
 /**
- * Génère le contenu d'un rapport via l'Agent SDK, en one-shot headless
- * (pas de WebSocket, pas de session persistante). Retourne le markdown final.
+ * Génère le contenu d'un rapport en one-shot headless (`claude --print`),
+ * comme `reportSynth` / `turnSummarizer`. Retourne le markdown final.
  */
 export async function runRecapAgent(params: {
 	cwd: string;
 	prompt: string;
 	model?: string;
-	maxTurns?: number;
-	queryFn?: QueryFn;
+	run?: (prompt: string, cwd: string, model: string) => Promise<string>;
 }): Promise<string> {
-	const queryFn = params.queryFn ?? realQuery;
-	const options: Record<string, unknown> = {
-		cwd: params.cwd,
-		pathToClaudeCodeExecutable: findClaude(),
-		env: recapCleanEnv(),
-		permissionMode: 'bypassPermissions',
-		allowDangerouslySkipPermissions: true,
-		allowedTools: ['Bash', 'Read', 'Grep', 'Glob'],
-		maxTurns: params.maxTurns ?? 12,
-	};
-	if (params.model) options.model = params.model;
-
-	const q = queryFn({ prompt: params.prompt, options } as never) as AsyncIterable<unknown>;
-
-	let resultText = '';
-	let assistantText = '';
-	for await (const msg of q) {
-		const m = msg as {
-			type?: string;
-			result?: unknown;
-			message?: { content?: Array<{ type?: string; text?: string }> };
-		};
-		if (m.type === 'assistant' && Array.isArray(m.message?.content)) {
-			for (const block of m.message!.content!) {
-				if (block?.type === 'text' && typeof block.text === 'string') {
-					assistantText += block.text;
-				}
-			}
-		}
-		if (m.type === 'result' && typeof m.result === 'string') {
-			resultText = m.result;
-		}
-	}
-
-	return (resultText || assistantText).trim();
+	const run = params.run ?? defaultRun;
+	const out = await run(params.prompt, params.cwd, params.model ?? 'haiku');
+	return out.trim();
 }

@@ -146,9 +146,9 @@ function collectActivityLogs(
 }
 
 /**
- * Produit le contenu markdown du rapport via l'Agent SDK (headless).
- * Si le dépôt n'a pas de chemin local ET qu'aucune activité n'a été collectée,
- * l'agent ne pourrait rien explorer → on court-circuite avec le placeholder.
+ * Produit le contenu markdown du rapport (headless, one-shot).
+ * L'activité est déjà collectée ici : sans aucun item, rien à synthétiser →
+ * on court-circuite avec le placeholder sans lancer le CLI.
  */
 async function synthesize(
 	repoFullName: string,
@@ -156,7 +156,7 @@ async function synthesize(
 	items: RecapItem[],
 	localPath: string | null,
 ): Promise<string> {
-	if (!localPath && items.length === 0) {
+	if (items.length === 0) {
 		return '_Aucune activité enregistrée pour ce jour._';
 	}
 	const prompt = buildRecapPrompt(repoFullName, date, items);
