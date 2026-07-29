@@ -373,6 +373,8 @@ export default function Sidebar() {
 					sx={{
 						// 64px de large : 2×16px de padding ne laisseraient pas la place au chevron.
 						p: collapsed ? 1 : 2,
+						// Le mark respire mieux un peu plus bas que le haut de la sidebar.
+						pt: collapsed ? 1 : 3,
 						display: 'flex',
 						alignItems: 'center',
 						justifyContent: 'center',
