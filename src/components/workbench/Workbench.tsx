@@ -13,8 +13,11 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
 import Tab from '@mui/material/Tab';
 import { alpha } from '@mui/material/styles';
+import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import TerminalRoundedIcon from '@mui/icons-material/TerminalRounded';
 import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
 import TimelineRoundedIcon from '@mui/icons-material/TimelineRounded';
@@ -340,6 +343,23 @@ export default function Workbench() {
 			<WorkbenchShell
 				headerLeft={
 					<>
+						{/* Session archivée : on y arrive depuis /archived (récap en lecture
+						    seule) — un retour explicite évite de dépendre du back navigateur. */}
+						{isArchived && (
+							<Tooltip title={t('backToArchived')} arrow>
+								<IconButton
+									size="small"
+									onClick={() => router.push('/archived')}
+									sx={{
+										color: 'text.secondary',
+										mr: 0.25,
+										'&:hover': { color: 'primary.main' },
+									}}
+								>
+									<ArrowBackRoundedIcon sx={{ fontSize: 18 }} />
+								</IconButton>
+							</Tooltip>
+						)}
 						{resolved?.agent_color && (
 							<Box
 								sx={{

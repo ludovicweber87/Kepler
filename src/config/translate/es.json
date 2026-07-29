@@ -109,7 +109,8 @@
 		"explorerTruncated": "Demasiados archivos — el árbol está incompleto",
 		"explorerTooManyRows": "Mostrando los primeros {count} resultados — afina tu filtro",
 		"explorerError": "No se pueden listar los archivos",
-		"fileNoHighlight": "Archivo grande — resaltado de sintaxis desactivado"
+		"fileNoHighlight": "Archivo grande — resaltado de sintaxis desactivado",
+		"backToArchived": "Volver a archivadas"
 	},
 	"creationProgress": {
 		"title": "Preparando el espacio de trabajo",

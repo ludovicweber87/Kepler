@@ -109,7 +109,8 @@
 		"explorerTruncated": "Trop de fichiers — l'arbre est partiel",
 		"explorerTooManyRows": "Affiche les {count} premiers résultats — affinez votre filtre",
 		"explorerError": "Impossible de lister les fichiers",
-		"fileNoHighlight": "Fichier volumineux — coloration syntaxique désactivée"
+		"fileNoHighlight": "Fichier volumineux — coloration syntaxique désactivée",
+		"backToArchived": "Retour aux archives"
 	},
 	"creationProgress": {
 		"title": "Préparation de l'espace de travail",
