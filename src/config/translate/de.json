@@ -536,7 +536,8 @@
 		"deleteWorktreeOnly": "Nur Worktree",
 		"deleteWorktreeAndBranch": "Worktree + Branch",
 		"sessionDeleted": "Sitzung gelöscht",
-		"deleteError": "Löschen fehlgeschlagen"
+		"deleteError": "Löschen fehlgeschlagen",
+		"archivedOn": "Archiviert am {date}"
 	},
 	"repoSettings": {
 		"title": "Repo-Einstellungen",

@@ -536,7 +536,8 @@
 		"deleteWorktreeOnly": "Solo worktree",
 		"deleteWorktreeAndBranch": "Worktree + rama",
 		"sessionDeleted": "Sesión eliminada",
-		"deleteError": "Error al eliminar"
+		"deleteError": "Error al eliminar",
+		"archivedOn": "Archivada el {date}"
 	},
 	"repoSettings": {
 		"title": "Ajustes del repositorio",

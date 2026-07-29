@@ -558,7 +558,8 @@
 		"deleteWorktreeOnly": "Worktree seulement",
 		"deleteWorktreeAndBranch": "Worktree + branche",
 		"sessionDeleted": "Session supprimée",
-		"deleteError": "Échec de la suppression"
+		"deleteError": "Échec de la suppression",
+		"archivedOn": "Archivée le {date}"
 	},
 	"repoSettings": {
 		"title": "Réglages du repo",

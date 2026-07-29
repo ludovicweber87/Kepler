@@ -5,16 +5,11 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
-import IconButton from '@mui/material/IconButton';
-import Tooltip from '@mui/material/Tooltip';
+import Chip from '@mui/material/Chip';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
-import UnarchiveOutlinedIcon from '@mui/icons-material/UnarchiveOutlined';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
-import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded';
-import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded';
-import { alpha, useTheme } from '@mui/material/styles';
 import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
 import { useAgentSessionHistory, type AgentSession } from '@/hooks/useAgentSession';
@@ -22,6 +17,7 @@ import { useSessionActions } from '@/hooks/useSessionActions';
 import { useAllWorktrees } from '@/hooks/useAllWorktrees';
 import { classifySession } from '@/lib/sessionStatus';
 import { PageContainer, PageHeader } from '@/components/layout/PageContainer';
+import ArchivedSessionCard from '@/components/archived/ArchivedSessionCard';
 import { useSnackbar } from '@/hooks/useSnackbar';
 
 const AgentTerminalModal = dynamic(() => import('@/components/agents/AgentTerminalModal'), {
@@ -29,7 +25,6 @@ const AgentTerminalModal = dynamic(() => import('@/components/agents/AgentTermin
 });
 
 export default function ArchivedPage() {
-	const theme = useTheme();
 	const t = useTranslations('archived');
 	const { data: sessions = [] } = useAgentSessionHistory();
 	const { unarchive, remove } = useSessionActions();
@@ -90,7 +85,23 @@ export default function ArchivedPage() {
 	return (
 		<>
 			<PageContainer fullHeight>
-				<PageHeader title={t('title')} />
+				<PageHeader
+					title={t('title')}
+					titleSuffix={
+						filtered.length > 0 ? (
+							<Chip
+								label={filtered.length}
+								size="small"
+								sx={{
+									height: 20,
+									fontSize: '0.68rem',
+									fontWeight: 600,
+									color: 'text.secondary',
+								}}
+							/>
+						) : null
+					}
+				/>
 
 				{projects.length > 0 && (
 					<Tabs
@@ -135,122 +146,20 @@ export default function ArchivedPage() {
 							display: 'flex',
 							flexDirection: 'column',
 							gap: 1,
+							pb: 1,
 							'&::-webkit-scrollbar': { width: 4 },
 							'&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 1 },
 						}}
 					>
-						{filtered.map((s) => {
-							const isError = s.status === 'error';
-							return (
-								<Box
-									key={s.id}
-									onClick={() => setSelected(s)}
-									sx={{
-										display: 'flex',
-										alignItems: 'center',
-										gap: 1.5,
-										px: 2,
-										py: 1.25,
-										border: 1,
-										borderColor: 'divider',
-										borderRadius: 2,
-										cursor: 'pointer',
-										transition: 'background-color 0.15s, border-color 0.15s',
-										'&:hover': {
-											borderColor: alpha(theme.palette.primary.main, 0.4),
-											bgcolor: alpha(theme.palette.action.hover, 0.5),
-										},
-										'&:hover .session-action-btn': { opacity: 1 },
-									}}
-								>
-									<Box
-										sx={{
-											width: 26,
-											height: 26,
-											borderRadius: '50%',
-											display: 'flex',
-											alignItems: 'center',
-											justifyContent: 'center',
-											flexShrink: 0,
-											bgcolor: isError
-												? alpha(theme.palette.error.main, 0.12)
-												: alpha(theme.palette.success.main, 0.12),
-										}}
-									>
-										{isError ? (
-											<ErrorOutlineRoundedIcon
-												sx={{ fontSize: 15, color: 'error.main' }}
-											/>
-										) : (
-											<CheckCircleOutlineRoundedIcon
-												sx={{ fontSize: 15, color: 'success.main' }}
-											/>
-										)}
-									</Box>
-									<Box sx={{ flex: 1, minWidth: 0 }}>
-										<Typography
-											sx={{
-												fontSize: '0.85rem',
-												fontWeight: 600,
-												overflow: 'hidden',
-												textOverflow: 'ellipsis',
-												whiteSpace: 'nowrap',
-											}}
-										>
-											{s.agent_name ?? s.branch ?? 'Claude'}
-										</Typography>
-										<Typography
-											sx={{
-												fontSize: '0.7rem',
-												color: 'text.disabled',
-												overflow: 'hidden',
-												textOverflow: 'ellipsis',
-												whiteSpace: 'nowrap',
-											}}
-										>
-											{s.branch ? `${s.branch} · ` : ''}
-											{s.project_name}
-										</Typography>
-									</Box>
-									<Tooltip title={t('unarchive')}>
-										<IconButton
-											className="session-action-btn"
-											size="small"
-											onClick={(e) => {
-												e.stopPropagation();
-												handleUnarchive(s);
-											}}
-											sx={{
-												opacity: 0,
-												transition: 'opacity 0.15s',
-												color: 'text.secondary',
-												'&:hover': { color: 'primary.main' },
-											}}
-										>
-											<UnarchiveOutlinedIcon sx={{ fontSize: 18 }} />
-										</IconButton>
-									</Tooltip>
-									<Tooltip title={t('delete')}>
-										<IconButton
-											className="session-action-btn"
-											size="small"
-											onClick={(e) => {
-												e.stopPropagation();
-												setDeleteMenu({ el: e.currentTarget, session: s });
-											}}
-											sx={{
-												opacity: 0,
-												transition: 'opacity 0.15s',
-												color: 'text.secondary',
-												'&:hover': { color: 'error.main' },
-											}}
-										>
-											<DeleteOutlineRoundedIcon sx={{ fontSize: 18 }} />
-										</IconButton>
-									</Tooltip>
-								</Box>
-							);
-						})}
+						{filtered.map((s) => (
+							<ArchivedSessionCard
+								key={s.id}
+								session={s}
+								onOpen={() => setSelected(s)}
+								onUnarchive={() => handleUnarchive(s)}
+								onDelete={(e) => setDeleteMenu({ el: e.currentTarget, session: s })}
+							/>
+						))}
 					</Box>
 				)}
 			</PageContainer>
