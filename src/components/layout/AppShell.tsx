@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useMemo, useCallback, useRef } from 'react';
+import { usePathname } from 'next/navigation';
+import { motion } from 'framer-motion';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
@@ -21,6 +23,7 @@ import { appShadow } from '@/theme/shadows';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
 	useNotificationsStream();
+	const pathname = usePathname();
 	const { repoPaths, repoPathsLoading } = useRepoPaths();
 	const { configs } = useProjectConfig();
 	const t = useTranslations('onboarding');
@@ -146,7 +149,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 							overflow: 'auto',
 						}}
 					>
-						{children}
+						{/* Fade au changement de page. Keyé sur le pathname seul : changer
+						    ?session= dans le Workbench ne doit pas remonter le terminal. */}
+						<motion.div
+							key={pathname}
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							transition={{ duration: 0.2, ease: 'easeOut' }}
+							style={{ height: '100%' }}
+						>
+							{children}
+						</motion.div>
 					</Box>
 				</Box>
 				<OverlayTerminal />
