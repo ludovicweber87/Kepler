@@ -109,7 +109,8 @@
 		"explorerTruncated": "Zu viele Dateien — der Baum ist unvollständig",
 		"explorerTooManyRows": "Zeigt die ersten {count} Ergebnisse — Filter weiter eingrenzen",
 		"explorerError": "Dateien können nicht aufgelistet werden",
-		"fileNoHighlight": "Große Datei — Syntaxhervorhebung deaktiviert"
+		"fileNoHighlight": "Große Datei — Syntaxhervorhebung deaktiviert",
+		"backToArchived": "Zurück zu Archiviert"
 	},
 	"creationProgress": {
 		"title": "Arbeitsbereich wird vorbereitet",
@@ -536,7 +537,8 @@
 		"deleteWorktreeOnly": "Nur Worktree",
 		"deleteWorktreeAndBranch": "Worktree + Branch",
 		"sessionDeleted": "Sitzung gelöscht",
-		"deleteError": "Löschen fehlgeschlagen"
+		"deleteError": "Löschen fehlgeschlagen",
+		"archivedOn": "Archiviert am {date}"
 	},
 	"repoSettings": {
 		"title": "Repo-Einstellungen",

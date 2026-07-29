@@ -109,7 +109,8 @@
 		"explorerTruncated": "Too many files — the tree is partial",
 		"explorerTooManyRows": "Showing the first {count} results — narrow your filter",
 		"explorerError": "Unable to list files",
-		"fileNoHighlight": "Large file — syntax highlighting disabled"
+		"fileNoHighlight": "Large file — syntax highlighting disabled",
+		"backToArchived": "Back to archived"
 	},
 	"creationProgress": {
 		"title": "Preparing the workspace",
@@ -558,7 +559,8 @@
 		"deleteWorktreeOnly": "Worktree only",
 		"deleteWorktreeAndBranch": "Worktree + branch",
 		"sessionDeleted": "Session deleted",
-		"deleteError": "Failed to delete"
+		"deleteError": "Failed to delete",
+		"archivedOn": "Archived on {date}"
 	},
 	"repoSettings": {
 		"title": "Repo settings",
