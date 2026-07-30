@@ -386,6 +386,53 @@ test('les setters restent actifs sur une session normale', () => {
   assert.deepEqual(calls.setPermissionMode, ['default']);
 });
 
+// query() factice qui capture les options passées au SDK (et rien d'autre).
+function optionsQueryFactory() {
+  const seen: Record<string, unknown>[] = [];
+  const queryFn = ((params: { options?: Record<string, unknown> }) => {
+    seen.push(params.options ?? {});
+    async function* gen() {}
+    const q = gen() as AsyncGenerator<unknown> & Record<string, unknown>;
+    q.interrupt = async () => {}; q.setModel = async () => {}; q.setPermissionMode = async () => {};
+    return q;
+  }) as unknown as QueryFn;
+  return { queryFn, seen };
+}
+
+// Le persona doit s'AJOUTER au prompt Claude Code, pas le remplacer : une string
+// nue efface le bloc <env> (dont `Working directory`) et les consignes d'outillage,
+// ce qui pousse l'agent à préfixer chaque Bash d'un `cd <path>`.
+test('session normale avec persona → preset claude_code + append', () => {
+  const { queryFn, seen } = optionsQueryFactory();
+  const mgr = createSdkAgentManager({ queryFn });
+  mgr.startOrAttach('sess-1', fakeSocket(), { cwd: '/tmp', systemPrompt: 'tu es un pirate' });
+  assert.deepEqual(seen[0]?.systemPrompt, {
+    type: 'preset',
+    preset: 'claude_code',
+    append: 'tu es un pirate',
+  });
+});
+
+test('session normale sans persona → preset claude_code sans append', () => {
+  const { queryFn, seen } = optionsQueryFactory();
+  const mgr = createSdkAgentManager({ queryFn });
+  mgr.startOrAttach('sess-1', fakeSocket(), { cwd: '/tmp' });
+  assert.deepEqual(seen[0]?.systemPrompt, { type: 'preset', preset: 'claude_code' });
+});
+
+// Une session doc est un portail volontairement restreint (toolGate + scopeNote) :
+// son prompt remplace bien le preset.
+test('session doc → le prompt système remplace le preset', () => {
+  const { queryFn, seen } = optionsQueryFactory();
+  const mgr = createSdkAgentManager({ queryFn });
+  mgr.startOrAttach('doc-1', fakeSocket(), {
+    cwd: '/tmp',
+    isDocSession: true,
+    systemPrompt: 'tu édites une doc',
+  });
+  assert.equal(seen[0]?.systemPrompt, 'tu édites une doc');
+});
+
 test('aucune notification pour une session doc', async () => {
   const { queryFn } = fakeQueryFactory();
   const mgr = createSdkAgentManager({ queryFn });

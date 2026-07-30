@@ -237,7 +237,20 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
     // À l'init, l'Option SDK `effort` comprend `max` (pas le label Kepler `ultracode`) →
     // on remappe. Une valeur legacy `max` déjà stockée passe telle quelle.
     if (s.effort) options.effort = s.effort === 'ultracode' ? 'max' : s.effort;
-    if (s.systemPrompt) options.systemPrompt = s.systemPrompt;
+    // Une string nue REMPLACE le prompt système de Claude Code : on perd le bloc
+    // <env> (dont `Working directory`) et les consignes d'outillage — l'agent ne
+    // sait plus où il est et préfixe chaque Bash d'un `cd <path>`. Le persona doit
+    // donc s'AJOUTER au preset. Les sessions doc gardent le remplacement total :
+    // leur prompt est un portail volontairement restreint (toolGate + scopeNote).
+    if (s.isDocSession) {
+      if (s.systemPrompt) options.systemPrompt = s.systemPrompt;
+    } else {
+      options.systemPrompt = {
+        type: 'preset',
+        preset: 'claude_code',
+        ...(s.systemPrompt ? { append: s.systemPrompt } : {}),
+      };
+    }
     if (s.mcpServers) options.mcpServers = s.mcpServers;
     if (resumeId) options.resume = resumeId;
     return options;
