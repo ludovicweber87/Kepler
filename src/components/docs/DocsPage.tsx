@@ -19,7 +19,7 @@ import { useSnackbar } from '@/hooks/useSnackbar';
 import type { DocWithCategories, NewDoc } from '@/types';
 import { PageContainer, PageHeader } from '@/components/layout/PageContainer';
 import DocCard from './DocCard';
-import CategoryTabs from './CategoryTabs';
+import CategoryTabs from '@/components/shared/CategoryTabs';
 import DocFormDrawer from './DocFormDrawer';
 
 export default function DocsPage() {
@@ -109,11 +109,20 @@ export default function DocsPage() {
 			/>
 
 			<CategoryTabs
-				categories={categories}
+				items={categories}
 				activeId={activeCategory}
 				onChange={setActiveCategory}
 				onCreate={(name, color) => void handleCreateCategory(name, color)}
 				onDelete={(id) => deleteCategory(id)}
+				labels={{
+					allTab: t('allTab'),
+					add: t('addCategory'),
+					createTitle: t('newCategory'),
+					namePlaceholder: t('categoryName'),
+					cancel: t('cancel'),
+					create: t('create'),
+					delete: t('deleteCategory'),
+				}}
 			/>
 
 			<Box sx={{ flex: 1, overflowY: 'auto', mt: 2 }}>

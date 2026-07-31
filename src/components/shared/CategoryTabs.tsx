@@ -13,10 +13,9 @@ import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
-import { useTranslations } from 'next-intl';
-import type { DocCategory } from '@/types';
 
-export const DOC_CATEGORY_COLORS = [
+/** Palette commune aux rangements créés à la volée (catégories de docs, folders de personas). */
+export const CATEGORY_COLORS = [
 	'#7C5CFF',
 	'#00D4FF',
 	'#22C55E',
@@ -27,30 +26,54 @@ export const DOC_CATEGORY_COLORS = [
 	'#A855F7',
 ];
 
+/** Un rangement affichable en onglet : le minimum commun aux features. */
+export interface CategoryTabItem {
+	id: string;
+	name: string;
+	color: string;
+}
+
+/** Libellés fournis par la feature — le composant ne connaît aucun namespace i18n. */
+export interface CategoryTabsLabels {
+	allTab: string;
+	add: string;
+	createTitle: string;
+	namePlaceholder: string;
+	cancel: string;
+	create: string;
+	delete: string;
+}
+
 interface Props {
-	categories: DocCategory[];
-	activeId: string; // 'all' | category id
+	items: CategoryTabItem[];
+	activeId: string; // 'all' | item id
 	onChange: (id: string) => void;
 	onCreate: (name: string, color: string) => void;
 	onDelete: (id: string) => void;
+	labels: CategoryTabsLabels;
 }
 
+/**
+ * Onglets de rangement génériques : « Tout » + un onglet par item, création via
+ * popover (nom + couleur), suppression au clic droit. Partagé par les Docs
+ * (catégories) et la bibliothèque de personas (folders).
+ */
 export default function CategoryTabs({
-	categories,
+	items,
 	activeId,
 	onChange,
 	onCreate,
 	onDelete,
+	labels,
 }: Props) {
-	const t = useTranslations('docs');
 	const [anchor, setAnchor] = useState<HTMLElement | null>(null);
 	const [name, setName] = useState('');
-	const [color, setColor] = useState(DOC_CATEGORY_COLORS[0]);
+	const [color, setColor] = useState(CATEGORY_COLORS[0]);
 	const [ctxMenu, setCtxMenu] = useState<{ el: HTMLElement; id: string } | null>(null);
 
 	const openCreate = (el: HTMLElement) => {
 		setName('');
-		setColor(DOC_CATEGORY_COLORS[0]);
+		setColor(CATEGORY_COLORS[0]);
 		setAnchor(el);
 	};
 
@@ -61,9 +84,8 @@ export default function CategoryTabs({
 		setAnchor(null);
 	};
 
-	// La valeur des Tabs ne doit exister que si elle correspond à une catégorie connue.
-	const tabValue =
-		activeId === 'all' || categories.some((c) => c.id === activeId) ? activeId : 'all';
+	// La valeur des Tabs ne doit exister que si elle correspond à un item connu.
+	const tabValue = activeId === 'all' || items.some((i) => i.id === activeId) ? activeId : 'all';
 
 	return (
 		<Box
@@ -85,14 +107,14 @@ export default function CategoryTabs({
 					'& .MuiTab-root': { minHeight: 40, textTransform: 'none' },
 				}}
 			>
-				<Tab value="all" label={t('allTab')} />
-				{categories.map((c) => (
+				<Tab value="all" label={labels.allTab} />
+				{items.map((i) => (
 					<Tab
-						key={c.id}
-						value={c.id}
+						key={i.id}
+						value={i.id}
 						onContextMenu={(e) => {
 							e.preventDefault();
-							setCtxMenu({ el: e.currentTarget as HTMLElement, id: c.id });
+							setCtxMenu({ el: e.currentTarget as HTMLElement, id: i.id });
 						}}
 						label={
 							<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
@@ -101,10 +123,10 @@ export default function CategoryTabs({
 										width: 8,
 										height: 8,
 										borderRadius: '50%',
-										bgcolor: c.color,
+										bgcolor: i.color,
 									}}
 								/>
-								{c.name}
+								{i.name}
 							</Box>
 						}
 					/>
@@ -117,7 +139,7 @@ export default function CategoryTabs({
 				onClick={(e) => openCreate(e.currentTarget)}
 				sx={{ textTransform: 'none', color: 'secondary.main', flexShrink: 0, ml: 1 }}
 			>
-				{t('addCategory')}
+				{labels.add}
 			</Button>
 
 			<Popover
@@ -129,14 +151,14 @@ export default function CategoryTabs({
 			>
 				<Box sx={{ p: 2, width: 260 }}>
 					<Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 600 }}>
-						{t('newCategory')}
+						{labels.createTitle}
 					</Typography>
 					<TextField
 						autoFocus
 						fullWidth
 						size="small"
 						margin="dense"
-						placeholder={t('categoryName')}
+						placeholder={labels.namePlaceholder}
 						value={name}
 						onChange={(e) => setName(e.target.value)}
 						onKeyDown={(e) => {
@@ -147,7 +169,7 @@ export default function CategoryTabs({
 						}}
 					/>
 					<Stack direction="row" spacing={1} sx={{ my: 1.25 }}>
-						{DOC_CATEGORY_COLORS.map((c) => (
+						{CATEGORY_COLORS.map((c) => (
 							<Box
 								key={c}
 								onClick={() => setColor(c)}
@@ -169,7 +191,7 @@ export default function CategoryTabs({
 							onClick={() => setAnchor(null)}
 							sx={{ textTransform: 'none' }}
 						>
-							{t('cancel')}
+							{labels.cancel}
 						</Button>
 						<Button
 							size="small"
@@ -178,7 +200,7 @@ export default function CategoryTabs({
 							disabled={!name.trim()}
 							sx={{ textTransform: 'none' }}
 						>
-							{t('create')}
+							{labels.create}
 						</Button>
 					</Stack>
 				</Box>
@@ -193,7 +215,7 @@ export default function CategoryTabs({
 					sx={{ fontSize: '0.8rem', gap: 1, color: 'error.main' }}
 				>
 					<DeleteOutlineRoundedIcon sx={{ fontSize: 16 }} />
-					{t('deleteCategory')}
+					{labels.delete}
 				</MenuItem>
 			</Menu>
 		</Box>
