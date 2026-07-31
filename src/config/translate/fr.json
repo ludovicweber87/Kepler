@@ -645,7 +645,17 @@
 		"emptyLibrary": "Aucune persona pour l'instant. Crée la première.",
 		"defaultOption": "Défaut",
 		"saveError": "Échec de l'enregistrement de la persona",
-		"deleteError": "Échec de la suppression de la persona"
+		"deleteError": "Échec de la suppression de la persona",
+		"allTab": "Toutes",
+		"addFolder": "Dossier",
+		"newFolder": "Nouveau dossier",
+		"folderName": "Nom du dossier",
+		"create": "Créer",
+		"deleteFolder": "Supprimer le dossier",
+		"folderCreateFailed": "Échec de la création du dossier",
+		"folders": "Dossiers",
+		"newFolderPlaceholder": "Créer un dossier…",
+		"emptyFolder": "Aucune persona dans ce dossier."
 	},
 	"tasks": {
 		"title": "Tâches",

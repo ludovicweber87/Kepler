@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
@@ -13,16 +13,32 @@ import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import { alpha } from '@mui/material/styles';
 import { useTranslations } from 'next-intl';
 import { usePersonas } from '@/hooks/usePersonas';
+import { usePersonaFolders } from '@/hooks/usePersonaFolders';
 import { useSnackbar } from '@/hooks/useSnackbar';
+import CategoryTabs from '@/components/shared/CategoryTabs';
+import {
+	ALL_FOLDERS,
+	resolveActiveFolder,
+	filterPersonasByFolder,
+	foldersOfPersona,
+} from '@/lib/personaFolders';
 import PersonaEditorDrawer from './PersonaEditorDrawer';
-import type { Persona, NewPersona } from '@/types';
+import type { Persona, NewPersona, PersonaFolder } from '@/types';
 
 export default function PersonaLibrary() {
 	const t = useTranslations('personas');
 	const { personas, create, update, remove } = usePersonas();
+	const { folders, createFolder, deleteFolder } = usePersonaFolders();
 	const { showSnackbar } = useSnackbar();
 	const [editing, setEditing] = useState<Persona | null>(null);
 	const [drawerOpen, setDrawerOpen] = useState(false);
+	const [activeFolder, setActiveFolder] = useState<string>(ALL_FOLDERS);
+
+	const resolvedFolder = resolveActiveFolder(activeFolder, folders);
+	const visible = useMemo(
+		() => filterPersonasByFolder(personas, resolvedFolder),
+		[personas, resolvedFolder],
+	);
 
 	const openCreate = () => {
 		setEditing(null);
@@ -49,6 +65,15 @@ export default function PersonaLibrary() {
 		});
 	};
 
+	const handleCreateFolder = async (name: string, color: string) => {
+		try {
+			return await createFolder({ name, color });
+		} catch {
+			showSnackbar(t('folderCreateFailed'), 'error');
+			throw new Error('folder create failed');
+		}
+	};
+
 	return (
 		<Box>
 			<Stack direction="row" justifyContent="flex-end" sx={{ mb: 2 }}>
@@ -62,75 +87,45 @@ export default function PersonaLibrary() {
 				</Button>
 			</Stack>
 
-			{personas.length === 0 ? (
+			<CategoryTabs
+				items={folders}
+				activeId={resolvedFolder}
+				onChange={setActiveFolder}
+				onCreate={(name, color) => void handleCreateFolder(name, color)}
+				onDelete={(id) => void deleteFolder(id)}
+				labels={{
+					allTab: t('allTab'),
+					add: t('addFolder'),
+					createTitle: t('newFolder'),
+					namePlaceholder: t('folderName'),
+					cancel: t('cancel'),
+					create: t('create'),
+					delete: t('deleteFolder'),
+				}}
+			/>
+
+			{visible.length === 0 ? (
 				<Typography color="text.secondary" sx={{ textAlign: 'center', mt: 6 }}>
-					{t('emptyLibrary')}
+					{personas.length === 0 ? t('emptyLibrary') : t('emptyFolder')}
 				</Typography>
 			) : (
 				<Box
 					sx={{
 						display: 'grid',
 						gap: 2,
+						mt: 2,
 						gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
 					}}
 				>
-					{personas.map((p) => (
-						<Box
+					{visible.map((p) => (
+						<PersonaCard
 							key={p.id}
-							onClick={() => openEdit(p)}
-							sx={{
-								p: 2,
-								borderRadius: 2.5,
-								border: '1px solid',
-								borderColor: 'divider',
-								cursor: 'pointer',
-								transition: 'transform 0.12s, border-color 0.12s',
-								'&:hover': {
-									transform: 'translateY(-2px)',
-									borderColor: alpha(p.color ?? '#7C5CFF', 0.6),
-								},
-							}}
-						>
-							<Stack direction="row" alignItems="center" spacing={1.5}>
-								<Avatar
-									sx={{
-										bgcolor: p.color ?? '#7C5CFF',
-										width: 36,
-										height: 36,
-										fontSize: 15,
-										fontWeight: 600,
-									}}
-								>
-									{p.name.slice(0, 2).toUpperCase()}
-								</Avatar>
-								<Box sx={{ minWidth: 0, flex: 1 }}>
-									<Typography noWrap fontWeight={600}>
-										{p.name}
-									</Typography>
-									{p.role && (
-										<Typography
-											noWrap
-											variant="caption"
-											color="text.secondary"
-											sx={{ display: 'block' }}
-										>
-											{p.role}
-										</Typography>
-									)}
-								</Box>
-								<Tooltip title={t('delete')}>
-									<IconButton
-										size="small"
-										onClick={(e) => {
-											e.stopPropagation();
-											handleDelete(p);
-										}}
-									>
-										<DeleteOutlineRoundedIcon fontSize="small" />
-									</IconButton>
-								</Tooltip>
-							</Stack>
-						</Box>
+							persona={p}
+							folders={foldersOfPersona(p, folders)}
+							onOpen={openEdit}
+							onDelete={handleDelete}
+							deleteLabel={t('delete')}
+						/>
 					))}
 				</Box>
 			)}
@@ -138,10 +133,117 @@ export default function PersonaLibrary() {
 			<PersonaEditorDrawer
 				open={drawerOpen}
 				persona={editing}
+				folders={folders}
+				onCreateFolder={handleCreateFolder}
 				onClose={() => setDrawerOpen(false)}
 				onSave={handleSave}
 				saving={create.isPending || update.isPending}
 			/>
+		</Box>
+	);
+}
+
+function PersonaCard({
+	persona,
+	folders,
+	onOpen,
+	onDelete,
+	deleteLabel,
+}: {
+	persona: Persona;
+	folders: PersonaFolder[];
+	onOpen: (p: Persona) => void;
+	onDelete: (p: Persona) => void;
+	deleteLabel: string;
+}) {
+	const color = persona.color ?? '#7C5CFF';
+
+	return (
+		<Box
+			onClick={() => onOpen(persona)}
+			sx={{
+				p: 2,
+				borderRadius: 2.5,
+				border: '1px solid',
+				borderColor: 'divider',
+				cursor: 'pointer',
+				transition: 'transform 0.12s, border-color 0.12s',
+				'&:hover': {
+					transform: 'translateY(-2px)',
+					borderColor: alpha(color, 0.6),
+				},
+			}}
+		>
+			<Stack direction="row" alignItems="center" spacing={1.5}>
+				<Avatar
+					sx={{
+						bgcolor: color,
+						width: 36,
+						height: 36,
+						fontSize: 15,
+						fontWeight: 600,
+					}}
+				>
+					{persona.name.slice(0, 2).toUpperCase()}
+				</Avatar>
+				<Box sx={{ minWidth: 0, flex: 1 }}>
+					<Typography noWrap fontWeight={600}>
+						{persona.name}
+					</Typography>
+					{persona.role && (
+						<Typography
+							noWrap
+							variant="caption"
+							color="text.secondary"
+							sx={{ display: 'block' }}
+						>
+							{persona.role}
+						</Typography>
+					)}
+				</Box>
+				<Tooltip title={deleteLabel}>
+					<IconButton
+						size="small"
+						onClick={(e) => {
+							e.stopPropagation();
+							onDelete(persona);
+						}}
+					>
+						<DeleteOutlineRoundedIcon fontSize="small" />
+					</IconButton>
+				</Tooltip>
+			</Stack>
+
+			{folders.length > 0 && (
+				<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1.25 }}>
+					{folders.map((f) => (
+						<Box
+							key={f.id}
+							sx={{
+								display: 'flex',
+								alignItems: 'center',
+								gap: 0.5,
+								fontSize: '0.62rem',
+								color: 'text.secondary',
+								bgcolor: alpha(f.color, 0.12),
+								borderRadius: 999,
+								px: 0.85,
+								py: 0.15,
+							}}
+						>
+							<Box
+								sx={{
+									width: 6,
+									height: 6,
+									borderRadius: '50%',
+									bgcolor: f.color,
+								}}
+							/>
+							{f.name}
+						</Box>
+					))}
+				</Box>
+			)}
 		</Box>
 	);
 }

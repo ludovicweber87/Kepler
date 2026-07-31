@@ -623,7 +623,17 @@
 		"emptyLibrary": "Noch keine Personas. Erstelle die erste.",
 		"defaultOption": "Standard",
 		"saveError": "Persona konnte nicht gespeichert werden",
-		"deleteError": "Persona konnte nicht gelöscht werden"
+		"deleteError": "Persona konnte nicht gelöscht werden",
+		"allTab": "Alle",
+		"addFolder": "Ordner",
+		"newFolder": "Neuer Ordner",
+		"folderName": "Ordnername",
+		"create": "Erstellen",
+		"deleteFolder": "Ordner löschen",
+		"folderCreateFailed": "Ordner konnte nicht erstellt werden",
+		"folders": "Ordner",
+		"newFolderPlaceholder": "Ordner erstellen…",
+		"emptyFolder": "Keine Personas in diesem Ordner."
 	},
 	"tasks": {
 		"title": "Aufgaben",

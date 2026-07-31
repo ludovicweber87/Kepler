@@ -10,10 +10,14 @@ import MenuItem from '@mui/material/MenuItem';
 import ListSubheader from '@mui/material/ListSubheader';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
+import Chip from '@mui/material/Chip';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import { alpha } from '@mui/material/styles';
 import { useTranslations } from 'next-intl';
-import type { Persona, NewPersona } from '@/types';
+import type { Persona, NewPersona, PersonaFolder } from '@/types';
 import { MODEL_ALIASES, MODEL_VERSIONS, EFFORTS } from '@/lib/models';
+import { CATEGORY_COLORS } from '@/components/shared/CategoryTabs';
 
 export const PERSONA_COLORS = [
 	'#7C5CFF',
@@ -31,18 +35,30 @@ const PERMISSION_OPTIONS = ['', 'default', 'acceptEdits', 'bypassPermissions', '
 interface Props {
 	open: boolean;
 	persona: Persona | null;
+	folders: PersonaFolder[];
+	onCreateFolder: (name: string, color: string) => Promise<PersonaFolder>;
 	onClose: () => void;
 	onSave: (data: NewPersona & { id?: string }) => void;
 	saving?: boolean;
 }
 
-export default function PersonaEditorDrawer({ open, persona, onClose, onSave, saving }: Props) {
+export default function PersonaEditorDrawer({
+	open,
+	persona,
+	folders,
+	onCreateFolder,
+	onClose,
+	onSave,
+	saving,
+}: Props) {
 	return (
 		<Drawer anchor="right" open={open} onClose={onClose}>
 			{open && (
 				<PersonaForm
 					key={persona?.id ?? 'new'}
 					persona={persona}
+					folders={folders}
+					onCreateFolder={onCreateFolder}
 					onClose={onClose}
 					onSave={onSave}
 					saving={saving}
@@ -54,11 +70,15 @@ export default function PersonaEditorDrawer({ open, persona, onClose, onSave, sa
 
 function PersonaForm({
 	persona,
+	folders,
+	onCreateFolder,
 	onClose,
 	onSave,
 	saving,
 }: {
 	persona: Persona | null;
+	folders: PersonaFolder[];
+	onCreateFolder: (name: string, color: string) => Promise<PersonaFolder>;
 	onClose: () => void;
 	onSave: (data: NewPersona & { id?: string }) => void;
 	saving?: boolean;
@@ -72,8 +92,33 @@ function PersonaForm({
 	const [effort, setEffort] = useState(persona?.effort ?? '');
 	const [permissionMode, setPermissionMode] = useState(persona?.permission_mode ?? '');
 	const [color, setColor] = useState<string>(persona?.color ?? PERSONA_COLORS[0]);
+	const [folderIds, setFolderIds] = useState<string[]>(persona?.folder_ids ?? []);
+	const [newFolder, setNewFolder] = useState('');
+	const [creatingFolder, setCreatingFolder] = useState(false);
 
 	const canSave = name.trim().length > 0 && !saving;
+
+	const toggleFolder = (id: string) =>
+		setFolderIds((prev) => (prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]));
+
+	// Création à la volée depuis le drawer : le nouveau folder est coché d'office.
+	const handleCreateFolder = async () => {
+		const trimmed = newFolder.trim();
+		if (!trimmed) return;
+		setCreatingFolder(true);
+		try {
+			const created = await onCreateFolder(
+				trimmed,
+				CATEGORY_COLORS[folders.length % CATEGORY_COLORS.length],
+			);
+			setFolderIds((prev) => [...prev, created.id]);
+			setNewFolder('');
+		} catch {
+			// L'erreur est déjà remontée en snackbar par le parent.
+		} finally {
+			setCreatingFolder(false);
+		}
+	};
 
 	const handleSave = () => {
 		if (!canSave) return;
@@ -86,6 +131,7 @@ function PersonaForm({
 			effort: (effort || null) as NewPersona['effort'],
 			permission_mode: (permissionMode || null) as NewPersona['permission_mode'],
 			color,
+			folder_ids: folderIds,
 		});
 	};
 
@@ -221,6 +267,61 @@ function PersonaForm({
 								}}
 							/>
 						))}
+					</Stack>
+				</Box>
+
+				<Box>
+					<Typography
+						variant="caption"
+						color="text.secondary"
+						sx={{ display: 'block', mb: 1 }}
+					>
+						{t('folders')}
+					</Typography>
+					{folders.length > 0 && (
+						<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1 }}>
+							{folders.map((f) => {
+								const on = folderIds.includes(f.id);
+								return (
+									<Chip
+										key={f.id}
+										label={f.name}
+										size="small"
+										onClick={() => toggleFolder(f.id)}
+										variant={on ? 'filled' : 'outlined'}
+										sx={{
+											height: 24,
+											fontSize: '0.72rem',
+											bgcolor: on ? alpha(f.color, 0.2) : 'transparent',
+											color: on ? f.color : 'text.secondary',
+											borderColor: alpha(f.color, 0.5),
+										}}
+									/>
+								);
+							})}
+						</Box>
+					)}
+					<Stack direction="row" spacing={1}>
+						<TextField
+							size="small"
+							fullWidth
+							placeholder={t('newFolderPlaceholder')}
+							value={newFolder}
+							onChange={(e) => setNewFolder(e.target.value)}
+							onKeyDown={(e) => {
+								if (e.key === 'Enter') {
+									e.preventDefault();
+									void handleCreateFolder();
+								}
+							}}
+						/>
+						<IconButton
+							size="small"
+							onClick={() => void handleCreateFolder()}
+							disabled={!newFolder.trim() || creatingFolder}
+						>
+							<AddRoundedIcon fontSize="small" />
+						</IconButton>
 					</Stack>
 				</Box>
 			</Stack>
