@@ -647,15 +647,11 @@
 		"saveError": "Failed to save persona",
 		"deleteError": "Failed to delete persona",
 		"allTab": "All",
-		"addFolder": "Folder",
-		"newFolder": "New folder",
-		"folderName": "Folder name",
-		"create": "Create",
-		"deleteFolder": "Delete folder",
-		"folderCreateFailed": "Failed to create folder",
-		"folders": "Folders",
-		"newFolderPlaceholder": "Create a folder…",
-		"emptyFolder": "No personas in this folder."
+		"repos": "Repos",
+		"reposHint": "No repo = persona available everywhere",
+		"noReposHint": "No repo configured in settings",
+		"allReposBadge": "All repos",
+		"emptyRepo": "No personas for this repo."
 	},
 	"tasks": {
 		"title": "Tasks",

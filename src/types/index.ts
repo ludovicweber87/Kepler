@@ -475,26 +475,15 @@ export interface Persona {
 	color: string | null;
 	created_at: string;
 	updated_at: string;
-	/** Folders de rangement (N-N). Toujours renseigné par `GET /api/personas`. */
-	folder_ids: string[];
+	/**
+	 * Repos (`repo_full_name`) auxquels la persona est rattachée. Liste vide =
+	 * persona globale. Toujours renseigné par `GET /api/personas`.
+	 */
+	repos: string[];
 }
 
 export type NewPersona = Pick<Persona, 'name'> &
 	Partial<Omit<Persona, 'id' | 'created_at' | 'updated_at'>>;
-
-// ─── Persona Folders (rangement de la bibliothèque) ──────
-
-export interface PersonaFolder {
-	id: string;
-	name: string;
-	color: string;
-	sort_order: number;
-	created_at: string;
-}
-
-export type NewPersonaFolder = Pick<PersonaFolder, 'name'> & Partial<Pick<PersonaFolder, 'color'>>;
-export type PersonaFolderPatch = Pick<PersonaFolder, 'id'> &
-	Partial<Pick<PersonaFolder, 'name' | 'color' | 'sort_order'>>;
 
 // ─── Tasks ───────────────────────────────────────────────
 

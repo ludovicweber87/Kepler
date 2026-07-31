@@ -647,15 +647,11 @@
 		"saveError": "Échec de l'enregistrement de la persona",
 		"deleteError": "Échec de la suppression de la persona",
 		"allTab": "Toutes",
-		"addFolder": "Dossier",
-		"newFolder": "Nouveau dossier",
-		"folderName": "Nom du dossier",
-		"create": "Créer",
-		"deleteFolder": "Supprimer le dossier",
-		"folderCreateFailed": "Échec de la création du dossier",
-		"folders": "Dossiers",
-		"newFolderPlaceholder": "Créer un dossier…",
-		"emptyFolder": "Aucune persona dans ce dossier."
+		"repos": "Repos",
+		"reposHint": "Aucun repo = persona disponible partout",
+		"noReposHint": "Aucun repo configuré dans les réglages",
+		"allReposBadge": "Tous les repos",
+		"emptyRepo": "Aucune persona pour ce repo."
 	},
 	"tasks": {
 		"title": "Tâches",

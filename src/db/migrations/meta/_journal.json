@@ -190,6 +190,13 @@
       "when": 1786300000000,
       "tag": "0026_persona_folders",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "6",
+      "when": 1786400000000,
+      "tag": "0027_persona_repos",
+      "breakpoints": true
     }
   ]
 }

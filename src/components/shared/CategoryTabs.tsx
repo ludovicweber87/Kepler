@@ -36,27 +36,30 @@ export interface CategoryTabItem {
 /** Libellés fournis par la feature — le composant ne connaît aucun namespace i18n. */
 export interface CategoryTabsLabels {
 	allTab: string;
-	add: string;
-	createTitle: string;
-	namePlaceholder: string;
-	cancel: string;
-	create: string;
-	delete: string;
+	add?: string;
+	createTitle?: string;
+	namePlaceholder?: string;
+	cancel?: string;
+	create?: string;
+	delete?: string;
 }
 
 interface Props {
 	items: CategoryTabItem[];
 	activeId: string; // 'all' | item id
 	onChange: (id: string) => void;
-	onCreate: (name: string, color: string) => void;
-	onDelete: (id: string) => void;
+	/** Omis quand les items ne sont pas créés à la main (ex. rangement par repo). */
+	onCreate?: (name: string, color: string) => void;
+	/** Omis quand les items ne sont pas supprimables depuis les onglets. */
+	onDelete?: (id: string) => void;
 	labels: CategoryTabsLabels;
 }
 
 /**
  * Onglets de rangement génériques : « Tout » + un onglet par item, création via
  * popover (nom + couleur), suppression au clic droit. Partagé par les Docs
- * (catégories) et la bibliothèque de personas (folders).
+ * (catégories créées à la main) et la bibliothèque de personas (repos
+ * configurés — là, ni création ni suppression depuis les onglets).
  */
 export default function CategoryTabs({
 	items,
@@ -79,7 +82,7 @@ export default function CategoryTabs({
 
 	const submit = () => {
 		const trimmed = name.trim();
-		if (!trimmed) return;
+		if (!trimmed || !onCreate) return;
 		onCreate(trimmed, color);
 		setAnchor(null);
 	};
@@ -113,6 +116,7 @@ export default function CategoryTabs({
 						key={i.id}
 						value={i.id}
 						onContextMenu={(e) => {
+							if (!onDelete) return;
 							e.preventDefault();
 							setCtxMenu({ el: e.currentTarget as HTMLElement, id: i.id });
 						}}
@@ -133,14 +137,16 @@ export default function CategoryTabs({
 				))}
 			</Tabs>
 
-			<Button
-				size="small"
-				startIcon={<AddRoundedIcon sx={{ fontSize: 16 }} />}
-				onClick={(e) => openCreate(e.currentTarget)}
-				sx={{ textTransform: 'none', color: 'secondary.main', flexShrink: 0, ml: 1 }}
-			>
-				{labels.add}
-			</Button>
+			{onCreate && (
+				<Button
+					size="small"
+					startIcon={<AddRoundedIcon sx={{ fontSize: 16 }} />}
+					onClick={(e) => openCreate(e.currentTarget)}
+					sx={{ textTransform: 'none', color: 'secondary.main', flexShrink: 0, ml: 1 }}
+				>
+					{labels.add}
+				</Button>
+			)}
 
 			<Popover
 				open={!!anchor}
@@ -209,7 +215,7 @@ export default function CategoryTabs({
 			<Menu anchorEl={ctxMenu?.el} open={!!ctxMenu} onClose={() => setCtxMenu(null)}>
 				<MenuItem
 					onClick={() => {
-						if (ctxMenu) onDelete(ctxMenu.id);
+						if (ctxMenu) onDelete?.(ctxMenu.id);
 						setCtxMenu(null);
 					}}
 					sx={{ fontSize: '0.8rem', gap: 1, color: 'error.main' }}

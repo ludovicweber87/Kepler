@@ -626,15 +626,11 @@
 		"saveError": "Falha ao guardar a persona",
 		"deleteError": "Falha ao eliminar a persona",
 		"allTab": "Todas",
-		"addFolder": "Pasta",
-		"newFolder": "Nova pasta",
-		"folderName": "Nome da pasta",
-		"create": "Criar",
-		"deleteFolder": "Eliminar pasta",
-		"folderCreateFailed": "Falha ao criar a pasta",
-		"folders": "Pastas",
-		"newFolderPlaceholder": "Criar uma pasta…",
-		"emptyFolder": "Ainda não há personas nesta pasta."
+		"repos": "Repos",
+		"reposHint": "Sem repo = persona disponível em todo o lado",
+		"noReposHint": "Nenhum repo configurado nas definições",
+		"allReposBadge": "Todos os repos",
+		"emptyRepo": "Não há personas para este repo."
 	},
 	"tasks": {
 		"title": "Tarefas",
