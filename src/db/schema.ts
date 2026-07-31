@@ -66,6 +66,29 @@ export const personas = sqliteTable('personas', {
 	updated_at: timestamp(),
 });
 
+// ─── Persona Folders (onglets de rangement, créés à la volée) ──
+
+export const personaFolders = sqliteTable('persona_folders', {
+	id: uuid(),
+	name: text().notNull().unique(),
+	color: text().notNull().default('#7C5CFF'),
+	sort_order: integer().default(0),
+	created_at: timestamp(),
+});
+
+// ─── Persona ↔ Folder (relation N-N, rangement multiple) ─
+
+export const personaFolderLinks = sqliteTable(
+	'persona_folder_links',
+	{
+		id: uuid(),
+		persona_id: text().notNull(),
+		folder_id: text().notNull(),
+		created_at: timestamp(),
+	},
+	(t) => [uniqueIndex('persona_folder_links_persona_folder').on(t.persona_id, t.folder_id)],
+);
+
 // ─── Agent Activity Logs ─────────────────────────────────
 
 export const agentActivityLogs = sqliteTable('agent_activity_logs', {

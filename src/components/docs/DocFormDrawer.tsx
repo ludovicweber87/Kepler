@@ -17,7 +17,7 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import { alpha } from '@mui/material/styles';
 import { useTranslations } from 'next-intl';
 import type { NewDoc, DocCategory, DocSourceType, DocLevel, DocLength, DocFormat } from '@/types';
-import { DOC_CATEGORY_COLORS } from './CategoryTabs';
+import { CATEGORY_COLORS } from '@/components/shared/CategoryTabs';
 
 interface RepoPathRow {
 	repo_full_name: string;
@@ -76,7 +76,7 @@ function DocForm({
 		if (!name) return;
 		setCreatingCat(true);
 		try {
-			const color = DOC_CATEGORY_COLORS[categories.length % DOC_CATEGORY_COLORS.length];
+			const color = CATEGORY_COLORS[categories.length % CATEGORY_COLORS.length];
 			const created = await onCreateCategory(name, color);
 			setSelectedCats((prev) => [...prev, created.id]);
 			setNewCat('');

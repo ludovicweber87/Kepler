@@ -623,7 +623,17 @@
 		"emptyLibrary": "Aún no hay personas. Crea la primera.",
 		"defaultOption": "Predeterminado",
 		"saveError": "No se pudo guardar la persona",
-		"deleteError": "No se pudo eliminar la persona"
+		"deleteError": "No se pudo eliminar la persona",
+		"allTab": "Todas",
+		"addFolder": "Carpeta",
+		"newFolder": "Nueva carpeta",
+		"folderName": "Nombre de la carpeta",
+		"create": "Crear",
+		"deleteFolder": "Eliminar carpeta",
+		"folderCreateFailed": "Error al crear la carpeta",
+		"folders": "Carpetas",
+		"newFolderPlaceholder": "Crear una carpeta…",
+		"emptyFolder": "No hay personas en esta carpeta."
 	},
 	"tasks": {
 		"title": "Tareas",

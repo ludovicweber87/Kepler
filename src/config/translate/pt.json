@@ -624,7 +624,17 @@
 		"emptyLibrary": "Ainda não há personas. Cria a primeira.",
 		"defaultOption": "Padrão",
 		"saveError": "Falha ao guardar a persona",
-		"deleteError": "Falha ao eliminar a persona"
+		"deleteError": "Falha ao eliminar a persona",
+		"allTab": "Todas",
+		"addFolder": "Pasta",
+		"newFolder": "Nova pasta",
+		"folderName": "Nome da pasta",
+		"create": "Criar",
+		"deleteFolder": "Eliminar pasta",
+		"folderCreateFailed": "Falha ao criar a pasta",
+		"folders": "Pastas",
+		"newFolderPlaceholder": "Criar uma pasta…",
+		"emptyFolder": "Ainda não há personas nesta pasta."
 	},
 	"tasks": {
 		"title": "Tarefas",
