@@ -647,15 +647,11 @@
 		"saveError": "Failed to save persona",
 		"deleteError": "Failed to delete persona",
 		"allTab": "All",
-		"addFolder": "Folder",
-		"newFolder": "New folder",
-		"folderName": "Folder name",
-		"create": "Create",
-		"deleteFolder": "Delete folder",
-		"folderCreateFailed": "Failed to create folder",
-		"folders": "Folders",
-		"newFolderPlaceholder": "Create a folder…",
-		"emptyFolder": "No personas in this folder."
+		"repos": "Repos",
+		"reposHint": "No repo = persona available everywhere",
+		"noReposHint": "No repo configured in settings",
+		"allReposBadge": "All repos",
+		"emptyRepo": "No personas for this repo."
 	},
 	"tasks": {
 		"title": "Tasks",
@@ -741,7 +737,8 @@
 		},
 		"source": {
 			"knowledge": "General knowledge",
-			"repo": "Repo"
+			"repo": "Repo",
+			"import": "Imported file"
 		},
 		"form": {
 			"subject": "Subject",
@@ -791,6 +788,12 @@
 		"chatEmpty": "Ask a question about the subject, or ask for a change — the doc will be updated.",
 		"chatPlaceholder": "Ask a question…",
 		"chatDisabledEditing": "Close the manual editor to chat.",
-		"chatDisabledGenerating": "Waiting for the doc to be generated."
+		"chatDisabledGenerating": "Waiting for the doc to be generated.",
+		"importMd": "Import .md",
+		"importedBadge": "Imported",
+		"imported": "{count, plural, one {# doc imported} other {# docs imported}}",
+		"importFailed": "Failed to import the file",
+		"importNotMarkdown": "Only .md files are accepted",
+		"importedWithSkipped": "{count, plural, one {# doc imported} other {# docs imported}} · {skipped, plural, one {# file skipped} other {# files skipped}}"
 	}
 }

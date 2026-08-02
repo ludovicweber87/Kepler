@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-fetch';
 import { localFetch } from '@/lib/local-fetch';
-import type { Doc, DocWithCategories, NewDoc, DocPatch } from '@/types';
+import type { Doc, DocWithCategories, NewDoc, ImportedDoc, DocPatch } from '@/types';
 
 const QUERY_KEY = ['docs'];
 
@@ -65,6 +65,27 @@ export function useDocs() {
 		onSettled: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
 	});
 
+	// Import d'un .md : même route, mais la doc arrive déjà écrite (`status: ready`)
+	// — surtout pas de `triggerGeneration`, qui réécrirait le fichier importé.
+	const importMutation = useMutation({
+		mutationFn: async (input: ImportedDoc) => {
+			const res = await apiFetch('/api/docs', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					title: input.title,
+					subject: input.title,
+					source_type: 'import',
+					content: input.content,
+					category_ids: input.category_ids ?? [],
+				}),
+			});
+			if (!res.ok) throw new Error('Failed to import doc');
+			return (await res.json()) as DocWithCategories;
+		},
+		onSettled: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
+	});
+
 	const updateMutation = useMutation({
 		mutationFn: async (patch: DocPatch) => {
 			const res = await apiFetch('/api/docs', {
@@ -110,6 +131,10 @@ export function useDocs() {
 		(input: NewDoc) => createMutation.mutateAsync(input),
 		[createMutation],
 	);
+	const importDoc = useCallback(
+		(input: ImportedDoc) => importMutation.mutateAsync(input),
+		[importMutation],
+	);
 	const updateDoc = useCallback(
 		(patch: DocPatch) => updateMutation.mutateAsync(patch),
 		[updateMutation],
@@ -123,7 +148,7 @@ export function useDocs() {
 		[queryClient],
 	);
 
-	return { docs, isLoading, createDoc, updateDoc, deleteDoc, retryDoc };
+	return { docs, isLoading, createDoc, importDoc, updateDoc, deleteDoc, retryDoc };
 }
 
 /**

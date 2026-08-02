@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
@@ -10,8 +10,11 @@ import { useTranslations } from 'next-intl';
 import { useAgentChat } from '@/hooks/useAgentChat';
 import { useAgentSession } from '@/hooks/useAgentSession';
 import { usePersonas } from '@/hooks/usePersonas';
+import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { DEFAULT_CREATE_PR_PROMPT, DEFAULT_COMMIT_PUSH_PROMPT } from '@/lib/prompts';
 import { resolvePersonaIdentity } from '@/lib/personaIdentity';
+import { resolveRepoFullName } from '@/lib/resolveRepoFullName';
+import { filterPersonasByRepo } from '@/lib/personaRepos';
 import type { ChatImageInput } from '@/types';
 import ChatBubble from './chat/ChatBubble';
 import ChatPermissionCard from './chat/ChatPermissionCard';
@@ -76,6 +79,7 @@ export default function AgentChatTab({
 	const t = useTranslations('agentChat');
 	const { session, updatePersona } = useAgentSession(sessionId);
 	const { personas } = usePersonas();
+	const { repoPaths } = useRepoPaths();
 	const prevStatus = useRef<string | null>(null);
 
 	const chat = useAgentChat({
@@ -159,6 +163,17 @@ export default function AgentChatTab({
 		name: agentName,
 		color: agentColor,
 	} = resolvePersonaIdentity(session, personas);
+
+	// Le switcher ne propose que les personas du repo de la session (celles sans
+	// repo restent globales). La persona courante reste listée même hors périmètre,
+	// sinon le badge afficherait une persona absente de la liste.
+	const sessionRepo = resolveRepoFullName(session ?? null, repoPaths);
+	const switchablePersonas = useMemo(() => {
+		if (!sessionRepo) return personas;
+		const scoped = filterPersonasByRepo(personas, sessionRepo);
+		const current = personas.find((p) => p.id === currentPersonaId);
+		return current && !scoped.includes(current) ? [current, ...scoped] : scoped;
+	}, [personas, sessionRepo, currentPersonaId]);
 
 	// Changement de persona en cours de session : model/effort/mode appliqués en live,
 	// puis le system prompt est changé côté serveur via un restart soft (resume →
@@ -327,7 +342,7 @@ export default function AgentChatTab({
 						onMode={chat.setPermissionMode}
 						agentColor={agentColor}
 						agentName={agentName}
-						personas={personas}
+						personas={switchablePersonas}
 						currentPersonaId={currentPersonaId}
 						onSwitchPersona={handleSwitchPersona}
 					/>

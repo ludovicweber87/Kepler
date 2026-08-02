@@ -14,7 +14,7 @@ const persona = (id: string, name: string, color: string | null = '#7C5CFF') =>
 		color,
 		created_at: '',
 		updated_at: '',
-		folder_ids: [],
+		repos: [],
 	}) satisfies Persona;
 
 const PERSONAS = [

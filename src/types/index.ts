@@ -475,26 +475,15 @@ export interface Persona {
 	color: string | null;
 	created_at: string;
 	updated_at: string;
-	/** Folders de rangement (N-N). Toujours renseigné par `GET /api/personas`. */
-	folder_ids: string[];
+	/**
+	 * Repos (`repo_full_name`) auxquels la persona est rattachée. Liste vide =
+	 * persona globale. Toujours renseigné par `GET /api/personas`.
+	 */
+	repos: string[];
 }
 
 export type NewPersona = Pick<Persona, 'name'> &
 	Partial<Omit<Persona, 'id' | 'created_at' | 'updated_at'>>;
-
-// ─── Persona Folders (rangement de la bibliothèque) ──────
-
-export interface PersonaFolder {
-	id: string;
-	name: string;
-	color: string;
-	sort_order: number;
-	created_at: string;
-}
-
-export type NewPersonaFolder = Pick<PersonaFolder, 'name'> & Partial<Pick<PersonaFolder, 'color'>>;
-export type PersonaFolderPatch = Pick<PersonaFolder, 'id'> &
-	Partial<Pick<PersonaFolder, 'name' | 'color' | 'sort_order'>>;
 
 // ─── Tasks ───────────────────────────────────────────────
 
@@ -539,7 +528,8 @@ export type TaskPatch = Pick<Task, 'id'> &
 
 // ─── Docs ────────────────────────────────────────────────
 
-export type DocSourceType = 'knowledge' | 'repo';
+// 'import' = fichier .md fourni par l'utilisateur, jamais généré.
+export type DocSourceType = 'knowledge' | 'repo' | 'import';
 export type DocLevel = 'beginner' | 'intermediate' | 'senior';
 export type DocLength = 'short' | 'medium' | 'long';
 export type DocFormat = 'overview' | 'tutorial' | 'reference' | 'cheatsheet' | 'comparison';
@@ -589,6 +579,15 @@ export type NewDoc = Pick<Doc, 'subject'> &
 			'title' | 'source_type' | 'repo_full_name' | 'level' | 'length' | 'format' | 'angle'
 		>
 	> & { category_ids?: string[] };
+
+// Payload d'import d'un `.md` : le contenu est fourni, donc la doc naît `ready`
+// et ne passe jamais par le rédacteur. Pas de niveau/longueur/format : ce sont
+// des consignes de génération, sans objet ici.
+export type ImportedDoc = {
+	title: string;
+	content: string;
+	category_ids?: string[];
+};
 
 // Payload de mise à jour : id requis, tout le reste optionnel.
 export type DocPatch = Pick<Doc, 'id'> &

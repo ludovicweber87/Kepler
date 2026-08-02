@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -41,6 +41,8 @@ import { useTranslations } from 'next-intl';
 import { localFetch } from '@/lib/local-fetch';
 import { apiFetch } from '@/lib/api-fetch';
 import { slugify } from '@/lib/slug';
+import { resolveRepoFullName } from '@/lib/resolveRepoFullName';
+import { filterPersonasByRepo } from '@/lib/personaRepos';
 import { MODELS, EFFORTS } from '@/lib/models';
 import { selectableCardSx } from '@/theme/selectableCard';
 import PersonaCards from './launch/PersonaCards';
@@ -196,6 +198,25 @@ export default function AgentTerminalModal({
 	const [resolvedPath, setResolvedPath] = useState<string | null>(null);
 
 	const projectPath = projectPathProp ?? resolvedPath;
+
+	// Une persona rattachée à des repos n'est proposée que sur ces repos ; sans
+	// rattachement elle reste globale. Repo inconnu (path hors `repo_paths`) → tout.
+	const currentRepo = resolveRepoFullName(
+		issueContext
+			? { issue_owner: issueContext.owner, issue_repo: issueContext.repo }
+			: { project_path: projectPath },
+		repoPaths,
+	);
+	const availablePersonas = useMemo(
+		() => (currentRepo ? filterPersonasByRepo(personas, currentRepo) : personas),
+		[personas, currentRepo],
+	);
+
+	// Changement de projet après coup : une persona devenue hors périmètre est désélectionnée.
+	useEffect(() => {
+		if (!selectedPersonaId) return;
+		if (!availablePersonas.some((p) => p.id === selectedPersonaId)) setSelectedPersonaId(null);
+	}, [availablePersonas, selectedPersonaId]);
 
 	// Worktree management
 	const { isCreating } = useWorktrees(projectPath ?? undefined);
@@ -955,7 +976,7 @@ export default function AgentTerminalModal({
 
 					<Box sx={{ width: '100%', maxWidth: 820 }}>
 						<PersonaCards
-							personas={personas}
+							personas={availablePersonas}
 							selectedPersonaId={selectedPersonaId}
 							onSelect={setSelectedPersonaId}
 						/>

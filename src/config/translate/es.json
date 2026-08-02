@@ -625,15 +625,11 @@
 		"saveError": "No se pudo guardar la persona",
 		"deleteError": "No se pudo eliminar la persona",
 		"allTab": "Todas",
-		"addFolder": "Carpeta",
-		"newFolder": "Nueva carpeta",
-		"folderName": "Nombre de la carpeta",
-		"create": "Crear",
-		"deleteFolder": "Eliminar carpeta",
-		"folderCreateFailed": "Error al crear la carpeta",
-		"folders": "Carpetas",
-		"newFolderPlaceholder": "Crear una carpeta…",
-		"emptyFolder": "No hay personas en esta carpeta."
+		"repos": "Repos",
+		"reposHint": "Sin repo = persona disponible en todas partes",
+		"noReposHint": "Ningún repo configurado en los ajustes",
+		"allReposBadge": "Todos los repos",
+		"emptyRepo": "No hay personas para este repo."
 	},
 	"tasks": {
 		"title": "Tareas",
@@ -719,7 +715,8 @@
 		},
 		"source": {
 			"knowledge": "Conocimiento general",
-			"repo": "Repo"
+			"repo": "Repo",
+			"import": "Archivo importado"
 		},
 		"form": {
 			"subject": "Tema",
@@ -769,6 +766,12 @@
 		"chatEmpty": "Haz una pregunta sobre el tema o pide un cambio — el doc se actualizará.",
 		"chatPlaceholder": "Haz tu pregunta…",
 		"chatDisabledEditing": "Cierra el editor manual para hablar.",
-		"chatDisabledGenerating": "Esperando la generación del doc."
+		"chatDisabledGenerating": "Esperando la generación del doc.",
+		"importMd": "Importar .md",
+		"importedBadge": "Importado",
+		"imported": "{count, plural, one {# doc importado} other {# docs importados}}",
+		"importFailed": "Error al importar el archivo",
+		"importNotMarkdown": "Solo se aceptan archivos .md",
+		"importedWithSkipped": "{count, plural, one {# doc importado} other {# docs importados}} · {skipped, plural, one {# archivo ignorado} other {# archivos ignorados}}"
 	}
 }

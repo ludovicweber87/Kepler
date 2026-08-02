@@ -66,27 +66,19 @@ export const personas = sqliteTable('personas', {
 	updated_at: timestamp(),
 });
 
-// ─── Persona Folders (onglets de rangement, créés à la volée) ──
+// ─── Persona ↔ Repo (relation N-N, rangement par repo configuré) ─
 
-export const personaFolders = sqliteTable('persona_folders', {
-	id: uuid(),
-	name: text().notNull().unique(),
-	color: text().notNull().default('#7C5CFF'),
-	sort_order: integer().default(0),
-	created_at: timestamp(),
-});
-
-// ─── Persona ↔ Folder (relation N-N, rangement multiple) ─
-
-export const personaFolderLinks = sqliteTable(
-	'persona_folder_links',
+// Le rangement de la bibliothèque suit les repos de `repo_paths` : pas de folder
+// créé à la main. Une persona sans lien est « globale » (visible partout).
+export const personaRepos = sqliteTable(
+	'persona_repos',
 	{
 		id: uuid(),
 		persona_id: text().notNull(),
-		folder_id: text().notNull(),
+		repo_full_name: text().notNull(),
 		created_at: timestamp(),
 	},
-	(t) => [uniqueIndex('persona_folder_links_persona_folder').on(t.persona_id, t.folder_id)],
+	(t) => [uniqueIndex('persona_repos_persona_repo').on(t.persona_id, t.repo_full_name)],
 );
 
 // ─── Agent Activity Logs ─────────────────────────────────

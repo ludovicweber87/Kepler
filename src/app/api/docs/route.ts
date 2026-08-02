@@ -62,18 +62,26 @@ export async function POST(req: NextRequest) {
 			return NextResponse.json({ error: 'subject required' }, { status: 400 });
 		}
 
+		// Import d'un .md : le contenu est fourni, la doc naît directement `ready`
+		// et le client ne déclenche aucune génération.
+		const isImport = body.source_type === 'import';
+		if (isImport && (typeof body.content !== 'string' || !body.content.trim())) {
+			return NextResponse.json({ error: 'content required for an import' }, { status: 400 });
+		}
+
 		const [row] = db
 			.insert(docs)
 			.values({
 				title: body.title?.trim() || body.subject.trim(),
 				subject: body.subject.trim(),
 				source_type: body.source_type ?? 'knowledge',
-				repo_full_name: body.repo_full_name ?? null,
+				repo_full_name: isImport ? null : (body.repo_full_name ?? null),
 				level: body.level ?? 'intermediate',
 				length: body.length ?? 'medium',
 				format: body.format ?? 'overview',
 				angle: body.angle ?? null,
-				status: 'queued',
+				content: isImport ? body.content : null,
+				status: isImport ? 'ready' : 'queued',
 			})
 			.returning()
 			.all();

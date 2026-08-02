@@ -10,6 +10,7 @@ import LinearProgress from '@mui/material/LinearProgress';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import PublicRoundedIcon from '@mui/icons-material/PublicRounded';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
+import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
 import { alpha } from '@mui/material/styles';
 import { useTranslations } from 'next-intl';
 import type { DocWithCategories, DocCategory } from '@/types';
@@ -27,6 +28,9 @@ export default function DocCard({ doc, categories, onOpen, onDelete }: Props) {
 	const t = useTranslations('docs');
 	const docCategories = categories.filter((c) => doc.category_ids.includes(c.id));
 	const pending = isDocPending(doc);
+	// Une doc importée n'a ni format ni niveau ni longueur : ce sont des consignes
+	// de génération, jamais renseignées ici. On affiche « Importé » à la place.
+	const imported = doc.source_type === 'import';
 
 	return (
 		<Card
@@ -91,23 +95,39 @@ export default function DocCard({ doc, categories, onOpen, onDelete }: Props) {
 						alignItems: 'center',
 					}}
 				>
-					<Chip
-						label={t(`format.${doc.format}`)}
-						size="small"
-						variant="outlined"
-						sx={{
-							height: 20,
-							fontSize: '0.65rem',
-							borderColor: alpha('#7C5CFF', 0.45),
-							color: '#c3b4ff',
-						}}
-					/>
-					<Chip
-						label={t(`level.${doc.level}`)}
-						size="small"
-						variant="outlined"
-						sx={{ height: 20, fontSize: '0.65rem' }}
-					/>
+					{imported ? (
+						<Chip
+							label={t('importedBadge')}
+							size="small"
+							variant="outlined"
+							sx={{
+								height: 20,
+								fontSize: '0.65rem',
+								borderColor: alpha('#7C5CFF', 0.45),
+								color: '#c3b4ff',
+							}}
+						/>
+					) : (
+						<>
+							<Chip
+								label={t(`format.${doc.format}`)}
+								size="small"
+								variant="outlined"
+								sx={{
+									height: 20,
+									fontSize: '0.65rem',
+									borderColor: alpha('#7C5CFF', 0.45),
+									color: '#c3b4ff',
+								}}
+							/>
+							<Chip
+								label={t(`level.${doc.level}`)}
+								size="small"
+								variant="outlined"
+								sx={{ height: 20, fontSize: '0.65rem' }}
+							/>
+						</>
+					)}
 					{docCategories.map((c) => (
 						<Chip
 							key={c.id}
@@ -132,17 +152,25 @@ export default function DocCard({ doc, categories, onOpen, onDelete }: Props) {
 						color: 'text.disabled',
 					}}
 				>
-					{doc.source_type === 'repo' ? (
+					{imported ? (
+						<DescriptionRoundedIcon sx={{ fontSize: 13 }} />
+					) : doc.source_type === 'repo' ? (
 						<FolderRoundedIcon sx={{ fontSize: 13 }} />
 					) : (
 						<PublicRoundedIcon sx={{ fontSize: 13 }} />
 					)}
 					<Typography variant="caption" sx={{ fontSize: '0.68rem' }}>
-						{doc.source_type === 'repo' && doc.repo_full_name
-							? doc.repo_full_name
-							: t('source.knowledge')}
-						{' · '}
-						{t(`length.${doc.length}`)}
+						{imported ? (
+							t('source.import')
+						) : (
+							<>
+								{doc.source_type === 'repo' && doc.repo_full_name
+									? doc.repo_full_name
+									: t('source.knowledge')}
+								{' · '}
+								{t(`length.${doc.length}`)}
+							</>
+						)}
 					</Typography>
 				</Box>
 			</Box>

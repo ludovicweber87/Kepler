@@ -647,15 +647,11 @@
 		"saveError": "Échec de l'enregistrement de la persona",
 		"deleteError": "Échec de la suppression de la persona",
 		"allTab": "Toutes",
-		"addFolder": "Dossier",
-		"newFolder": "Nouveau dossier",
-		"folderName": "Nom du dossier",
-		"create": "Créer",
-		"deleteFolder": "Supprimer le dossier",
-		"folderCreateFailed": "Échec de la création du dossier",
-		"folders": "Dossiers",
-		"newFolderPlaceholder": "Créer un dossier…",
-		"emptyFolder": "Aucune persona dans ce dossier."
+		"repos": "Repos",
+		"reposHint": "Aucun repo = persona disponible partout",
+		"noReposHint": "Aucun repo configuré dans les réglages",
+		"allReposBadge": "Tous les repos",
+		"emptyRepo": "Aucune persona pour ce repo."
 	},
 	"tasks": {
 		"title": "Tâches",
@@ -741,7 +737,8 @@
 		},
 		"source": {
 			"knowledge": "Savoir général",
-			"repo": "Repo"
+			"repo": "Repo",
+			"import": "Fichier importé"
 		},
 		"form": {
 			"subject": "Sujet",
@@ -791,6 +788,12 @@
 		"chatEmpty": "Pose une question sur le sujet, ou demande une retouche — la doc sera mise à jour.",
 		"chatPlaceholder": "Pose ta question…",
 		"chatDisabledEditing": "Ferme l'éditeur manuel pour discuter.",
-		"chatDisabledGenerating": "En attente de la génération de la doc."
+		"chatDisabledGenerating": "En attente de la génération de la doc.",
+		"importMd": "Importer .md",
+		"importedBadge": "Importé",
+		"imported": "{count, plural, one {# doc importée} other {# docs importées}}",
+		"importFailed": "Échec de l'import du fichier",
+		"importNotMarkdown": "Seuls les fichiers .md sont acceptés",
+		"importedWithSkipped": "{count, plural, one {# doc importée} other {# docs importées}} · {skipped, plural, one {# fichier ignoré} other {# fichiers ignorés}}"
 	}
 }

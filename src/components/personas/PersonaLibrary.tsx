@@ -13,31 +13,43 @@ import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import { alpha } from '@mui/material/styles';
 import { useTranslations } from 'next-intl';
 import { usePersonas } from '@/hooks/usePersonas';
-import { usePersonaFolders } from '@/hooks/usePersonaFolders';
+import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useSnackbar } from '@/hooks/useSnackbar';
-import CategoryTabs from '@/components/shared/CategoryTabs';
+import CategoryTabs, { CATEGORY_COLORS } from '@/components/shared/CategoryTabs';
 import {
-	ALL_FOLDERS,
-	resolveActiveFolder,
-	filterPersonasByFolder,
-	foldersOfPersona,
-} from '@/lib/personaFolders';
+	ALL_REPOS,
+	resolveActiveRepo,
+	filterPersonasByRepo,
+	reposOfPersona,
+	shortRepoName,
+	repoColor,
+} from '@/lib/personaRepos';
 import PersonaEditorDrawer from './PersonaEditorDrawer';
-import type { Persona, NewPersona, PersonaFolder } from '@/types';
+import type { Persona, NewPersona } from '@/types';
 
 export default function PersonaLibrary() {
 	const t = useTranslations('personas');
 	const { personas, create, update, remove } = usePersonas();
-	const { folders, createFolder, deleteFolder } = usePersonaFolders();
+	const { repoPaths } = useRepoPaths();
 	const { showSnackbar } = useSnackbar();
 	const [editing, setEditing] = useState<Persona | null>(null);
 	const [drawerOpen, setDrawerOpen] = useState(false);
-	const [activeFolder, setActiveFolder] = useState<string>(ALL_FOLDERS);
+	const [activeRepo, setActiveRepo] = useState<string>(ALL_REPOS);
 
-	const resolvedFolder = resolveActiveFolder(activeFolder, folders);
+	const repos = useMemo(() => repoPaths.map((r) => r.repo_full_name), [repoPaths]);
+	const resolvedRepo = resolveActiveRepo(activeRepo, repos);
 	const visible = useMemo(
-		() => filterPersonasByFolder(personas, resolvedFolder),
-		[personas, resolvedFolder],
+		() => filterPersonasByRepo(personas, resolvedRepo),
+		[personas, resolvedRepo],
+	);
+	const tabs = useMemo(
+		() =>
+			repos.map((r) => ({
+				id: r,
+				name: shortRepoName(r),
+				color: repoColor(r, CATEGORY_COLORS),
+			})),
+		[repos],
 	);
 
 	const openCreate = () => {
@@ -65,15 +77,6 @@ export default function PersonaLibrary() {
 		});
 	};
 
-	const handleCreateFolder = async (name: string, color: string) => {
-		try {
-			return await createFolder({ name, color });
-		} catch {
-			showSnackbar(t('folderCreateFailed'), 'error');
-			throw new Error('folder create failed');
-		}
-	};
-
 	return (
 		<Box>
 			<Stack direction="row" justifyContent="flex-end" sx={{ mb: 2 }}>
@@ -87,26 +90,17 @@ export default function PersonaLibrary() {
 				</Button>
 			</Stack>
 
+			{/* Les onglets suivent les repos configurés : ni création ni suppression ici. */}
 			<CategoryTabs
-				items={folders}
-				activeId={resolvedFolder}
-				onChange={setActiveFolder}
-				onCreate={(name, color) => void handleCreateFolder(name, color)}
-				onDelete={(id) => void deleteFolder(id)}
-				labels={{
-					allTab: t('allTab'),
-					add: t('addFolder'),
-					createTitle: t('newFolder'),
-					namePlaceholder: t('folderName'),
-					cancel: t('cancel'),
-					create: t('create'),
-					delete: t('deleteFolder'),
-				}}
+				items={tabs}
+				activeId={resolvedRepo}
+				onChange={setActiveRepo}
+				labels={{ allTab: t('allTab') }}
 			/>
 
 			{visible.length === 0 ? (
 				<Typography color="text.secondary" sx={{ textAlign: 'center', mt: 6 }}>
-					{personas.length === 0 ? t('emptyLibrary') : t('emptyFolder')}
+					{personas.length === 0 ? t('emptyLibrary') : t('emptyRepo')}
 				</Typography>
 			) : (
 				<Box
@@ -121,10 +115,11 @@ export default function PersonaLibrary() {
 						<PersonaCard
 							key={p.id}
 							persona={p}
-							folders={foldersOfPersona(p, folders)}
+							repos={reposOfPersona(p, repos)}
 							onOpen={openEdit}
 							onDelete={handleDelete}
 							deleteLabel={t('delete')}
+							allReposLabel={t('allReposBadge')}
 						/>
 					))}
 				</Box>
@@ -133,8 +128,7 @@ export default function PersonaLibrary() {
 			<PersonaEditorDrawer
 				open={drawerOpen}
 				persona={editing}
-				folders={folders}
-				onCreateFolder={handleCreateFolder}
+				repos={repos}
 				onClose={() => setDrawerOpen(false)}
 				onSave={handleSave}
 				saving={create.isPending || update.isPending}
@@ -145,16 +139,18 @@ export default function PersonaLibrary() {
 
 function PersonaCard({
 	persona,
-	folders,
+	repos,
 	onOpen,
 	onDelete,
 	deleteLabel,
+	allReposLabel,
 }: {
 	persona: Persona;
-	folders: PersonaFolder[];
+	repos: string[];
 	onOpen: (p: Persona) => void;
 	onDelete: (p: Persona) => void;
 	deleteLabel: string;
+	allReposLabel: string;
 }) {
 	const color = persona.color ?? '#7C5CFF';
 
@@ -214,36 +210,49 @@ function PersonaCard({
 				</Tooltip>
 			</Stack>
 
-			{folders.length > 0 && (
-				<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1.25 }}>
-					{folders.map((f) => (
-						<Box
-							key={f.id}
-							sx={{
-								display: 'flex',
-								alignItems: 'center',
-								gap: 0.5,
-								fontSize: '0.62rem',
-								color: 'text.secondary',
-								bgcolor: alpha(f.color, 0.12),
-								borderRadius: 999,
-								px: 0.85,
-								py: 0.15,
-							}}
-						>
-							<Box
-								sx={{
-									width: 6,
-									height: 6,
-									borderRadius: '50%',
-									bgcolor: f.color,
-								}}
-							/>
-							{f.name}
-						</Box>
-					))}
-				</Box>
+			<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1.25 }}>
+				{repos.length === 0 ? (
+					<RepoBadge label={allReposLabel} />
+				) : (
+					repos.map((r) => (
+						<RepoBadge
+							key={r}
+							label={shortRepoName(r)}
+							color={repoColor(r, CATEGORY_COLORS)}
+						/>
+					))
+				)}
+			</Box>
+		</Box>
+	);
+}
+
+function RepoBadge({ label, color }: { label: string; color?: string }) {
+	return (
+		<Box
+			sx={{
+				display: 'flex',
+				alignItems: 'center',
+				gap: 0.5,
+				fontSize: '0.62rem',
+				color: 'text.secondary',
+				bgcolor: (th) => alpha(color ?? th.palette.text.primary, color ? 0.12 : 0.05),
+				borderRadius: 999,
+				px: 0.85,
+				py: 0.15,
+			}}
+		>
+			{color && (
+				<Box
+					sx={{
+						width: 6,
+						height: 6,
+						borderRadius: '50%',
+						bgcolor: color,
+					}}
+				/>
 			)}
+			{label}
 		</Box>
 	);
 }
