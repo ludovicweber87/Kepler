@@ -716,7 +716,8 @@
 		},
 		"source": {
 			"knowledge": "Conhecimento geral",
-			"repo": "Repo"
+			"repo": "Repo",
+			"import": "Ficheiro importado"
 		},
 		"form": {
 			"subject": "Assunto",
@@ -766,6 +767,12 @@
 		"chatEmpty": "Faz uma pergunta sobre o tema ou pede uma alteração — o doc será atualizado.",
 		"chatPlaceholder": "Faz a tua pergunta…",
 		"chatDisabledEditing": "Fecha o editor manual para conversar.",
-		"chatDisabledGenerating": "A aguardar a geração do doc."
+		"chatDisabledGenerating": "A aguardar a geração do doc.",
+		"importMd": "Importar .md",
+		"importedBadge": "Importado",
+		"imported": "{count, plural, one {# doc importado} other {# docs importados}}",
+		"importFailed": "Falha ao importar o ficheiro",
+		"importNotMarkdown": "Só são aceites ficheiros .md",
+		"importedWithSkipped": "{count, plural, one {# doc importado} other {# docs importados}} · {skipped, plural, one {# ficheiro ignorado} other {# ficheiros ignorados}}"
 	}
 }

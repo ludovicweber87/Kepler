@@ -55,6 +55,8 @@ export default function DocDetail({ docId }: { docId: string }) {
 
 	const toc = useMemo(() => extractToc(doc?.content ?? ''), [doc?.content]);
 	const busy = doc?.status === 'queued' || doc?.status === 'generating';
+	// Doc importée : pas de format ni de niveau à afficher (cf. DocCard).
+	const imported = doc?.source_type === 'import';
 	const docCategories = categories.filter((c) => doc?.category_ids.includes(c.id));
 
 	if (isLoading) {
@@ -125,23 +127,39 @@ export default function DocDetail({ docId }: { docId: string }) {
 				<Typography sx={{ fontWeight: 600, fontSize: '0.95rem', mr: 1 }} noWrap>
 					{doc.title}
 				</Typography>
-				<Chip
-					label={t(`format.${doc.format}`)}
-					size="small"
-					variant="outlined"
-					sx={{
-						height: 20,
-						fontSize: '0.65rem',
-						borderColor: alpha('#00D4FF', 0.4),
-						color: '#9fe8ff',
-					}}
-				/>
-				<Chip
-					label={t(`level.${doc.level}`)}
-					size="small"
-					variant="outlined"
-					sx={{ height: 20, fontSize: '0.65rem' }}
-				/>
+				{imported ? (
+					<Chip
+						label={t('importedBadge')}
+						size="small"
+						variant="outlined"
+						sx={{
+							height: 20,
+							fontSize: '0.65rem',
+							borderColor: alpha('#00D4FF', 0.4),
+							color: '#9fe8ff',
+						}}
+					/>
+				) : (
+					<>
+						<Chip
+							label={t(`format.${doc.format}`)}
+							size="small"
+							variant="outlined"
+							sx={{
+								height: 20,
+								fontSize: '0.65rem',
+								borderColor: alpha('#00D4FF', 0.4),
+								color: '#9fe8ff',
+							}}
+						/>
+						<Chip
+							label={t(`level.${doc.level}`)}
+							size="small"
+							variant="outlined"
+							sx={{ height: 20, fontSize: '0.65rem' }}
+						/>
+					</>
+				)}
 				{docCategories.map((c) => (
 					<Chip
 						key={c.id}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -9,6 +9,7 @@ import TextField from '@mui/material/TextField';
 import InputAdornment from '@mui/material/InputAdornment';
 import CircularProgress from '@mui/material/CircularProgress';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import UploadFileRoundedIcon from '@mui/icons-material/UploadFileRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
 import { useTranslations } from 'next-intl';
@@ -17,6 +18,7 @@ import { useDocCategories } from '@/hooks/useDocCategories';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import type { DocWithCategories, NewDoc } from '@/types';
+import { isMarkdownFile, titleFromMarkdown } from '@/lib/docImport';
 import { PageContainer, PageHeader } from '@/components/layout/PageContainer';
 import DocCard from './DocCard';
 import CategoryTabs from '@/components/shared/CategoryTabs';
@@ -25,7 +27,7 @@ import DocFormDrawer from './DocFormDrawer';
 export default function DocsPage() {
 	const t = useTranslations('docs');
 	const router = useRouter();
-	const { docs, isLoading, createDoc, deleteDoc } = useDocs();
+	const { docs, isLoading, createDoc, importDoc, deleteDoc } = useDocs();
 	const { categories, createCategory, deleteCategory } = useDocCategories();
 	const { repoPaths } = useRepoPaths();
 	const { showSnackbar } = useSnackbar();
@@ -34,6 +36,8 @@ export default function DocsPage() {
 	const [search, setSearch] = useState('');
 	const [drawerOpen, setDrawerOpen] = useState(false);
 	const [submitting, setSubmitting] = useState(false);
+	const [importing, setImporting] = useState(false);
+	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const filtered = useMemo(() => {
 		const q = search.trim().toLowerCase();
@@ -55,6 +59,43 @@ export default function DocsPage() {
 			showSnackbar(t('createFailed'), 'error');
 		} finally {
 			setSubmitting(false);
+		}
+	};
+
+	// Import de .md : une doc par fichier, rangée dans l'onglet courant si on n'est
+	// pas sur « Toutes ». Les fichiers non-Markdown sont ignorés, pas bloquants.
+	const handleFiles = async (fileList: FileList | null) => {
+		const files = Array.from(fileList ?? []);
+		if (files.length === 0) return;
+		const markdown = files.filter((f) => isMarkdownFile(f.name));
+		if (markdown.length === 0) {
+			showSnackbar(t('importNotMarkdown'), 'warning');
+			return;
+		}
+
+		setImporting(true);
+		let done = 0;
+		try {
+			for (const file of markdown) {
+				const content = await file.text();
+				await importDoc({
+					title: titleFromMarkdown(content, file.name),
+					content,
+					category_ids: activeCategory === 'all' ? [] : [activeCategory],
+				});
+				done++;
+			}
+			// Un seul snackbar : le provider n'a qu'un slot, un second écraserait le premier.
+			const skipped = files.length - markdown.length;
+			if (skipped > 0) {
+				showSnackbar(t('importedWithSkipped', { count: done, skipped }), 'warning');
+			} else {
+				showSnackbar(t('imported', { count: done }), 'success');
+			}
+		} catch {
+			showSnackbar(t('importFailed'), 'error');
+		} finally {
+			setImporting(false);
 		}
 	};
 
@@ -95,6 +136,27 @@ export default function DocsPage() {
 								),
 							}}
 							sx={{ width: 240 }}
+						/>
+						<Button
+							variant="outlined"
+							startIcon={<UploadFileRoundedIcon />}
+							onClick={() => fileInputRef.current?.click()}
+							disabled={importing}
+							sx={{ textTransform: 'none', fontWeight: 600 }}
+						>
+							{t('importMd')}
+						</Button>
+						<input
+							ref={fileInputRef}
+							type="file"
+							accept=".md,.markdown,.mdown,.mkd,text/markdown"
+							multiple
+							hidden
+							onChange={(e) => {
+								void handleFiles(e.target.files);
+								// Réinitialise pour pouvoir réimporter le même fichier.
+								e.target.value = '';
+							}}
 						/>
 						<Button
 							variant="contained"

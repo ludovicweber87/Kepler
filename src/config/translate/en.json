@@ -737,7 +737,8 @@
 		},
 		"source": {
 			"knowledge": "General knowledge",
-			"repo": "Repo"
+			"repo": "Repo",
+			"import": "Imported file"
 		},
 		"form": {
 			"subject": "Subject",
@@ -787,6 +788,12 @@
 		"chatEmpty": "Ask a question about the subject, or ask for a change — the doc will be updated.",
 		"chatPlaceholder": "Ask a question…",
 		"chatDisabledEditing": "Close the manual editor to chat.",
-		"chatDisabledGenerating": "Waiting for the doc to be generated."
+		"chatDisabledGenerating": "Waiting for the doc to be generated.",
+		"importMd": "Import .md",
+		"importedBadge": "Imported",
+		"imported": "{count, plural, one {# doc imported} other {# docs imported}}",
+		"importFailed": "Failed to import the file",
+		"importNotMarkdown": "Only .md files are accepted",
+		"importedWithSkipped": "{count, plural, one {# doc imported} other {# docs imported}} · {skipped, plural, one {# file skipped} other {# files skipped}}"
 	}
 }
