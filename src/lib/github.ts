@@ -415,6 +415,18 @@ export async function deleteIssueComment(
 	if (!res.ok) throw new Error(`GitHub delete comment failed: ${res.status}`);
 }
 
+/** Branche par défaut du dépôt (tous les repos ne s'appellent pas `main`). */
+export async function fetchDefaultBranch(
+	owner: string,
+	repo: string,
+	token: string,
+): Promise<string> {
+	const res = await fetch(`${GITHUB_API}/repos/${owner}/${repo}`, { headers: getHeaders(token) });
+	if (!res.ok) throw new Error(`GitHub fetch repo failed: ${res.status}`);
+	const data = (await res.json()) as { default_branch?: string };
+	return data.default_branch || 'main';
+}
+
 export async function createPullRequest(
 	owner: string,
 	repo: string,

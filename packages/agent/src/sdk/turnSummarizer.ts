@@ -31,6 +31,19 @@ export function fallbackSummary(finalText: string): string {
 	return `${cut.trimEnd()}…`;
 }
 
+/**
+ * Résumé écrit *immédiatement* en fin de tour, sans LLM. La synthèse haiku
+ * (`summarizeTurn`) prend plusieurs secondes : sans cette écriture immédiate,
+ * l'onglet Activity et le rapport publié sont vides pendant tout ce délai.
+ * Retourne '' quand il n'y a strictement rien à raconter (pas de ligne blanche).
+ */
+export function immediateSummary(finalText: string, actions: string[]): string {
+	const t = finalText.trim();
+	if (t) return fallbackSummary(t);
+	if (actions.length) return actions.map((a) => `- ${a}`).join('\n');
+	return '';
+}
+
 async function defaultRun(prompt: string): Promise<string> {
 	const CLAUDE_BIN = findClaude();
 	const { stdout } = await execFileAsync(CLAUDE_BIN, ['--print', '--model', 'haiku', prompt], {

@@ -401,7 +401,11 @@
 		"publishError": "Erro ao publicar relatório",
 		"synthesizing": "A sintetizar o relatório…",
 		"synthesizeError": "Não foi possível sintetizar, a usar atividade em bruto",
-		"view": "Ver"
+		"view": "Ver",
+		"uncommittedChanges": "{count, plural, one {# ficheiro não commitado} other {# ficheiros não commitados}} — faz commit antes de publicar",
+		"commentError": "Não foi possível publicar o comentário na issue",
+		"pushError": "Não foi possível fazer push da branch — relatório não publicado",
+		"prError": "Não foi possível criar o pull request"
 	},
 	"agentDiff": {
 		"showRemainingLines": "Mostrar {count} linhas restantes",

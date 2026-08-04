@@ -276,6 +276,9 @@ ${truncated}`;
 				.prepare('SELECT id FROM agent_sessions WHERE session_id = ?')
 				.get(sessionId) as { id: string } | undefined;
 			if (!session) return sendJson(res, { error: 'Session not found' }, 404);
+			// La synthèse du dernier tour est asynchrone : sans cette attente, un
+			// rapport publié juste après la fin du tour l'ignorerait complètement.
+			await sdkAgent.waitForActivity(sessionId);
 			const logs = db
 				.prepare(
 					"SELECT log_type, content FROM agent_activity_logs WHERE agent_session_id = ? AND log_type IN ('summary','error') ORDER BY created_at ASC",

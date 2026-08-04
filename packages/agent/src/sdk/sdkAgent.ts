@@ -8,7 +8,7 @@ import * as transcript from './transcriptStore.js';
 import { extractLastUserText } from './retryLastUser.js';
 import { buildPersonaNote, buildEffortNote, buildModeNote, applyPersonaNote, combineNotes } from './personaSwitch.js';
 import { deriveLogs } from './activityDeriver.js';
-import { summarizeTurn } from './turnSummarizer.js';
+import { summarizeTurn, immediateSummary } from './turnSummarizer.js';
 import { getDb } from '../db.js';
 import { buildNotification } from '../notifications/build.js';
 import { insertAndEmit } from '../notifications/insert.js';
@@ -50,6 +50,9 @@ interface SessionState {
   cwd: string;
   createdAt: number;
   turnActions: string[];
+  // Synthèses de tour en cours (haiku, plusieurs secondes). `waitForActivity`
+  // les attend avant de construire un rapport, pour qu'il couvre le dernier tour.
+  pendingSummaries: Set<Promise<void>>;
   systemPrompt?: string;
   mcpServers?: Record<string, unknown>;
   // Auto-rename : époque du runLoop (invalide l'ancien loop après un restart),
@@ -153,13 +156,10 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
           if (ev.event === 'result') {
             const actions = s.turnActions ?? [];
             s.turnActions = [];
-            if (!ev.data.is_error) {
-              const finalText = ev.data.text;
-              // Non bloquant : n'attend pas la synthèse pour rendre la main.
-              void summarizeTurn(finalText, actions).then((sum) =>
-                writeActivityLog(sessionId, 'summary', sum),
-              );
-            }
+            // Un tour en erreur produit déjà un log `error`, mais son travail
+            // (fichiers touchés, commits) serait perdu pour l'Activity et le
+            // rapport : on en garde la trace brute, sans dépenser un appel haiku.
+            recordTurnSummary(sessionId, s, ev.data.is_error ? '' : ev.data.text, actions, !ev.data.is_error);
             if (!s.isDocSession) {
               try {
                 const type = ev.data.is_error ? 'agent_error' : 'agent_done';
@@ -365,15 +365,50 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
       return row?.c ?? null;
     } catch { return null; }
   }
-  function writeActivityLog(sessionId: string, logType: string, content: string) {
+  /** Insère un log d'activité. Retourne son id (pour un `updateActivityLog` ultérieur). */
+  function writeActivityLog(sessionId: string, logType: string, content: string): string | null {
+    const d = getDb();
+    if (!d) return null;
+    try {
+      const row = d.prepare('SELECT id FROM agent_sessions WHERE session_id = ?').get(sessionId) as { id: string } | undefined;
+      if (!row) return null;
+      const id = randomUUID();
+      d.prepare(`INSERT INTO agent_activity_logs (id, agent_session_id, content, log_type, created_at) VALUES (?, ?, ?, ?, ${NOW_ISO})`)
+        .run(id, row.id, content, logType);
+      return id;
+    } catch { return null; }
+  }
+  /** Remplace le contenu d'un log existant (résumé brut → synthèse haiku). */
+  function updateActivityLog(id: string, content: string) {
     const d = getDb();
     if (!d) return;
     try {
-      const row = d.prepare('SELECT id FROM agent_sessions WHERE session_id = ?').get(sessionId) as { id: string } | undefined;
-      if (!row) return;
-      d.prepare(`INSERT INTO agent_activity_logs (id, agent_session_id, content, log_type, created_at) VALUES (?, ?, ?, ?, ${NOW_ISO})`)
-        .run(randomUUID(), row.id, content, logType);
+      d.prepare('UPDATE agent_activity_logs SET content = ? WHERE id = ?').run(content, id);
     } catch { /* best-effort */ }
+  }
+
+  /**
+   * Résumé de fin de tour, en deux temps : écriture immédiate d'un résumé brut
+   * (l'activité est visible tout de suite), puis remplacement par la synthèse
+   * haiku quand elle arrive. Chaque étape notifie les clients (`stream-activity`)
+   * — sans ça, l'onglet Activity attend jusqu'à 10 s son prochain poll.
+   */
+  function recordTurnSummary(sessionId: string, s: SessionState, finalText: string, actions: string[], refine: boolean) {
+    const immediate = immediateSummary(finalText, actions);
+    if (!immediate) return;
+    const logId = writeActivityLog(sessionId, 'summary', immediate);
+    broadcast(s, { type: 'stream-activity' });
+    if (!refine || !logId) return;
+    const p = summarizeTurn(finalText, actions)
+      .then((sum) => {
+        const refined = sum.trim();
+        if (!refined || refined === immediate) return;
+        updateActivityLog(logId, refined);
+        broadcast(s, { type: 'stream-activity' });
+      })
+      .catch(() => { /* le résumé brut reste en place */ })
+      .finally(() => { s.pendingSummaries.delete(p); });
+    s.pendingSummaries.add(p);
   }
 
   return {
@@ -436,6 +471,7 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
         cwd: params.cwd,
         createdAt: Date.now(),
         turnActions: [],
+        pendingSummaries: new Set(),
         systemPrompt: params.systemPrompt,
         mcpServers: params.mcpServers,
         epoch: 0,
@@ -613,6 +649,11 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
       if (!s) return;
       s.perms.abortAll();
       s.busy = false;
+      // Le SDK n'émet pas toujours de `result` : sans ce flush, tout le travail
+      // du tour interrompu disparaît de l'Activity et du rapport.
+      const actions = s.turnActions ?? [];
+      s.turnActions = [];
+      recordTurnSummary(sessionId, s, '', actions, false);
       void s.q.interrupt?.()?.catch(() => {});
       // Le SDK n'émet pas toujours de `result` après une interruption ; on notifie
       // explicitement pour que le composer repasse en idle (reprise possible).
@@ -626,6 +667,19 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
     },
     detach(sessionId: string, ws: StreamSocket) {
       sessions.get(sessionId)?.clients.delete(ws);
+    },
+    /**
+     * Attend les synthèses de tour en vol (bornées par `timeoutMs`) pour qu'un
+     * rapport publié juste après la fin d'un tour couvre bien ce dernier tour.
+     * No-op si la session n'est plus vivante : ses logs sont déjà tous en base.
+     */
+    async waitForActivity(sessionId: string, timeoutMs = 15_000): Promise<void> {
+      const s = sessions.get(sessionId);
+      if (!s || s.pendingSummaries.size === 0) return;
+      await Promise.race([
+        Promise.allSettled([...s.pendingSummaries]),
+        new Promise((r) => setTimeout(r, timeoutMs)),
+      ]);
     },
     /**
      * Move manuel (clic droit → renommer) sur une session SDK vivante : différé

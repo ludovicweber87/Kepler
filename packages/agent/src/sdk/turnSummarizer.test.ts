@@ -1,6 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildTurnSummaryPrompt, fallbackSummary, summarizeTurn } from './turnSummarizer.js';
+import {
+	buildTurnSummaryPrompt,
+	fallbackSummary,
+	immediateSummary,
+	summarizeTurn,
+} from './turnSummarizer.js';
 
 test('buildTurnSummaryPrompt includes final text and actions', () => {
 	const p = buildTurnSummaryPrompt('did stuff', ['file_change: a.ts', 'commit: fix']);
@@ -21,6 +26,23 @@ test('fallbackSummary truncates very long text on a boundary', () => {
 	assert.match(out, /…$/);
 	// Coupe sur une frontière → ne finit pas par un mot tronqué en plein milieu.
 	assert.doesNotMatch(out, /mo…$/);
+});
+
+test('immediateSummary uses the final text when there is one', () => {
+	assert.equal(immediateSummary('a fait le job', ['info: ls']), fallbackSummary('a fait le job'));
+});
+
+test('immediateSummary falls back to the actions when the turn has no final text', () => {
+	// Tour interrompu / en erreur : le travail réalisé doit rester tracé.
+	assert.equal(
+		immediateSummary('', ['file_change: a.ts', 'commit: fix']),
+		'- file_change: a.ts\n- commit: fix',
+	);
+});
+
+test('immediateSummary returns empty when there is nothing to report', () => {
+	// Garde anti-ligne-blanche dans l'onglet Activity.
+	assert.equal(immediateSummary('   ', []), '');
 });
 
 test('summarizeTurn returns runner output when non-empty', async () => {
