@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { getAgentWsUrl } from '@/lib/local-fetch';
 import { useReconnectOnWake } from '@/hooks/useReconnectOnWake';
 import { reduceStreamEvent } from '@/lib/chatReducer';
@@ -79,6 +80,14 @@ export function useAgentChat(p: Params) {
 	queuedRef.current = queued;
 	const [, force] = useReducer((x) => x + 1, 0);
 	const [reconnectNonce, setReconnectNonce] = useState(0);
+	const qc = useQueryClient();
+
+	// Les logs d'activité sont écrits côté serveur (hors du flux chat) et la query
+	// ne poll que toutes les 10 s : sans cette invalidation, l'onglet Activity et
+	// le bouton « Publier » restent vides bien après la fin du tour.
+	const refreshActivity = useCallback(() => {
+		qc.invalidateQueries({ queryKey: ['agent-session-logs'] });
+	}, [qc]);
 
 	const applyWire = useCallback((wire: StreamEventWire) => {
 		if (wire.seq <= lastSeqRef.current) return; // dédup exactly-once
@@ -145,8 +154,14 @@ export function useAgentChat(p: Params) {
 					setQuestions((msg.pendingQuestions as PendingQuestion[]) ?? []);
 					setStatus(msg.busy ? 'busy' : 'idle');
 					break;
+				case 'stream-activity':
+					refreshActivity();
+					break;
 				case 'stream-event':
-					if (msg.event === 'result') setStatus('idle');
+					if (msg.event === 'result') {
+						setStatus('idle');
+						refreshActivity();
+					}
 					else if (msg.event === 'session') {
 						setModelState(
 							String((msg.data as Record<string, unknown>)?.model ?? model),
