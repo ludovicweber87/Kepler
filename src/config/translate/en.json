@@ -422,7 +422,11 @@
 		"publishError": "Error publishing report",
 		"synthesizing": "Synthesizing report…",
 		"synthesizeError": "Could not synthesize, using raw activity",
-		"view": "View"
+		"view": "View",
+		"uncommittedChanges": "{count, plural, one {# uncommitted file} other {# uncommitted files}} — commit before publishing",
+		"commentError": "Could not post the comment on the issue",
+		"pushError": "Could not push the branch — report not published",
+		"prError": "Could not create the pull request"
 	},
 	"agentDiff": {
 		"showRemainingLines": "Show {count} remaining lines",

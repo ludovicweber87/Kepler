@@ -400,7 +400,11 @@
 		"publishError": "Fehler beim Veröffentlichen des Berichts",
 		"synthesizing": "Bericht wird zusammengefasst…",
 		"synthesizeError": "Zusammenfassung fehlgeschlagen, Rohaktivität wird verwendet",
-		"view": "Ansehen"
+		"view": "Ansehen",
+		"uncommittedChanges": "{count, plural, one {# nicht committete Datei} other {# nicht committete Dateien}} — vor dem Veröffentlichen committen",
+		"commentError": "Kommentar konnte nicht am Issue veröffentlicht werden",
+		"pushError": "Branch konnte nicht gepusht werden — Bericht nicht veröffentlicht",
+		"prError": "Pull Request konnte nicht erstellt werden"
 	},
 	"agentDiff": {
 		"showRemainingLines": "{count} verbleibende Zeilen anzeigen",

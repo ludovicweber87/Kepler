@@ -422,7 +422,11 @@
 		"publishError": "Erreur lors de la publication du rapport",
 		"synthesizing": "Synthèse du rapport…",
 		"synthesizeError": "Synthèse impossible, activité brute utilisée",
-		"view": "Voir"
+		"view": "Voir",
+		"uncommittedChanges": "{count, plural, one {# fichier non commité} other {# fichiers non commités}} — commit avant de publier",
+		"commentError": "Impossible de publier le commentaire sur l'issue",
+		"pushError": "Push de la branche impossible — rapport non publié",
+		"prError": "Création de la pull request impossible"
 	},
 	"agentDiff": {
 		"showRemainingLines": "Afficher {count} lignes restantes",

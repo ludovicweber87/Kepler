@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createPullRequest } from '@/lib/github';
+import { createPullRequest, fetchDefaultBranch } from '@/lib/github';
 import { requireAuth, isAuthError } from '@/lib/auth-utils';
 
 export async function POST(req: NextRequest) {
@@ -22,7 +22,8 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		const pr = await createPullRequest(owner, repo, head, 'main', title, body ?? '', auth.accessToken);
+		const base = await fetchDefaultBranch(owner, repo, auth.accessToken);
+		const pr = await createPullRequest(owner, repo, head, base, title, body ?? '', auth.accessToken);
 
 		return NextResponse.json({ ok: true, html_url: pr.html_url, number: pr.number });
 	} catch (err) {

@@ -54,6 +54,23 @@ export default function AgentActivityTab({
 		if (!session || visibleLogs.length === 0) return;
 		setPublishing(true);
 		try {
+			// Le publish pousse la branche telle quelle : du travail non commité
+			// produirait une PR vide. On bloque avant de dépenser la synthèse.
+			const workingDir = session.worktree_path ?? session.project_path;
+			if (hasIssue && session.branch && workingDir) {
+				const statusRes = await localFetch(
+					`/git/status?cwd=${encodeURIComponent(workingDir)}`,
+				);
+				const status = (await statusRes.json().catch(() => ({}))) as {
+					dirty?: boolean;
+					count?: number;
+				};
+				if (statusRes.ok && status.dirty) {
+					showSnackbar(t('uncommittedChanges', { count: status.count ?? 0 }), 'warning');
+					return;
+				}
+			}
+
 			let report: string;
 			setSynthesizing(true);
 			const rawReport = () =>
@@ -92,7 +109,12 @@ export default function AgentActivityTab({
 						body: report,
 					}),
 				});
-				if (!commentRes.ok) return;
+				if (!commentRes.ok) {
+					const commentErr = await commentRes.json().catch(() => ({}));
+					console.error('[Publish] Issue comment failed:', commentErr);
+					showSnackbar(t('commentError'), 'error');
+					return;
+				}
 
 				// Push branch + create PR with activity as description
 				if (session.branch) {
@@ -101,13 +123,17 @@ export default function AgentActivityTab({
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify({
-							cwd: session.project_path,
+							cwd: workingDir ?? session.project_path,
 							branch: session.branch,
 						}),
 					});
 					if (!pushRes.ok) {
 						const pushErr = await pushRes.json().catch(() => ({}));
 						console.error('[Publish] Git push failed:', pushErr);
+						// Sans push, la PR échouerait de toute façon : on s'arrête ici
+						// pour que la session reste publiable après correction.
+						showSnackbar(t('pushError'), 'error');
+						return;
 					}
 
 					const prTitle = `${session.branch.replace(/^(feat|fix|refactor|docs|chore|test|perf)\//, '$1: ').replace(/-/g, ' ')}`;
@@ -133,6 +159,8 @@ export default function AgentActivityTab({
 					if (!prRes.ok) {
 						const prErr = await prRes.json().catch(() => ({}));
 						console.error('[Publish] PR creation failed:', prErr);
+						showSnackbar(t('prError'), 'error');
+						return;
 					}
 				}
 
@@ -161,7 +189,7 @@ export default function AgentActivityTab({
 				}),
 			});
 
-			qc.invalidateQueries({ queryKey: ['claude-activity'] });
+			qc.invalidateQueries({ queryKey: ['agent-session-logs', session.id] });
 			qc.invalidateQueries({ queryKey: ['agent-session', session.session_id] });
 			qc.invalidateQueries({ queryKey: ['agent-sessions', 'history'] });
 			qc.invalidateQueries({ queryKey: ['sessions', 'active'] });
@@ -197,7 +225,7 @@ export default function AgentActivityTab({
 		} finally {
 			setPublishing(false);
 		}
-	}, [session, hasIssue, visibleLogs, qc, showSnackbar]);
+	}, [session, hasIssue, visibleLogs, qc, showSnackbar, t]);
 
 	if (!session) {
 		return (
@@ -468,7 +496,9 @@ export default function AgentActivityTab({
 			</Box>
 
 			{/* Publish report button — visible when Claude is done and issue is linked */}
-			{!isStreaming && logs.length > 0 && hasIssue && (
+			{/* `visibleLogs` et non `logs` : le handler refuse de publier sans résumé,
+			    afficher le bouton sur des logs bruts produisait un clic sans effet. */}
+			{!isStreaming && visibleLogs.length > 0 && hasIssue && (
 				<Box
 					sx={{
 						px: 2,
