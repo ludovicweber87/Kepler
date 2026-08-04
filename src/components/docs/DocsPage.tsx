@@ -113,7 +113,7 @@ export default function DocsPage() {
 	};
 
 	return (
-		<PageContainer fullHeight bleed>
+		<PageContainer fullHeight>
 			<PageHeader
 				title={t('title')}
 				titleSuffix={
