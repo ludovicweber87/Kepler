@@ -9,12 +9,18 @@ import type { FileDiff } from '@/lib/gitDiff';
 interface ChangedFilesListProps {
 	changedFiles: FileDiff[];
 	onOpenFile: (filePath: string) => void;
+	/** Échec du chargement du diff — à distinguer d'un worktree réellement propre. */
+	error?: Error | null;
 }
 
-export default function ChangedFilesList({ changedFiles, onOpenFile }: ChangedFilesListProps) {
+export default function ChangedFilesList({
+	changedFiles,
+	onOpenFile,
+	error,
+}: ChangedFilesListProps) {
 	const t = useTranslations('agentDiff');
 
-	if (changedFiles.length === 0) {
+	if (error || changedFiles.length === 0) {
 		return (
 			<Box
 				sx={{
@@ -26,7 +32,7 @@ export default function ChangedFilesList({ changedFiles, onOpenFile }: ChangedFi
 				}}
 			>
 				<Typography variant="caption" sx={{ color: 'text.disabled' }}>
-					{t('noChanges')}
+					{error ? t('loadError') : t('noChanges')}
 				</Typography>
 			</Box>
 		);

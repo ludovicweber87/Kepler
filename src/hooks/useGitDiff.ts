@@ -17,7 +17,10 @@ export function useGitDiff(projectPath: string | null, branch: string | null) {
 			return res.json() as Promise<{ diff: string; stats: string }>;
 		},
 		enabled: !!projectPath,
-		staleTime: 30_000,
+		staleTime: 10_000,
+		// Aligné sur useGitStatus : sans polling, le diff restait figé sur l'état du montage
+		// pendant tout un tour d'agent, ou quand les fichiers sont édités hors de Kepler.
+		refetchInterval: 10_000,
 		refetchOnWindowFocus: true,
 	});
 

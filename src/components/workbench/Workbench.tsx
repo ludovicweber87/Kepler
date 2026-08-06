@@ -148,7 +148,10 @@ export default function Workbench() {
 	}, [sessionId]);
 
 	const diffPath = resolved?.worktree_path ?? resolved?.project_path ?? null;
-	const { files: changedFiles } = useGitDiff(diffPath, resolved?.branch ?? null);
+	const { files: changedFiles, error: diffError } = useGitDiff(
+		diffPath,
+		resolved?.branch ?? null,
+	);
 	const { dirty: hasUncommitted } = useGitStatus(diffPath);
 
 	const openChanges = useCallback((filePath: string) => {
@@ -659,6 +662,7 @@ export default function Workbench() {
 							<ChangedFilesList
 								changedFiles={changedFiles}
 								onOpenFile={openChanges}
+								error={diffError}
 							/>
 						)}
 						{effectiveRightTab === 'activity' && !isArchived && (

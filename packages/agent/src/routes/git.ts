@@ -22,7 +22,8 @@ import { slugifyBranchInput, moveWorktreeDir } from '../sdk/autoRename.js';
 import { fetchIssueContextBlock, issueContextMarker } from '../issueContext.js';
 import { parseFilesToCopy } from '../filesToCopy.js';
 import { resolveCopyTargets } from '../resolveCopyTargets.js';
-import { resolveRemoteBaseRef } from '../gitBase.js';
+import { resolveRemoteBaseRef, resolveDiffBase } from '../gitBase.js';
+import { untrackedDiff, DIFF_MAX_BUFFER } from '../untrackedDiff.js';
 import { dedupeAndSortBranches, worktreeAddArgs, type RawBranch } from '../branches.js';
 
 const TMUX = findTmux();
@@ -629,24 +630,24 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 			const isWorktreeDir = existsSync(cwd);
 
 			if (isWorktreeDir) {
-				const mergeBase = execFileSync('git', ['merge-base', baseRef, 'HEAD'], {
-					cwd,
-					encoding: 'utf-8',
-					timeout: 5000,
-				}).trim();
+				const diffBase = resolveDiffBase(cwd, baseRef);
 
-				diff = execFileSync('git', ['diff', mergeBase], {
-					cwd,
-					encoding: 'utf-8',
-					timeout: 15000,
-					maxBuffer: 5 * 1024 * 1024,
-				});
-				stats = execFileSync('git', ['diff', '--stat', mergeBase], {
+				// Les fichiers non trackés sont invisibles pour `git diff <ref>` : on les
+				// diffe séparément et on concatène, le parser côté front ne voit qu'un diff.
+				diff =
+					execFileSync('git', ['diff', diffBase], {
+						cwd,
+						encoding: 'utf-8',
+						timeout: 15000,
+						maxBuffer: DIFF_MAX_BUFFER,
+					}) + untrackedDiff(cwd);
+				stats = execFileSync('git', ['diff', '--stat', diffBase], {
 					cwd,
 					encoding: 'utf-8',
 					timeout: 5000,
+					maxBuffer: DIFF_MAX_BUFFER,
 				});
-			} else if (branch) {
+			} else if (baseRef && branch) {
 				// Diff hors répertoire worktree : compare la base distante à la branche.
 				// Note : si `branch` vaut le nom court de la base (ex. 'main'), le diff
 				// `origin/main..main` est vide/correct — comportement inoffensif attendu.
@@ -654,12 +655,13 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 					cwd: process.cwd(),
 					encoding: 'utf-8',
 					timeout: 15000,
-					maxBuffer: 5 * 1024 * 1024,
+					maxBuffer: DIFF_MAX_BUFFER,
 				});
 				stats = execSync(`git diff --stat ${baseRef}..${branch}`, {
 					cwd: process.cwd(),
 					encoding: 'utf-8',
 					timeout: 5000,
+					maxBuffer: DIFF_MAX_BUFFER,
 				});
 			}
 
