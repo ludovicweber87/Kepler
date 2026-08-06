@@ -46,13 +46,13 @@ test('sans symbolic-ref ni origin/main, retombe sur origin/master', () => {
 	);
 });
 
-test('défaut origin/main quand aucun signal', () => {
+test('renvoie null quand aucun signal, plutôt qu’un origin/main inexistant', () => {
 	assert.equal(
 		selectRemoteBase({
 			symbolicRef: null,
 			hasOriginMain: false,
 			hasOriginMaster: false,
 		}),
-		'origin/main',
+		null,
 	);
 });
