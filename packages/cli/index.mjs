@@ -4,6 +4,7 @@ import { runStop } from './commands/stop.mjs';
 import { runStatus } from './commands/status.mjs';
 import { runLogs } from './commands/logs.mjs';
 import { runUpdate } from './commands/update.mjs';
+import { runSeed } from './commands/seed.mjs';
 
 const program = new Command();
 
@@ -77,6 +78,20 @@ program
 		].join('\n'),
 	)
 	.action(() => runUpdate());
+
+program
+	.command('seed')
+	.summary('add the reference persona library to the database')
+	.description(
+		[
+			'Insert the reference personas into the local database. Personas that already',
+			'exist are left untouched, so the command is safe to run twice and never',
+			'silently discards edits made from the UI — pass --overwrite to reset them.',
+		].join('\n'),
+	)
+	.option('--overwrite', 'reset personas that already exist to the seeded version')
+	.addHelpText('after', '\nExample:\n  $ kepler seed\n  $ kepler seed --overwrite')
+	.action((opts) => runSeed({ overwrite: Boolean(opts.overwrite) }));
 
 program.addHelpText(
 	'after',

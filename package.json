@@ -15,6 +15,7 @@
 		"lint": "eslint",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
+		"seed:personas": "node scripts/seed-personas.mjs",
 		"test:web": "vitest run",
 		"test:web:watch": "vitest"
 	},
