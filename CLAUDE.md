@@ -169,7 +169,7 @@ Composant client ("use client")
 - **staleTime** : 5 minutes par défaut · **refetchOnWindowFocus** : false
 - **Mutations optimistes** : `onMutate` + `setQueryData()` + rollback `onError`
 - **Invalidation** : `invalidateQueries()` dans `onSettled`
-- **Polling** (`refetchInterval`) : sessions actives & historique 5s, logs de session 10s, statut agent 10s, git status 10s, docs dynamique, issues & détail issue à intervalle configurable (`useRefetchInterval`)
+- **Polling** (`refetchInterval`) : sessions actives & historique 5s, logs de session 10s, statut agent 10s, git status & git diff 10s, docs dynamique, issues & détail issue à intervalle configurable (`useRefetchInterval`)
 - **Sans polling** : worktrees (`staleTime` 30s) et `merged-branches` (`staleTime` 5 min) ne se rafraîchissent que par `invalidateQueries()` — toute mutation qui les rend obsolètes doit les invalider explicitement
 
 ### State Management
