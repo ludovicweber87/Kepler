@@ -84,7 +84,7 @@ export default function ArchivedPage() {
 
 	return (
 		<>
-			<PageContainer fullHeight>
+			<PageContainer>
 				<PageHeader
 					title={t('title')}
 					titleSuffix={
@@ -126,7 +126,7 @@ export default function ArchivedPage() {
 				{filtered.length === 0 ? (
 					<Box
 						sx={{
-							flex: 1,
+							minHeight: 320,
 							display: 'flex',
 							flexDirection: 'column',
 							alignItems: 'center',
@@ -139,18 +139,7 @@ export default function ArchivedPage() {
 						<Typography variant="body2">{t('empty')}</Typography>
 					</Box>
 				) : (
-					<Box
-						sx={{
-							flex: 1,
-							overflowY: 'auto',
-							display: 'flex',
-							flexDirection: 'column',
-							gap: 1,
-							pb: 1,
-							'&::-webkit-scrollbar': { width: 4 },
-							'&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 1 },
-						}}
-					>
+					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, pb: 1 }}>
 						{filtered.map((s) => (
 							<ArchivedSessionCard
 								key={s.id}
