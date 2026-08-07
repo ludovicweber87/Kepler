@@ -66,6 +66,8 @@ export default function ArchivedSessionCard({
 				pl: 2.25,
 				pr: 1.5,
 				py: 1.25,
+				minHeight: 64,
+				flexShrink: 0,
 				overflow: 'hidden',
 				border: 1,
 				borderColor: 'divider',
