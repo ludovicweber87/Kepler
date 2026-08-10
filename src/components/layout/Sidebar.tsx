@@ -37,6 +37,7 @@ import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined';
+import ExploreRoundedIcon from '@mui/icons-material/ExploreRounded';
 import Collapse from '@mui/material/Collapse';
 import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
 import TheaterComedyRoundedIcon from '@mui/icons-material/TheaterComedyRounded';
@@ -110,6 +111,15 @@ export default function Sidebar() {
 		}
 		return map;
 	}, [allSessions]);
+	// Sessions du mode libre : hors projet, hors worktree → l'arbre PROJETS ne peut
+	// pas les porter, elles ont leur propre section.
+	const freeSessions = useMemo(
+		() =>
+			allSessions.filter(
+				(s) => s.launch_mode === 'free' && classifySession(s) !== 'archived',
+			),
+		[allSessions],
+	);
 	const { views, reorderViews } = useAgentViews();
 	const { byPath, deleteWorktree, renameWorktree } = useAllWorktrees(views.map((v) => v.path));
 	const { mergedForRepo } = useMergedBranches(views.map((v) => v.repoFullName));
@@ -198,6 +208,12 @@ export default function Sidebar() {
 		branch: string;
 		currentName: string;
 	} | null>(null);
+	const [freeMenu, setFreeMenu] = useState<{
+		el: HTMLElement;
+		sessionId: string;
+		rowId: string;
+		currentName: string;
+	} | null>(null);
 	const [renameDialog, setRenameDialog] = useState<{
 		projectPath: string;
 		worktreePath: string;
@@ -251,6 +267,25 @@ export default function Sidebar() {
 		archive(sessionId)
 			.then(() => showSnackbar(t('sessionArchived'), 'success'))
 			.catch(() => showSnackbar(t('archiveError'), 'error'));
+	};
+
+	// Sessions libres : aucun worktree ni branche à toucher, tout se joue en DB.
+	const handleArchiveFree = () => {
+		if (!freeMenu) return;
+		const { sessionId } = freeMenu;
+		setFreeMenu(null);
+		archive(sessionId)
+			.then(() => showSnackbar(t('sessionArchived'), 'success'))
+			.catch(() => showSnackbar(t('archiveError'), 'error'));
+	};
+
+	const handleDeleteFree = () => {
+		if (!freeMenu) return;
+		const { rowId } = freeMenu;
+		setFreeMenu(null);
+		remove(rowId)
+			.then(() => showSnackbar(t('sessionDeleted'), 'success'))
+			.catch(() => showSnackbar(t('deleteSessionError'), 'error'));
 	};
 
 	const handleDeleteWorktree = (deleteBranch: boolean) => {
@@ -850,6 +885,164 @@ export default function Sidebar() {
 								</Box>
 							);
 						})}
+
+						{/* LIBRE — sessions lancées hors projet (mode libre). Elles n'ont ni
+						    repo ni worktree : sans cette section, elles n'auraient aucun point
+						    d'entrée une fois le Workbench quitté. */}
+						{!collapsed && freeSessions.length > 0 && (
+							<Box sx={{ mt: 2 }}>
+								<Typography
+									variant="caption"
+									sx={{
+										px: 1,
+										color: 'text.disabled',
+										fontWeight: 700,
+										textTransform: 'uppercase',
+										letterSpacing: 1,
+									}}
+								>
+									{t('freeSessions')}
+								</Typography>
+								<Box
+									sx={{
+										pl: 1,
+										pt: 0.5,
+										display: 'flex',
+										flexDirection: 'column',
+										gap: 0.25,
+									}}
+								>
+									{freeSessions.map((session) => {
+										const displayName =
+											session.agent_name?.trim() ||
+											session.project_name ||
+											t('freeSessions');
+										const isCurrent = session.session_id === currentSessionId;
+										const isActive = classifySession(session) === 'active';
+										const unreadIds =
+											unreadBySession.get(session.session_id) ?? [];
+										return (
+											<Box
+												key={session.id}
+												onContextMenu={(e) => {
+													e.preventDefault();
+													setFreeMenu({
+														el: e.currentTarget,
+														sessionId: session.session_id,
+														rowId: session.id,
+														currentName: displayName,
+													});
+												}}
+												onClick={() => {
+													if (unreadIds.length) markRead(unreadIds);
+													router.push(
+														`/workbench?session=${encodeURIComponent(session.session_id)}`,
+													);
+												}}
+												sx={{
+													display: 'flex',
+													alignItems: 'center',
+													gap: 0.75,
+													px: 1,
+													py: 0.4,
+													borderRadius: 1,
+													cursor: 'pointer',
+													bgcolor: isCurrent
+														? alpha(theme.palette.primary.main, 0.18)
+														: 'transparent',
+													borderLeft: isCurrent
+														? `2px solid ${theme.palette.primary.main}`
+														: '2px solid transparent',
+													boxShadow: isCurrent
+														? appShadow(theme.palette.mode)
+														: 'none',
+													transition:
+														'background-color 0.15s, box-shadow 0.15s',
+													'&:hover': {
+														bgcolor: alpha(
+															theme.palette.primary.main,
+															isCurrent ? 0.22 : 0.1,
+														),
+														boxShadow: appShadow(theme.palette.mode),
+													},
+													'&:hover .free-actions': { opacity: 1 },
+												}}
+											>
+												<ExploreRoundedIcon
+													sx={{
+														fontSize: 13,
+														flexShrink: 0,
+														color: isActive
+															? 'success.main'
+															: 'text.disabled',
+													}}
+												/>
+												<Tooltip title={session.project_path ?? ''}>
+													<Typography
+														variant="caption"
+														sx={{
+															flex: 1,
+															fontSize: '0.85rem',
+															overflow: 'hidden',
+															textOverflow: 'ellipsis',
+															whiteSpace: 'nowrap',
+															fontWeight: isCurrent ? 700 : 400,
+															color: isCurrent
+																? 'primary.main'
+																: isActive
+																	? 'text.primary'
+																	: 'text.secondary',
+														}}
+													>
+														{displayName}
+													</Typography>
+												</Tooltip>
+												{unreadIds.length > 0 && (
+													<Tooltip title={t('unreadAgentNotification')}>
+														<Box
+															component="span"
+															sx={{
+																width: 8,
+																height: 8,
+																borderRadius: '50%',
+																bgcolor: 'error.main',
+																flexShrink: 0,
+															}}
+														/>
+													</Tooltip>
+												)}
+												<Tooltip title={t('worktreeActions')}>
+													<IconButton
+														className="free-actions"
+														size="small"
+														onClick={(e) => {
+															e.stopPropagation();
+															setFreeMenu({
+																el: e.currentTarget,
+																sessionId: session.session_id,
+																rowId: session.id,
+																currentName: displayName,
+															});
+														}}
+														sx={{
+															p: 0.25,
+															opacity: 0,
+															transition: 'opacity 0.15s',
+															color: 'text.disabled',
+															'&:hover': { color: 'primary.main' },
+														}}
+													>
+														<MoreVertRoundedIcon
+															sx={{ fontSize: 16 }}
+														/>
+													</IconButton>
+												</Tooltip>
+											</Box>
+										);
+									})}
+								</Box>
+							</Box>
+						)}
 					</Box>
 
 					<List
@@ -969,6 +1162,45 @@ export default function Sidebar() {
 				</MenuItem>
 			</Menu>
 
+			{/* Actions d'une session libre : le renommage passe par le même dialogue
+			    (chemins vides → branche `rename` DB, jamais de renommage git). */}
+			<Menu
+				anchorEl={freeMenu?.el}
+				open={!!freeMenu}
+				onClose={() => setFreeMenu(null)}
+				anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+				transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+			>
+				<MenuItem
+					onClick={() => {
+						if (!freeMenu) return;
+						setRenameDialog({
+							projectPath: '',
+							worktreePath: '',
+							sessionId: freeMenu.sessionId,
+							branch: '',
+							value: freeMenu.currentName,
+						});
+						setFreeMenu(null);
+					}}
+					sx={{ fontSize: '0.8rem', gap: 1 }}
+				>
+					<EditRoundedIcon sx={{ fontSize: 16 }} />
+					{t('rename')}
+				</MenuItem>
+				<MenuItem onClick={handleArchiveFree} sx={{ fontSize: '0.8rem', gap: 1 }}>
+					<ArchiveOutlinedIcon sx={{ fontSize: 16 }} />
+					{t('archive')}
+				</MenuItem>
+				<MenuItem
+					onClick={handleDeleteFree}
+					sx={{ fontSize: '0.8rem', gap: 1, color: 'error.main' }}
+				>
+					<DeleteOutlineRoundedIcon sx={{ fontSize: 16 }} />
+					{t('delete')}
+				</MenuItem>
+			</Menu>
+
 			<Menu
 				anchorEl={deleteMenu?.el}
 				open={!!deleteMenu}
@@ -993,7 +1225,11 @@ export default function Sidebar() {
 				maxWidth="xs"
 				fullWidth
 			>
-				<DialogTitle sx={{ fontSize: '1rem' }}>{t('renameWorktreeTitle')}</DialogTitle>
+				<DialogTitle sx={{ fontSize: '1rem' }}>
+					{renameDialog?.worktreePath
+						? t('renameWorktreeTitle')
+						: t('renameSessionTitle')}
+				</DialogTitle>
 				<DialogContent>
 					<TextField
 						autoFocus

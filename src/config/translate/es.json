@@ -43,7 +43,11 @@
 		"prOpen": "PR abierta",
 		"tasks": "Tareas",
 		"docs": "Docs",
-		"docsGenerating": "{count, plural, one {# doc en generación} other {# docs en generación}}"
+		"docsGenerating": "{count, plural, one {# doc en generación} other {# docs en generación}}",
+		"freeSessions": "Libre",
+		"sessionDeleted": "Sesión eliminada",
+		"deleteSessionError": "Error al eliminar la sesión",
+		"renameSessionTitle": "Renombrar la sesión"
 	},
 	"landing": {
 		"nav": {
@@ -221,7 +225,15 @@
 			"osUnsupported": "Tu navegador no admite notificaciones.",
 			"sound": "Sonido de notificación",
 			"soundDesc": "Reproduce un tono breve en cada nueva notificación."
-		}
+		},
+		"freeMode": "Modo libre",
+		"freeModeDesc": "Carpeta que usa el modo de lanzamiento Libre, para sesiones sin proyecto: preguntas abiertas, exploración, pruebas.",
+		"freeModePathLabel": "Carpeta del modo libre",
+		"freeModePathHelp": "Ruta absoluta. El agente se ejecuta aquí, sin worktree.",
+		"freeModePathSaved": "Carpeta del modo libre guardada",
+		"freeModePickError": "No se pudo abrir el selector (¿agente desconectado?): escribe la ruta a mano",
+		"browse": "Explorar...",
+		"selecting": "Seleccionando..."
 	},
 	"appearance": {
 		"title": "Apariencia",
@@ -327,7 +339,8 @@
 		"effortUltracode": "Ultracode",
 		"settingsLockedByPersona": "Definido por la persona {name}",
 		"modelGroupAliases": "Alias",
-		"modelGroupVersions": "Versiones"
+		"modelGroupVersions": "Versiones",
+		"or": "o"
 	},
 	"launchModal": {
 		"selectProject": "Seleccionar proyecto",
@@ -386,7 +399,10 @@
 		"familyFableDesc": "Especializado",
 		"permBypassDesc": "Actúa sin preguntar",
 		"permPlanDesc": "Planifica antes de actuar",
-		"permEditDesc": "Aprueba cada edición"
+		"permEditDesc": "Aprueba cada edición",
+		"freeMode": "Libre",
+		"freeModeDesc": "Sin proyecto, sin rama, sin worktree: el agente arranca en la carpeta configurada, como ejecutar `claude` en una terminal.",
+		"freeModeNoPath": "Ninguna carpeta configurada: defínela en Ajustes"
 	},
 	"agentActivity": {
 		"reportTitle": "Informe del agente",

@@ -43,7 +43,11 @@
 		"prOpen": "PR ouverte",
 		"tasks": "Tâches",
 		"docs": "Docs",
-		"docsGenerating": "{count, plural, one {# doc en cours de génération} other {# docs en cours de génération}}"
+		"docsGenerating": "{count, plural, one {# doc en cours de génération} other {# docs en cours de génération}}",
+		"freeSessions": "Libre",
+		"sessionDeleted": "Session supprimée",
+		"deleteSessionError": "Échec de la suppression de la session",
+		"renameSessionTitle": "Renommer la session"
 	},
 	"landing": {
 		"nav": {
@@ -243,7 +247,13 @@
 			"osUnsupported": "Ton navigateur ne supporte pas les notifications.",
 			"sound": "Son de notification",
 			"soundDesc": "Joue un carillon court à chaque nouvelle notification."
-		}
+		},
+		"freeMode": "Mode libre",
+		"freeModeDesc": "Dossier utilisé par le mode de lancement Libre, pour les sessions rattachées à aucun projet : questions ouvertes, exploration, essais.",
+		"freeModePathLabel": "Dossier du mode libre",
+		"freeModePathHelp": "Chemin absolu. L'agent tourne ici, sans worktree.",
+		"freeModePathSaved": "Dossier du mode libre enregistré",
+		"freeModePickError": "Impossible d'ouvrir le sélecteur (agent hors ligne ?) — saisis le chemin à la main"
 	},
 	"appearance": {
 		"title": "Apparence",
@@ -349,7 +359,8 @@
 		"effortUltracode": "Ultracode",
 		"settingsLockedByPersona": "Défini par le persona {name}",
 		"modelGroupAliases": "Alias",
-		"modelGroupVersions": "Versions"
+		"modelGroupVersions": "Versions",
+		"or": "ou"
 	},
 	"launchModal": {
 		"selectProject": "Choisir un projet",
@@ -408,7 +419,10 @@
 		"familyFableDesc": "Spécialisé",
 		"permBypassDesc": "Agit sans confirmation",
 		"permPlanDesc": "Planifie avant d'agir",
-		"permEditDesc": "Valide chaque édition"
+		"permEditDesc": "Valide chaque édition",
+		"freeMode": "Libre",
+		"freeModeDesc": "Sans projet, sans branche, sans worktree — l'agent démarre dans le dossier configuré, comme un `claude` lancé dans un terminal.",
+		"freeModeNoPath": "Aucun dossier configuré — à définir dans les Paramètres"
 	},
 	"agentActivity": {
 		"reportTitle": "Rapport agent",

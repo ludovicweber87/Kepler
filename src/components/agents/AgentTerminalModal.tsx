@@ -11,6 +11,7 @@ import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
+import Divider from '@mui/material/Divider';
 import Alert from '@mui/material/Alert';
 import { alpha, type Theme } from '@mui/material/styles';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -25,6 +26,7 @@ import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
 import AltRouteRoundedIcon from '@mui/icons-material/AltRouteRounded';
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
+import ExploreRoundedIcon from '@mui/icons-material/ExploreRounded';
 import Tooltip from '@mui/material/Tooltip';
 interface AgentFile {
 	filename: string;
@@ -37,6 +39,7 @@ import { useAgentSession } from '@/hooks/useAgentSession';
 import { useWorktrees } from '@/hooks/useWorktrees';
 import { useBranches, type Branch } from '@/hooks/useBranches';
 import { usePersonas } from '@/hooks/usePersonas';
+import { useAppSetting } from '@/hooks/useAppSetting';
 import { useTranslations } from 'next-intl';
 import { localFetch } from '@/lib/local-fetch';
 import { apiFetch } from '@/lib/api-fetch';
@@ -178,7 +181,7 @@ export default function AgentTerminalModal({
 	const [, setCurrentBranch] = useState<string | null>(null);
 	const [fetchingBranch, setFetchingBranch] = useState(false);
 	const [launchMode, setLaunchMode] = useState<
-		'worktree' | 'current-branch' | 'existing-branch' | null
+		'worktree' | 'current-branch' | 'existing-branch' | 'free' | null
 	>(null);
 	const [selectedExistingBranch, setSelectedExistingBranch] = useState<Branch | null>(null);
 	const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(null);
@@ -188,6 +191,9 @@ export default function AgentTerminalModal({
 	const [settingsEffort, setSettingsEffort] = useState('high');
 	const [settingsMode, setSettingsMode] = useState('bypassPermissions');
 	const { personas } = usePersonas();
+	// Mode libre : dossier de lancement configuré dans les settings, hors projet.
+	const { value: freeModePathValue } = useAppSetting('free_mode_path');
+	const freeModePath = freeModePathValue?.trim() || null;
 	const selectedPersona = selectedPersonaId
 		? (personas.find((p) => p.id === selectedPersonaId) ?? null)
 		: null;
@@ -495,11 +501,66 @@ export default function AgentTerminalModal({
 		}
 	}, [open, issueContext, existingSessionId, existingWorktree, projectPath]);
 
+	// Mode libre : ni projet, ni branche, ni worktree — l'agent démarre dans le dossier
+	// configuré dans les settings, comme un `claude` lancé à la main dans un terminal.
+	const handleLaunchFree = useCallback(() => {
+		if (!freeModePath) return;
+		setWorktreeError(null);
+		const persona = selectedPersonaId
+			? (personas.find((p) => p.id === selectedPersonaId) ?? null)
+			: null;
+		try {
+			const projectName = freeModePath.split('/').filter(Boolean).pop() ?? 'free';
+			ensureSession({
+				sessionId,
+				projectPath: freeModePath,
+				projectName,
+				agentName: persona?.name ?? null,
+				branch: null,
+				worktreePath: null,
+				launchMode: 'free',
+				issueOwner: null,
+				issueRepo: null,
+				issueNumber: null,
+				issueTitle: null,
+				systemPrompt: composeSystemPrompt(persona?.system_prompt),
+				model: persona ? (persona.model ?? null) : settingsModel,
+				effort: persona ? (persona.effort ?? null) : settingsEffort,
+				permissionMode: persona ? (persona.permission_mode ?? null) : settingsMode,
+				agentColor: persona?.color ?? null,
+				personaId: persona?.id ?? null,
+			});
+			goToWorkbench(sessionId);
+		} catch (err) {
+			setWorktreeError(err instanceof Error ? err.message : 'Erreur au lancement');
+		}
+	}, [
+		freeModePath,
+		selectedPersonaId,
+		personas,
+		sessionId,
+		composeSystemPrompt,
+		ensureSession,
+		goToWorkbench,
+		settingsModel,
+		settingsEffort,
+		settingsMode,
+	]);
+
 	// Navigation depuis l'étape « Agent » : une persona verrouille les réglages → on
-	// saute l'étape Réglages ; « Sans persona » ouvre les réglages libres.
+	// saute l'étape Réglages ; « Sans persona » ouvre les réglages libres. En mode
+	// libre il n'y a pas d'étape branche : la dernière étape lance directement.
 	const handleAgentNext = useCallback(() => {
-		setStep(selectedPersonaId ? 'branch' : 'settings');
-	}, [selectedPersonaId]);
+		if (!selectedPersonaId) {
+			setStep('settings');
+			return;
+		}
+		if (launchMode === 'free') {
+			handleLaunchFree();
+			return;
+		}
+		setStep('branch');
+	}, [selectedPersonaId, launchMode, handleLaunchFree]);
 
 	const handleLaunchExistingBranch = useCallback(() => {
 		if (!projectPath || !selectedExistingBranch) return;
@@ -542,12 +603,29 @@ export default function AgentTerminalModal({
 		setSelectedProject(localPath);
 	}, []);
 
-	// Navigate from project step to launch-mode step
+	// Navigate from project step to launch-mode step. Le mode est remis à zéro :
+	// un aller-retour par le mode libre ne doit pas préselectionner de mode git.
 	const handleProjectNext = useCallback(() => {
 		if (!selectedProject) return;
 		setResolvedPath(selectedProject);
+		setLaunchMode(null);
 		setStep('launch-mode');
 	}, [selectedProject]);
+
+	// Entrée dans le mode libre depuis l'étape projet : aucun projet n'est sélectionné,
+	// on enchaîne directement sur le choix de l'agent. Sans dossier configuré, on
+	// renvoie vers les settings plutôt que d'offrir une carte morte.
+	const handleSelectFreeMode = useCallback(() => {
+		if (!freeModePath) {
+			router.push('/settings');
+			onClose();
+			return;
+		}
+		setSelectedProject(null);
+		setResolvedPath(null);
+		setLaunchMode('free');
+		setStep('agent');
+	}, [freeModePath, router, onClose]);
 
 	// Handle launching on current branch (no worktree)
 	const handleLaunchCurrentBranch = useCallback(async () => {
@@ -594,7 +672,7 @@ export default function AgentTerminalModal({
 			setStep('agent');
 		} else if (launchMode === 'existing-branch') {
 			setStep('existing-branch');
-		} else {
+		} else if (launchMode === 'current-branch') {
 			handleLaunchCurrentBranch();
 		}
 	}, [launchMode, handleLaunchCurrentBranch]);
@@ -798,6 +876,63 @@ export default function AgentTerminalModal({
 							{tc('next')}
 						</Button>
 					)}
+
+					{/* Mode libre — hors projet, hors worktree : l'agent démarre dans le
+					    dossier configuré dans les settings. */}
+					<Box sx={{ width: '100%', maxWidth: 650 }}>
+						<Divider sx={{ mb: 2 }}>
+							<Typography variant="caption" sx={{ color: 'text.disabled' }}>
+								{tc('or')}
+							</Typography>
+						</Divider>
+						<Box
+							onClick={handleSelectFreeMode}
+							sx={(theme) => ({
+								...selectableCardSx(theme, {
+									selected: false,
+									color: theme.palette.secondary.main,
+									radius: 1,
+									borderWidth: '2px',
+								}),
+								p: 2,
+								cursor: 'pointer',
+								display: 'flex',
+								alignItems: 'center',
+								gap: 2,
+								opacity: freeModePath ? 1 : 0.7,
+							})}
+						>
+							<ExploreRoundedIcon sx={{ fontSize: 28, color: 'secondary.main' }} />
+							<Box sx={{ minWidth: 0, flex: 1 }}>
+								<Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+									{tl('freeMode')}
+								</Typography>
+								<Typography
+									variant="body2"
+									sx={{ color: 'text.secondary', fontSize: '0.75rem' }}
+								>
+									{tl('freeModeDesc')}
+								</Typography>
+								<Typography
+									variant="caption"
+									sx={{
+										display: 'block',
+										mt: 0.5,
+										color: freeModePath ? 'secondary.main' : 'warning.main',
+										fontFamily: freeModePath ? 'monospace' : undefined,
+										overflow: 'hidden',
+										textOverflow: 'ellipsis',
+										whiteSpace: 'nowrap',
+									}}
+								>
+									{freeModePath ?? tl('freeModeNoPath')}
+								</Typography>
+							</Box>
+							<ArrowForwardRoundedIcon
+								sx={{ fontSize: 18, color: 'text.disabled', flexShrink: 0 }}
+							/>
+						</Box>
+					</Box>
 				</Box>
 			)}
 
@@ -986,14 +1121,23 @@ export default function AgentTerminalModal({
 						<Button
 							variant="outlined"
 							startIcon={<ArrowBackRoundedIcon />}
-							onClick={() => (issueContext ? onClose() : setStep('launch-mode'))}
+							onClick={() => {
+								if (issueContext) return onClose();
+								setStep(launchMode === 'free' ? 'project' : 'launch-mode');
+							}}
 							sx={{ textTransform: 'none', fontWeight: 600 }}
 						>
 							{tc('back')}
 						</Button>
 						<Button
 							variant="contained"
-							endIcon={<ArrowForwardRoundedIcon />}
+							endIcon={
+								launchMode === 'free' && selectedPersonaId ? (
+									<RocketLaunchRoundedIcon sx={{ fontSize: 18 }} />
+								) : (
+									<ArrowForwardRoundedIcon />
+								)
+							}
 							onClick={handleAgentNext}
 							sx={{
 								textTransform: 'none',
@@ -1002,7 +1146,7 @@ export default function AgentTerminalModal({
 								'&:hover': { bgcolor: 'primary.dark' },
 							}}
 						>
-							{tc('next')}
+							{launchMode === 'free' && selectedPersonaId ? tl('launch') : tc('next')}
 						</Button>
 					</Box>
 				</Box>
@@ -1050,8 +1194,16 @@ export default function AgentTerminalModal({
 						</Button>
 						<Button
 							variant="contained"
-							endIcon={<ArrowForwardRoundedIcon />}
-							onClick={() => setStep('branch')}
+							endIcon={
+								launchMode === 'free' ? (
+									<RocketLaunchRoundedIcon sx={{ fontSize: 18 }} />
+								) : (
+									<ArrowForwardRoundedIcon />
+								)
+							}
+							onClick={() =>
+								launchMode === 'free' ? handleLaunchFree() : setStep('branch')
+							}
 							sx={{
 								textTransform: 'none',
 								fontWeight: 600,
@@ -1059,7 +1211,7 @@ export default function AgentTerminalModal({
 								'&:hover': { bgcolor: 'primary.dark' },
 							}}
 						>
-							{tc('next')}
+							{launchMode === 'free' ? tl('launch') : tc('next')}
 						</Button>
 					</Box>
 				</Box>

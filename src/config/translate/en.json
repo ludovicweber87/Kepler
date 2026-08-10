@@ -43,7 +43,11 @@
 		"prOpen": "Open PR",
 		"tasks": "Tasks",
 		"docs": "Docs",
-		"docsGenerating": "{count, plural, one {# doc generating} other {# docs generating}}"
+		"docsGenerating": "{count, plural, one {# doc generating} other {# docs generating}}",
+		"freeSessions": "Free",
+		"sessionDeleted": "Session deleted",
+		"deleteSessionError": "Failed to delete the session",
+		"renameSessionTitle": "Rename session"
 	},
 	"landing": {
 		"nav": {
@@ -243,7 +247,13 @@
 			"osUnsupported": "Your browser does not support notifications.",
 			"sound": "Notification sound",
 			"soundDesc": "Plays a short chime on every new notification."
-		}
+		},
+		"freeMode": "Free mode",
+		"freeModeDesc": "Folder used by the Free launch mode, for sessions tied to no project: open questions, exploration, scratch work.",
+		"freeModePathLabel": "Free mode folder",
+		"freeModePathHelp": "Absolute path. The agent runs here, with no worktree.",
+		"freeModePathSaved": "Free mode folder saved",
+		"freeModePickError": "Could not open the folder picker (agent offline?) — type the path manually"
 	},
 	"appearance": {
 		"title": "Appearance",
@@ -349,7 +359,8 @@
 		"effortUltracode": "Ultracode",
 		"settingsLockedByPersona": "Set by the {name} persona",
 		"modelGroupAliases": "Aliases",
-		"modelGroupVersions": "Versions"
+		"modelGroupVersions": "Versions",
+		"or": "or"
 	},
 	"launchModal": {
 		"selectProject": "Select a project",
@@ -408,7 +419,10 @@
 		"familyFableDesc": "Specialized",
 		"permBypassDesc": "Acts without asking",
 		"permPlanDesc": "Plans before acting",
-		"permEditDesc": "Approves each edit"
+		"permEditDesc": "Approves each edit",
+		"freeMode": "Free",
+		"freeModeDesc": "No project, no branch, no worktree — the agent starts in your configured folder, like running `claude` in a terminal.",
+		"freeModeNoPath": "No folder configured — set one in Settings"
 	},
 	"agentActivity": {
 		"reportTitle": "Agent report",

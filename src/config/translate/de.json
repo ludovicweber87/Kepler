@@ -43,7 +43,11 @@
 		"prOpen": "Offener PR",
 		"tasks": "Aufgaben",
 		"docs": "Docs",
-		"docsGenerating": "{count, plural, one {# Doc wird generiert} other {# Docs werden generiert}}"
+		"docsGenerating": "{count, plural, one {# Doc wird generiert} other {# Docs werden generiert}}",
+		"freeSessions": "Frei",
+		"sessionDeleted": "Session gelöscht",
+		"deleteSessionError": "Löschen der Session fehlgeschlagen",
+		"renameSessionTitle": "Session umbenennen"
 	},
 	"landing": {
 		"nav": {
@@ -221,7 +225,15 @@
 			"osUnsupported": "Dein Browser unterstützt keine Benachrichtigungen.",
 			"sound": "Benachrichtigungston",
 			"soundDesc": "Spielt bei jeder neuen Benachrichtigung einen kurzen Klang ab."
-		}
+		},
+		"freeMode": "Freier Modus",
+		"freeModeDesc": "Ordner für den Startmodus „Frei“, für Sessions ohne Projekt: offene Fragen, Exploration, Experimente.",
+		"freeModePathLabel": "Ordner für freien Modus",
+		"freeModePathHelp": "Absoluter Pfad. Der Agent läuft hier, ohne Worktree.",
+		"freeModePathSaved": "Ordner für freien Modus gespeichert",
+		"freeModePickError": "Ordnerauswahl konnte nicht geöffnet werden (Agent offline?) – Pfad manuell eingeben",
+		"browse": "Durchsuchen...",
+		"selecting": "Wird ausgewählt..."
 	},
 	"appearance": {
 		"title": "Erscheinungsbild",
@@ -327,7 +339,8 @@
 		"effortUltracode": "Ultracode",
 		"settingsLockedByPersona": "Durch die Persona {name} festgelegt",
 		"modelGroupAliases": "Aliase",
-		"modelGroupVersions": "Versionen"
+		"modelGroupVersions": "Versionen",
+		"or": "oder"
 	},
 	"launchModal": {
 		"selectProject": "Projekt auswahlen",
@@ -386,7 +399,10 @@
 		"familyFableDesc": "Spezialisiert",
 		"permBypassDesc": "Handelt ohne Rückfrage",
 		"permPlanDesc": "Plant vor dem Handeln",
-		"permEditDesc": "Bestätigt jede Änderung"
+		"permEditDesc": "Bestätigt jede Änderung",
+		"freeMode": "Frei",
+		"freeModeDesc": "Ohne Projekt, ohne Branch, ohne Worktree – der Agent startet im konfigurierten Ordner, wie ein `claude` im Terminal.",
+		"freeModeNoPath": "Kein Ordner konfiguriert – in den Einstellungen festlegen"
 	},
 	"agentActivity": {
 		"reportTitle": "Agent-Bericht",

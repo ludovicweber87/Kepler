@@ -148,11 +148,12 @@ export default function Workbench() {
 	}, [sessionId]);
 
 	const diffPath = resolved?.worktree_path ?? resolved?.project_path ?? null;
-	const { files: changedFiles, error: diffError } = useGitDiff(
-		diffPath,
-		resolved?.branch ?? null,
-	);
-	const { dirty: hasUncommitted } = useGitStatus(diffPath);
+	// Mode libre : le dossier n'est pas forcément un repo git et il n'y a pas de
+	// branche de référence — pas de diff à calculer, donc pas d'onglet Changements.
+	const isFreeMode = resolved?.launch_mode === 'free';
+	const gitPath = isFreeMode ? null : diffPath;
+	const { files: changedFiles, error: diffError } = useGitDiff(gitPath, resolved?.branch ?? null);
+	const { dirty: hasUncommitted } = useGitStatus(gitPath);
 
 	const openChanges = useCallback((filePath: string) => {
 		if (!filePath) return;
@@ -194,10 +195,14 @@ export default function Workbench() {
 		}
 	}, [readerVisible]);
 
-	// Session archivée : l'onglet Activity disparaît → on dérive un onglet droit valide
-	// pour que <Tabs value> corresponde toujours à un <Tab> rendu (évite le warning MUI).
-	const effectiveRightTab: RightTab =
-		isArchived && rightTab === 'activity' ? 'changes' : rightTab;
+	// Session archivée : l'onglet Activity disparaît ; mode libre : l'onglet Changements
+	// disparaît. On dérive un onglet droit valide pour que <Tabs value> corresponde
+	// toujours à un <Tab> rendu (évite le warning MUI).
+	const effectiveRightTab: RightTab = (() => {
+		if (isFreeMode && rightTab === 'changes') return 'explorer';
+		if (isArchived && rightTab === 'activity') return isFreeMode ? 'explorer' : 'changes';
+		return rightTab;
+	})();
 
 	const [prState, setPrState] = useState<{ available: boolean; trigger: () => void }>({
 		available: false,
@@ -464,7 +469,9 @@ export default function Workbench() {
 							</Button>
 						) : (
 							prState.available &&
-							!isArchived && (
+							!isArchived &&
+							// Mode libre : ni branche ni repo → proposer une PR n'a pas de sens.
+							!isFreeMode && (
 								<Button
 									variant="contained"
 									color="primary"
@@ -619,17 +626,19 @@ export default function Workbench() {
 				rightTabValue={effectiveRightTab}
 				onRightTabChange={(val) => setRightTab(val as RightTab)}
 				rightTabs={[
-					<Tab
-						key="changes"
-						value="changes"
-						iconPosition="start"
-						icon={<DescriptionRoundedIcon sx={{ fontSize: 16 }} />}
-						label={
-							changedFiles.length > 0
-								? `${t('tabChanges')} (${changedFiles.length})`
-								: t('tabChanges')
-						}
-					/>,
+					!isFreeMode && (
+						<Tab
+							key="changes"
+							value="changes"
+							iconPosition="start"
+							icon={<DescriptionRoundedIcon sx={{ fontSize: 16 }} />}
+							label={
+								changedFiles.length > 0
+									? `${t('tabChanges')} (${changedFiles.length})`
+									: t('tabChanges')
+							}
+						/>
+					),
 					!isArchived && (
 						<Tab
 							key="activity"

@@ -43,7 +43,11 @@
 		"prOpen": "PR aberta",
 		"tasks": "Tarefas",
 		"docs": "Docs",
-		"docsGenerating": "{count, plural, one {# doc em geração} other {# docs em geração}}"
+		"docsGenerating": "{count, plural, one {# doc em geração} other {# docs em geração}}",
+		"freeSessions": "Livre",
+		"sessionDeleted": "Sessão excluída",
+		"deleteSessionError": "Falha ao excluir a sessão",
+		"renameSessionTitle": "Renomear a sessão"
 	},
 	"landing": {
 		"nav": {
@@ -222,7 +226,15 @@
 			"osUnsupported": "O seu navegador não suporta notificações.",
 			"sound": "Som de notificação",
 			"soundDesc": "Reproduz um toque breve a cada nova notificação."
-		}
+		},
+		"freeMode": "Modo livre",
+		"freeModeDesc": "Pasta usada pelo modo de lançamento Livre, para sessões sem projeto: perguntas abertas, exploração, testes.",
+		"freeModePathLabel": "Pasta do modo livre",
+		"freeModePathHelp": "Caminho absoluto. O agente roda aqui, sem worktree.",
+		"freeModePathSaved": "Pasta do modo livre salva",
+		"freeModePickError": "Não foi possível abrir o seletor (agente offline?) — digite o caminho manualmente",
+		"browse": "Procurar...",
+		"selecting": "Selecionando..."
 	},
 	"appearance": {
 		"title": "Aparência",
@@ -328,7 +340,8 @@
 		"effortUltracode": "Ultracode",
 		"settingsLockedByPersona": "Definido pela persona {name}",
 		"modelGroupAliases": "Aliases",
-		"modelGroupVersions": "Versões"
+		"modelGroupVersions": "Versões",
+		"or": "ou"
 	},
 	"launchModal": {
 		"selectProject": "Selecionar projeto",
@@ -387,7 +400,10 @@
 		"familyFableDesc": "Especializado",
 		"permBypassDesc": "Age sem perguntar",
 		"permPlanDesc": "Planeja antes de agir",
-		"permEditDesc": "Aprova cada edição"
+		"permEditDesc": "Aprova cada edição",
+		"freeMode": "Livre",
+		"freeModeDesc": "Sem projeto, sem branch, sem worktree — o agente inicia na pasta configurada, como um `claude` no terminal.",
+		"freeModeNoPath": "Nenhuma pasta configurada — defina nas Configurações"
 	},
 	"agentActivity": {
 		"reportTitle": "Relatório do agente",
