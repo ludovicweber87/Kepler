@@ -20,7 +20,7 @@ export interface AgentSession {
 	issue_number: number | null;
 	issue_title: string | null;
 	system_prompt: string | null;
-	launch_mode: 'worktree' | 'current-branch' | 'existing-branch' | null;
+	launch_mode: 'worktree' | 'current-branch' | 'existing-branch' | 'free' | null;
 	model: string | null;
 	effort: string | null;
 	permission_mode: string | null;
@@ -82,7 +82,7 @@ export function useAgentSession(sessionId: string | undefined) {
 			issueTitle?: string | null;
 			systemPrompt?: string | null;
 			status?: string;
-			launchMode?: 'worktree' | 'current-branch' | 'existing-branch';
+			launchMode?: 'worktree' | 'current-branch' | 'existing-branch' | 'free';
 			model?: string | null;
 			effort?: string | null;
 			permissionMode?: string | null;
