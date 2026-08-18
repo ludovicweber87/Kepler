@@ -654,6 +654,11 @@ a.lang__opt:hover {
 	margin: 0 auto;
 }
 
+/* La section expose le problème en deux temps : le constat, puis sa conséquence. */
+.thesis__quiet + .thesis__quiet {
+	margin-top: 14px;
+}
+
 .thesis__loud {
 	font-size: clamp(24px, 3.4vw, 38px);
 	font-weight: 600;

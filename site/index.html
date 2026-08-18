@@ -3,19 +3,19 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<title>Kepler — mission control for a fleet of AI agents</title>
+		<title>Kepler — several AI agents on one project</title>
 		<meta
 			name="description"
-			content="Kepler gives every Claude agent its own git worktree, a reusable persona and the GitHub context it needs — then streams back everything it does. Local-first, single-user, macOS."
+			content="Kepler is an app that runs on your Mac. It launches several Claude agents on your projects, each in its own copy of the code, and shows you at all times what each one is doing."
 		/>
 		<meta name="theme-color" content="#F4EEE2" />
 		<link rel="icon" href="logo.svg" type="image/svg+xml" />
 
 		<meta property="og:type" content="website" />
-		<meta property="og:title" content="Kepler — mission control for a fleet of AI agents" />
+		<meta property="og:title" content="Kepler — several AI agents on one project" />
 		<meta
 			property="og:description"
-			content="One worktree, one persona, one context per agent. Run them in parallel, see everything they do, get a written debrief every day."
+			content="Every agent works in its own copy of the project, with your instructions and the context of the GitHub issue. You see what it does, live."
 		/>
 		<meta property="og:image" content="logo.png" />
 		<meta name="twitter:card" content="summary_large_image" />
@@ -161,20 +161,18 @@
 				<div class="container hero__inner">
 					<p class="eyebrow reveal">
 						<span class="dot dot--live"></span>
-						Kepler 1.0 · local-first · macOS
+						Kepler 1.0 · a local app · macOS
 					</p>
 
 					<h1 class="hero__title reveal">
-						Mission control for a
-						<span class="ink-accent">fleet</span> of AI agents.
+						Several AI agents on
+						<span class="ink-accent">one project</span>.
 					</h1>
 
 					<p class="hero__sub reveal">
-						One agent, one terminal, one branch: your work happens one task at a time.
-						Kepler gives every Claude agent its own <strong>git worktree</strong>, a
-						reusable <strong>persona</strong> and the
-						<strong>context of the issue</strong> it's working on — then shows you,
-						live, what it does.
+						Kepler is an app that runs on your Mac. It launches several Claude agents on
+						your projects, <strong>each in its own copy of the code</strong>, and shows
+						you at all times what each one is doing.
 					</p>
 
 					<div class="hero__cta reveal">
@@ -187,17 +185,17 @@
 							<button
 								class="cmd__btn"
 								type="button"
-								aria-label="Copy install command"
+								aria-label="Copy the install command"
 							>
 								<span class="cmd__label">Copy</span>
 							</button>
 						</div>
-						<a class="btn btn--quiet" href="#install">Read the setup →</a>
+						<a class="btn btn--quiet" href="#install">See how to install →</a>
 					</div>
 
 					<p class="hero__note reveal">
-						No cloud. No accounts. No API keys to juggle — GitHub access comes from your
-						local <code>gh</code> session.
+						Free and open source. No account to create, no API key to paste: Kepler
+						reuses the GitHub login you already have on your machine.
 					</p>
 				</div>
 			</section>
@@ -207,35 +205,40 @@
 				<div class="container strip__grid">
 					<div class="stat reveal">
 						<p class="stat__n">1</p>
-						<p class="stat__l">command to install</p>
+						<p class="stat__l">command to install everything</p>
 					</div>
 					<div class="stat reveal">
 						<p class="stat__n">0</p>
-						<p class="stat__l">API keys to configure</p>
+						<p class="stat__l">accounts or API keys to set up</p>
 					</div>
 					<div class="stat reveal">
 						<p class="stat__n">N</p>
-						<p class="stat__l">agents in parallel, one worktree each</p>
+						<p class="stat__l">agents at once, isolated from each other</p>
 					</div>
 					<div class="stat reveal">
 						<p class="stat__n">10</p>
-						<p class="stat__l">personas, seeded and ready</p>
+						<p class="stat__l">agent profiles included, ready to use</p>
 					</div>
 				</div>
 			</section>
 
-			<!-- ───────────────────────── thesis ───────────────────────── -->
+			<!-- ───────────────────────── the problem ───────────────────────── -->
 			<section class="thesis">
 				<div class="container thesis__inner reveal">
 					<p class="thesis__quiet">
-						Five GitHub tabs. Conventions re-explained at every launch. Issue
-						descriptions copy-pasted into a prompt. No idea what the background agent
-						actually did. And on Friday, <code>git log</code> archaeology to remember
-						what you shipped on Tuesday.
+						When you start an AI agent from your terminal, it works inside your project
+						folder, on the branch you happen to be on. So you can only run one at a
+						time: two agents would edit the same files at once and get in each other's
+						way.
+					</p>
+					<p class="thesis__quiet">
+						You therefore wait for the first to finish before starting the next. And
+						while it works, you watch text scroll past in a terminal, without really
+						knowing which files it changed or how far along it is.
 					</p>
 					<p class="thesis__loud">
-						The bottleneck isn't the model anymore.
-						<span class="ink-accent">It's the harness around it.</span>
+						Kepler gives each agent its own copy of the project.
+						<span class="ink-accent">So they all work at the same time.</span>
 					</p>
 				</div>
 			</section>
@@ -244,32 +247,39 @@
 			<section class="section" id="pillars">
 				<div class="container">
 					<header class="section__head reveal">
-						<p class="kicker">The five pillars of 1.0</p>
-						<h2>Built around how the work actually happens.</h2>
+						<p class="kicker">What Kepler does</p>
+						<h2>Five things, explained plainly.</h2>
 					</header>
 
 					<!-- 1 — worktrees -->
 					<article class="pillar reveal">
 						<div class="pillar__lead">
 							<p class="pillar__n">01</p>
-							<h3>A fleet, not an agent.</h3>
+							<h3>One copy of the project per agent.</h3>
 						</div>
 
 						<div class="pillar__body">
 							<p>
-								Every session gets its own isolated worktree under
-								<code>.worktrees/</code>, its own branch and its own terminal, so
-								<strong
-									>N agents work at once without ever stepping on each
-									other</strong
-								>. The sidebar shows the whole fleet: projects → worktrees →
-								sessions, with a dot on any agent waiting for you.
+								Git can create what it calls a <strong>worktree</strong>: a second
+								folder holding your project, checked out on another branch, but tied
+								to the same repository and the same history. Kepler creates one per
+								agent, automatically.
+							</p>
+							<p>
+								Two agents therefore never touch the same files. You can run five of
+								them on five different subjects, and the folder you work in yourself
+								is left alone.
 							</p>
 							<ul class="ticks">
-								<li>New worktree, on a fresh branch</li>
-								<li>The current branch, as-is</li>
-								<li>An existing branch, local or remote</li>
-								<li>Free mode — no project, just an agent in a folder</li>
+								<li>Create a fresh worktree on a new branch: the usual case</li>
+								<li>
+									Work directly on the branch you are already on, creating nothing
+								</li>
+								<li>Pick up an existing branch, local or remote</li>
+								<li>
+									Or start an agent in any folder at all, with no project and no
+									branch
+								</li>
 							</ul>
 						</div>
 					</article>
@@ -278,25 +288,33 @@
 					<article class="pillar reveal">
 						<div class="pillar__lead">
 							<p class="pillar__n">02</p>
-							<h3>Personas that carry your conventions.</h3>
+							<h3>Your instructions, written down once.</h3>
 						</div>
 
 						<div class="pillar__body">
 							<p>
-								Stop re-explaining yourself. A persona bundles a name, a role, a
-								system prompt and its own defaults for <strong>model</strong>,
-								<strong>reasoning effort</strong>,
-								<strong>permission mode</strong> and accent colour. Every session
-								launched with it inherits them.
+								A <strong>persona</strong> is a form you fill in once: a name, a
+								role, the instructions the agent must follow, which Claude model to
+								use, how hard it should think, and whether it may change files
+								without asking you first.
+							</p>
+							<p>
+								You pick one when you start an agent, and it begins with all of that
+								in mind. No more re-explaining your conventions every time. Kepler
+								ships ten of them, and you write your own.
 							</p>
 							<ul class="ticks">
-								<li>Scoped to specific repos, or global</li>
 								<li>
-									Switch persona mid-conversation — no restart, no lost context
+									A persona can be limited to certain repositories, or available
+									everywhere
 								</li>
 								<li>
-									The composer takes the persona's colour, so you always know who
-									you're talking to
+									You can switch persona mid-conversation: the agent is told, and
+									the discussion carries on where it left off
+								</li>
+								<li>
+									The input box takes the persona's colour, so you can see at a
+									glance who you are talking to
 								</li>
 							</ul>
 						</div>
@@ -306,23 +324,22 @@
 					<article class="pillar reveal">
 						<div class="pillar__lead">
 							<p class="pillar__n">03</p>
-							<h3>Docs you can argue with.</h3>
+							<h3>Documentation you fix by talking to it.</h3>
 						</div>
 
 						<div class="pillar__body">
 							<p>
-								Describe a subject, pick a source — general knowledge or
-								<strong>one of your repos</strong> — then a level, a length and a
-								format. A writer agent produces the doc in Markdown, in the
-								background.
+								You describe a subject and choose whether the agent should draw on
+								general knowledge or read one of your repositories. You then set the
+								level, the length and the format. It writes the page while you do
+								something else.
 							</p>
 							<p>
-								Then the part that matters:
-								<strong>every doc has its own chat</strong>, next to the text. Ask a
-								question, or ask for a change — the agent
-								<strong>edits the document in place</strong>. It only touches a
-								passage it has quoted word for word, and refuses an ambiguous
-								request rather than guessing.
+								Each document then has <strong>its own conversation</strong>, shown
+								next to the text. You ask a question, or ask for a correction, and
+								the agent edits the document directly. It only rewrites a passage it
+								has quoted word for word, and refuses to guess when the request is
+								ambiguous.
 							</p>
 						</div>
 					</article>
@@ -331,27 +348,38 @@
 					<article class="pillar reveal">
 						<div class="pillar__lead">
 							<p class="pillar__n">04</p>
-							<h3>Wired into GitHub, not bolted onto it.</h3>
+							<h3>An agent that starts from a GitHub task.</h3>
 						</div>
 
 						<div class="pillar__body">
 							<p>
-								<strong>Launch an agent straight from an issue.</strong> Kepler puts
-								the issue title and body into the session's system prompt, creates
-								the branch and the worktree, and comments on the issue so the trail
-								stays visible on GitHub. The agent starts already knowing what it's
-								for.
+								On GitHub, an <strong>issue</strong> is a task written up in your
+								repository: a title, a description, a discussion. Paste its address
+								when you start the agent. Kepler reads the title and the
+								description, hands them over as the starting point, creates the
+								branch and the worktree, then comments on the issue so the team can
+								see the work has begun.
+							</p>
+							<p>
+								The agent needs no re-explaining of the task: it has already read
+								it.
 							</p>
 							<ul class="ticks">
 								<li>
-									Projects V2 kanban — drag-and-drop, status synced via GraphQL,
-									cached locally for instant loads
+									A board shows your issues: drag a card from one column to
+									another and the status changes on GitHub too
 								</li>
-								<li>Every open PR with CI status and one-click merge</li>
-								<li>AI-drafted issues from a single sentence</li>
 								<li>
-									Post-merge triage — issue moves to your QA column, worktree
-									archived
+									The list of your pull requests, with the result of the automated
+									tests and a button to merge
+								</li>
+								<li>
+									Describe a task in one sentence: the agent writes the issue, you
+									create it on GitHub
+								</li>
+								<li>
+									Once the pull request is merged, the issue moves on by itself
+									and the worktree is put away
 								</li>
 							</ul>
 						</div>
@@ -361,20 +389,19 @@
 					<article class="pillar reveal">
 						<div class="pillar__lead">
 							<p class="pillar__n">05</p>
-							<h3>The daily writes itself.</h3>
+							<h3>The day's write-up, done for you.</h3>
 						</div>
 
 						<div class="pillar__body">
 							<p>
-								A month calendar of <strong>AI-written daily reports</strong>, per
-								repository. Kepler collects the day's real activity — commits across
-								all branches, pull requests, agent activity logs — which an agent
-								turns into a handful of first-person bullets.
+								Kepler gathers what happened in a repository over a day: the commits
+								on every branch, the pull requests, and what the agents did. An
+								agent turns that into a few sentences in the first person.
 							</p>
 							<p>
-								Cells show the points inline. Click a day for the full report
-								<strong>plus the raw activity timeline it was built from</strong>.
-								Generate, regenerate or delete any day.
+								These write-ups appear on a calendar. Click a day and you read the
+								text and, below it, the detailed list it was built from. Enough to
+								prepare a standup without digging through git history.
 							</p>
 						</div>
 					</article>
@@ -385,94 +412,94 @@
 			<section class="section section--alt" id="features">
 				<div class="container">
 					<header class="section__head reveal">
-						<p class="kicker">Everything else</p>
-						<h2>The rest of the cockpit.</h2>
+						<p class="kicker">The rest</p>
+						<h2>What you will find in the app.</h2>
 					</header>
 
 					<div class="cards">
 						<article class="card reveal">
-							<h3><span class="card__ico">◱</span> The Workbench</h3>
+							<h3><span class="card__ico">◱</span> The working screen</h3>
 							<p>
-								The agent conversation on the left; <strong>Changes</strong>,
-								<strong>Activity</strong>, <strong>Issue</strong>,
-								<strong>Explorer</strong> and <strong>Reader</strong> on the right;
-								multiple terminal tabs below (<kbd>⌘J</kbd>) on a draggable split.
-								Files open as tabs next to the chat.
+								This is where you spend your time. The conversation with the agent
+								takes the left-hand side. On the right, four tabs show you the files
+								it changed, its activity log, the linked issue and a file explorer.
+								Below that, one or more terminals open up.
 							</p>
 						</article>
 
 						<article class="card reveal">
-							<h3><span class="card__ico">◈</span> Real SDK sessions</h3>
+							<h3><span class="card__ico">◈</span> A real conversation</h3>
 							<p>
-								Agents run through the <strong>Claude Agent SDK</strong>, streamed
-								over WebSocket: tool-call cards, permission requests you approve
-								from the UI, inline questions. Transcripts live in SQLite on the
-								server and replay on reconnect.
+								Kepler does not drive a terminal on your behalf: it talks to Claude
+								through its official SDK. Every tool used shows up as a card, you
+								grant permissions with one click, and the agent can ask you a
+								question in the middle of its work.
 							</p>
 						</article>
 
 						<article class="card reveal">
-							<h3><span class="card__ico">◷</span> Activity timeline</h3>
+							<h3><span class="card__ico">◷</span> A log you can read</h3>
 							<p>
-								A readable timeline derived from the event stream — decisions, file
-								changes, commits, blockers, and a final summary. Plus a per-session
-								recap when the work is done.
+								Instead of pages of raw output, Kepler sums up what the agent did:
+								the decisions it took, the files it created or changed, the commits,
+								what blocked it, and a recap at the end.
 							</p>
 						</article>
 
 						<article class="card reveal">
-							<h3><span class="card__ico">◔</span> Notifications</h3>
+							<h3><span class="card__ico">◔</span> It tells you</h3>
 							<p>
-								When an agent <strong>finishes</strong>, <strong>fails</strong> or
-								<strong>gets blocked waiting for you</strong>, a prioritised,
-								de-duplicated notification lands instantly over SSE — with a sound
-								and an OS notification if you've walked away.
+								When an agent finishes, fails, or is waiting on your answer, a
+								notification arrives straight away, with a sound and a system
+								notification. So you can start an agent and go do something else.
 							</p>
 						</article>
 
 						<article class="card reveal">
-							<h3><span class="card__ico">◫</span> Sessions that survive</h3>
+							<h3><span class="card__ico">◫</span> Nothing gets lost</h3>
 							<p>
-								Close the tab, restart the machine, come back: the conversation, the
-								terminal and the worktree are still there. Session labels are
-								decoupled from git — and a manual rename always wins over the
-								auto-title.
+								Close the tab, shut the machine down: when you come back, the
+								conversation, the terminal and the worktree are as you left them.
+								Everything is saved on your disk.
 							</p>
 						</article>
 
 						<article class="card reveal">
-							<h3><span class="card__ico">⇅</span> Issues, PRs, Tasks</h3>
+							<h3><span class="card__ico">⇅</span> Your work in one place</h3>
 							<p>
-								A kanban synced to Projects V2, every open PR with its checks, and
-								tasks with due dates, urgency colouring and pinning. Each task links
-								to a GitHub issue, or creates one.
+								You find in one place the board of your GitHub issues, the list of
+								your pull requests with their tests, and a personal to-do list with
+								due dates. A task can point to an issue, or create one.
 							</p>
 						</article>
 
 						<article class="card reveal">
-							<h3><span class="card__ico">⌘</span> Repo scripts</h3>
+							<h3><span class="card__ico">⌘</span> Your commands as buttons</h3>
 							<p>
-								Declare per-repo commands and get them as buttons in the top bar.
-								Each runs in a <strong>new terminal tab</strong> or as a
-								<strong>message to the agent</strong>.
+								Declare the commands you type all the time — run the tests, the
+								linter, the dev server — and they appear as buttons at the top of
+								the screen. Each one opens in a terminal, or goes to the agent as a
+								message.
 							</p>
 						</article>
 
 						<article class="card reveal">
-							<h3><span class="card__ico">⚙</span> Per-repo settings</h3>
+							<h3><span class="card__ico">⚙</span> Per-repository settings</h3>
 							<p>
-								Custom create-PR and commit-&amp;-push prompts, files to copy into
-								every new worktree, setup and archive scripts, and the QA column
-								used by post-merge triage.
+								For each project, you set the files to copy into every new worktree
+								— your <code>.env</code>, for instance —, a script to run on
+								creation, and the standard wording the agent uses to open a pull
+								request.
 							</p>
 						</article>
 
 						<article class="card reveal">
-							<h3><span class="card__ico">◐</span> Themes and fonts</h3>
+							<h3><span class="card__ico">◐</span> To your taste</h3>
 							<p>
-								Seven themes plus a full custom palette, independent fonts and sizes
-								for app and terminal, five UI languages, and one click to open any
-								worktree in your editor.
+								Kepler ships seven colour themes, and a fully adjustable palette if
+								none of them suits you. Fonts and sizes are set separately for the
+								app and the terminal, the interface comes in five languages, and a
+								button opens the worktree in your editor.
 							</p>
 						</article>
 					</div>
@@ -484,7 +511,7 @@
 				<div class="container">
 					<header class="section__head reveal">
 						<p class="kicker">Before / after</p>
-						<h2>Same model. Different day.</h2>
+						<h2>What actually changes.</h2>
 					</header>
 
 					<div class="compare reveal">
@@ -493,98 +520,106 @@
 							<p class="compare__h compare__h--on">With Kepler</p>
 						</div>
 						<div class="compare__row">
-							<p>One agent, one branch, one task at a time</p>
-							<p><strong>A fleet of agents</strong>, one isolated worktree each</p>
-						</div>
-						<div class="compare__row">
-							<p>Re-explain your conventions at every launch</p>
+							<p>One agent at a time, since they share your files</p>
 							<p>
-								Reusable <strong>personas</strong> — prompt, model, effort,
-								permissions
+								<strong>As many agents as you like</strong>, each in its own copy of
+								the project
 							</p>
 						</div>
 						<div class="compare__row">
-							<p>Copy-paste the issue into the prompt</p>
+							<p>You re-explain your conventions at every launch</p>
 							<p>
-								Launch from the issue —
-								<strong>context injected, issue commented</strong>
+								Your instructions are saved in a <strong>persona</strong> and reused
 							</p>
 						</div>
 						<div class="compare__row">
-							<p>Poll a background agent to see if it's done</p>
+							<p>You copy the issue description into the prompt</p>
 							<p>
-								<strong>Real-time notifications</strong> on done, failed or blocked
+								Kepler <strong>reads the issue</strong> and hands it to the agent at
+								launch
 							</p>
 						</div>
 						<div class="compare__row">
-							<p>Guess what the agent actually changed</p>
-							<p>Live diff, activity timeline, streaming transcript</p>
-						</div>
-						<div class="compare__row">
-							<p>Docs rotting in a wiki nobody edits</p>
+							<p>You go back to the terminal to see whether it's done</p>
 							<p>
-								Docs you <strong>chat with</strong> — and the agent edits in place
+								A <strong>notification</strong> tells you the moment it finishes or
+								needs you
 							</p>
 						</div>
 						<div class="compare__row">
-							<p>“What did I even ship on Tuesday?”</p>
+							<p>Text scrolling past, and you guess what changed</p>
 							<p>
-								<strong>AI-written daily reports</strong>, per repo, on a calendar
+								The <strong>list of changed files</strong> and a log of the
+								decisions taken
+							</p>
+						</div>
+						<div class="compare__row">
+							<p>Documentation you have to open and fix by hand</p>
+							<p>
+								Docs you <strong>ask</strong> for a correction, and they update
+								themselves
+							</p>
+						</div>
+						<div class="compare__row">
+							<p>"What did I do on Tuesday?" — and you reread the git history</p>
+							<p>
+								The <strong>day's write-up</strong> is already there, on a calendar
 							</p>
 						</div>
 					</div>
 				</div>
 			</section>
 
-			<!-- ───────────────────────── local-first ───────────────────────── -->
+			<!-- ───────────────────────── on your machine ───────────────────────── -->
 			<section class="section section--alt">
 				<div class="container">
 					<header class="section__head reveal">
-						<p class="kicker">Local-first, zero secrets</p>
-						<h2>It all runs on your machine.</h2>
+						<p class="kicker">Yours, no account</p>
+						<h2>Everything runs on your machine.</h2>
 					</header>
 
 					<div class="trust">
 						<article class="trust__c reveal">
-							<h3>Your <code>gh</code> session</h3>
+							<h3>No sign-up</h3>
 							<p>
-								GitHub access uses the token from your local GitHub CLI. No OAuth
-								app, no
-								<code>AUTH_SECRET</code>, no login page.
+								Kepler asks you for no password and no key. It reuses the login of
+								<code>gh</code>, GitHub's official command-line tool, which you have
+								already installed and connected.
 							</p>
 						</article>
 						<article class="trust__c reveal">
-							<h3>One SQLite file</h3>
+							<h3>One file on your disk</h3>
 							<p>
-								Sessions, transcripts, personas, docs, daily reports, tasks — all in
-								one local file, shared by the app and the agent server.
+								Sessions, conversations, personas, documents, write-ups, tasks: it
+								all sits in a single database file at your place. No server, nothing
+								to host.
 							</p>
 						</article>
 						<article class="trust__c reveal">
-							<h3>Two outbound calls</h3>
+							<h3>Two destinations, no more</h3>
 							<p>
-								GitHub, and Claude. Nothing about your code leaves the machine
-								except what you'd already be sending to the model.
+								Kepler only talks to GitHub, for your issues and pull requests, and
+								to Claude, for the agents. Your code goes nowhere else.
 							</p>
 						</article>
 					</div>
 
 					<div class="arch reveal">
 						<div class="arch__box">
-							<p class="arch__t">Next.js app<span>:4000</span></p>
-							<p class="arch__d">UI · GitHub proxy · CRUD · migrations</p>
+							<p class="arch__t">The interface<span>port 4000</span></p>
+							<p class="arch__d">What you see in the window</p>
 						</div>
 						<div class="arch__link" aria-hidden="true"></div>
 						<div class="arch__box">
-							<p class="arch__t">Agent server<span>:4001</span></p>
+							<p class="arch__t">The engine<span>port 4001</span></p>
 							<p class="arch__d">
-								git &amp; worktrees · terminals · Agent SDK · docs · daily · SSE
+								It creates the worktrees, opens the terminals and runs the agents
 							</p>
 						</div>
 						<div class="arch__link" aria-hidden="true"></div>
 						<div class="arch__box arch__box--db">
-							<p class="arch__t">SQLite<span>shared</span></p>
-							<p class="arch__d">Drizzle ORM · WAL · <code>data/kepler.db</code></p>
+							<p class="arch__t">Your data<span>one file</span></p>
+							<p class="arch__d">Conversations, personas, docs, write-ups</p>
 						</div>
 					</div>
 				</div>
@@ -594,7 +629,7 @@
 			<section class="section" id="install">
 				<div class="container">
 					<header class="section__head reveal">
-						<p class="kicker">Get started</p>
+						<p class="kicker">Install</p>
 						<h2>Two commands, and you're running.</h2>
 					</header>
 
@@ -602,7 +637,7 @@
 						<div class="install__main reveal">
 							<ol class="steps">
 								<li>
-									<p class="steps__t">Install</p>
+									<p class="steps__t">Run the installer</p>
 									<div class="cmd cmd--block" data-copy=":cmd-install-2">
 										<code id="cmd-install-2"
 											>curl -fsSL
@@ -612,117 +647,142 @@
 										<button
 											class="cmd__btn"
 											type="button"
-											aria-label="Copy install command"
+											aria-label="Copy the install command"
 										>
 											<span class="cmd__label">Copy</span>
 										</button>
 									</div>
 									<p class="steps__d">
-										Clones a dedicated copy into <code>~/.kepler/repo</code>,
-										builds it, and puts a stable <code>kepler</code> command on
-										your <code>PATH</code>. Re-runnable — running it again
-										updates in place.
+										The script downloads Kepler into
+										<code>~/.kepler/repo</code>, builds it, and adds a
+										<code>kepler</code> command to your terminal. You can run it
+										again later: it simply updates.
 									</p>
 								</li>
 								<li>
-									The installer put <code>~/.kepler/bin</code> on your
-									<code>PATH</code>; this shell doesn't know it yet. A new
-									terminal works too. For bash or fish, swap in
-									<code>~/.bashrc</code> or
-									<code>~/.config/fish/config.fish</code> — the installer prints
-									the right command when it finishes.
+									<p class="steps__t">Reload the terminal, then start</p>
+									<div class="cmd cmd--block" data-copy=":cmd-start">
+										<code id="cmd-start"
+											>source ~/.zshrc &amp;&amp; kepler start &amp;&amp;
+											kepler seed</code
+										>
+										<button
+											class="cmd__btn"
+											type="button"
+											aria-label="Copy the start command"
+										>
+											<span class="cmd__label">Copy</span>
+										</button>
+									</div>
+									<p class="steps__d">
+										The <code>source</code> is what makes the new command known
+										to the terminal you already have open; opening a new tab
+										amounts to the same thing. On bash or fish, swap in
+										<code>~/.bashrc</code> or
+										<code>~/.config/fish/config.fish</code> — the script prints
+										the right command when it finishes.
+									</p>
+									<p class="steps__d">
+										<code>kepler start</code> opens the app window.
+										<code>kepler seed</code> installs the ten personas that ship
+										with it. There is nothing else to configure.
+									</p>
 								</li>
 								<li>
-									Point Kepler at a repo in <strong>Settings</strong>, connect a
-									Project V2 board, then hit <strong>+</strong> on a project and
-									pick a persona. Paste an issue URL at launch to hand the agent
-									its context.
+									<p class="steps__t">The first five minutes</p>
+									<p class="steps__d">
+										In <strong>Settings</strong>, say where your projects live
+										on disk. Then, in the left bar, hit <strong>+</strong> on a
+										project, pick a persona, and describe what you want. To
+										start from an existing task, paste the address of a GitHub
+										issue at launch.
+									</p>
 								</li>
 							</ol>
 						</div>
 
 						<aside class="install__side reveal">
 							<div class="panel">
-								<p class="panel__t">Prerequisites</p>
+								<p class="panel__t">What you need</p>
 								<ul class="reqs">
-									<li><strong>macOS</strong> — built and tested there</li>
 									<li>
-										<strong>Node 20–25</strong> — native modules aren't on 26
+										<strong>A Mac</strong> — Kepler is built and tested there
+									</li>
+									<li>
+										<strong>Node 20 to 25</strong> — version 26 is not supported
 										yet
 									</li>
 									<li>
-										<strong>gh</strong>, authenticated (<code
-											>gh auth login</code
-										>)
+										<strong>gh</strong>, GitHub's own tool, connected to your
+										account
 									</li>
-									<li><strong>claude</strong> CLI on your <code>PATH</code></li>
-									<li><strong>tmux</strong> and <strong>git</strong></li>
+									<li><strong>claude</strong>, Claude's command-line tool</li>
+									<li><strong>git</strong> and <strong>tmux</strong></li>
 								</ul>
 							</div>
 
 							<div class="panel">
-								<p class="panel__t">Runtime state</p>
+								<p class="panel__t">Where your data lives</p>
 								<p class="panel__p">
-									The SQLite database, pids and logs live in
-									<code>~/.kepler/</code> and survive updates. Optional overrides
-									go in <code>~/.kepler/.env</code>.
+									In <code>~/.kepler/</code>: the database, the logs and the
+									service files. Updates never touch it.
 								</p>
 							</div>
 						</aside>
 					</div>
 
 					<div class="panel panel--wide reveal">
-						<p class="panel__t">The CLI</p>
+						<p class="panel__t">The commands</p>
 						<dl class="cli">
 							<div>
 								<dt>kepler start</dt>
-								<dd>Build if needed, launch, open the window</dd>
+								<dd>Starts Kepler and opens the window</dd>
 							</div>
 							<div>
 								<dt>kepler stop</dt>
-								<dd>Stop the agent, web app and window</dd>
+								<dd>Stops everything</dd>
 							</div>
 							<div>
 								<dt>kepler restart</dt>
-								<dd>Stop then start — applies an update</dd>
+								<dd>Restarts, after an update for instance</dd>
 							</div>
 							<div>
 								<dt>kepler status</dt>
-								<dd>Each service, with its pid and URL</dd>
+								<dd>Says what is running, and on which address</dd>
 							</div>
 							<div>
 								<dt>kepler logs</dt>
-								<dd>Tail all logs, or one service</dd>
+								<dd>Shows the logs, when something goes wrong</dd>
 							</div>
 							<div>
 								<dt>kepler update</dt>
-								<dd>Pull main, reinstall, rebuild</dd>
+								<dd>Fetches the latest version</dd>
 							</div>
 							<div>
 								<dt>kepler seed</dt>
-								<dd>Install the starter personas</dd>
+								<dd>Installs the ten personas that ship with it</dd>
 							</div>
 						</dl>
 					</div>
 				</div>
 			</section>
 
-			<!-- ───────────────────────── cta ───────────────────────── -->
+			<!-- ───────────────────────── closing ───────────────────────── -->
 			<section class="cta">
 				<div class="container cta__inner reveal">
-					<h2>Give every agent its own branch.</h2>
+					<h2>Try it on one of your projects.</h2>
 					<p>
-						Kepler 1.0 is out. One install command, your own machine, and a fleet that
-						finally works in parallel.
+						One command to install, one to start. Kepler is free, runs at your place,
+						and sends nothing beyond what you would already be sending to Claude.
 					</p>
 					<div class="cta__row">
 						<a
 							class="btn btn--primary btn--lg"
 							href="https://github.com/ludovicweber87/Kepler"
 							rel="noopener"
-							>Get Kepler on GitHub</a
+							>See the code on GitHub</a
 						>
-						<a class="btn btn--quiet btn--lg" href="#install">See the setup</a>
+						<a class="btn btn--quiet btn--lg" href="#install">Read the install steps</a>
 					</div>
 				</div>
 			</section>
@@ -735,10 +795,10 @@
 					<span class="pill pill--version">1.0</span>
 				</p>
 				<p class="foot__meta">
-					MIT · local-first · macOS ·
-					<a href="https://github.com/ludovicweber87/Kepler" rel="noopener">Source</a> ·
+					MIT licence · for macOS ·
+					<a href="https://github.com/ludovicweber87/Kepler" rel="noopener">The code</a> ·
 					<a href="https://github.com/ludovicweber87/Kepler#readme" rel="noopener"
-						>Docs</a
+						>The documentation</a
 					>
 				</p>
 				<p class="foot__sub">Because the best tool is the one that disappears.</p>
