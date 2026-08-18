@@ -170,10 +170,11 @@
 					</h1>
 
 					<p class="hero__sub reveal">
-						One agent, one terminal, one branch — so you still work in series. Kepler
-						gives every Claude agent its own <strong>git worktree</strong>, a reusable
-						<strong>persona</strong> and the <strong>GitHub context</strong> it needs,
-						then streams back everything it does.
+						One agent, one terminal, one branch: your work happens one task at a time.
+						Kepler gives every Claude agent its own <strong>git worktree</strong>, a
+						reusable <strong>persona</strong> and the
+						<strong>context of the issue</strong> it's working on — then shows you,
+						live, what it does.
 					</p>
 
 					<div class="hero__cta reveal">
@@ -257,12 +258,12 @@
 						<div class="pillar__body">
 							<p>
 								Every session gets its own isolated worktree under
-								<code>.worktrees/</code>, its own branch and its own terminal — so
+								<code>.worktrees/</code>, its own branch and its own terminal, so
 								<strong
 									>N agents work at once without ever stepping on each
 									other</strong
-								>. The sidebar is your fleet view: projects → worktrees → sessions,
-								with an unread dot on any agent that needs you.
+								>. The sidebar shows the whole fleet: projects → worktrees →
+								sessions, with a dot on any agent waiting for you.
 							</p>
 							<ul class="ticks">
 								<li>New worktree, on a fresh branch</li>
@@ -285,8 +286,8 @@
 								Stop re-explaining yourself. A persona bundles a name, a role, a
 								system prompt and its own defaults for <strong>model</strong>,
 								<strong>reasoning effort</strong>,
-								<strong>permission mode</strong> and accent colour — then drives
-								every session launched with it.
+								<strong>permission mode</strong> and accent colour. Every session
+								launched with it inherits them.
 							</p>
 							<ul class="ticks">
 								<li>Scoped to specific repos, or global</li>
@@ -311,17 +312,17 @@
 						<div class="pillar__body">
 							<p>
 								Describe a subject, pick a source — general knowledge or
-								<strong>one of your repos</strong> — a level, a length, a format and
-								an optional angle. A writer agent produces the doc in Markdown, in
-								the background.
+								<strong>one of your repos</strong> — then a level, a length and a
+								format. A writer agent produces the doc in Markdown, in the
+								background.
 							</p>
 							<p>
 								Then the part that matters:
-								<strong>every doc has its own chat</strong>, side by side with the
-								text. Ask a question about the subject, or ask for a change — the
-								agent <strong>edits the document in place</strong> through guarded
-								in-process tools. Exact-match edits only; ambiguous requests are
-								refused rather than guessed.
+								<strong>every doc has its own chat</strong>, next to the text. Ask a
+								question, or ask for a change — the agent
+								<strong>edits the document in place</strong>. It only touches a
+								passage it has quoted word for word, and refuses an ambiguous
+								request rather than guessing.
 							</p>
 						</div>
 					</article>
@@ -335,11 +336,11 @@
 
 						<div class="pillar__body">
 							<p>
-								<strong>Launch an agent straight from an issue.</strong> Kepler
-								pulls the issue title and body into the session's system prompt,
-								links the session to the issue, creates the branch and worktree, and
-								posts a comment on the issue so the trail is visible on GitHub. The
-								agent starts already knowing what it's for.
+								<strong>Launch an agent straight from an issue.</strong> Kepler puts
+								the issue title and body into the session's system prompt, creates
+								the branch and the worktree, and comments on the issue so the trail
+								stays visible on GitHub. The agent starts already knowing what it's
+								for.
 							</p>
 							<ul class="ticks">
 								<li>
@@ -367,8 +368,8 @@
 							<p>
 								A month calendar of <strong>AI-written daily reports</strong>, per
 								repository. Kepler collects the day's real activity — commits across
-								all branches, pull requests, agent activity logs — and has an agent
-								synthesise it into a handful of first-person bullets.
+								all branches, pull requests, agent activity logs — which an agent
+								turns into a handful of first-person bullets.
 							</p>
 							<p>
 								Cells show the points inline. Click a day for the full report
@@ -405,8 +406,8 @@
 							<p>
 								Agents run through the <strong>Claude Agent SDK</strong>, streamed
 								over WebSocket: tool-call cards, permission requests you approve
-								from the UI, inline questions. Transcripts are server-authoritative
-								in SQLite and replay on reconnect.
+								from the UI, inline questions. Transcripts live in SQLite on the
+								server and replay on reconnect.
 							</p>
 						</article>
 
@@ -422,11 +423,10 @@
 						<article class="card reveal">
 							<h3><span class="card__ico">◔</span> Notifications</h3>
 							<p>
-								Over SSE: when an agent <strong>finishes</strong>,
-								<strong>fails</strong> or
+								When an agent <strong>finishes</strong>, <strong>fails</strong> or
 								<strong>gets blocked waiting for you</strong>, a prioritised,
-								de-duplicated notification lands instantly — with a sound and an OS
-								notification if you've walked away.
+								de-duplicated notification lands instantly over SSE — with a sound
+								and an OS notification if you've walked away.
 							</p>
 						</article>
 
@@ -444,8 +444,8 @@
 							<h3><span class="card__ico">⇅</span> Issues, PRs, Tasks</h3>
 							<p>
 								A kanban synced to Projects V2, every open PR with its checks, and
-								tasks with due dates, urgency colouring, pinning, and a link to — or
-								a brand-new — GitHub issue.
+								tasks with due dates, urgency colouring and pinning. Each task links
+								to a GitHub issue, or creates one.
 							</p>
 						</article>
 
@@ -468,7 +468,7 @@
 						</article>
 
 						<article class="card reveal">
-							<h3><span class="card__ico">◐</span> Yours to look at</h3>
+							<h3><span class="card__ico">◐</span> Themes and fonts</h3>
 							<p>
 								Seven themes plus a full custom palette, independent fonts and sizes
 								for app and terminal, five UI languages, and one click to open any
@@ -493,7 +493,7 @@
 							<p class="compare__h compare__h--on">With Kepler</p>
 						</div>
 						<div class="compare__row">
-							<p>One agent, one branch, work done in series</p>
+							<p>One agent, one branch, one task at a time</p>
 							<p><strong>A fleet of agents</strong>, one isolated worktree each</p>
 						</div>
 						<div class="compare__row">
@@ -595,7 +595,7 @@
 				<div class="container">
 					<header class="section__head reveal">
 						<p class="kicker">Get started</p>
-						<h2>Two commands and a new terminal.</h2>
+						<h2>Two commands, and you're running.</h2>
 					</header>
 
 					<div class="install">
@@ -625,45 +625,18 @@
 									</p>
 								</li>
 								<li>
-									<p class="steps__t">Load your <code>PATH</code>, then start</p>
-									<div class="cmd cmd--block" data-copy=":cmd-start">
-										<code id="cmd-start"
-											>source ~/.zshrc &amp;&amp; kepler start &amp;&amp;
-											kepler seed</code
-										>
-										<button
-											class="cmd__btn"
-											type="button"
-											aria-label="Copy start command"
-										>
-											<span class="cmd__label">Copy</span>
-										</button>
-									</div>
-									<p class="steps__d">
-										The installer adds <code>~/.kepler/bin</code> to your
-										<code>PATH</code>, but the shell you ran it from doesn't
-										know that yet — hence the <code>source</code> (a new
-										terminal does the same job). Swap in
-										<code>~/.bashrc</code> or
-										<code>~/.config/fish/config.fish</code> for your shell — the
-										installer prints the exact command when it finishes.
-									</p>
-									<p class="steps__d">
-										<code>start</code> boots the agent server, the web app and
-										the desktop window. <code>seed</code> installs the starter
-										persona library. GitHub access comes from your
-										<code>gh</code> session — there is nothing else to
-										configure.
-									</p>
+									The installer put <code>~/.kepler/bin</code> on your
+									<code>PATH</code>; this shell doesn't know it yet. A new
+									terminal works too. For bash or fish, swap in
+									<code>~/.bashrc</code> or
+									<code>~/.config/fish/config.fish</code> — the installer prints
+									the right command when it finishes.
 								</li>
 								<li>
-									<p class="steps__t">First five minutes</p>
-									<p class="steps__d">
-										Point Kepler at a repo in <strong>Settings</strong>, connect
-										a Project V2 board, then hit <strong>+</strong> on a
-										project, pick a persona and a launch mode. Paste a GitHub
-										issue URL at launch time to hand the agent its full context.
-									</p>
+									Point Kepler at a repo in <strong>Settings</strong>, connect a
+									Project V2 board, then hit <strong>+</strong> on a project and
+									pick a persona. Paste an issue URL at launch to hand the agent
+									its context.
 								</li>
 							</ol>
 						</div>
