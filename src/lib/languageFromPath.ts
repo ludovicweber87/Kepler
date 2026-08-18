@@ -80,3 +80,12 @@ export function languageFromPath(path: string): string {
 
 	return FALLBACK_LANGUAGE;
 }
+
+/**
+ * Vrai pour un fichier qu'on peut proposer en lecture markdown (`.md`, `.mdx`).
+ * Dérivé de `languageFromPath` plutôt que d'une liste d'extensions parallèle :
+ * ajouter une extension markdown à `BY_EXTENSION` suffit alors à la couvrir ici.
+ */
+export function isMarkdownPath(path: string): boolean {
+	return languageFromPath(path) === 'markdown';
+}

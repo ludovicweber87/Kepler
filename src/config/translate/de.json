@@ -426,7 +426,11 @@
 		"showRemainingLines": "{count} verbleibende Zeilen anzeigen",
 		"loadError": "Fehler beim Laden des Diffs",
 		"noChanges": "Keine Änderungen erkannt",
-		"filesChanged": "{count, plural, one {# Datei geändert} other {# Dateien geändert}}"
+		"filesChanged": "{count, plural, one {# Datei geändert} other {# Dateien geändert}}",
+		"viewRaw": "Roher Diff",
+		"viewMarkdown": "Lesemodus",
+		"previewError": "Diese Datei kann nicht gelesen werden",
+		"previewTruncated": "Datei gekürzt (zu groß für die vollständige Anzeige)"
 	},
 	"agentIssue": {
 		"descriptionPlaceholder": "Beschreibung (Markdown)",
