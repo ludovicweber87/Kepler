@@ -426,7 +426,11 @@
 		"showRemainingLines": "Mostrar {count} líneas restantes",
 		"loadError": "Error al cargar el diff",
 		"noChanges": "No se detectaron cambios",
-		"filesChanged": "{count, plural, one {# archivo modificado} other {# archivos modificados}}"
+		"filesChanged": "{count, plural, one {# archivo modificado} other {# archivos modificados}}",
+		"viewRaw": "Diff en bruto",
+		"viewMarkdown": "Modo lectura",
+		"previewError": "No se puede leer este archivo",
+		"previewTruncated": "Archivo truncado (demasiado grande para mostrarlo completo)"
 	},
 	"agentIssue": {
 		"descriptionPlaceholder": "Descripción (Markdown)",

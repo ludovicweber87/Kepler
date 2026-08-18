@@ -611,6 +611,7 @@ export default function Workbench() {
 										file={activeFileDiff}
 										focused
 										focusNonce={focusNonce}
+										cwd={diffPath}
 									/>
 								) : (
 									<FileContentView

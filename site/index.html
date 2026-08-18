@@ -1,0 +1,729 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Kepler — mission control for a fleet of AI agents</title>
+		<meta
+			name="description"
+			content="Kepler gives every Claude agent its own git worktree, a reusable persona and the GitHub context it needs — then streams back everything it does. Local-first, single-user, macOS."
+		/>
+		<meta name="theme-color" content="#F4EEE2" />
+		<link rel="icon" href="logo.svg" type="image/svg+xml" />
+
+		<meta property="og:type" content="website" />
+		<meta property="og:title" content="Kepler — mission control for a fleet of AI agents" />
+		<meta
+			property="og:description"
+			content="One worktree, one persona, one context per agent. Run them in parallel, see everything they do, get a written debrief every day."
+		/>
+		<meta property="og:image" content="logo.png" />
+		<meta name="twitter:card" content="summary_large_image" />
+
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Poppins:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+			rel="stylesheet"
+		/>
+		<link rel="stylesheet" href="styles.css" />
+	</head>
+
+	<body>
+		<a class="skip-link" href="#main">Skip to content</a>
+
+		<!-- ───────────────────────── nav ───────────────────────── -->
+		<header class="nav" id="nav">
+			<div class="nav__inner">
+				<a class="lockup" href="#top" aria-label="Kepler — home">
+					<svg class="lockup__mark" viewBox="0 0 194.466 185.993" aria-hidden="true">
+						<defs>
+							<linearGradient
+								id="quill-a"
+								gradientUnits="userSpaceOnUse"
+								x1="362.452"
+								y1="92.529"
+								x2="110.665"
+								y2="307.139"
+							>
+								<stop offset="0" stop-color="#CC7757" />
+								<stop offset="1" stop-color="#8C4123" />
+							</linearGradient>
+							<linearGradient
+								id="quill-b"
+								gradientUnits="userSpaceOnUse"
+								x1="248.707"
+								y1="241.025"
+								x2="287.148"
+								y2="114.131"
+							>
+								<stop offset="0" stop-color="#CC7757" />
+								<stop offset="1" stop-color="#8C4123" />
+							</linearGradient>
+						</defs>
+						<g transform="translate(-152.767 -108.253)">
+							<path
+								fill="#33302A"
+								d="M197.994 207.187 L187.994 207.187 L187.994 108.253 L192.994 108.253 C213.099 108.253 229.455 124.609 229.455 144.714 L229.455 177.883 L219.455 177.883 L219.455 144.714 C219.455 131.832 210.202 121.071 197.994 118.727 L197.994 207.187 Z"
+							/>
+							<path
+								fill="#33302A"
+								d="M229.455 292.174 L187.994 292.174 L187.994 254.071 L197.994 254.071 L197.994 282.174 L219.455 282.174 L219.455 245.813 L229.455 245.813 L229.455 292.174 Z"
+							/>
+							<path
+								fill="#33302A"
+								d="M305.018 294.246 L255.171 244.398 L262.243 237.327 L304.683 279.768 C311.658 269.477 310.591 255.326 301.483 246.216 L282.39 227.125 L289.462 220.054 L308.554 239.146 C322.77 253.362 322.77 276.493 308.554 290.71 L305.018 294.246 Z"
+							/>
+							<path
+								fill="url(#quill-a)"
+								d="M344.818 122.868 L344.818 122.869 C346.294 120.419 347.233 118.796 347.233 118.796 C347.233 118.796 228.935 158.073 152.767 280.478 L188.266 241.438 C188.266 241.438 249.365 158.8 344.818 122.868 Z"
+							/>
+							<path
+								fill="url(#quill-b)"
+								d="M213.732 239.697 C213.732 239.697 213.222 231.511 202.651 228.092 C202.651 228.092 207.606 226.644 216.304 229.911 C225.003 233.178 229.836 234.992 229.836 234.992 C229.836 234.992 279.648 213.612 323.661 151.803 C323.661 151.803 307.463 153.687 298.397 147.185 C298.397 147.185 322.934 150.203 328.61 145.696 C332.761 142.399 340.798 129.541 344.818 122.869 L344.818 122.868 C249.365 158.8 188.266 241.438 188.266 241.438 C188.266 241.438 203.247 244.858 213.732 239.697 Z"
+							/>
+						</g>
+					</svg>
+					<span class="lockup__word">Kepler</span>
+					<span class="pill pill--version">1.0</span>
+				</a>
+
+				<nav class="nav__links" aria-label="Sections">
+					<a href="#pillars">Why</a>
+					<a href="#features">Features</a>
+					<a href="#compare">Compare</a>
+					<a href="#install">Install</a>
+				</nav>
+
+				<div class="nav__actions">
+					<a
+						class="btn btn--ghost"
+						href="https://github.com/ludovicweber87/Kepler"
+						rel="noopener"
+					>
+						<svg viewBox="0 0 16 16" aria-hidden="true" class="icon">
+							<path
+								fill="currentColor"
+								d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-2.98-.88-2.98-2.9 0-.84.3-1.53.79-2.07-.1-.25-.35-1.04.07-2.15 0 0 .64-.2 2.1.79a7.1 7.1 0 0 1 3.82 0c1.46-.99 2.1-.79 2.1-.79.42 1.11.17 1.9.07 2.15.49.54.79 1.23.79 2.07 0 2.03-1.21 2.7-2.99 2.9.31.27.58.79.58 1.6 0 1.15-.01 2.09-.01 2.38 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"
+							/>
+						</svg>
+						GitHub
+					</a>
+					<a class="btn btn--primary" href="#install">Install</a>
+				</div>
+			</div>
+		</header>
+
+		<main id="main">
+			<span id="top"></span>
+
+			<!-- ───────────────────────── hero ───────────────────────── -->
+			<section class="hero">
+				<div class="hero__glow" aria-hidden="true"></div>
+				<div class="container hero__inner">
+					<p class="eyebrow reveal">
+						<span class="dot dot--live"></span>
+						Kepler 1.0 · local-first · macOS
+					</p>
+
+					<h1 class="hero__title reveal">
+						Mission control for a
+						<span class="ink-accent">fleet</span> of AI agents.
+					</h1>
+
+					<p class="hero__sub reveal">
+						One agent, one terminal, one branch — so you still work in series. Kepler
+						gives every Claude agent its own <strong>git worktree</strong>, a reusable
+						<strong>persona</strong> and the <strong>GitHub context</strong> it needs,
+						then streams back everything it does.
+					</p>
+
+					<div class="hero__cta reveal">
+						<div class="cmd" data-copy=":cmd-install">
+							<code id="cmd-install"
+								>curl -fsSL
+								https://raw.githubusercontent.com/ludovicweber87/Kepler/main/install.sh
+								| bash</code
+							>
+							<button
+								class="cmd__btn"
+								type="button"
+								aria-label="Copy install command"
+							>
+								<span class="cmd__label">Copy</span>
+							</button>
+						</div>
+						<a class="btn btn--quiet" href="#install">Read the setup →</a>
+					</div>
+
+					<p class="hero__note reveal">
+						No cloud. No accounts. No API keys to juggle — GitHub access comes from your
+						local <code>gh</code> session.
+					</p>
+				</div>
+			</section>
+
+			<!-- ───────────────────────── stats ───────────────────────── -->
+			<section class="strip">
+				<div class="container strip__grid">
+					<div class="stat reveal">
+						<p class="stat__n">1</p>
+						<p class="stat__l">command to install</p>
+					</div>
+					<div class="stat reveal">
+						<p class="stat__n">0</p>
+						<p class="stat__l">API keys to configure</p>
+					</div>
+					<div class="stat reveal">
+						<p class="stat__n">N</p>
+						<p class="stat__l">agents in parallel, one worktree each</p>
+					</div>
+					<div class="stat reveal">
+						<p class="stat__n">10</p>
+						<p class="stat__l">personas, seeded and ready</p>
+					</div>
+				</div>
+			</section>
+
+			<!-- ───────────────────────── thesis ───────────────────────── -->
+			<section class="thesis">
+				<div class="container thesis__inner reveal">
+					<p class="thesis__quiet">
+						Five GitHub tabs. Conventions re-explained at every launch. Issue
+						descriptions copy-pasted into a prompt. No idea what the background agent
+						actually did. And on Friday, <code>git log</code> archaeology to remember
+						what you shipped on Tuesday.
+					</p>
+					<p class="thesis__loud">
+						The bottleneck isn't the model anymore.
+						<span class="ink-accent">It's the harness around it.</span>
+					</p>
+				</div>
+			</section>
+
+			<!-- ───────────────────────── pillars ───────────────────────── -->
+			<section class="section" id="pillars">
+				<div class="container">
+					<header class="section__head reveal">
+						<p class="kicker">The five pillars of 1.0</p>
+						<h2>Built around how the work actually happens.</h2>
+					</header>
+
+					<!-- 1 — worktrees -->
+					<article class="pillar reveal">
+						<div class="pillar__lead">
+							<p class="pillar__n">01</p>
+							<h3>A fleet, not an agent.</h3>
+						</div>
+
+						<div class="pillar__body">
+							<p>
+								Every session gets its own isolated worktree under
+								<code>.worktrees/</code>, its own branch and its own terminal — so
+								<strong
+									>N agents work at once without ever stepping on each
+									other</strong
+								>. The sidebar is your fleet view: projects → worktrees → sessions,
+								with an unread dot on any agent that needs you.
+							</p>
+							<ul class="ticks">
+								<li>New worktree, on a fresh branch</li>
+								<li>The current branch, as-is</li>
+								<li>An existing branch, local or remote</li>
+								<li>Free mode — no project, just an agent in a folder</li>
+							</ul>
+						</div>
+					</article>
+
+					<!-- 2 — personas -->
+					<article class="pillar reveal">
+						<div class="pillar__lead">
+							<p class="pillar__n">02</p>
+							<h3>Personas that carry your conventions.</h3>
+						</div>
+
+						<div class="pillar__body">
+							<p>
+								Stop re-explaining yourself. A persona bundles a name, a role, a
+								system prompt and its own defaults for <strong>model</strong>,
+								<strong>reasoning effort</strong>,
+								<strong>permission mode</strong> and accent colour — then drives
+								every session launched with it.
+							</p>
+							<ul class="ticks">
+								<li>Scoped to specific repos, or global</li>
+								<li>
+									Switch persona mid-conversation — no restart, no lost context
+								</li>
+								<li>
+									The composer takes the persona's colour, so you always know who
+									you're talking to
+								</li>
+							</ul>
+						</div>
+					</article>
+
+					<!-- 3 — docs -->
+					<article class="pillar reveal">
+						<div class="pillar__lead">
+							<p class="pillar__n">03</p>
+							<h3>Docs you can argue with.</h3>
+						</div>
+
+						<div class="pillar__body">
+							<p>
+								Describe a subject, pick a source — general knowledge or
+								<strong>one of your repos</strong> — a level, a length, a format and
+								an optional angle. A writer agent produces the doc in Markdown, in
+								the background.
+							</p>
+							<p>
+								Then the part that matters:
+								<strong>every doc has its own chat</strong>, side by side with the
+								text. Ask a question about the subject, or ask for a change — the
+								agent <strong>edits the document in place</strong> through guarded
+								in-process tools. Exact-match edits only; ambiguous requests are
+								refused rather than guessed.
+							</p>
+						</div>
+					</article>
+
+					<!-- 4 — github -->
+					<article class="pillar reveal">
+						<div class="pillar__lead">
+							<p class="pillar__n">04</p>
+							<h3>Wired into GitHub, not bolted onto it.</h3>
+						</div>
+
+						<div class="pillar__body">
+							<p>
+								<strong>Launch an agent straight from an issue.</strong> Kepler
+								pulls the issue title and body into the session's system prompt,
+								links the session to the issue, creates the branch and worktree, and
+								posts a comment on the issue so the trail is visible on GitHub. The
+								agent starts already knowing what it's for.
+							</p>
+							<ul class="ticks">
+								<li>
+									Projects V2 kanban — drag-and-drop, status synced via GraphQL,
+									cached locally for instant loads
+								</li>
+								<li>Every open PR with CI status and one-click merge</li>
+								<li>AI-drafted issues from a single sentence</li>
+								<li>
+									Post-merge triage — issue moves to your QA column, worktree
+									archived
+								</li>
+							</ul>
+						</div>
+					</article>
+
+					<!-- 5 — daily -->
+					<article class="pillar reveal">
+						<div class="pillar__lead">
+							<p class="pillar__n">05</p>
+							<h3>The daily writes itself.</h3>
+						</div>
+
+						<div class="pillar__body">
+							<p>
+								A month calendar of <strong>AI-written daily reports</strong>, per
+								repository. Kepler collects the day's real activity — commits across
+								all branches, pull requests, agent activity logs — and has an agent
+								synthesise it into a handful of first-person bullets.
+							</p>
+							<p>
+								Cells show the points inline. Click a day for the full report
+								<strong>plus the raw activity timeline it was built from</strong>.
+								Generate, regenerate or delete any day.
+							</p>
+						</div>
+					</article>
+				</div>
+			</section>
+
+			<!-- ───────────────────────── features ───────────────────────── -->
+			<section class="section section--alt" id="features">
+				<div class="container">
+					<header class="section__head reveal">
+						<p class="kicker">Everything else</p>
+						<h2>The rest of the cockpit.</h2>
+					</header>
+
+					<div class="cards">
+						<article class="card reveal">
+							<h3><span class="card__ico">◱</span> The Workbench</h3>
+							<p>
+								The agent conversation on the left; <strong>Changes</strong>,
+								<strong>Activity</strong>, <strong>Issue</strong>,
+								<strong>Explorer</strong> and <strong>Reader</strong> on the right;
+								multiple terminal tabs below (<kbd>⌘J</kbd>) on a draggable split.
+								Files open as tabs next to the chat.
+							</p>
+						</article>
+
+						<article class="card reveal">
+							<h3><span class="card__ico">◈</span> Real SDK sessions</h3>
+							<p>
+								Agents run through the <strong>Claude Agent SDK</strong>, streamed
+								over WebSocket: tool-call cards, permission requests you approve
+								from the UI, inline questions. Transcripts are server-authoritative
+								in SQLite and replay on reconnect.
+							</p>
+						</article>
+
+						<article class="card reveal">
+							<h3><span class="card__ico">◷</span> Activity timeline</h3>
+							<p>
+								A readable timeline derived from the event stream — decisions, file
+								changes, commits, blockers, and a final summary. Plus a per-session
+								recap when the work is done.
+							</p>
+						</article>
+
+						<article class="card reveal">
+							<h3><span class="card__ico">◔</span> Notifications</h3>
+							<p>
+								Over SSE: when an agent <strong>finishes</strong>,
+								<strong>fails</strong> or
+								<strong>gets blocked waiting for you</strong>, a prioritised,
+								de-duplicated notification lands instantly — with a sound and an OS
+								notification if you've walked away.
+							</p>
+						</article>
+
+						<article class="card reveal">
+							<h3><span class="card__ico">◫</span> Sessions that survive</h3>
+							<p>
+								Close the tab, restart the machine, come back: the conversation, the
+								terminal and the worktree are still there. Session labels are
+								decoupled from git — and a manual rename always wins over the
+								auto-title.
+							</p>
+						</article>
+
+						<article class="card reveal">
+							<h3><span class="card__ico">⇅</span> Issues, PRs, Tasks</h3>
+							<p>
+								A kanban synced to Projects V2, every open PR with its checks, and
+								tasks with due dates, urgency colouring, pinning, and a link to — or
+								a brand-new — GitHub issue.
+							</p>
+						</article>
+
+						<article class="card reveal">
+							<h3><span class="card__ico">⌘</span> Repo scripts</h3>
+							<p>
+								Declare per-repo commands and get them as buttons in the top bar.
+								Each runs in a <strong>new terminal tab</strong> or as a
+								<strong>message to the agent</strong>.
+							</p>
+						</article>
+
+						<article class="card reveal">
+							<h3><span class="card__ico">⚙</span> Per-repo settings</h3>
+							<p>
+								Custom create-PR and commit-&amp;-push prompts, files to copy into
+								every new worktree, setup and archive scripts, and the QA column
+								used by post-merge triage.
+							</p>
+						</article>
+
+						<article class="card reveal">
+							<h3><span class="card__ico">◐</span> Yours to look at</h3>
+							<p>
+								Seven themes plus a full custom palette, independent fonts and sizes
+								for app and terminal, five UI languages, and one click to open any
+								worktree in your editor.
+							</p>
+						</article>
+					</div>
+				</div>
+			</section>
+
+			<!-- ───────────────────────── compare ───────────────────────── -->
+			<section class="section" id="compare">
+				<div class="container">
+					<header class="section__head reveal">
+						<p class="kicker">Before / after</p>
+						<h2>Same model. Different day.</h2>
+					</header>
+
+					<div class="compare reveal">
+						<div class="compare__head">
+							<p class="compare__h compare__h--off">Without Kepler</p>
+							<p class="compare__h compare__h--on">With Kepler</p>
+						</div>
+						<div class="compare__row">
+							<p>One agent, one branch, work done in series</p>
+							<p><strong>A fleet of agents</strong>, one isolated worktree each</p>
+						</div>
+						<div class="compare__row">
+							<p>Re-explain your conventions at every launch</p>
+							<p>
+								Reusable <strong>personas</strong> — prompt, model, effort,
+								permissions
+							</p>
+						</div>
+						<div class="compare__row">
+							<p>Copy-paste the issue into the prompt</p>
+							<p>
+								Launch from the issue —
+								<strong>context injected, issue commented</strong>
+							</p>
+						</div>
+						<div class="compare__row">
+							<p>Poll a background agent to see if it's done</p>
+							<p>
+								<strong>Real-time notifications</strong> on done, failed or blocked
+							</p>
+						</div>
+						<div class="compare__row">
+							<p>Guess what the agent actually changed</p>
+							<p>Live diff, activity timeline, streaming transcript</p>
+						</div>
+						<div class="compare__row">
+							<p>Docs rotting in a wiki nobody edits</p>
+							<p>
+								Docs you <strong>chat with</strong> — and the agent edits in place
+							</p>
+						</div>
+						<div class="compare__row">
+							<p>“What did I even ship on Tuesday?”</p>
+							<p>
+								<strong>AI-written daily reports</strong>, per repo, on a calendar
+							</p>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- ───────────────────────── local-first ───────────────────────── -->
+			<section class="section section--alt">
+				<div class="container">
+					<header class="section__head reveal">
+						<p class="kicker">Local-first, zero secrets</p>
+						<h2>It all runs on your machine.</h2>
+					</header>
+
+					<div class="trust">
+						<article class="trust__c reveal">
+							<h3>Your <code>gh</code> session</h3>
+							<p>
+								GitHub access uses the token from your local GitHub CLI. No OAuth
+								app, no
+								<code>AUTH_SECRET</code>, no login page.
+							</p>
+						</article>
+						<article class="trust__c reveal">
+							<h3>One SQLite file</h3>
+							<p>
+								Sessions, transcripts, personas, docs, daily reports, tasks — all in
+								one local file, shared by the app and the agent server.
+							</p>
+						</article>
+						<article class="trust__c reveal">
+							<h3>Two outbound calls</h3>
+							<p>
+								GitHub, and Claude. Nothing about your code leaves the machine
+								except what you'd already be sending to the model.
+							</p>
+						</article>
+					</div>
+
+					<div class="arch reveal">
+						<div class="arch__box">
+							<p class="arch__t">Next.js app<span>:4000</span></p>
+							<p class="arch__d">UI · GitHub proxy · CRUD · migrations</p>
+						</div>
+						<div class="arch__link" aria-hidden="true"></div>
+						<div class="arch__box">
+							<p class="arch__t">Agent server<span>:4001</span></p>
+							<p class="arch__d">
+								git &amp; worktrees · terminals · Agent SDK · docs · daily · SSE
+							</p>
+						</div>
+						<div class="arch__link" aria-hidden="true"></div>
+						<div class="arch__box arch__box--db">
+							<p class="arch__t">SQLite<span>shared</span></p>
+							<p class="arch__d">Drizzle ORM · WAL · <code>data/kepler.db</code></p>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- ───────────────────────── install ───────────────────────── -->
+			<section class="section" id="install">
+				<div class="container">
+					<header class="section__head reveal">
+						<p class="kicker">Get started</p>
+						<h2>Two commands and a new terminal.</h2>
+					</header>
+
+					<div class="install">
+						<div class="install__main reveal">
+							<ol class="steps">
+								<li>
+									<p class="steps__t">Install</p>
+									<div class="cmd cmd--block" data-copy=":cmd-install-2">
+										<code id="cmd-install-2"
+											>curl -fsSL
+											https://raw.githubusercontent.com/ludovicweber87/Kepler/main/install.sh
+											| bash</code
+										>
+										<button
+											class="cmd__btn"
+											type="button"
+											aria-label="Copy install command"
+										>
+											<span class="cmd__label">Copy</span>
+										</button>
+									</div>
+									<p class="steps__d">
+										Clones a dedicated copy into <code>~/.kepler/repo</code>,
+										builds it, and puts a stable <code>kepler</code> command on
+										your <code>PATH</code>. Re-runnable — running it again
+										updates in place.
+									</p>
+								</li>
+								<li>
+									<p class="steps__t">Open a new terminal, then start</p>
+									<div class="cmd cmd--block" data-copy=":cmd-start">
+										<code id="cmd-start"
+											>kepler start &amp;&amp; kepler seed</code
+										>
+										<button
+											class="cmd__btn"
+											type="button"
+											aria-label="Copy start command"
+										>
+											<span class="cmd__label">Copy</span>
+										</button>
+									</div>
+									<p class="steps__d">
+										<code>start</code> boots the agent server, the web app and
+										the desktop window. <code>seed</code> installs the starter
+										persona library. GitHub access comes from your
+										<code>gh</code> session — there is nothing else to
+										configure.
+									</p>
+								</li>
+								<li>
+									<p class="steps__t">First five minutes</p>
+									<p class="steps__d">
+										Point Kepler at a repo in <strong>Settings</strong>, connect
+										a Project V2 board, then hit <strong>+</strong> on a
+										project, pick a persona and a launch mode. Paste a GitHub
+										issue URL at launch time to hand the agent its full context.
+									</p>
+								</li>
+							</ol>
+						</div>
+
+						<aside class="install__side reveal">
+							<div class="panel">
+								<p class="panel__t">Prerequisites</p>
+								<ul class="reqs">
+									<li><strong>macOS</strong> — built and tested there</li>
+									<li>
+										<strong>Node 20–25</strong> — native modules aren't on 26
+										yet
+									</li>
+									<li>
+										<strong>gh</strong>, authenticated (<code
+											>gh auth login</code
+										>)
+									</li>
+									<li><strong>claude</strong> CLI on your <code>PATH</code></li>
+									<li><strong>tmux</strong> and <strong>git</strong></li>
+								</ul>
+							</div>
+
+							<div class="panel">
+								<p class="panel__t">Runtime state</p>
+								<p class="panel__p">
+									The SQLite database, pids and logs live in
+									<code>~/.kepler/</code> and survive updates. Optional overrides
+									go in <code>~/.kepler/.env</code>.
+								</p>
+							</div>
+						</aside>
+					</div>
+
+					<div class="panel panel--wide reveal">
+						<p class="panel__t">The CLI</p>
+						<dl class="cli">
+							<div>
+								<dt>kepler start</dt>
+								<dd>Build if needed, launch, open the window</dd>
+							</div>
+							<div>
+								<dt>kepler stop</dt>
+								<dd>Stop the agent, web app and window</dd>
+							</div>
+							<div>
+								<dt>kepler restart</dt>
+								<dd>Stop then start — applies an update</dd>
+							</div>
+							<div>
+								<dt>kepler status</dt>
+								<dd>Each service, with its pid and URL</dd>
+							</div>
+							<div>
+								<dt>kepler logs</dt>
+								<dd>Tail all logs, or one service</dd>
+							</div>
+							<div>
+								<dt>kepler update</dt>
+								<dd>Pull main, reinstall, rebuild</dd>
+							</div>
+							<div>
+								<dt>kepler seed</dt>
+								<dd>Install the starter personas</dd>
+							</div>
+						</dl>
+					</div>
+				</div>
+			</section>
+
+			<!-- ───────────────────────── cta ───────────────────────── -->
+			<section class="cta">
+				<div class="container cta__inner reveal">
+					<h2>Give every agent its own branch.</h2>
+					<p>
+						Kepler 1.0 is out. One install command, your own machine, and a fleet that
+						finally works in parallel.
+					</p>
+					<div class="cta__row">
+						<a
+							class="btn btn--primary btn--lg"
+							href="https://github.com/ludovicweber87/Kepler"
+							rel="noopener"
+							>Get Kepler on GitHub</a
+						>
+						<a class="btn btn--quiet btn--lg" href="#install">See the setup</a>
+					</div>
+				</div>
+			</section>
+		</main>
+
+		<footer class="foot">
+			<div class="container foot__inner">
+				<p class="foot__brand">
+					<span class="lockup__word lockup__word--sm">Kepler</span>
+					<span class="pill pill--version">1.0</span>
+				</p>
+				<p class="foot__meta">
+					MIT · local-first · macOS ·
+					<a href="https://github.com/ludovicweber87/Kepler" rel="noopener">Source</a> ·
+					<a href="https://github.com/ludovicweber87/Kepler#readme" rel="noopener"
+						>Docs</a
+					>
+				</p>
+				<p class="foot__sub">Because the best tool is the one that disappears.</p>
+			</div>
+		</footer>
+
+		<script src="main.js" defer></script>
+	</body>
+</html>

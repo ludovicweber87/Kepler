@@ -19,7 +19,7 @@ program
 			'GitHub access uses your local `gh` CLI session — no tokens to configure.',
 		].join('\n'),
 	)
-	.version('0.1.0', '-v, --version', 'output the Kepler CLI version');
+	.version('1.0.0', '-v, --version', 'output the Kepler CLI version');
 
 program
 	.command('start')

@@ -446,7 +446,11 @@
 		"showRemainingLines": "Show {count} remaining lines",
 		"loadError": "Error loading diff",
 		"noChanges": "No changes detected",
-		"filesChanged": "{count, plural, one {# file changed} other {# files changed}}"
+		"filesChanged": "{count, plural, one {# file changed} other {# files changed}}",
+		"viewRaw": "Raw diff",
+		"viewMarkdown": "Reading mode",
+		"previewError": "Unable to read this file",
+		"previewTruncated": "File truncated (too large to display fully)"
 	},
 	"agentIssue": {
 		"descriptionPlaceholder": "Description (Markdown)",

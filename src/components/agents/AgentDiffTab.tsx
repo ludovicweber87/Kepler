@@ -8,12 +8,19 @@ import Collapse from '@mui/material/Collapse';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import { alpha } from '@mui/material/styles';
+import Tooltip from '@mui/material/Tooltip';
+import IconButton from '@mui/material/IconButton';
 import InsertDriveFileRoundedIcon from '@mui/icons-material/InsertDriveFileRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import RemoveRoundedIcon from '@mui/icons-material/RemoveRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
+import CodeRoundedIcon from '@mui/icons-material/CodeRounded';
+import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
 import { useGitDiff } from '@/hooks/useGitDiff';
+import { useFileContent } from '@/hooks/useFileContent';
+import { isMarkdownPath } from '@/lib/languageFromPath';
 import { buildSideBySideRows, type FileDiff, type SideBySideRow } from '@/lib/gitDiff';
+import ActivityMarkdown from './ActivityMarkdown';
 
 /* ── Shared line styles ── */
 const LINE_HEIGHT = '20px';
@@ -160,22 +167,105 @@ const DiffRow = memo(function DiffRow({ row }: { row: SideBySideRow }) {
 	);
 });
 
+/* ── Segmented raw/markdown switch, shown on markdown files only ── */
+function ViewSwitch({
+	view,
+	onPick,
+	labels,
+}: {
+	view: FileView;
+	onPick: (next: FileView) => void;
+	labels: Record<FileView, string>;
+}) {
+	const items: FileView[] = ['diff', 'preview'];
+	return (
+		// Le clic est confiné : sans ça il remonterait à l'en-tête, qui replierait
+		// l'accordéon dans le même geste que le changement de vue.
+		<Box
+			onClick={(e) => e.stopPropagation()}
+			sx={{
+				display: 'flex',
+				gap: '2px',
+				p: '2px',
+				mr: 0.5,
+				borderRadius: 1,
+				border: 1,
+				borderColor: 'divider',
+				bgcolor: 'background.paper',
+			}}
+		>
+			{items.map((item) => {
+				const active = view === item;
+				const Icon = item === 'diff' ? CodeRoundedIcon : MenuBookRoundedIcon;
+				return (
+					<Tooltip key={item} title={labels[item]} enterDelay={400}>
+						<IconButton
+							size="small"
+							aria-label={labels[item]}
+							aria-pressed={active}
+							onClick={() => onPick(item)}
+							sx={{
+								p: '3px',
+								borderRadius: 0.75,
+								color: active ? 'primary.main' : 'text.disabled',
+								bgcolor: active
+									? (theme) => alpha(theme.palette.primary.main, 0.12)
+									: 'transparent',
+								'&:hover': {
+									bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+								},
+							}}
+						>
+							<Icon sx={{ fontSize: 14 }} />
+						</IconButton>
+					</Tooltip>
+				);
+			})}
+		</Box>
+	);
+}
+
+/** Vue d'un fichier : le diff côte à côte, ou son contenu rendu en markdown. */
+type FileView = 'diff' | 'preview';
+
 /* ── File Diff Viewer (side-by-side, lazy + truncated) ── */
 export const FileDiffView = memo(function FileDiffView({
 	file,
 	focused = false,
 	focusNonce = 0,
+	cwd = null,
 }: {
 	file: FileDiff;
 	focused?: boolean;
 	focusNonce?: number;
+	/** Racine de résolution du chemin, pour la lecture markdown. */
+	cwd?: string | null;
 }) {
 	const t = useTranslations('agentDiff');
 	const [manualExpanded, setManualExpanded] = useState(false);
 	const [showAll, setShowAll] = useState(false);
+	const [view, setView] = useState<FileView>('diff');
 	const rootRef = useRef<HTMLDivElement>(null);
 	// Un fichier ciblé est toujours déplié ; sinon l'état est piloté par le clic.
 	const expanded = manualExpanded || focused;
+
+	const isMarkdown = isMarkdownPath(file.path);
+	const showPreview = isMarkdown && view === 'preview';
+
+	// Lecture différée : le contenu n'est demandé que quand le panneau markdown est
+	// réellement visible (`path` à null désactive la requête).
+	const {
+		data: fileContent,
+		isLoading: contentLoading,
+		error: contentError,
+	} = useFileContent(cwd, showPreview && expanded ? file.path : null);
+
+	// Choisir une vue déplie le fichier : basculer en lecture sur un accordéon fermé
+	// n'aurait rien montré.
+	const pickView = useCallback((next: FileView) => {
+		setView(next);
+		setManualExpanded(true);
+	}, []);
 
 	// Ciblage depuis le chat / la liste Activity : on scrolle sur le fichier.
 	useEffect(() => {
@@ -249,6 +339,14 @@ export const FileDiffView = memo(function FileDiffView({
 					)}
 				</Typography>
 
+				{isMarkdown && (
+					<ViewSwitch
+						view={view}
+						onPick={pickView}
+						labels={{ diff: t('viewRaw'), preview: t('viewMarkdown') }}
+					/>
+				)}
+
 				{file.additions > 0 && (
 					<Typography
 						variant="caption"
@@ -311,65 +409,103 @@ export const FileDiffView = memo(function FileDiffView({
 						overflow: 'hidden',
 					}}
 				>
-					<Box>
-						{visibleRows.map((item, idx) => {
-							if (item.type === 'hunk-header') {
-								return (
-									<Box
-										key={`h${idx}`}
-										sx={{
-											px: 1.5,
-											py: 0.5,
-											bgcolor: (theme) =>
-												alpha(theme.palette.primary.main, 0.06),
-											borderBottom: 1,
-											borderColor: 'divider',
-											...(idx > 0 && { borderTop: 1 }),
-										}}
-									>
+					{showPreview ? (
+						<Box sx={{ px: 2, py: 1.5 }}>
+							{contentLoading ? (
+								<Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+									<CircularProgress size={18} sx={{ color: 'primary.main' }} />
+								</Box>
+							) : contentError || !fileContent ? (
+								// Un fichier supprimé par le diff n'existe plus sur le disque :
+								// pas de garde en amont, c'est cette lecture qui l'apprend.
+								<Typography variant="caption" sx={{ color: 'text.disabled' }}>
+									{t('previewError')}
+								</Typography>
+							) : (
+								<>
+									<ActivityMarkdown
+										content={fileContent.content}
+										variant="reader"
+									/>
+									{fileContent.truncated && (
 										<Typography
 											variant="caption"
 											sx={{
-												fontFamily: FONT,
-												fontSize: '0.68rem',
+												display: 'block',
+												mt: 1.5,
+												pt: 1.5,
+												borderTop: 1,
+												borderColor: 'divider',
 												color: 'text.disabled',
 											}}
 										>
-											{item.header}
+											{t('previewTruncated')}
 										</Typography>
-									</Box>
-								);
-							}
-							return <DiffRow key={idx} row={item as SideBySideRow} />;
-						})}
+									)}
+								</>
+							)}
+						</Box>
+					) : (
+						<Box>
+							{visibleRows.map((item, idx) => {
+								if (item.type === 'hunk-header') {
+									return (
+										<Box
+											key={`h${idx}`}
+											sx={{
+												px: 1.5,
+												py: 0.5,
+												bgcolor: (theme) =>
+													alpha(theme.palette.primary.main, 0.06),
+												borderBottom: 1,
+												borderColor: 'divider',
+												...(idx > 0 && { borderTop: 1 }),
+											}}
+										>
+											<Typography
+												variant="caption"
+												sx={{
+													fontFamily: FONT,
+													fontSize: '0.68rem',
+													color: 'text.disabled',
+												}}
+											>
+												{item.header}
+											</Typography>
+										</Box>
+									);
+								}
+								return <DiffRow key={idx} row={item as SideBySideRow} />;
+							})}
 
-						{/* Truncation notice */}
-						{isTruncated && (
-							<Box
-								sx={{
-									display: 'flex',
-									justifyContent: 'center',
-									py: 1,
-									borderTop: 1,
-									borderColor: 'divider',
-									bgcolor: (theme) => alpha(theme.palette.primary.main, 0.03),
-								}}
-							>
-								<Button
-									size="small"
-									onClick={() => setShowAll(true)}
+							{/* Truncation notice */}
+							{isTruncated && (
+								<Box
 									sx={{
-										textTransform: 'none',
-										fontSize: '0.72rem',
-										fontWeight: 600,
-										color: 'primary.main',
+										display: 'flex',
+										justifyContent: 'center',
+										py: 1,
+										borderTop: 1,
+										borderColor: 'divider',
+										bgcolor: (theme) => alpha(theme.palette.primary.main, 0.03),
 									}}
 								>
-									{t('showRemainingLines', { count: hiddenCount })}
-								</Button>
-							</Box>
-						)}
-					</Box>
+									<Button
+										size="small"
+										onClick={() => setShowAll(true)}
+										sx={{
+											textTransform: 'none',
+											fontSize: '0.72rem',
+											fontWeight: 600,
+											color: 'primary.main',
+										}}
+									>
+										{t('showRemainingLines', { count: hiddenCount })}
+									</Button>
+								</Box>
+							)}
+						</Box>
+					)}
 				</Box>
 			</Collapse>
 		</Box>
@@ -531,6 +667,7 @@ export default function AgentDiffTab({
 						file={file}
 						focused={file.path === focusedPath}
 						focusNonce={focusNonce}
+						cwd={projectPath}
 					/>
 				))}
 			</Box>

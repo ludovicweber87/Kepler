@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { languageFromPath, FALLBACK_LANGUAGE, SHIKI_LANGUAGES } from './languageFromPath';
+import {
+	languageFromPath,
+	isMarkdownPath,
+	FALLBACK_LANGUAGE,
+	SHIKI_LANGUAGES,
+} from './languageFromPath';
 
 describe('languageFromPath', () => {
 	it('mappe les extensions du projet', () => {
@@ -59,6 +64,20 @@ describe('SHIKI_LANGUAGES', () => {
 	it('couvre toutes les valeurs que languageFromPath peut renvoyer', () => {
 		for (const path of ['a.ts', 'a.tsx', 'a.json', 'Dockerfile', 'Makefile', '.gitignore']) {
 			expect(SHIKI_LANGUAGES).toContain(languageFromPath(path));
+		}
+	});
+});
+
+describe('isMarkdownPath', () => {
+	it('reconnaît les fichiers markdown, quelle que soit la casse', () => {
+		expect(isMarkdownPath('README.md')).toBe(true);
+		expect(isMarkdownPath('docs/guide.MD')).toBe(true);
+		expect(isMarkdownPath('src/page.mdx')).toBe(true);
+	});
+
+	it('rejette le reste', () => {
+		for (const path of ['src/a.ts', 'a.json', 'Dockerfile', 'notes.txt', 'README', 'a.md.ts']) {
+			expect(isMarkdownPath(path)).toBe(false);
 		}
 	});
 });
