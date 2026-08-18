@@ -1,0 +1,10 @@
+# Le CLI Vercel uploade le contenu du dossier tel quel : tout fichier laissé ici
+# devient une URL publique. `vercel env pull` (et `vercel dev`) écrivent un
+# .env.local contenant un VERCEL_OIDC_TOKEN — il est gitignoré, donc invisible
+# pour un déploiement par intégration git, mais un `vercel deploy` local le
+# publierait à /.env.local.
+.env
+.env.*
+
+# Documentation interne : aucune raison de la servir avec le site.
+README.md

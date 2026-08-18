@@ -24,16 +24,44 @@ not a recreation.
 
 ## Deploy
 
-Anything that serves static files works. The site must be served from its own root — the paths
-in `index.html` are relative.
+The site is static — no build step. It must be served from its own root, since the paths in
+`index.html` are relative. `vercel.json` in this folder carries the config (security headers,
+a CSP scoped to what the page actually loads, `cleanUrls`), so nothing has to be set by hand
+beyond the root directory.
 
-**Vercel** — new project on this repo, then set **Root Directory** to `site`, framework preset
-**Other**, no build command, output directory `.`. Do not reuse the root `vercel.json`: that one
-builds the Next.js app.
+### Vercel (dashboard)
 
-**Netlify** — publish directory `site`, no build command.
+1. **Add New… → Project**, import the `Kepler` repo.
+2. Set **Root Directory** to `site`. This is the only setting that matters — with it, Vercel
+   reads `site/vercel.json` and ignores the root one (which builds the Next.js app).
+3. Framework preset resolves to **Other**; leave **Build Command** and **Install Command**
+   empty and **Output Directory** as the default. There is no `package.json` here, so Vercel
+   deploys the folder as static files.
+4. Deploy. Every push to `main` redeploys; other branches get preview URLs.
 
-**GitHub Pages** — push `site/` as the Pages source (or copy it to a `gh-pages` branch root).
+### Vercel (CLI)
+
+```bash
+cd site
+npx vercel        # preview deployment, links the project on first run
+npx vercel --prod # promote to production
+```
+
+The first run asks for the scope and project name; answer **no** to "override the settings"
+so `vercel.json` stays in charge.
+
+### Caching
+
+`styles.css` and `main.js` are referenced without content hashes, so they intentionally keep
+Vercel's default `max-age=0, must-revalidate` — a redeploy is visible immediately. Only the
+logos get a day of caching. If you ever add hashed assets, give them their own immutable rule.
+
+### Other hosts
+
+**Netlify** — publish directory `site`, no build command (headers need re-declaring in
+`netlify.toml`; `vercel.json` is not read).
+**GitHub Pages** — push `site/` as the Pages source. No custom headers, so the CSP above
+won't apply.
 
 ## Editing
 
