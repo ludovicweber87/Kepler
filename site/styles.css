@@ -492,6 +492,12 @@ a.lang__opt:hover {
 	margin: 4px 0 0;
 }
 
+/* Le français court ~20 % plus long que l'anglais : à 17ch le titre passait sur
+   trois lignes, avec « IA. » seul en bas. La mesure suit donc la langue. */
+:lang(fr) .hero__title {
+	max-width: 21ch;
+}
+
 .hero__sub {
 	font-size: clamp(16px, 1.6vw, 19px);
 	color: var(--muted);
