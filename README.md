@@ -185,12 +185,17 @@ curl -fsSL https://raw.githubusercontent.com/ludovicweber87/Kepler/main/install.
 
 > The installer is re-runnable: run it again and it pulls the latest `main`, rebuilds, and refreshes the `kepler` symlink. Prefer to read before you pipe? `curl -fsSLO …/install.sh`, read it, then `bash install.sh`.
 
-Open a new terminal (so the updated `PATH` applies), then:
+The installer puts `~/.kepler/bin` on your `PATH`, but the shell you ran it from doesn't know
+that yet — so `kepler` would come back as `command not found`. Load it, then start:
 
 ```bash
+source ~/.zshrc     # or ~/.bashrc · ~/.config/fish/config.fish
 kepler start        # builds on first run, starts both services, opens the window
 kepler seed         # optional: install the starter persona library
 ```
+
+Opening a new terminal works just as well: the `PATH` line is picked up at startup. The installer
+prints the exact `source` command for your shell when it finishes.
 
 `start` boots the agent server (`:4001`) and the web app (first free port from `4000`) as background services and opens the desktop window. GitHub access comes from your `gh` session — **there is nothing else to configure.**
 
@@ -292,20 +297,6 @@ Everything persisted lives in a handful of Drizzle tables — no user ids, no RL
 | GitHub        | `project_configs` · `project_boards` (board cache)                              |
 | Work          | `tasks` · `notifications`                                                       |
 | Configuration | `repo_paths` · `repo_settings` · `repo_scripts` · `app_settings` · `tab_orders` |
-
-### Environment variables
-
-| Variable                                                            | Role                                               |
-| ------------------------------------------------------------------- | -------------------------------------------------- |
-| `GITHUB_TOKEN`                                                      | Optional — otherwise read from the `gh` session    |
-| `ANTHROPIC_API_KEY` / `ANTHROPIC_AUTH_TOKEN` / `ANTHROPIC_BASE_URL` | Agent SDK & `claude` CLI                           |
-| `CLAUDE_BIN`                                                        | Optional path to the `claude` binary               |
-| `NEXT_PUBLIC_AGENT_URL`                                             | Agent server URL (default `http://localhost:4001`) |
-| `KEPLER_AGENT_PORT`                                                 | Agent server port (default `4001`)                 |
-| `KEPLER_DB_PATH`                                                    | Absolute path to the shared database               |
-| `KEPLER_ORIGIN`                                                     | Optional extra CORS origin for the agent server    |
-
-<br/>
 
 ## License
 
@@ -480,12 +471,17 @@ curl -fsSL https://raw.githubusercontent.com/ludovicweber87/Kepler/main/install.
 
 > L'installeur est rejouable : relancez-le et il récupère le dernier `main`, rebuild, et rafraîchit le symlink `kepler`. Vous préférez lire avant de piper ? `curl -fsSLO …/install.sh`, relisez-le, puis `bash install.sh`.
 
-Ouvrez un nouveau terminal (pour que le `PATH` mis à jour s'applique), puis :
+L'installeur ajoute `~/.kepler/bin` à votre `PATH`, mais le shell depuis lequel vous l'avez lancé
+ne le sait pas encore — `kepler` répondrait `command not found`. Chargez-le, puis démarrez :
 
 ```bash
+source ~/.zshrc     # ou ~/.bashrc · ~/.config/fish/config.fish
 kepler start        # build au premier lancement, démarre les services, ouvre la fenêtre
 kepler seed         # optionnel : installe la bibliothèque de personas de départ
 ```
+
+Ouvrir un nouveau terminal marche aussi bien : la ligne de `PATH` est lue au démarrage.
+L'installeur affiche la commande `source` exacte pour votre shell en fin d'exécution.
 
 `start` démarre le serveur agent (`:4001`) et l'app web (premier port libre depuis `4000`) en services d'arrière-plan et ouvre la fenêtre desktop. L'accès GitHub vient de votre session `gh` — **il n'y a rien d'autre à configurer.**
 
@@ -557,20 +553,6 @@ Tout ce qui est persisté vit dans une poignée de tables Drizzle — pas d'`use
 | GitHub        | `project_configs` · `project_boards` (cache du board)                           |
 | Travail       | `tasks` · `notifications`                                                       |
 | Configuration | `repo_paths` · `repo_settings` · `repo_scripts` · `app_settings` · `tab_orders` |
-
-### Variables d'environnement
-
-| Variable                                                            | Rôle                                                  |
-| ------------------------------------------------------------------- | ----------------------------------------------------- |
-| `GITHUB_TOKEN`                                                      | Optionnel — sinon lu depuis la session `gh`           |
-| `ANTHROPIC_API_KEY` / `ANTHROPIC_AUTH_TOKEN` / `ANTHROPIC_BASE_URL` | Agent SDK & CLI `claude`                              |
-| `CLAUDE_BIN`                                                        | Chemin optionnel du binaire `claude`                  |
-| `NEXT_PUBLIC_AGENT_URL`                                             | URL du serveur agent (défaut `http://localhost:4001`) |
-| `KEPLER_AGENT_PORT`                                                 | Port du serveur agent (défaut `4001`)                 |
-| `KEPLER_DB_PATH`                                                    | Chemin absolu de la base partagée                     |
-| `KEPLER_ORIGIN`                                                     | Origine CORS supplémentaire pour le serveur agent     |
-
-<br/>
 
 ## Licence
 
