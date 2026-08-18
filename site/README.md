@@ -1,8 +1,36 @@
 # Kepler — public site
 
-A single static page presenting Kepler 1.0. **No build step, no dependencies**: three files
-(`index.html`, `styles.css`, `main.js`) plus the logo. Open `index.html` in a browser and you
-see exactly what production serves.
+Two static pages presenting Kepler 1.0 — `index.html` (English) and `fr.html` (French, served
+at `/fr`). **No build step, no dependencies**: they share `styles.css` and `main.js`. Open
+either file in a browser and you see exactly what production serves.
+
+## Two languages, two pages
+
+The switcher in the nav is a plain link, not a JS toggle: each language keeps its own URL, gets
+indexed, and reads with JavaScript disabled. `hreflang` alternates declare the pair. The active
+language is a `<span>`, not an `<a>` — clicking the current language leads nowhere.
+
+The cost of this choice is duplication: **the two pages must be edited together.** Their markup
+is identical down to the class names, so any structural change to one belongs in the other. A
+tag-skeleton comparison catches drift:
+
+```bash
+python3 - <<'EOF'
+from html.parser import HTMLParser
+class S(HTMLParser):
+    def __init__(self): super().__init__(); self.o=[]
+    def handle_starttag(self, t, a):
+        d=dict(a); self.o.append(t + ('.' + '.'.join(sorted(d['class'].split())) if 'class' in d else ''))
+    def handle_endtag(self, t): self.o.append('/'+t)
+def skel(f):
+    p=S(); p.feed(open(f).read()); return p.o
+a, b = skel('index.html'), skel('fr.html')
+print('identical' if a == b else 'DRIFT')
+EOF
+```
+
+Expect exactly one difference: the language switcher, where the active `<span>` and the link
+`<a>` swap places.
 
 ## Design
 
@@ -25,7 +53,7 @@ not a recreation.
 ## Deploy
 
 The site is static — no build step. It must be served from its own root, since the paths in
-`index.html` are relative. `vercel.json` in this folder carries the config (security headers,
+both pages are relative. `cleanUrls` is what serves `fr.html` at `/fr`. `vercel.json` in this folder carries the config (security headers,
 a CSP scoped to what the page actually loads, `cleanUrls`), so nothing has to be set by hand
 beyond the root directory.
 

@@ -61,20 +61,40 @@ chmod +x "$REPO_DIR/cli/$CLI_NAME"
 ln -sf "$REPO_DIR/cli/$CLI_NAME" "$BIN_DIR/$CLI_NAME"
 
 # 5. Add ~/.kepler/bin to PATH (idempotent).
+#
+#    `rc_file` est le fichier à recharger, qu'on vienne de l'écrire ou qu'il
+#    contienne déjà la ligne : c'est lui qu'on affiche à la fin. Sans cette
+#    distinction, une réinstallation n'ajoutait rien, n'affichait rien, et
+#    laissait croire que `kepler` était déjà dans le PATH du shell courant.
 PATH_LINE='export PATH="$HOME/.kepler/bin:$PATH"'
+rc_file=""
 added=""
-for rc in "$HOME/.zshrc" "$HOME/.bashrc"; do
-	if [ -f "$rc" ] && ! grep -qF '.kepler/bin' "$rc"; then
-		printf '\n# Kepler CLI\n%s\n' "$PATH_LINE" >> "$rc"
-		added="$rc"
+
+case "${SHELL:-}" in
+	*/fish) shell_rcs="$HOME/.config/fish/config.fish" ;;
+	*/bash) shell_rcs="$HOME/.bashrc $HOME/.bash_profile" ;;
+	*) shell_rcs="$HOME/.zshrc" ;;
+esac
+
+for rc in $shell_rcs; do
+	if [ -f "$rc" ] && grep -qF '.kepler/bin' "$rc"; then
+		rc_file="$rc"
+		break
 	fi
 done
-if [ -n "${FISH_VERSION:-}" ] || [ -f "$HOME/.config/fish/config.fish" ]; then
-	fish_rc="$HOME/.config/fish/config.fish"
-	if [ -f "$fish_rc" ] && ! grep -qF '.kepler/bin' "$fish_rc"; then
-		printf '\nset -gx PATH $HOME/.kepler/bin $PATH\n' >> "$fish_rc"
-		added="$fish_rc"
-	fi
+
+if [ -z "$rc_file" ]; then
+	# Rien de configuré : on écrit dans le premier candidat du shell courant, en
+	#    le créant s'il n'existe pas. Sur un macOS neuf `~/.zshrc` est absent, et
+	#    la version précédente sautait silencieusement l'écriture — l'utilisateur
+	#    se retrouvait avec un `kepler: command not found` même après redémarrage.
+	rc_file="${shell_rcs%% *}"
+	mkdir -p "$(dirname "$rc_file")"
+	case "$rc_file" in
+		*config.fish) printf '\n# Kepler CLI\nset -gx PATH $HOME/.kepler/bin $PATH\n' >> "$rc_file" ;;
+		*)            printf '\n# Kepler CLI\n%s\n' "$PATH_LINE" >> "$rc_file" ;;
+	esac
+	added="$rc_file"
 fi
 
 # 6. Clean up the previous install, when the project was named Devora. The old
@@ -93,5 +113,14 @@ done
 
 echo ""
 echo "✓ Kepler installed."
-[ -n "$added" ] && echo "  PATH updated in $added — open a new terminal (or source it)."
-echo "  Then run:  kepler start"
+if [ -n "$added" ]; then
+	echo "  PATH line added to $rc_file."
+else
+	echo "  PATH already configured in $rc_file."
+fi
+echo ""
+echo "  ~/.kepler/bin is not in this shell's PATH yet. Load it, then start:"
+echo ""
+echo "      source $rc_file && kepler start"
+echo ""
+echo "  (a new terminal works too — the PATH line is picked up on startup)"
