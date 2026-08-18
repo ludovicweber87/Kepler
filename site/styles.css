@@ -398,6 +398,56 @@ kbd {
 	flex: none;
 }
 
+/* ── language switcher ─────────────────────────────────── */
+
+/* Deux pages statiques plutôt qu'un basculement JS : chaque langue garde son
+   URL, s'indexe, et se lit sans JavaScript. L'option active est un `span`, pas
+   un lien — cliquer sur la langue courante ne mène nulle part. */
+
+.lang {
+	display: inline-flex;
+	gap: 2px;
+	padding: 2px;
+	background: var(--paper);
+	border: 1px solid var(--line-strong);
+	border-radius: var(--r);
+	flex: none;
+}
+
+.lang__opt {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	font-weight: 500;
+	letter-spacing: 0.02em;
+	color: var(--muted);
+	padding: 5px 9px;
+	border-radius: 6px;
+	transition:
+		background 0.16s ease,
+		color 0.16s ease;
+}
+
+a.lang__opt:hover {
+	color: var(--ink);
+	background: var(--card-hover);
+}
+
+.lang__opt.is-on {
+	color: var(--terracotta-dark);
+	background: rgba(176, 85, 47, 0.1);
+}
+
+.lang__flag {
+	width: 15px;
+	height: 11px;
+	border-radius: 2px;
+	flex: none;
+	/* Un liseré : sans lui, le blanc du drapeau français se fond dans le crème. */
+	box-shadow: 0 0 0 1px rgba(51, 48, 42, 0.14);
+}
+
 .nav__actions .btn {
 	padding: 8px 14px;
 	font-size: 13.5px;
@@ -979,6 +1029,11 @@ kbd {
 	color: var(--muted);
 }
 
+/* Une étape peut porter deux paragraphes (le pourquoi, puis le quoi). */
+.steps__d + .steps__d {
+	margin-top: 10px;
+}
+
 .install__side {
 	display: flex;
 	flex-direction: column;
@@ -1196,6 +1251,35 @@ kbd {
 @media (max-width: 680px) {
 	body {
 		font-size: 15px;
+	}
+
+	.lang__code {
+		display: none;
+	}
+
+	/* Le switcher a chargé la barre : le bouton GitHub passe en icône seule
+	   (le lien reste accessible via son aria-label, le CTA et le footer). */
+	.nav__actions .btn--ghost {
+		padding: 8px 10px;
+		font-size: 0;
+		gap: 0;
+	}
+
+	/* La pastille de version quitte la barre : le hero l'annonce déjà. */
+	.nav .pill--version {
+		display: none;
+	}
+
+	.lockup__word {
+		font-size: 19px;
+	}
+
+	.lang__opt {
+		padding: 5px 7px;
+	}
+
+	.nav__inner {
+		gap: 12px;
 	}
 
 	.compare__head {
