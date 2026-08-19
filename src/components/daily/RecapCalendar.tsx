@@ -1,0 +1,224 @@
+'use client';
+
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import IconButton from '@mui/material/IconButton';
+import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
+import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded';
+import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
+import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { useTranslations } from 'next-intl';
+import { buildMonthGrid, parseMonth, shiftMonth, toKey } from '@/lib/monthGrid';
+import { truncateTitle } from '@/lib/recap';
+
+const MAX_POINTS_PER_DAY = 3;
+
+function capitalize(s: string) {
+	return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+export default function RecapCalendar({
+	month,
+	pointsByDay,
+	onPickDay,
+	onMonthChange,
+	onGenerate,
+	generatingDates,
+}: {
+	month: string;
+	pointsByDay: Map<string, string[]>;
+	onPickDay: (date: Date) => void;
+	onMonthChange: (month: string) => void;
+	onGenerate: (dateKey: string) => void;
+	generatingDates?: Set<string>;
+}) {
+	const t = useTranslations('daily');
+	const weeks = buildMonthGrid(month);
+	const todayKey = toKey(new Date());
+	const monthTitle = capitalize(format(parseMonth(month), 'LLLL yyyy', { locale: fr }));
+	const weekdayLabels = weeks[0].map((d) => capitalize(format(d.date, 'EEEEEE', { locale: fr })));
+
+	return (
+		<Box>
+			<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+				<IconButton
+					size="small"
+					aria-label={t('prevMonth')}
+					onClick={() => onMonthChange(shiftMonth(month, -1))}
+				>
+					<ChevronLeftRoundedIcon />
+				</IconButton>
+				<Typography variant="h6" sx={{ fontWeight: 600, minWidth: 160 }}>
+					{monthTitle}
+				</Typography>
+				<IconButton
+					size="small"
+					aria-label={t('nextMonth')}
+					onClick={() => onMonthChange(shiftMonth(month, 1))}
+				>
+					<ChevronRightRoundedIcon />
+				</IconButton>
+			</Box>
+
+			<Box
+				sx={{
+					display: 'grid',
+					gridTemplateColumns: 'repeat(7, 1fr)',
+					gap: 1,
+					mb: 1,
+				}}
+			>
+				{weekdayLabels.map((label, i) => (
+					<Typography
+						key={i}
+						variant="caption"
+						sx={{
+							textAlign: 'center',
+							color: 'text.secondary',
+							textTransform: 'uppercase',
+							letterSpacing: '0.5px',
+							fontWeight: 600,
+						}}
+					>
+						{label}
+					</Typography>
+				))}
+			</Box>
+
+			<Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1 }}>
+				{weeks.flat().map((day) => {
+					const isToday = day.key === todayKey;
+					const isFuture = day.key > todayKey;
+					const points = (day.inMonth && pointsByDay.get(day.key)) || [];
+					const hasRecap = day.inMonth && pointsByDay.has(day.key);
+					const visiblePoints = points.slice(0, MAX_POINTS_PER_DAY);
+					const extraCount = points.length - visiblePoints.length;
+					const isGenerating = generatingDates?.has(day.key) ?? false;
+					const canGenerate = day.inMonth && !isFuture;
+
+					return (
+						<Box
+							key={day.key}
+							onClick={day.inMonth ? () => onPickDay(day.date) : undefined}
+							sx={{
+								position: 'relative',
+								display: 'flex',
+								flexDirection: 'column',
+								minHeight: 120,
+								borderRadius: 2,
+								border: 2,
+								borderColor: isToday ? 'primary.main' : 'divider',
+								bgcolor: 'background.paper',
+								opacity: day.inMonth ? 1 : 0.4,
+								cursor: day.inMonth ? 'pointer' : 'default',
+								overflow: 'hidden',
+								p: 1,
+								transition: 'border-color 0.15s, box-shadow 0.15s',
+								'&:hover': day.inMonth ? { boxShadow: 3 } : {},
+								'&:hover .day-overlay': canGenerate ? { opacity: 1 } : {},
+							}}
+						>
+							<Typography
+								sx={{
+									fontSize: 14,
+									fontWeight: 600,
+									lineHeight: 1.4,
+									mb: 0.5,
+									color: isToday ? 'primary.main' : 'text.primary',
+								}}
+							>
+								{format(day.date, 'd')}
+							</Typography>
+
+							{hasRecap && (
+								<Box
+									sx={{
+										display: 'flex',
+										flexDirection: 'column',
+										gap: 0.5,
+										minWidth: 0,
+									}}
+								>
+									{visiblePoints.map((point, i) => (
+										<Box
+											key={i}
+											sx={{
+												border: 1,
+												borderColor: 'divider',
+												borderRadius: 1,
+												px: 0.75,
+												py: 0.25,
+												bgcolor: 'action.hover',
+											}}
+										>
+											<Typography
+												sx={{
+													fontSize: '0.68rem',
+													lineHeight: 1.3,
+													color: 'text.secondary',
+													overflow: 'hidden',
+													textOverflow: 'ellipsis',
+													whiteSpace: 'nowrap',
+												}}
+											>
+												{truncateTitle(point, 60)}
+											</Typography>
+										</Box>
+									))}
+									{extraCount > 0 && (
+										<Typography
+											sx={{
+												fontSize: '0.65rem',
+												fontWeight: 600,
+												color: 'primary.main',
+												pl: 0.25,
+											}}
+										>
+											{t('morePoints', { count: extraCount })}
+										</Typography>
+									)}
+								</Box>
+							)}
+
+							{canGenerate && (
+								<Box
+									className="day-overlay"
+									sx={{
+										position: 'absolute',
+										inset: 0,
+										display: 'flex',
+										alignItems: 'center',
+										justifyContent: 'center',
+										bgcolor: (theme) => `${theme.palette.primary.main}1F`,
+										opacity: isGenerating ? 1 : 0,
+										transition: 'opacity 0.15s',
+									}}
+								>
+									{isGenerating ? (
+										<CircularProgress size={22} />
+									) : (
+										<Button
+											variant="contained"
+											size="small"
+											startIcon={<AutoAwesomeRoundedIcon />}
+											onClick={(e) => {
+												e.stopPropagation();
+												onGenerate(day.key);
+											}}
+											sx={{ textTransform: 'none', fontWeight: 600 }}
+										>
+											{hasRecap ? t('regenerate') : t('generate')}
+										</Button>
+									)}
+								</Box>
+							)}
+						</Box>
+					);
+				})}
+			</Box>
+		</Box>
+	);
+}

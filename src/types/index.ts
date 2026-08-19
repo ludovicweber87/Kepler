@@ -1,0 +1,596 @@
+export interface GitHubRepo {
+	id: number;
+	name: string;
+	full_name: string;
+	html_url: string;
+	description: string | null;
+	language: string | null;
+	open_issues_count: number;
+	updated_at: string;
+	owner: {
+		login: string;
+		avatar_url: string;
+	};
+}
+
+export interface GitHubLabel {
+	name: string;
+	color: string;
+}
+
+export interface ProjectColumn {
+	project: string;
+	column: string;
+}
+
+export interface GitHubIssue {
+	id: number;
+	node_id: string;
+	number: number;
+	title: string;
+	body: string | null;
+	state: 'open' | 'closed';
+	html_url: string;
+	updated_at: string;
+	created_at: string;
+	closed_at: string | null;
+	labels: GitHubLabel[];
+	assignee: {
+		login: string;
+		avatar_url: string;
+	} | null;
+	assignees: {
+		login: string;
+		avatar_url: string;
+	}[];
+	user: {
+		login: string;
+		avatar_url: string;
+	};
+	repository_url: string;
+	pull_request?: unknown;
+	repo_full_name?: string;
+	project_columns?: ProjectColumn[];
+}
+
+export interface GitHubComment {
+	id: number;
+	body: string;
+	created_at: string;
+	user: {
+		login: string;
+		avatar_url: string;
+	};
+}
+
+export interface DashboardData {
+	repos: GitHubRepo[];
+	issues: GitHubIssue[];
+	user: string;
+}
+
+export interface DashboardStats {
+	totalIssues: number;
+	openIssues: number;
+	closedIssues: number;
+	repoCount: number;
+}
+
+// Project V2 types
+
+export interface ProjectV2View {
+	id: string;
+	name: string;
+	filter: string;
+}
+
+export interface ProjectV2Item {
+	contentType: 'Issue' | 'PullRequest' | 'DraftIssue';
+	repoFullName: string | null;
+	number: number | null;
+	fieldValues: Record<string, string>; // field name → value
+	labels: GitHubLabel[]; // issue/PR labels (for `label:` view filters + rendering)
+	// Render fields (issues + PRs), used to build the board directly from Project V2 items
+	nodeId: string | null;
+	title: string;
+	url: string;
+	state: string; // OPEN | CLOSED | MERGED
+	updatedAt: string;
+	assignees: { login: string; avatarUrl: string }[];
+}
+
+export interface ProjectV2Data {
+	id: string;
+	title: string;
+	number: number;
+	views: ProjectV2View[];
+	items: ProjectV2Item[];
+	statusColumns: string[];
+}
+
+export interface ViewIssueRef {
+	repo: string;
+	number: number;
+}
+
+export interface ViewRepoMapping {
+	viewName: string;
+	repos: string[]; // full_name list
+	issues: ViewIssueRef[]; // exact issue identifiers per view
+}
+
+export interface ProjectV2Config {
+	org: string;
+	projectNumber: number;
+	projectTitle: string;
+	selectedViews: string[]; // view names
+	activeView: string | null; // currently active view tab (null = "All")
+	viewOrder: string[]; // ordered view names for tab display
+	viewRepoMappings: ViewRepoMapping[];
+	statusColumns: string[];
+	views: ProjectV2View[]; // all available views (cached from GitHub)
+	ownerType?: 'organization' | 'user'; // owner type for GraphQL queries
+	connected: boolean; // board agrégé au Kanban unifié
+}
+
+// Timeline event types
+
+interface TimelineActor {
+	login: string;
+	avatar_url: string;
+}
+
+interface TimelineLabel {
+	name: string;
+	color: string;
+}
+
+interface BaseTimelineEvent {
+	id?: number;
+	node_id?: string;
+	created_at: string;
+	actor: TimelineActor | null;
+}
+
+interface LabeledEvent extends BaseTimelineEvent {
+	event: 'labeled' | 'unlabeled';
+	label: TimelineLabel;
+}
+
+interface AssignedEvent extends BaseTimelineEvent {
+	event: 'assigned' | 'unassigned';
+	assignee: TimelineActor;
+}
+
+interface ClosedEvent extends BaseTimelineEvent {
+	event: 'closed';
+	state_reason?: string | null;
+}
+
+interface ReopenedEvent extends BaseTimelineEvent {
+	event: 'reopened';
+}
+
+interface RenamedEvent extends BaseTimelineEvent {
+	event: 'renamed';
+	rename: { from: string; to: string };
+}
+
+interface CommentedEvent extends BaseTimelineEvent {
+	event: 'commented';
+	body: string;
+	user: TimelineActor;
+	html_url: string;
+}
+
+interface CrossReferencedEvent extends BaseTimelineEvent {
+	event: 'cross-referenced' | 'referenced';
+	source?: {
+		issue?: {
+			number: number;
+			title: string;
+			html_url: string;
+			repository?: { full_name: string };
+		};
+	};
+}
+
+interface GenericTimelineEvent extends BaseTimelineEvent {
+	event: string;
+	[key: string]: unknown;
+}
+
+export type GitHubTimelineEvent =
+	| LabeledEvent
+	| AssignedEvent
+	| ClosedEvent
+	| ReopenedEvent
+	| RenamedEvent
+	| CommentedEvent
+	| CrossReferencedEvent
+	| GenericTimelineEvent;
+
+export interface CheckRun {
+	name: string;
+	status: 'queued' | 'in_progress' | 'completed';
+	conclusion:
+		| 'success'
+		| 'failure'
+		| 'neutral'
+		| 'cancelled'
+		| 'skipped'
+		| 'timed_out'
+		| 'action_required'
+		| null;
+}
+
+export interface GitHubPullRequest {
+	id: number;
+	number: number;
+	title: string;
+	body: string | null;
+	state: 'open' | 'closed';
+	draft: boolean;
+	html_url: string;
+	created_at: string;
+	updated_at: string;
+	merged_at: string | null;
+	mergeable: boolean | null;
+	user: {
+		login: string;
+		avatar_url: string;
+	};
+	head: {
+		ref: string;
+		sha: string;
+		label: string;
+	};
+	base: {
+		ref: string;
+		label: string;
+	};
+	labels: GitHubLabel[];
+	requested_reviewers: {
+		login: string;
+		avatar_url: string;
+	}[];
+	review_comments: number;
+	comments: number;
+	additions: number;
+	deletions: number;
+	changed_files: number;
+	repo_full_name: string;
+	check_status: 'success' | 'failure' | 'pending' | null;
+	check_runs: CheckRun[];
+}
+
+/** Référence légère d'une PR mergée, associée à sa branche (head.ref). */
+export interface MergedPrRef {
+	ref: string;
+	number: number;
+	html_url: string;
+}
+
+// Agent sessions (from local agent /sessions endpoint)
+
+export interface ActiveSession {
+	sessionId: string;
+	cwd: string;
+	branch: string | null;
+	projectName: string;
+	agentName: string | null;
+	createdAt: number;
+	lastActivity: number;
+	lastOutput: number;
+	isActive: boolean;
+	isStreaming: boolean;
+}
+
+// Git worktrees (from local agent /git/worktrees endpoint)
+
+export interface WorktreeInfo {
+	path: string;
+	branch: string;
+	head: string;
+}
+
+export interface AgentPreset {
+	id: string;
+	name: string;
+	description: string;
+	prompt_template: string;
+	icon: string;
+	color: string;
+	created_at: string;
+}
+
+// ─── Agent Chat (lot 2) ──────────────────────────────────
+export type ChatRole = 'user' | 'assistant' | 'system';
+
+export interface ChatToolCall {
+	id: string;
+	name: string;
+	input: unknown;
+	result?: unknown;
+	truncated?: boolean;
+	status: 'running' | 'done' | 'error';
+}
+
+export type ChatSegment =
+	| { kind: 'text'; text: string }
+	| { kind: 'thinking'; text: string }
+	| { kind: 'image'; url: string; name: string }
+	| { kind: 'role_switch'; name: string }
+	| { kind: 'tool'; call: ChatToolCall };
+
+export interface ChatImageInput {
+	name: string;
+	mediaType: string;
+	data: string;
+}
+
+/** Image attachée dans le composer, en attente d'envoi. */
+export interface ComposerAttachment extends ChatImageInput {
+	id: string;
+}
+
+export interface ChatMessage {
+	id: string;
+	role: ChatRole;
+	segments: ChatSegment[];
+}
+
+export type PermissionDecision = 'allow-once' | 'allow-always' | 'reject';
+
+export interface PendingPermission {
+	id: string;
+	toolName: string;
+	input: Record<string, unknown>;
+	title?: string;
+	displayName?: string;
+}
+
+export interface QuestionOption {
+	label: string;
+	description?: string;
+	preview?: string;
+}
+
+export interface QuestionSpec {
+	question: string;
+	header?: string;
+	multiSelect?: boolean;
+	options: QuestionOption[];
+}
+
+export interface PendingQuestion {
+	id: string;
+	questions: QuestionSpec[];
+}
+
+/** answers keyé par texte de question ; valeur = label choisi (ou texte libre "Other", joint par ", " en multiSelect). */
+export type QuestionAnswers = Record<string, string>;
+
+/** Event tel qu'il arrive sur le fil WS (data selon l'`event`). */
+export interface StreamEventWire {
+	seq: number;
+	event:
+		| 'session'
+		| 'user'
+		| 'thinking'
+		| 'assistant'
+		| 'tool_use'
+		| 'tool_result'
+		| 'role_switch'
+		| 'result';
+	data: Record<string, unknown>;
+}
+
+// ─── Repo Settings ──────────────────────────────────────────
+export interface RepoSettings {
+	repo_full_name: string;
+	create_pr_prompt: string;
+	commit_push_prompt: string;
+	files_to_copy: string;
+	setup_script: string;
+	setup_script_name: string;
+	archive_script: string;
+	/** Colonne du board vers laquelle déplacer l'issue au merge d'une PR liée. Vide = ne rien faire. */
+	qa_column: string;
+}
+
+// ─── Repo Scripts ───────────────────────────────────────────
+
+/** `terminal` ouvre un onglet terminal ; `chat` envoie le script à l'agent. */
+export type RepoScriptRunMode = 'terminal' | 'chat';
+
+export const REPO_SCRIPT_RUN_MODES: RepoScriptRunMode[] = ['terminal', 'chat'];
+
+export interface RepoScript {
+	id: string;
+	repo_full_name: string;
+	name: string;
+	script: string;
+	run_mode: RepoScriptRunMode;
+	sort_order: number;
+	/** Départage deux scripts de même `sort_order`. */
+	created_at: string;
+}
+
+// ─── Daily Recaps ───────────────────────────────────────────
+export interface RecapItem {
+	time: string; // HH:MM local
+	type: string; // commit | pr | summary | file_change | info | error
+	text: string;
+}
+
+export interface DailyRecap {
+	id: string;
+	repo_full_name: string;
+	recap_date: string; // YYYY-MM-DD (local)
+	content: string; // concise FR markdown
+	items: RecapItem[] | null;
+	trigger_type: 'manual';
+	created_at: string;
+}
+
+// ─── Notifications ───────────────────────────────────────────
+export type NotificationSource = 'agent';
+export type NotificationType = 'agent_done' | 'agent_error' | 'agent_blocked';
+export interface EntityRef {
+	kind: 'session';
+	id: string;
+	repo?: string;
+}
+export interface AppNotification {
+	id: string;
+	source: NotificationSource;
+	type: NotificationType;
+	priority: 'high' | 'normal';
+	title: string;
+	body: string;
+	url: string;
+	entity_ref: EntityRef | null;
+	payload: Record<string, string>;
+	read_at: string | null;
+	created_at: string;
+}
+export type NewNotification = Omit<AppNotification, 'id' | 'read_at' | 'created_at'> & {
+	dedupe_key: string;
+};
+
+// ─── Personas (bibliothèque réutilisable) ────────────────
+
+export type ClaudeEffort = 'low' | 'medium' | 'high' | 'ultracode';
+export type ClaudePermissionMode = 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan';
+
+export interface Persona {
+	id: string;
+	name: string;
+	role: string | null;
+	system_prompt: string | null;
+	model: string | null;
+	effort: ClaudeEffort | null;
+	permission_mode: ClaudePermissionMode | null;
+	color: string | null;
+	created_at: string;
+	updated_at: string;
+	/**
+	 * Repos (`repo_full_name`) auxquels la persona est rattachée. Liste vide =
+	 * persona globale. Toujours renseigné par `GET /api/personas`.
+	 */
+	repos: string[];
+}
+
+export type NewPersona = Pick<Persona, 'name'> &
+	Partial<Omit<Persona, 'id' | 'created_at' | 'updated_at'>>;
+
+// ─── Tasks ───────────────────────────────────────────────
+
+export type UrgencyLevel = 'none' | 'green' | 'orange' | 'red' | 'overdue';
+
+export interface Task {
+	id: string;
+	title: string;
+	description: string | null;
+	due_date: string | null; // 'YYYY-MM-DD'
+	repo_full_name: string | null;
+	issue_owner: string | null;
+	issue_repo: string | null;
+	issue_number: number | null;
+	issue_title: string | null;
+	done: boolean;
+	completed_at: string | null;
+	pinned: boolean;
+	created_at: string;
+	updated_at: string;
+}
+
+// Payload de création : seul le titre est requis.
+export type NewTask = Pick<Task, 'title'> &
+	Partial<
+		Pick<
+			Task,
+			| 'description'
+			| 'due_date'
+			| 'repo_full_name'
+			| 'issue_owner'
+			| 'issue_repo'
+			| 'issue_number'
+			| 'issue_title'
+			| 'pinned'
+		>
+	>;
+
+// Payload de mise à jour : id requis, tout le reste optionnel.
+export type TaskPatch = Pick<Task, 'id'> &
+	Partial<Omit<Task, 'id' | 'created_at' | 'updated_at' | 'completed_at'>>;
+
+// ─── Docs ────────────────────────────────────────────────
+
+// 'import' = fichier .md fourni par l'utilisateur, jamais généré.
+export type DocSourceType = 'knowledge' | 'repo' | 'import';
+export type DocLevel = 'beginner' | 'intermediate' | 'senior';
+export type DocLength = 'short' | 'medium' | 'long';
+export type DocFormat = 'overview' | 'tutorial' | 'reference' | 'cheatsheet' | 'comparison';
+export type DocStatus = 'queued' | 'generating' | 'ready' | 'failed';
+
+export interface DocCategory {
+	id: string;
+	name: string;
+	color: string;
+	sort_order: number;
+	created_at: string;
+}
+
+export type NewDocCategory = Pick<DocCategory, 'name'> & Partial<Pick<DocCategory, 'color'>>;
+export type DocCategoryPatch = Pick<DocCategory, 'id'> &
+	Partial<Pick<DocCategory, 'name' | 'color' | 'sort_order'>>;
+
+export interface Doc {
+	id: string;
+	title: string;
+	subject: string;
+	source_type: DocSourceType;
+	repo_full_name: string | null;
+	level: DocLevel;
+	length: DocLength;
+	format: DocFormat;
+	angle: string | null;
+	content: string | null;
+	status: DocStatus;
+	error: string | null;
+	agent_session_id: string | null;
+	created_at: string;
+	updated_at: string;
+}
+
+// Doc enrichie des ids de catégories liées (jointure), pour l'UI liste/filtre.
+export interface DocWithCategories extends Doc {
+	category_ids: string[];
+}
+
+// Payload de création : sujet requis ; le reste a des défauts côté serveur.
+// `category_ids` = catégories existantes à lier à la création.
+export type NewDoc = Pick<Doc, 'subject'> &
+	Partial<
+		Pick<
+			Doc,
+			'title' | 'source_type' | 'repo_full_name' | 'level' | 'length' | 'format' | 'angle'
+		>
+	> & { category_ids?: string[] };
+
+// Payload d'import d'un `.md` : le contenu est fourni, donc la doc naît `ready`
+// et ne passe jamais par le rédacteur. Pas de niveau/longueur/format : ce sont
+// des consignes de génération, sans objet ici.
+export type ImportedDoc = {
+	title: string;
+	content: string;
+	category_ids?: string[];
+};
+
+// Payload de mise à jour : id requis, tout le reste optionnel.
+export type DocPatch = Pick<Doc, 'id'> &
+	Partial<
+		Pick<Doc, 'title' | 'content' | 'status' | 'error' | 'angle'> & { category_ids: string[] }
+	>;

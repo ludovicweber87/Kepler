@@ -1,0 +1,13 @@
+{
+	"name": "kepler-cli",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"bin": {
+		"kepler": "./index.mjs"
+	},
+	"dependencies": {
+		"better-sqlite3": "^12.8.0",
+		"commander": "^12.1.0"
+	}
+}

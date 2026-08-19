@@ -1,0 +1,202 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1774108948203,
+      "tag": "0000_keen_wild_pack",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1783508198591,
+      "tag": "0001_glossy_the_hand",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1783585892554,
+      "tag": "0002_sticky_nightcrawler",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1783598793138,
+      "tag": "0003_complex_maria_hill",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1783599595375,
+      "tag": "0004_concerned_human_fly",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1783616538610,
+      "tag": "0005_icy_phalanx",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1783930567071,
+      "tag": "0006_known_warbird",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1783957516313,
+      "tag": "0007_cynical_jimmy_woo",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1784500000000,
+      "tag": "0008_setup_script_name",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1784600000000,
+      "tag": "0009_launch_mode",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1784700000000,
+      "tag": "0010_drop_run_scripts",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1784800000000,
+      "tag": "0011_drop_todos",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1784900000000,
+      "tag": "0012_daily_recap",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1785000000000,
+      "tag": "0013_drop_recap_schedules",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1785100000000,
+      "tag": "0014_public_vampiro",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1785200000000,
+      "tag": "0015_commit_push_prompt",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1785300000000,
+      "tag": "0016_personas_workflow",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1785400000000,
+      "tag": "0017_repo_qa_column",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1785500000000,
+      "tag": "0018_drop_workflow_add_agent_settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1785600000000,
+      "tag": "0019_add_tasks",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1785700000000,
+      "tag": "0020_title_pinned",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1785800000000,
+      "tag": "0021_add_docs",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1785900000000,
+      "tag": "0022_persona_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1786000000000,
+      "tag": "0023_doc_chat",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1786100000000,
+      "tag": "0024_timestamps_utc",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1786200000000,
+      "tag": "0025_repo_scripts",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1786300000000,
+      "tag": "0026_persona_folders",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "6",
+      "when": 1786400000000,
+      "tag": "0027_persona_repos",
+      "breakpoints": true
+    }
+  ]
+}

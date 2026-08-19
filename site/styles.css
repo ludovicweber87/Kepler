@@ -1,0 +1,1366 @@
+/* ============================================================
+   Kepler — site
+   Palette: the app's "Light — Cream" theme (light-warm), lifted
+   verbatim from src/theme/theme.ts. Do not invent new hues here:
+   if a colour is missing, it should be added to the theme first.
+   ============================================================ */
+
+:root {
+	/* surfaces */
+	--bg: #f4eee2;
+	--paper: #fcf8f0;
+	--drawer: #ede6d9;
+	--card-hover: #f7f1e7;
+	--line: #e4ddce;
+	--line-strong: #dcd2c0;
+
+	/* ink */
+	--ink: #33302a;
+	--muted: #6e685c;
+
+	/* accents */
+	--terracotta: #b0552f;
+	--terracotta-light: #cc7757;
+	--terracotta-dark: #8c4123;
+	--olive: #636d36;
+	--olive-light: #8b9755;
+	--success: #4a7546;
+	--warning: #8a6416;
+	--info: #356f8c;
+	--error: #a5382a;
+
+	/* terminal / code ink — the warm dark end of the same family */
+	--ink-deep: #2a2521;
+	--ink-deep-2: #201c19;
+
+	/* type */
+	--brand: 'Alfa Slab One', 'Roboto Slab', Georgia, serif;
+	--sans: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
+	--mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+
+	/* geometry — the app's radii */
+	--r-sm: 6px;
+	--r: 8px;
+	--r-md: 10px;
+	--r-lg: 14px;
+	--r-xl: 20px;
+
+	/* elevation — warm shadows, never neutral grey */
+	--sh-1: 0 1px 2px rgba(51, 48, 42, 0.04), 0 1px 3px rgba(51, 48, 42, 0.06);
+	--sh-2: 0 2px 4px rgba(51, 48, 42, 0.04), 0 8px 20px rgba(51, 48, 42, 0.07);
+	--sh-3: 0 4px 8px rgba(51, 48, 42, 0.05), 0 24px 56px rgba(51, 48, 42, 0.11);
+
+	--gut: clamp(20px, 5vw, 40px);
+	--maxw: 1160px;
+}
+
+/* ── reset ─────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html {
+	scroll-behavior: smooth;
+	-webkit-text-size-adjust: 100%;
+}
+
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--ink);
+	font-family: var(--sans);
+	font-size: 16px;
+	font-weight: 400;
+	line-height: 1.65;
+	-webkit-font-smoothing: antialiased;
+	text-rendering: optimizeLegibility;
+	overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+ul,
+ol,
+dl,
+dd,
+figure {
+	margin: 0;
+}
+
+ul,
+ol {
+	padding: 0;
+	list-style: none;
+}
+
+a {
+	color: inherit;
+	text-decoration: none;
+}
+
+img,
+svg {
+	display: block;
+	max-width: 100%;
+}
+
+button {
+	font: inherit;
+	color: inherit;
+	border: 0;
+	background: none;
+	cursor: pointer;
+}
+
+code,
+kbd,
+pre {
+	font-family: var(--mono);
+	font-size: 0.86em;
+}
+
+code {
+	background: rgba(176, 85, 47, 0.07);
+	color: var(--terracotta-dark);
+	padding: 0.12em 0.36em;
+	border-radius: 4px;
+}
+
+kbd {
+	background: var(--paper);
+	border: 1px solid var(--line-strong);
+	border-bottom-width: 2px;
+	border-radius: 5px;
+	padding: 0.05em 0.35em;
+	font-size: 0.78em;
+}
+
+:focus-visible {
+	outline: 2px solid var(--terracotta);
+	outline-offset: 3px;
+	border-radius: 3px;
+}
+
+.skip-link {
+	position: absolute;
+	left: -9999px;
+}
+
+.skip-link:focus {
+	left: 16px;
+	top: 12px;
+	z-index: 100;
+	background: var(--paper);
+	border: 1px solid var(--line-strong);
+	border-radius: var(--r);
+	padding: 8px 14px;
+}
+
+/* ── primitives ────────────────────────────────────────── */
+
+.container {
+	width: 100%;
+	max-width: var(--maxw);
+	margin: 0 auto;
+	padding: 0 var(--gut);
+}
+
+.ink-accent {
+	color: var(--terracotta);
+}
+
+.eyebrow {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 12.5px;
+	font-weight: 500;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--muted);
+	background: var(--paper);
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	padding: 6px 14px 6px 12px;
+	box-shadow: var(--sh-1);
+}
+
+.kicker {
+	font-size: 12.5px;
+	font-weight: 600;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--terracotta);
+	margin-bottom: 12px;
+}
+
+.dot {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--muted);
+	flex: none;
+	display: inline-block;
+}
+
+.dot--live {
+	background: var(--success);
+	box-shadow: 0 0 0 3px rgba(74, 117, 70, 0.16);
+	animation: pulse 2.6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+	0%,
+	100% {
+		box-shadow: 0 0 0 3px rgba(74, 117, 70, 0.16);
+	}
+	50% {
+		box-shadow: 0 0 0 6px rgba(74, 117, 70, 0.05);
+	}
+}
+
+.pill {
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	border-radius: 999px;
+	padding: 2px 8px;
+	white-space: nowrap;
+}
+
+.pill--version {
+	color: var(--terracotta-dark);
+	background: rgba(176, 85, 47, 0.1);
+	border: 1px solid rgba(176, 85, 47, 0.2);
+}
+
+.icon {
+	width: 15px;
+	height: 15px;
+	flex: none;
+}
+
+/* ── buttons ───────────────────────────────────────────── */
+
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	font-size: 14px;
+	font-weight: 500;
+	border-radius: var(--r);
+	padding: 10px 18px;
+	border: 1px solid transparent;
+	transition:
+		transform 0.16s ease,
+		box-shadow 0.16s ease,
+		background 0.16s ease,
+		border-color 0.16s ease;
+	white-space: nowrap;
+}
+
+.btn--primary {
+	background: var(--terracotta);
+	color: #fff8f2;
+	box-shadow: var(--sh-1);
+}
+
+.btn--primary:hover {
+	background: var(--terracotta-dark);
+	transform: translateY(-1px);
+	box-shadow: var(--sh-2);
+}
+
+.btn--ghost {
+	background: var(--paper);
+	border-color: var(--line-strong);
+	color: var(--ink);
+}
+
+.btn--ghost:hover {
+	background: var(--card-hover);
+	border-color: var(--muted);
+}
+
+.btn--quiet {
+	color: var(--terracotta-dark);
+	padding-inline: 6px;
+}
+
+.btn--quiet:hover {
+	color: var(--terracotta);
+	transform: translateX(2px);
+}
+
+.btn--lg {
+	font-size: 15px;
+	padding: 13px 24px;
+}
+
+/* ── nav ───────────────────────────────────────────────── */
+
+.nav {
+	position: sticky;
+	top: 0;
+	z-index: 40;
+	background: rgba(244, 238, 226, 0.82);
+	backdrop-filter: saturate(150%) blur(14px);
+	-webkit-backdrop-filter: saturate(150%) blur(14px);
+	border-bottom: 1px solid transparent;
+	transition:
+		border-color 0.2s ease,
+		box-shadow 0.2s ease;
+}
+
+.nav.is-stuck {
+	border-bottom-color: var(--line);
+	box-shadow: 0 1px 12px rgba(51, 48, 42, 0.05);
+}
+
+.nav__inner {
+	max-width: var(--maxw);
+	margin: 0 auto;
+	padding: 12px var(--gut);
+	display: flex;
+	align-items: center;
+	gap: 24px;
+}
+
+.lockup {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	flex: none;
+}
+
+.lockup__mark {
+	width: 26px;
+	height: 26px;
+	overflow: visible;
+}
+
+.lockup__word {
+	font-family: var(--brand);
+	font-size: 21px;
+	letter-spacing: 0.01em;
+	line-height: 1;
+	padding-top: 2px;
+}
+
+.lockup__word--sm {
+	font-size: 17px;
+}
+
+.nav__links {
+	display: flex;
+	gap: 22px;
+	margin-left: auto;
+	font-size: 14px;
+	color: var(--muted);
+}
+
+.nav__links a {
+	position: relative;
+	padding: 4px 0;
+	transition: color 0.16s ease;
+}
+
+.nav__links a::after {
+	content: '';
+	position: absolute;
+	left: 0;
+	right: 100%;
+	bottom: 0;
+	height: 1.5px;
+	background: var(--terracotta);
+	transition: right 0.22s ease;
+}
+
+.nav__links a:hover {
+	color: var(--ink);
+}
+
+.nav__links a:hover::after {
+	right: 0;
+}
+
+.nav__actions {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex: none;
+}
+
+/* ── language switcher ─────────────────────────────────── */
+
+/* Deux pages statiques plutôt qu'un basculement JS : chaque langue garde son
+   URL, s'indexe, et se lit sans JavaScript. L'option active est un `span`, pas
+   un lien — cliquer sur la langue courante ne mène nulle part. */
+
+.lang {
+	display: inline-flex;
+	gap: 2px;
+	padding: 2px;
+	background: var(--paper);
+	border: 1px solid var(--line-strong);
+	border-radius: var(--r);
+	flex: none;
+}
+
+.lang__opt {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	font-weight: 500;
+	letter-spacing: 0.02em;
+	color: var(--muted);
+	padding: 5px 9px;
+	border-radius: 6px;
+	transition:
+		background 0.16s ease,
+		color 0.16s ease;
+}
+
+a.lang__opt:hover {
+	color: var(--ink);
+	background: var(--card-hover);
+}
+
+.lang__opt.is-on {
+	color: var(--terracotta-dark);
+	background: rgba(176, 85, 47, 0.1);
+}
+
+.lang__flag {
+	width: 15px;
+	height: 11px;
+	border-radius: 2px;
+	flex: none;
+	/* Un liseré : sans lui, le blanc du drapeau français se fond dans le crème. */
+	box-shadow: 0 0 0 1px rgba(51, 48, 42, 0.14);
+}
+
+.nav__actions .btn {
+	padding: 8px 14px;
+	font-size: 13.5px;
+}
+
+/* ── hero ──────────────────────────────────────────────── */
+
+.hero {
+	position: relative;
+	padding: clamp(56px, 9vw, 104px) 0 clamp(48px, 7vw, 84px);
+	text-align: center;
+	overflow: hidden;
+}
+
+.hero__glow {
+	position: absolute;
+	top: -40%;
+	left: 50%;
+	width: min(1100px, 130vw);
+	aspect-ratio: 1;
+	transform: translateX(-50%);
+	background:
+		radial-gradient(circle at 50% 50%, rgba(204, 119, 87, 0.16), transparent 58%),
+		radial-gradient(circle at 65% 40%, rgba(99, 109, 54, 0.1), transparent 55%);
+	pointer-events: none;
+	z-index: -1;
+}
+
+.hero__inner {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 22px;
+}
+
+.hero__title {
+	font-size: clamp(38px, 6.4vw, 70px);
+	font-weight: 600;
+	line-height: 1.06;
+	letter-spacing: -0.03em;
+	max-width: 17ch;
+	margin: 4px 0 0;
+}
+
+/* Le français court ~20 % plus long que l'anglais : à 17ch le titre passait sur
+   trois lignes, avec « IA. » seul en bas. La mesure suit donc la langue. */
+:lang(fr) .hero__title {
+	max-width: 21ch;
+}
+
+.hero__sub {
+	font-size: clamp(16px, 1.6vw, 19px);
+	color: var(--muted);
+	max-width: 62ch;
+	font-weight: 300;
+}
+
+.hero__sub strong {
+	color: var(--ink);
+	font-weight: 500;
+}
+
+.hero__cta {
+	display: flex;
+	align-items: center;
+	gap: 18px;
+	flex-wrap: wrap;
+	justify-content: center;
+	margin-top: 6px;
+	/* `.hero__inner` centres its children, so they size to content — cap the
+	   width here or the nowrap install command widens the whole hero. */
+	max-width: 100%;
+}
+
+.hero__note {
+	font-size: 13.5px;
+	color: var(--muted);
+}
+
+/* copy-command chip */
+
+.cmd {
+	display: inline-flex;
+	align-items: center;
+	min-width: 0;
+	gap: 10px;
+	background: var(--paper);
+	border: 1px solid var(--line-strong);
+	border-radius: var(--r);
+	padding: 8px 8px 8px 14px;
+	box-shadow: var(--sh-1);
+	max-width: 100%;
+	text-align: left;
+}
+
+.cmd code {
+	background: none;
+	color: var(--ink);
+	font-size: 12.5px;
+	padding: 0;
+	overflow-x: auto;
+	white-space: nowrap;
+	scrollbar-width: none;
+	/* A nowrap flex item defaults to its content width and would push the chip
+	   past the viewport on narrow screens; min-width:0 lets it scroll instead. */
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.cmd code::-webkit-scrollbar {
+	display: none;
+}
+
+.cmd__btn {
+	flex: none;
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--terracotta-dark);
+	background: rgba(176, 85, 47, 0.09);
+	border-radius: var(--r-sm);
+	padding: 5px 10px;
+	transition: background 0.16s ease;
+}
+
+.cmd__btn:hover {
+	background: rgba(176, 85, 47, 0.16);
+}
+
+.cmd__btn.is-done {
+	color: var(--success);
+	background: rgba(74, 117, 70, 0.12);
+}
+
+.cmd--block {
+	display: flex;
+	align-items: flex-start;
+	width: 100%;
+	margin: 10px 0;
+	padding-top: 10px;
+}
+
+/* In the install steps the command is meant to be read, not just copied: let it
+   wrap instead of scrolling out of sight. */
+.cmd--block code {
+	white-space: normal;
+	overflow-wrap: anywhere;
+	line-height: 1.6;
+}
+
+/* ── stats strip ───────────────────────────────────────── */
+
+.strip {
+	border-top: 1px solid var(--line);
+	border-bottom: 1px solid var(--line);
+	background: var(--paper);
+}
+
+.strip__grid {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 8px;
+	padding-block: 34px;
+}
+
+.stat {
+	text-align: center;
+	padding: 0 12px;
+	border-left: 1px solid var(--line);
+}
+
+.stat:first-child {
+	border-left: 0;
+}
+
+.stat__n {
+	font-family: var(--brand);
+	font-size: 34px;
+	line-height: 1.1;
+	color: var(--terracotta);
+}
+
+.stat__l {
+	font-size: 12.5px;
+	color: var(--muted);
+	margin-top: 4px;
+}
+
+/* ── thesis ────────────────────────────────────────────── */
+
+.thesis {
+	padding: clamp(56px, 8vw, 96px) 0 clamp(20px, 3vw, 36px);
+}
+
+.thesis__inner {
+	max-width: 860px;
+	text-align: center;
+}
+
+.thesis__quiet {
+	font-size: clamp(15px, 1.5vw, 17px);
+	font-weight: 300;
+	color: var(--muted);
+	max-width: 66ch;
+	margin: 0 auto;
+}
+
+/* La section expose le problème en deux temps : le constat, puis sa conséquence. */
+.thesis__quiet + .thesis__quiet {
+	margin-top: 14px;
+}
+
+.thesis__loud {
+	font-size: clamp(24px, 3.4vw, 38px);
+	font-weight: 600;
+	letter-spacing: -0.02em;
+	line-height: 1.22;
+	margin-top: 26px;
+}
+
+/* ── sections ──────────────────────────────────────────── */
+
+.section {
+	padding: clamp(64px, 9vw, 112px) 0;
+}
+
+.section--alt {
+	background: var(--paper);
+	border-top: 1px solid var(--line);
+	border-bottom: 1px solid var(--line);
+}
+
+.section__head {
+	max-width: 700px;
+	margin-bottom: clamp(40px, 5vw, 64px);
+}
+
+.section__head h2 {
+	font-size: clamp(27px, 3.6vw, 42px);
+	font-weight: 600;
+	letter-spacing: -0.025em;
+	line-height: 1.12;
+}
+
+/* ── pillars ───────────────────────────────────────────── */
+
+/* No product shots anywhere on this page: the pillars carry their weight
+   with type and rhythm. Lead (number + title) on the left, body on the right. */
+
+.pillar {
+	display: grid;
+	grid-template-columns: 0.85fr 1.15fr;
+	gap: clamp(20px, 4vw, 64px);
+	align-items: start;
+	padding: clamp(32px, 4.5vw, 52px) 0;
+	border-top: 1px solid var(--line);
+}
+
+.pillar:first-of-type {
+	border-top: 0;
+	padding-top: 0;
+}
+
+.pillar__n {
+	font-family: var(--mono);
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--terracotta);
+	letter-spacing: 0.1em;
+	margin-bottom: 10px;
+}
+
+.pillar__lead h3 {
+	font-size: clamp(23px, 2.9vw, 34px);
+	font-weight: 600;
+	letter-spacing: -0.025em;
+	line-height: 1.1;
+	text-wrap: balance;
+}
+
+.pillar__body p {
+	color: var(--muted);
+	font-size: 15.5px;
+	font-weight: 300;
+}
+
+.pillar__body p + p {
+	margin-top: 12px;
+}
+
+.pillar__body strong {
+	color: var(--ink);
+	font-weight: 500;
+}
+
+.ticks {
+	display: flex;
+	flex-direction: column;
+	gap: 9px;
+	margin-top: 20px;
+	padding-top: 18px;
+	border-top: 1px solid var(--line);
+}
+
+.ticks li {
+	position: relative;
+	padding-left: 24px;
+	font-size: 14px;
+	color: var(--muted);
+	font-weight: 300;
+}
+
+.ticks li::before {
+	content: '';
+	position: absolute;
+	left: 4px;
+	top: 9px;
+	width: 8px;
+	height: 8px;
+	border-radius: 2px;
+	background: rgba(99, 109, 54, 0.25);
+	box-shadow: inset 0 0 0 1px var(--olive-light);
+}
+
+/* ── feature cards ─────────────────────────────────────── */
+
+.cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(272px, 1fr));
+	gap: 14px;
+}
+
+.card {
+	background: var(--bg);
+	border: 1px solid var(--line);
+	border-radius: var(--r-md);
+	padding: 20px;
+	transition:
+		transform 0.18s ease,
+		border-color 0.18s ease,
+		box-shadow 0.18s ease,
+		background 0.18s ease;
+}
+
+.card:hover {
+	transform: translateY(-2px);
+	background: var(--card-hover);
+	border-color: var(--line-strong);
+	box-shadow: var(--sh-2);
+}
+
+.card h3 {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font-size: 15.5px;
+	font-weight: 600;
+	margin-bottom: 9px;
+}
+
+.card__ico {
+	display: grid;
+	place-items: center;
+	width: 26px;
+	height: 26px;
+	flex: none;
+	border-radius: var(--r-sm);
+	background: rgba(176, 85, 47, 0.09);
+	color: var(--terracotta);
+	font-size: 15px;
+	line-height: 1;
+}
+
+.card p {
+	font-size: 13.5px;
+	font-weight: 300;
+	color: var(--muted);
+}
+
+.card strong {
+	color: var(--ink);
+	font-weight: 500;
+}
+
+/* ── compare ───────────────────────────────────────────── */
+
+.compare {
+	border: 1px solid var(--line-strong);
+	border-radius: var(--r-lg);
+	overflow: hidden;
+	background: var(--paper);
+	box-shadow: var(--sh-1);
+}
+
+.compare__head,
+.compare__row {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+}
+
+.compare__head {
+	background: var(--drawer);
+	border-bottom: 1px solid var(--line);
+}
+
+.compare__h {
+	font-size: 11.5px;
+	font-weight: 600;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	padding: 13px 20px;
+}
+
+.compare__h--off {
+	color: var(--muted);
+}
+
+.compare__h--on {
+	color: var(--terracotta-dark);
+	border-left: 1px solid var(--line);
+}
+
+.compare__row {
+	border-top: 1px solid var(--line);
+}
+
+.compare__row:first-of-type {
+	border-top: 0;
+}
+
+.compare__row p {
+	padding: 15px 20px;
+	font-size: 14px;
+	font-weight: 300;
+	color: var(--muted);
+}
+
+.compare__row p:last-child {
+	border-left: 1px solid var(--line);
+	color: var(--ink);
+	background: rgba(176, 85, 47, 0.028);
+}
+
+.compare__row strong {
+	font-weight: 600;
+	color: var(--terracotta-dark);
+}
+
+/* ── trust + arch ──────────────────────────────────────── */
+
+.trust {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	gap: 14px;
+}
+
+.trust__c {
+	background: var(--bg);
+	border: 1px solid var(--line);
+	border-radius: var(--r-md);
+	padding: 20px;
+}
+
+.trust__c h3 {
+	font-size: 15.5px;
+	font-weight: 600;
+	margin-bottom: 8px;
+}
+
+.trust__c p {
+	font-size: 13.5px;
+	font-weight: 300;
+	color: var(--muted);
+}
+
+.arch {
+	display: flex;
+	align-items: stretch;
+	gap: 0;
+	margin-top: 20px;
+	flex-wrap: wrap;
+}
+
+.arch__box {
+	flex: 1 1 210px;
+	background: var(--bg);
+	border: 1px solid var(--line);
+	border-radius: var(--r-md);
+	padding: 16px 18px;
+}
+
+.arch__box--db {
+	background: rgba(99, 109, 54, 0.06);
+	border-color: rgba(99, 109, 54, 0.22);
+}
+
+.arch__t {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.arch__t span {
+	font-family: var(--mono);
+	font-size: 10.5px;
+	font-weight: 400;
+	color: var(--muted);
+}
+
+.arch__d {
+	font-size: 12px;
+	font-weight: 300;
+	color: var(--muted);
+	margin-top: 4px;
+}
+
+.arch__link {
+	flex: 0 0 34px;
+	align-self: center;
+	height: 1px;
+	background: repeating-linear-gradient(to right, var(--line-strong) 0 5px, transparent 5px 10px);
+}
+
+/* ── install ───────────────────────────────────────────── */
+
+.install {
+	display: grid;
+	grid-template-columns: 1.5fr 1fr;
+	gap: clamp(24px, 4vw, 48px);
+	align-items: start;
+}
+
+/* Grid items default to min-content width; the nowrap commands need them to shrink. */
+.install__main,
+.install__side {
+	min-width: 0;
+}
+
+.steps {
+	counter-reset: step;
+	display: flex;
+	flex-direction: column;
+	gap: 30px;
+}
+
+.steps li {
+	position: relative;
+	counter-increment: step;
+	padding-left: 46px;
+}
+
+.steps li::before {
+	content: counter(step);
+	position: absolute;
+	left: 0;
+	top: -2px;
+	width: 30px;
+	height: 30px;
+	display: grid;
+	place-items: center;
+	border-radius: 50%;
+	background: var(--paper);
+	border: 1px solid var(--line-strong);
+	font-family: var(--mono);
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--terracotta);
+}
+
+.steps li:not(:last-child)::after {
+	content: '';
+	position: absolute;
+	left: 15px;
+	top: 34px;
+	bottom: -30px;
+	width: 1px;
+	background: var(--line);
+}
+
+.steps__t {
+	font-size: 16px;
+	font-weight: 600;
+	margin-bottom: 4px;
+}
+
+.steps__d {
+	font-size: 13.5px;
+	font-weight: 300;
+	color: var(--muted);
+}
+
+/* Une étape peut porter deux paragraphes (le pourquoi, puis le quoi). */
+.steps__d + .steps__d {
+	margin-top: 10px;
+}
+
+.install__side {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+.panel {
+	background: var(--paper);
+	border: 1px solid var(--line);
+	border-radius: var(--r-md);
+	padding: 18px 20px;
+}
+
+.panel__t {
+	font-size: 11.5px;
+	font-weight: 600;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--muted);
+	margin-bottom: 12px;
+}
+
+.reqs {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.reqs li {
+	position: relative;
+	padding-left: 16px;
+	font-size: 13px;
+	font-weight: 300;
+	color: var(--muted);
+}
+
+.reqs li::before {
+	content: '';
+	position: absolute;
+	left: 0;
+	top: 9px;
+	width: 5px;
+	height: 5px;
+	border-radius: 50%;
+	background: var(--olive-light);
+}
+
+.reqs strong {
+	color: var(--ink);
+	font-weight: 500;
+}
+
+.panel--wide {
+	margin-top: 20px;
+}
+
+.panel__p {
+	font-size: 13px;
+	font-weight: 300;
+	color: var(--muted);
+}
+
+/* One `div` per command so a pair never splits across columns. */
+.cli {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+	gap: 10px 32px;
+}
+
+.cli > div {
+	display: flex;
+	align-items: baseline;
+	gap: 12px;
+	border-bottom: 1px solid var(--line);
+	padding-bottom: 9px;
+}
+
+.cli dt {
+	font-family: var(--mono);
+	font-size: 11.5px;
+	color: var(--terracotta-dark);
+	white-space: nowrap;
+	flex: none;
+	min-width: 106px;
+}
+
+.cli dd {
+	font-size: 12.5px;
+	font-weight: 300;
+	color: var(--muted);
+}
+
+/* ── cta ───────────────────────────────────────────────── */
+
+.cta {
+	padding: clamp(72px, 10vw, 128px) 0;
+	background:
+		radial-gradient(ellipse at 50% 0%, rgba(204, 119, 87, 0.14), transparent 62%), var(--bg);
+	border-top: 1px solid var(--line);
+}
+
+.cta__inner {
+	text-align: center;
+	max-width: 720px;
+}
+
+.cta h2 {
+	font-size: clamp(28px, 4.2vw, 46px);
+	font-weight: 600;
+	letter-spacing: -0.028em;
+	line-height: 1.1;
+}
+
+.cta p {
+	font-size: 16px;
+	font-weight: 300;
+	color: var(--muted);
+	margin: 16px auto 0;
+	max-width: 52ch;
+}
+
+.cta__row {
+	display: flex;
+	gap: 14px;
+	justify-content: center;
+	flex-wrap: wrap;
+	margin-top: 28px;
+}
+
+/* ── footer ────────────────────────────────────────────── */
+
+.foot {
+	background: var(--drawer);
+	border-top: 1px solid var(--line);
+	padding: 34px 0;
+}
+
+.foot__inner {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	flex-wrap: wrap;
+}
+
+.foot__brand {
+	display: inline-flex;
+	align-items: center;
+	gap: 9px;
+}
+
+.foot__meta {
+	font-size: 12.5px;
+	color: var(--muted);
+	margin-left: auto;
+}
+
+.foot__meta a {
+	color: var(--terracotta-dark);
+	border-bottom: 1px solid rgba(176, 85, 47, 0.28);
+}
+
+.foot__meta a:hover {
+	border-bottom-color: var(--terracotta);
+}
+
+.foot__sub {
+	flex-basis: 100%;
+	font-size: 12px;
+	color: var(--muted);
+	opacity: 0.75;
+}
+
+/* ── reveal ────────────────────────────────────────────── */
+
+.reveal {
+	opacity: 0;
+	transform: translateY(16px);
+	transition:
+		opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+		transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+	will-change: opacity, transform;
+}
+
+.reveal.is-in {
+	opacity: 1;
+	transform: none;
+}
+
+/* ── responsive ────────────────────────────────────────── */
+
+@media (max-width: 1000px) {
+	.nav__links {
+		display: none;
+	}
+
+	.pillar,
+	.install {
+		grid-template-columns: 1fr;
+	}
+
+	.pillar__lead h3 {
+		margin-bottom: 4px;
+	}
+
+	.strip__grid {
+		grid-template-columns: repeat(2, 1fr);
+		gap: 24px 8px;
+	}
+
+	.stat:nth-child(3) {
+		border-left: 0;
+	}
+}
+
+@media (max-width: 680px) {
+	body {
+		font-size: 15px;
+	}
+
+	.lang__code {
+		display: none;
+	}
+
+	/* Le switcher a chargé la barre : le bouton GitHub passe en icône seule
+	   (le lien reste accessible via son aria-label, le CTA et le footer). */
+	.nav__actions .btn--ghost {
+		padding: 8px 10px;
+		font-size: 0;
+		gap: 0;
+	}
+
+	/* La pastille de version quitte la barre : le hero l'annonce déjà. */
+	.nav .pill--version {
+		display: none;
+	}
+
+	.lockup__word {
+		font-size: 19px;
+	}
+
+	.lang__opt {
+		padding: 5px 7px;
+	}
+
+	.nav__inner {
+		gap: 12px;
+	}
+
+	.compare__head {
+		display: none;
+	}
+
+	.compare__row {
+		grid-template-columns: 1fr;
+	}
+
+	.compare__row p:first-child {
+		padding-bottom: 0;
+		text-decoration: line-through;
+		text-decoration-color: var(--line-strong);
+	}
+
+	.compare__row p:last-child {
+		border-left: 0;
+		background: none;
+	}
+
+	.arch__link {
+		flex-basis: 100%;
+		height: 20px;
+		width: 1px;
+		background: repeating-linear-gradient(
+			to bottom,
+			var(--line-strong) 0 5px,
+			transparent 5px 10px
+		);
+		margin: 0 auto;
+	}
+
+	.hero__cta {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.cmd code {
+		font-size: 11px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	html {
+		scroll-behavior: auto;
+	}
+
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.001ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.001ms !important;
+	}
+
+	.reveal {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@media print {
+	.nav,
+	.cta {
+		display: none;
+	}
+
+	.reveal {
+		opacity: 1;
+		transform: none;
+	}
+}

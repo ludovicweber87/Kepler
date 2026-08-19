@@ -1,0 +1,1 @@
+ALTER TABLE `repo_settings` ADD `commit_push_prompt` text DEFAULT '';
