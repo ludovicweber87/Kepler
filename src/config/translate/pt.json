@@ -203,7 +203,8 @@
 		"freeModePathSaved": "Pasta do modo livre salva",
 		"freeModePickError": "Não foi possível abrir o seletor (agente offline?) — digite o caminho manualmente",
 		"browse": "Procurar...",
-		"selecting": "Selecionando..."
+		"selecting": "Selecionando...",
+		"languageDesc": "Idioma da interface. A alteração é aplicada imediatamente."
 	},
 	"appearance": {
 		"title": "Aparência",

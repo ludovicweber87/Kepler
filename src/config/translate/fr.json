@@ -222,7 +222,8 @@
 		"freeModePathLabel": "Dossier du mode libre",
 		"freeModePathHelp": "Chemin absolu. L'agent tourne ici, sans worktree.",
 		"freeModePathSaved": "Dossier du mode libre enregistré",
-		"freeModePickError": "Impossible d'ouvrir le sélecteur (agent hors ligne ?) — saisis le chemin à la main"
+		"freeModePickError": "Impossible d'ouvrir le sélecteur (agent hors ligne ?) — saisis le chemin à la main",
+		"languageDesc": "Langue de l'interface. Le changement s'applique immédiatement."
 	},
 	"appearance": {
 		"title": "Apparence",

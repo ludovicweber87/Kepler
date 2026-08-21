@@ -69,7 +69,6 @@ import { useSnackbar } from '@/hooks/useSnackbar';
 import { resolveRepoFullName } from '@/lib/resolveRepoFullName';
 import { apiFetch } from '@/lib/api-fetch';
 import { localFetch } from '@/lib/local-fetch';
-import LocaleSwitcher from '@/components/LocaleSwitcher';
 import AgentTerminalModal from '@/components/agents/AgentTerminalModal';
 
 export const SIDEBAR_WIDTH = 260;
@@ -1133,7 +1132,6 @@ export default function Sidebar() {
 							boxShadow: appShadow(theme.palette.mode),
 						}}
 					>
-						<LocaleSwitcher collapsed={collapsed} />
 						{bottomItems.map((item, index) => (
 							<SidebarNavItem
 								key={item.label}

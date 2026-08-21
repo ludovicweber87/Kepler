@@ -202,7 +202,8 @@
 		"freeModePathSaved": "Ordner für freien Modus gespeichert",
 		"freeModePickError": "Ordnerauswahl konnte nicht geöffnet werden (Agent offline?) – Pfad manuell eingeben",
 		"browse": "Durchsuchen...",
-		"selecting": "Wird ausgewählt..."
+		"selecting": "Wird ausgewählt...",
+		"languageDesc": "Sprache der Benutzeroberfläche. Die Änderung wird sofort übernommen."
 	},
 	"appearance": {
 		"title": "Erscheinungsbild",
