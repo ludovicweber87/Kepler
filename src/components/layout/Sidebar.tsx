@@ -124,12 +124,20 @@ export default function Sidebar() {
 	const { byPath, deleteWorktree, renameWorktree } = useAllWorktrees(views.map((v) => v.path));
 	const { mergedForRepo } = useMergedBranches(views.map((v) => v.repoFullName));
 	const { data: openPrs = [] } = usePullRequests(views.map((v) => v.repoFullName));
-	// Branches avec une PR ouverte, groupées par repo (match par head.ref).
-	const openPrBranchesByRepo = useMemo(() => {
-		const map = new Map<string, Set<string>>();
+	// PRs ouvertes indexées par repo puis par branche (head.ref) : la sidebar y lit
+	// le numéro, le titre et l'état brouillon pour badger le worktree correspondant.
+	// Clé repo en minuscules — la casse de `repo_full_name` peut diverger de celle des
+	// vues configurées (cf. la comparaison en toLowerCase() dans PullRequestsList).
+	const openPrsByRepo = useMemo(() => {
+		const map = new Map<string, Map<string, (typeof openPrs)[number]>>();
 		for (const pr of openPrs) {
-			if (!map.has(pr.repo_full_name)) map.set(pr.repo_full_name, new Set());
-			map.get(pr.repo_full_name)!.add(pr.head.ref);
+			const repo = pr.repo_full_name?.toLowerCase() ?? '';
+			let byBranch = map.get(repo);
+			if (!byBranch) {
+				byBranch = new Map();
+				map.set(repo, byBranch);
+			}
+			byBranch.set(pr.head.ref, pr);
 		}
 		return map;
 	}, [openPrs]);
@@ -528,8 +536,9 @@ export default function Sidebar() {
 							});
 							const expanded = !collapsedProjects.has(view.path);
 							const mergedBranches = mergedForRepo(view.repoFullName);
-							const openPrBranches =
-								openPrBranchesByRepo.get(view.repoFullName) ?? new Set<string>();
+							const openPrsByBranch = openPrsByRepo.get(
+								view.repoFullName.toLowerCase(),
+							);
 							return (
 								<Box key={view.path}>
 									<Box
@@ -673,8 +682,37 @@ export default function Sidebar() {
 														!!currentSessionId &&
 														sessionIdForWt === currentSessionId;
 													const isMerged = mergedBranches.has(wt.branch);
-													const hasOpenPr =
-														!isMerged && openPrBranches.has(wt.branch);
+													// PR ouverte sur la branche de ce worktree :
+													// mergée l'emporte, une branche mergée n'a plus
+													// de PR à surveiller.
+													const openPr = isMerged
+														? undefined
+														: openPrsByBranch?.get(wt.branch);
+													const isDraftPr = !!openPr?.draft;
+													// Couleur d'état : mergée (froid) / PR prête
+													// (vert) / brouillon (éteint).
+													const prColor = isMerged
+														? 'primary.main'
+														: isDraftPr
+															? 'text.disabled'
+															: 'success.main';
+													const prLabel = isMerged
+														? t('merged')
+														: isDraftPr
+															? t('prDraft')
+															: t('prOpen');
+													// Infobulle du nom : état de la PR, son titre,
+													// et la branche quand le label la masque.
+													const nameTooltip = [
+														openPr
+															? `${prLabel} #${openPr.number} · ${openPr.title}`
+															: isMerged
+																? prLabel
+																: '',
+														displayName !== wt.branch ? wt.branch : '',
+													]
+														.filter(Boolean)
+														.join(' — ');
 													// Notifs d'agent non lues de cette session.
 													const unreadIds = sessionIdForWt
 														? (unreadBySession.get(sessionIdForWt) ??
@@ -760,21 +798,23 @@ export default function Sidebar() {
 																},
 															}}
 														>
-															{isMerged || hasOpenPr ? (
-																<Tooltip
-																	title={
-																		isMerged
-																			? t('merged')
-																			: t('prOpen')
-																	}
-																>
+															{isMerged ? (
+																<Tooltip title={t('merged')}>
+																	<MergeTypeRoundedIcon
+																		sx={{
+																			fontSize: 15,
+																			flexShrink: 0,
+																			color: prColor,
+																		}}
+																	/>
+																</Tooltip>
+															) : openPr ? (
+																<Tooltip title={prLabel}>
 																	<PullRequestIcon
 																		sx={{
 																			fontSize: 14,
 																			flexShrink: 0,
-																			color: isMerged
-																				? 'primary.main'
-																				: 'success.main',
+																			color: prColor,
 																		}}
 																	/>
 																</Tooltip>
@@ -789,17 +829,8 @@ export default function Sidebar() {
 																/>
 															)}
 															<Tooltip
-																title={
-																	isMerged
-																		? t('merged')
-																		: displayName !== wt.branch
-																			? wt.branch
-																			: ''
-																}
-																disableHoverListener={
-																	!isMerged &&
-																	displayName === wt.branch
-																}
+																title={nameTooltip}
+																disableHoverListener={!nameTooltip}
 															>
 																<Typography
 																	variant="caption"
@@ -826,6 +857,54 @@ export default function Sidebar() {
 																	{displayName}
 																</Typography>
 															</Tooltip>
+															{openPr && (
+																<Tooltip
+																	title={`${prLabel} #${openPr.number} · ${openPr.title}`}
+																>
+																	<Box
+																		component="a"
+																		href={openPr.html_url}
+																		target="_blank"
+																		rel="noreferrer"
+																		onClick={(
+																			e: React.MouseEvent,
+																		) => e.stopPropagation()}
+																		sx={{
+																			flexShrink: 0,
+																			px: 0.5,
+																			borderRadius: 0.75,
+																			fontSize: '0.65rem',
+																			lineHeight: '16px',
+																			fontWeight: 700,
+																			textDecoration: 'none',
+																			color: prColor,
+																			border: 1,
+																			borderColor: alpha(
+																				isDraftPr
+																					? theme.palette
+																							.text
+																							.disabled
+																					: theme.palette
+																							.success
+																							.main,
+																				0.5,
+																			),
+																			bgcolor: alpha(
+																				isDraftPr
+																					? theme.palette
+																							.text
+																							.disabled
+																					: theme.palette
+																							.success
+																							.main,
+																				0.12,
+																			),
+																		}}
+																	>
+																		#{openPr.number}
+																	</Box>
+																</Tooltip>
+															)}
 															{hasUnread && (
 																<Tooltip
 																	title={t(
