@@ -34,12 +34,15 @@ export default function CreationProgress({
 
 	const hasIssue = !!(session.issue_owner && session.issue_repo && session.issue_number);
 	const mode = session.launch_mode ?? 'worktree'; // 'worktree' | 'existing-branch' (les deux produisent un worktree)
+	// Seul le script de setup émet des logs : la zone de sortie est réservée dès le
+	// premier rendu pour que le panneau ne grandisse pas quand le script démarre.
+	const hasSetup = !!repoSettings.setup_script.trim();
 	// Étapes affichées (ordre)
 	const stepKeys = [
 		...(hasIssue ? ['read-issue'] : []),
 		'worktree',
 		'copy-files',
-		...(repoSettings.setup_script.trim() ? ['setup'] : []),
+		...(hasSetup ? ['setup'] : []),
 	];
 	const label: Record<string, string> = {
 		'read-issue': t('readIssue'),
@@ -143,7 +146,7 @@ export default function CreationProgress({
 				component={motion.div}
 				initial={{ opacity: 0, y: 8 }}
 				animate={{ opacity: 1, y: 0 }}
-				sx={{ minWidth: 320 }}
+				sx={{ width: 420, maxWidth: '100%' }}
 			>
 				<Typography variant="h6" sx={{ fontWeight: 700, mb: 3, textAlign: 'center' }}>
 					{t('title')}
@@ -163,13 +166,14 @@ export default function CreationProgress({
 						</Box>
 					))}
 				</Box>
-				{output && (
+				{hasSetup && (
 					<Box
 						ref={outputRef}
 						sx={{
 							mt: 2,
-							maxHeight: 160,
+							height: 160,
 							overflowY: 'auto',
+							overflowX: 'hidden',
 							p: 1.5,
 							borderRadius: 2,
 							bgcolor: 'action.hover',
@@ -177,6 +181,9 @@ export default function CreationProgress({
 							fontSize: 11,
 							lineHeight: 1.5,
 							whiteSpace: 'pre-wrap',
+							// Les logs contiennent des chemins et URLs sans espace : sans
+							// coupure forcée, ils élargiraient le panneau.
+							overflowWrap: 'anywhere',
 							color: 'text.secondary',
 						}}
 					>
