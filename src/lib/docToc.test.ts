@@ -14,15 +14,25 @@ describe('extractToc', () => {
 	it('extracts h1..h3 with depth', () => {
 		const md = '# Titre\n\n## Section A\n\ntexte\n\n### Sous-section\n\n#### trop profond';
 		expect(extractToc(md)).toEqual([
-			{ depth: 1, text: 'Titre', slug: 'titre' },
-			{ depth: 2, text: 'Section A', slug: 'section-a' },
-			{ depth: 3, text: 'Sous-section', slug: 'sous-section' },
+			{ depth: 1, text: 'Titre', slug: 'titre', line: 1 },
+			{ depth: 2, text: 'Section A', slug: 'section-a', line: 3 },
+			{ depth: 3, text: 'Sous-section', slug: 'sous-section', line: 7 },
 		]);
 	});
 
 	it('ignores headings inside fenced code blocks', () => {
 		const md = '# Réel\n\n```\n# pas un titre\n```\n\n## Vrai';
 		expect(extractToc(md).map((e) => e.text)).toEqual(['Réel', 'Vrai']);
+	});
+
+	it('gives distinct slugs to repeated headings', () => {
+		const md = '## Prérequis\n\n## Prérequis';
+		expect(extractToc(md).map((e) => e.slug)).toEqual(['prrequis', 'prrequis-1']);
+	});
+
+	it('numbers lines so rendered headings can be anchored', () => {
+		const md = 'intro\n\n## Section\n\ntexte';
+		expect(extractToc(md)[0].line).toBe(3);
 	});
 
 	it('returns empty for content without headings', () => {
