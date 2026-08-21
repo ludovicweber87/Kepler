@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -18,9 +18,11 @@ import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
 import { useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-fetch';
 import { useSnackbar } from '@/hooks/useSnackbar';
+import { usePublishPhase } from '@/hooks/usePublishPhase';
 import { localFetch } from '@/lib/local-fetch';
 import type { AgentSession, AgentActivityLog } from '@/hooks/useAgentSession';
 import { buildReport, formatTime } from '@/lib/activityReport';
+import { getPublishPhase } from '@/lib/publishReportState';
 import ActivityMarkdown, { LOG_TYPE_COLORS } from './ActivityMarkdown';
 
 interface AgentActivityTabProps {
@@ -38,9 +40,12 @@ export default function AgentActivityTab({
 	onOpenReader,
 }: AgentActivityTabProps) {
 	const t = useTranslations('agentActivity');
-	const [publishing, setPublishing] = useState(false);
-	const [published, setPublished] = useState(false);
-	const [synthesizing, setSynthesizing] = useState(false);
+	// Phase gardée hors du composant : le panneau droit n'est pas remonté d'une session
+	// à l'autre, donc un état local afficherait le spinner d'un worktree sur le bouton
+	// d'un autre. Deux sessions peuvent publier en parallèle.
+	const { setPhase, publishing, synthesizing, published } = usePublishPhase(
+		session?.session_id ?? '',
+	);
 	const qc = useQueryClient();
 	const { showSnackbar } = useSnackbar();
 	// Activity ne montre qu'un récap des actions de l'agent : les summary (récap de
@@ -52,7 +57,10 @@ export default function AgentActivityTab({
 
 	const handlePublish = useCallback(async () => {
 		if (!session || visibleLogs.length === 0) return;
-		setPublishing(true);
+		// Capturé une fois : tous les `setPhase` ci-dessous ciblent la session qui a lancé
+		// la publication, même si l'utilisateur change de worktree entre-temps.
+		const sid = session.session_id;
+		setPhase(sid, 'publishing');
 		try {
 			// Le publish pousse la branche telle quelle : du travail non commité
 			// produirait une PR vide. On bloque avant de dépenser la synthèse.
@@ -72,7 +80,7 @@ export default function AgentActivityTab({
 			}
 
 			let report: string;
-			setSynthesizing(true);
+			setPhase(sid, 'synthesizing');
 			const rawReport = () =>
 				buildReport(session, visibleLogs, {
 					reportTitle: t('reportTitle'),
@@ -94,7 +102,7 @@ export default function AgentActivityTab({
 				showSnackbar(t('synthesizeError'), 'info');
 				report = rawReport();
 			} finally {
-				setSynthesizing(false);
+				setPhase(sid, 'publishing');
 			}
 
 			if (hasIssue) {
@@ -177,7 +185,7 @@ export default function AgentActivityTab({
 				}).catch(() => {});
 			}
 
-			setPublished(true);
+			setPhase(sid, 'published');
 
 			// Mark session as report published (do NOT kill — user decides when to close)
 			await apiFetch('/api/agent-sessions', {
@@ -223,9 +231,10 @@ export default function AgentActivityTab({
 		} catch {
 			showSnackbar(t('publishError'), 'error');
 		} finally {
-			setPublishing(false);
+			// La phase 'published' est terminale : ne pas l'écraser en sortie de try.
+			if (getPublishPhase(sid) !== 'published') setPhase(sid, 'idle');
 		}
-	}, [session, hasIssue, visibleLogs, qc, showSnackbar, t]);
+	}, [session, hasIssue, visibleLogs, qc, showSnackbar, t, setPhase]);
 
 	if (!session) {
 		return (
