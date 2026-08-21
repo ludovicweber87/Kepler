@@ -221,7 +221,8 @@
 		"freeModePathLabel": "Free mode folder",
 		"freeModePathHelp": "Absolute path. The agent runs here, with no worktree.",
 		"freeModePathSaved": "Free mode folder saved",
-		"freeModePickError": "Could not open the folder picker (agent offline?) — type the path manually"
+		"freeModePickError": "Could not open the folder picker (agent offline?) — type the path manually",
+		"languageDesc": "Interface language. The change applies immediately."
 	},
 	"appearance": {
 		"title": "Appearance",

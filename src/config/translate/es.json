@@ -201,7 +201,8 @@
 		"freeModePathSaved": "Carpeta del modo libre guardada",
 		"freeModePickError": "No se pudo abrir el selector (¿agente desconectado?): escribe la ruta a mano",
 		"browse": "Explorar...",
-		"selecting": "Seleccionando..."
+		"selecting": "Seleccionando...",
+		"languageDesc": "Idioma de la interfaz. El cambio se aplica inmediatamente."
 	},
 	"appearance": {
 		"title": "Apariencia",
