@@ -1,0 +1,6 @@
+# Propriétaire unique du repo : toute modification requiert son approbation.
+#
+# Couplé au ruleset "Protect main" (règle « require review from Code Owners »),
+# ce fichier garantit qu'une approbation d'un autre collaborateur ne suffit pas
+# à débloquer une PR : seule celle de @ludovicweber87 satisfait la règle.
+* @ludovicweber87
