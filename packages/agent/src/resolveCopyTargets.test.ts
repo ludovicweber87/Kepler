@@ -3,7 +3,8 @@ import assert from 'node:assert';
 import { mkdtempSync, mkdirSync, writeFileSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { resolveCopyTargets } from './resolveCopyTargets.js';
+import { execFileSync } from 'node:child_process';
+import { resolveCopyTargets, dropPristineTracked } from './resolveCopyTargets.js';
 
 function makeTree(): string {
 	const root = mkdtempSync(join(tmpdir(), 'kepler-copy-'));
@@ -60,4 +61,47 @@ test('ne suit pas les symlinks de dossier', () => {
 	}
 	const rels = resolveCopyTargets(root, ['.env.local']);
 	assert.ok(!rels.some((r) => r.includes('linked_modules')));
+});
+
+/**
+ * Petit repo git avec `apps/catalog/.env` versionné et `apps/odys/.env.local` non suivi —
+ * la forme exacte d'un monorepo qui committe ses `.env` d'app.
+ */
+function makeGitRepo(): string {
+	const root = mkdtempSync(join(tmpdir(), 'kepler-copy-git-'));
+	const git = (...args: string[]): void => {
+		execFileSync('git', args, { cwd: root, stdio: 'ignore' });
+	};
+	git('init', '-q');
+	git('config', 'user.email', 'test@example.com');
+	git('config', 'user.name', 'Test');
+	mkdirSync(join(root, 'apps', 'catalog'), { recursive: true });
+	mkdirSync(join(root, 'apps', 'odys'), { recursive: true });
+	writeFileSync(join(root, 'apps', 'catalog', '.env'), 'A=1\n');
+	git('add', '-A');
+	git('commit', '-qm', 'init');
+	writeFileSync(join(root, 'apps', 'odys', '.env.local'), 'SECRET=x\n');
+	return root;
+}
+
+test('dropPristineTracked : écarte le fichier versionné intact, garde le non suivi', () => {
+	const root = makeGitRepo();
+	const rels = ['apps/catalog/.env', 'apps/odys/.env.local'];
+	assert.deepEqual(dropPristineTracked(root, rels), ['apps/odys/.env.local']);
+});
+
+test('dropPristineTracked : garde le fichier versionné localement modifié', () => {
+	const root = makeGitRepo();
+	writeFileSync(join(root, 'apps', 'catalog', '.env'), 'A=1\nB=2\n');
+	assert.deepEqual(dropPristineTracked(root, ['apps/catalog/.env']), ['apps/catalog/.env']);
+});
+
+test('dropPristineTracked : hors repo git → rien n’est écarté', () => {
+	const root = makeTree();
+	const rels = ['.env', '.env.local'];
+	assert.deepEqual(dropPristineTracked(root, rels), rels);
+});
+
+test('dropPristineTracked : liste vide → liste vide', () => {
+	assert.deepEqual(dropPristineTracked(makeGitRepo(), []), []);
 });
