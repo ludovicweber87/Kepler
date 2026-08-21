@@ -1,9 +1,11 @@
 'use client';
 
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useRef, useState, useCallback } from 'react';
+import type { ComponentPropsWithoutRef, MouseEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
+import type { Components, ExtraProps } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -53,6 +55,35 @@ export default function DocDetail({ docId }: { docId: string }) {
 	};
 
 	const toc = useMemo(() => extractToc(doc?.content ?? ''), [doc?.content]);
+
+	// Le conteneur de lecture scrolle (et non la fenêtre) : on garde sa ref pour
+	// y retrouver le titre cliqué dans le sommaire.
+	const readerRef = useRef<HTMLDivElement | null>(null);
+
+	// ReactMarkdown ne pose pas d'`id` sur les titres : on les ancre nous-mêmes en
+	// rapprochant chaque titre rendu de l'entrée du sommaire à la même ligne.
+	const markdownComponents = useMemo<Components>(() => {
+		const slugByLine = new Map(toc.map((e) => [e.line, e.slug]));
+		const heading = (Tag: 'h1' | 'h2' | 'h3') =>
+			function Heading({
+				node,
+				children,
+				...props
+			}: ComponentPropsWithoutRef<'h1'> & ExtraProps) {
+				const line = node?.position?.start.line;
+				return (
+					<Tag id={line ? slugByLine.get(line) : undefined} {...props}>
+						{children}
+					</Tag>
+				);
+			};
+		return { h1: heading('h1'), h2: heading('h2'), h3: heading('h3') };
+	}, [toc]);
+
+	const scrollToSection = useCallback((slug: string) => {
+		const target = readerRef.current?.querySelector(`[id="${slug}"]`);
+		target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+	}, []);
 	const busy = doc?.status === 'queued' || doc?.status === 'generating';
 	// Doc importée : pas de format ni de niveau à afficher (cf. DocCard).
 	const imported = doc?.source_type === 'import';
@@ -245,6 +276,10 @@ export default function DocDetail({ docId }: { docId: string }) {
 									key={i}
 									component="a"
 									href={`#${e.slug}`}
+									onClick={(ev: MouseEvent) => {
+										ev.preventDefault();
+										scrollToSection(e.slug);
+									}}
 									variant="body2"
 									sx={{
 										display: 'block',
@@ -264,7 +299,10 @@ export default function DocDetail({ docId }: { docId: string }) {
 				)}
 
 				{/* Reading / editing */}
-				<Box sx={{ flex: 1, overflowY: 'auto', p: { xs: 2, md: 4 }, minWidth: 0 }}>
+				<Box
+					ref={readerRef}
+					sx={{ flex: 1, overflowY: 'auto', p: { xs: 2, md: 4 }, minWidth: 0 }}
+				>
 					{busy && !doc.content ? (
 						<Box
 							sx={{
@@ -340,6 +378,7 @@ export default function DocDetail({ docId }: { docId: string }) {
 							className="doc-markdown"
 							sx={{
 								maxWidth: 820,
+								'& h1, & h2, & h3': { scrollMarginTop: 8 },
 								'& h1': { fontSize: '1.7rem', mb: 2 },
 								'& h2': {
 									fontSize: '1.3rem',
@@ -380,7 +419,10 @@ export default function DocDetail({ docId }: { docId: string }) {
 								'& a': { color: 'primary.main' },
 							}}
 						>
-							<ReactMarkdown remarkPlugins={[remarkGfm]}>
+							<ReactMarkdown
+								remarkPlugins={[remarkGfm]}
+								components={markdownComponents}
+							>
 								{doc.content ?? ''}
 							</ReactMarkdown>
 						</Box>
