@@ -21,7 +21,7 @@ import { sdkAgent } from '../terminal.js';
 import { slugifyBranchInput, moveWorktreeDir } from '../sdk/autoRename.js';
 import { fetchIssueContextBlock, issueContextMarker } from '../issueContext.js';
 import { parseFilesToCopy } from '../filesToCopy.js';
-import { resolveCopyTargets } from '../resolveCopyTargets.js';
+import { resolveCopyTargets, dropPristineTracked } from '../resolveCopyTargets.js';
 import { linkNodeModules } from '../nodeModulesLink.js';
 import { resolveRemoteBaseRef, resolveDiffBase } from '../gitBase.js';
 import { untrackedDiff, DIFF_MAX_BUFFER } from '../untrackedDiff.js';
@@ -57,6 +57,7 @@ function getFilesToCopyForCwd(cwd: string): string {
  * Copie dans `worktreePath` les fichiers configurés (`files_to_copy`), en les retrouvant
  * récursivement depuis `sourceCwd` et en les recopiant au même chemin relatif.
  * Fallback : si aucune config, copie les `.env*` de la racine (comportement historique).
+ * Les fichiers versionnés et intacts sont écartés (cf. `dropPristineTracked`).
  * Non bloquant : les erreurs individuelles sont ignorées.
  */
 function copyConfiguredFiles(
@@ -66,10 +67,11 @@ function copyConfiguredFiles(
 ): void {
 	try {
 		const parsed = parseFilesToCopy(filesToCopyText);
-		const rels =
+		const candidates =
 			parsed.length > 0
 				? resolveCopyTargets(sourceCwd, parsed)
 				: readdirSync(sourceCwd).filter((f) => f.startsWith('.env'));
+		const rels = dropPristineTracked(sourceCwd, candidates);
 		for (const rel of rels) {
 			const src = join(sourceCwd, rel);
 			if (!existsSync(src)) continue;

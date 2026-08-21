@@ -1,4 +1,5 @@
 import { readdirSync, existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { join, sep } from 'node:path';
 
 /**
@@ -70,4 +71,43 @@ export function resolveCopyTargets(sourceDir: string, entries: string[]): string
 	}
 
 	return [...results];
+}
+
+/** Sortie `-z` d'une commande git → ensemble de chemins relatifs. Vide si la commande échoue. */
+function gitPaths(cwd: string, args: string[]): Set<string> {
+	try {
+		const out = execFileSync('git', args, {
+			cwd,
+			encoding: 'utf-8',
+			timeout: 10000,
+			maxBuffer: 10 * 1024 * 1024,
+			// stderr muet : hors repo git, l'échec est un cas nominal (fail-open).
+			stdio: ['ignore', 'pipe', 'ignore'],
+		});
+		return new Set(out.split('\0').filter((p) => p.length > 0));
+	} catch {
+		return new Set();
+	}
+}
+
+/**
+ * Écarte les fichiers que git fournit déjà au worktree : suivis dans `sourceDir` et identiques
+ * à HEAD.
+ *
+ * Le worktree est créé sur `origin/<base>` tout juste fetchée, alors que le repo principal peut
+ * être resté des dizaines de commits en arrière. Y recopier un fichier versionné et intact
+ * (typiquement un `.env` d'app committé avec ses valeurs par défaut) ramène la version périmée
+ * par-dessus la fraîche : le worktree naît sale, avec un diff fait de suppressions.
+ *
+ * Un fichier suivi *mais localement modifié* reste copié : ces modifications locales sont
+ * précisément ce que `files_to_copy` sert à transporter.
+ *
+ * Dégrade proprement : si git est muet (pas un repo, commande en échec), tout est copié comme avant.
+ */
+export function dropPristineTracked(sourceDir: string, rels: string[]): string[] {
+	if (rels.length === 0) return rels;
+	const tracked = gitPaths(sourceDir, ['ls-files', '-z', '--', ...rels]);
+	if (tracked.size === 0) return rels;
+	const modified = gitPaths(sourceDir, ['diff', '--name-only', '-z', 'HEAD', '--', ...rels]);
+	return rels.filter((rel) => !tracked.has(rel) || modified.has(rel));
 }
