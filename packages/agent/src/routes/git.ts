@@ -2,7 +2,7 @@ import { IncomingMessage, ServerResponse } from 'node:http';
 import { execSync, execFileSync, exec, execFile, spawn } from 'node:child_process';
 import { parsePorcelain } from './parsePorcelain.js';
 import { promisify } from 'node:util';
-import { readdirSync, copyFileSync, existsSync, symlinkSync, mkdirSync } from 'node:fs';
+import { readdirSync, copyFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import {
 	parseQuery,
@@ -22,6 +22,7 @@ import { slugifyBranchInput, moveWorktreeDir } from '../sdk/autoRename.js';
 import { fetchIssueContextBlock, issueContextMarker } from '../issueContext.js';
 import { parseFilesToCopy } from '../filesToCopy.js';
 import { resolveCopyTargets } from '../resolveCopyTargets.js';
+import { linkNodeModules } from '../nodeModulesLink.js';
 import { resolveRemoteBaseRef, resolveDiffBase } from '../gitBase.js';
 import { untrackedDiff, DIFF_MAX_BUFFER } from '../untrackedDiff.js';
 import { dedupeAndSortBranches, worktreeAddArgs, type RawBranch } from '../branches.js';
@@ -228,16 +229,8 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 			// Copy configured files (files_to_copy), recursively resolved
 			copyConfiguredFiles(cwd, worktreePath, getFilesToCopyForCwd(cwd));
 
-			// Symlink node_modules
-			try {
-				const srcModules = join(cwd, 'node_modules');
-				const destModules = join(worktreePath, 'node_modules');
-				if (existsSync(srcModules) && !existsSync(destModules)) {
-					symlinkSync(srcModules, destModules, 'dir');
-				}
-			} catch {
-				// non-blocking
-			}
+			// Symlink node_modules (sauf repos pnpm)
+			linkNodeModules(cwd, worktreePath);
 
 			sendJson(res, { worktreePath, branch });
 		} catch (err) {
@@ -950,15 +943,7 @@ Issue title: "${issueTitle}"`;
 				// 3) copy files
 				sendSSE(res, 'step', { step: 'copy-files', status: 'running' });
 				copyConfiguredFiles(body.cwd, worktreePath, body.filesToCopy);
-				try {
-					const srcModules = join(body.cwd, 'node_modules');
-					const destModules = join(worktreePath, 'node_modules');
-					if (existsSync(srcModules) && !existsSync(destModules)) {
-						symlinkSync(srcModules, destModules, 'dir');
-					}
-				} catch {
-					/* non bloquant */
-				}
+				linkNodeModules(body.cwd, worktreePath);
 				sendSSE(res, 'step', { step: 'copy-files', status: 'done' });
 
 				// 4) setup script (streaming stdout/stderr en temps réel)
@@ -975,6 +960,9 @@ Issue title: "${issueTitle}"`;
 							cwd: worktreePath,
 							shell: true,
 							env: process.env,
+							// pas de TTY ici : stdin fermé pour qu'un prompt éventuel
+							// lise EOF au lieu d'attendre indéfiniment
+							stdio: ['ignore', 'pipe', 'pipe'],
 						});
 						child.stdout.on('data', (d: Buffer) => pushTail(d.toString()));
 						child.stderr.on('data', (d: Buffer) => pushTail(d.toString()));
