@@ -41,6 +41,7 @@
 		"personas": "Personas",
 		"unreadAgentNotification": "Notificação de agente não lida",
 		"prOpen": "PR aberta",
+		"prDraft": "PR em rascunho",
 		"tasks": "Tarefas",
 		"docs": "Docs",
 		"docsGenerating": "{count, plural, one {# doc em geração} other {# docs em geração}}",

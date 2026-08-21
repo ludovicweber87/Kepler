@@ -41,6 +41,7 @@
 		"personas": "Personas",
 		"unreadAgentNotification": "Ungelesene Agent-Benachrichtigung",
 		"prOpen": "Offener PR",
+		"prDraft": "PR-Entwurf",
 		"tasks": "Aufgaben",
 		"docs": "Docs",
 		"docsGenerating": "{count, plural, one {# Doc wird generiert} other {# Docs werden generiert}}",
