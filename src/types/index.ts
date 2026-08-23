@@ -320,17 +320,19 @@ export type ChatSegment =
 	| { kind: 'text'; text: string }
 	| { kind: 'thinking'; text: string }
 	| { kind: 'image'; url: string; name: string }
+	| { kind: 'file'; url: string; name: string; mediaType: string }
 	| { kind: 'role_switch'; name: string }
 	| { kind: 'tool'; call: ChatToolCall };
 
-export interface ChatImageInput {
+/** Pièce jointe envoyée au serveur : image inline ou fichier écrit sur disque. */
+export interface ChatAttachmentInput {
 	name: string;
 	mediaType: string;
 	data: string;
 }
 
-/** Image attachée dans le composer, en attente d'envoi. */
-export interface ComposerAttachment extends ChatImageInput {
+/** Pièce jointe posée dans le composer, en attente d'envoi. */
+export interface ComposerAttachment extends ChatAttachmentInput {
 	id: string;
 }
 

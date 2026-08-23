@@ -25,6 +25,8 @@ export function reduceStreamEvent(messages: ChatMessage[], wire: StreamEventWire
 			userMessage(
 				String(data.text ?? ''),
 				(data.images as { name: string; url: string }[] | undefined) ?? undefined,
+				(data.files as { name: string; url: string; mediaType: string }[] | undefined) ??
+					undefined,
 			),
 		];
 
@@ -69,10 +71,16 @@ export function reduceStreamEvent(messages: ChatMessage[], wire: StreamEventWire
 	return [...messages, { id: nextId(), role: 'assistant', segments: [segment] }];
 }
 
-export function userMessage(text: string, images?: { name: string; url: string }[]): ChatMessage {
+export function userMessage(
+	text: string,
+	images?: { name: string; url: string }[],
+	files?: { name: string; url: string; mediaType: string }[],
+): ChatMessage {
 	const segments: ChatSegment[] = [];
 	if (text) segments.push({ kind: 'text', text });
 	for (const img of images ?? []) segments.push({ kind: 'image', url: img.url, name: img.name });
+	for (const f of files ?? [])
+		segments.push({ kind: 'file', url: f.url, name: f.name, mediaType: f.mediaType });
 	if (segments.length === 0) segments.push({ kind: 'text', text: '' });
 	return { id: nextId(), role: 'user', segments };
 }

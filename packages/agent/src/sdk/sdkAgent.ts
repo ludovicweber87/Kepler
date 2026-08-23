@@ -13,8 +13,13 @@ import { getDb } from '../db.js';
 import { buildNotification } from '../notifications/build.js';
 import { insertAndEmit } from '../notifications/insert.js';
 import { randomUUID } from 'node:crypto';
-import { saveAttachment, extForMediaType } from './attachments.js';
-import type { ChatImageInput } from './promptQueue.js';
+import {
+  saveAttachment,
+  isImageMediaType,
+  buildAttachmentsNote,
+  type ChatAttachmentInput,
+  type SavedAttachment,
+} from './attachments.js';
 import {
   autoRenameBranch,
   isAutoNamed,
@@ -504,25 +509,51 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
       }
     },
 
-    sendUserMessage(sessionId: string, text: string, images?: ChatImageInput[]) {
+    sendUserMessage(sessionId: string, text: string, attachments?: ChatAttachmentInput[]) {
       const s = sessions.get(sessionId);
       if (!s) return;
       s.busy = true;
       // Persiste le tour utilisateur dans le transcript (rejouable au refresh) et
       // l'émet aux clients : c'est l'écho serveur qui fait foi, pas d'optimiste client.
       // Les pièces jointes sont écrites sur disque ; seuls {name,url} vont en DB (pas de base64).
-      // Type non supporté rejeté une seule fois, en amont : ni persisté, ni transmis au SDK
-      // (un media_type invalide ferait rejeter tout le tour par l'API Anthropic).
-      const validImages = (images ?? []).filter((img) => extForMediaType(img.mediaType) !== null);
-      const saved: { name: string; url: string }[] = [];
-      for (const img of validImages) {
-        const res = saveAttachment(sessionId, img.mediaType, img.data);
-        if (res) saved.push({ name: img.name, url: res.url });
+      // Deux traitements : les images que l'API sait rendre partent inline dans le prompt,
+      // tout autre fichier reste sur disque et n'est annoncé au modèle que par un marqueur
+      // (nom + type + chemin) — l'agent l'ouvre avec Read s'il en a besoin. Envoyer un
+      // media_type non-image dans un bloc `image` ferait rejeter tout le tour par l'API.
+      const inlineImages = (attachments ?? []).filter((a) => isImageMediaType(a.mediaType));
+      const files = (attachments ?? []).filter((a) => !isImageMediaType(a.mediaType));
+      const savedImages: { name: string; url: string }[] = [];
+      for (const img of inlineImages) {
+        const res = saveAttachment(sessionId, img.mediaType, img.data, img.name);
+        savedImages.push({ name: img.name, url: res.url });
+      }
+      const savedFiles: SavedAttachment[] = [];
+      for (const file of files) {
+        const res = saveAttachment(sessionId, file.mediaType, file.data, file.name);
+        savedFiles.push({
+          name: file.name,
+          url: res.url,
+          mediaType: file.mediaType,
+          path: res.path,
+        });
       }
       const seq = s.seq++;
       const ev = {
         event: 'user',
-        data: { text, ...(saved.length ? { images: saved } : {}) },
+        data: {
+          text,
+          ...(savedImages.length ? { images: savedImages } : {}),
+          // Le chemin disque ne va pas en DB : il ne sert qu'au prompt de ce tour.
+          ...(savedFiles.length
+            ? {
+                files: savedFiles.map((f) => ({
+                  name: f.name,
+                  url: f.url,
+                  mediaType: f.mediaType,
+                })),
+              }
+            : {}),
+        },
       } as const;
       transcript.appendEvent(sessionId, seq, 'user', ev);
       broadcast(s, { type: 'stream-event', seq, ...ev });
@@ -530,8 +561,16 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
       // de changement (persona + effort + mode, option A), consommés une seule fois.
       // `scopeNote` est persistante (jamais effacée en dessous) : c'est la couche 3
       // des guardrails d'une session doc. Les autres notes restent one-shot.
-      const note = combineNotes(s.scopeNote, s.pendingPersonaNote, s.pendingEffortNote, s.pendingModeNote);
-      s.queue.push(applyPersonaNote(note, text), validImages);
+      // Le marqueur de pièces jointes est propre à ce tour (pas un état pending) :
+      // il décrit les fichiers que l'utilisateur vient de joindre.
+      const note = combineNotes(
+        s.scopeNote,
+        s.pendingPersonaNote,
+        s.pendingEffortNote,
+        s.pendingModeNote,
+        buildAttachmentsNote(savedFiles),
+      );
+      s.queue.push(applyPersonaNote(note, text), inlineImages);
       s.pendingPersonaNote = undefined;
       s.pendingPersonaFrom = undefined;
       s.pendingEffortNote = undefined;

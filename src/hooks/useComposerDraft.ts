@@ -11,7 +11,7 @@ import {
 	nextAttachmentId,
 	NO_ATTACHMENTS,
 } from '@/lib/composerDraft';
-import type { ChatImageInput, ComposerAttachment } from '@/types';
+import type { ChatAttachmentInput, ComposerAttachment } from '@/types';
 
 const emptyText = () => '';
 const emptyAttachments = () => NO_ATTACHMENTS;
@@ -38,13 +38,13 @@ export function useComposerDraft(sessionId: string) {
 	const setText = useCallback((value: string) => setComposerDraft(sessionId, value), [sessionId]);
 
 	// Read-modify-write sur le store : la liste courante est lue à l'appel, jamais capturée.
-	// Une image dont la lecture s'achève après un changement de session reste ainsi rattachée
+	// Un fichier dont la lecture s'achève après un changement de session reste ainsi rattaché
 	// à sa session d'origine.
 	const addAttachment = useCallback(
-		(image: ChatImageInput) => {
+		(file: ChatAttachmentInput) => {
 			const next: ComposerAttachment[] = [
 				...getComposerAttachments(sessionId),
-				{ ...image, id: nextAttachmentId() },
+				{ ...file, id: nextAttachmentId() },
 			];
 			setComposerAttachments(sessionId, next);
 		},

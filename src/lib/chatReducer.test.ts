@@ -64,11 +64,25 @@ describe('userMessage', () => {
 	it('with images → text + image segments', () => {
 		const m = userMessage('look', [{ name: 'a.png', url: '/attachments/s/a.png' }]);
 		expect(m.segments[0]).toEqual({ kind: 'text', text: 'look' });
-		expect(m.segments[1]).toEqual({ kind: 'image', url: '/attachments/s/a.png', name: 'a.png' });
+		expect(m.segments[1]).toEqual({
+			kind: 'image',
+			url: '/attachments/s/a.png',
+			name: 'a.png',
+		});
 	});
 
 	it('empty text with image → only image segment', () => {
 		const m = userMessage('', [{ name: 'a.png', url: '/x/a.png' }]);
 		expect(m.segments).toEqual([{ kind: 'image', url: '/x/a.png', name: 'a.png' }]);
+	});
+
+	it('with files → file segments carrying the media type', () => {
+		const m = userMessage('lis ça', undefined, [
+			{ name: 'r.pdf', url: '/x/uuid-r.pdf', mediaType: 'application/pdf' },
+		]);
+		expect(m.segments).toEqual([
+			{ kind: 'text', text: 'lis ça' },
+			{ kind: 'file', url: '/x/uuid-r.pdf', name: 'r.pdf', mediaType: 'application/pdf' },
+		]);
 	});
 });
