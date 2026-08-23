@@ -1,5 +1,12 @@
 'use client';
-import { useState, type KeyboardEvent, type ClipboardEvent, type DragEvent } from 'react';
+import {
+	useRef,
+	useState,
+	type ChangeEvent,
+	type KeyboardEvent,
+	type ClipboardEvent,
+	type DragEvent,
+} from 'react';
 import Box from '@mui/material/Box';
 import InputBase from '@mui/material/InputBase';
 import IconButton from '@mui/material/IconButton';
@@ -12,17 +19,26 @@ import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import StopRoundedIcon from '@mui/icons-material/StopRounded';
 import ArrowDropDownRoundedIcon from '@mui/icons-material/ArrowDropDownRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import AttachFileRoundedIcon from '@mui/icons-material/AttachFileRounded';
+import Tooltip from '@mui/material/Tooltip';
 import { alpha, keyframes, type Theme } from '@mui/material/styles';
 import { useTranslations } from 'next-intl';
 import { useSnackbar } from '@/hooks/useSnackbar';
-import { validateImageFile, readFileAsDataUrl, stripDataUrlPrefix } from '@/lib/imageAttach';
+import {
+	validateAttachment,
+	mediaTypeForFile,
+	isImageMediaType,
+	readFileAsDataUrl,
+	stripDataUrlPrefix,
+} from '@/lib/fileAttach';
 import { useComposerDraft } from '@/hooks/useComposerDraft';
 import { normalizeEffort } from '@/lib/models';
 import { RAINBOW_GRADIENT } from '@/theme/theme';
 import { appShadow } from '@/theme/shadows';
 import ImageLightbox from '@/components/shared/ImageLightbox';
+import FileChip from '@/components/shared/FileChip';
 import AgentSettingsControls from './AgentSettingsControls';
-import type { ChatImageInput, Persona } from '@/types';
+import type { ChatAttachmentInput, Persona } from '@/types';
 
 // Bordure dégradée arc-en-ciel (effort ultracode) : astuce padding-box / border-box pour
 // respecter le border-radius. Seule la 3ᵉ couche (le dégradé de la bordure) défile.
@@ -39,7 +55,7 @@ interface Props {
 	model: string;
 	effort: string;
 	permissionMode: string;
-	onSend: (text: string, images?: ChatImageInput[]) => void;
+	onSend: (text: string, attachments?: ChatAttachmentInput[]) => void;
 	onStop: () => void;
 	onModel: (m: string) => void;
 	onEffort: (e: string) => void;
@@ -83,22 +99,34 @@ export default function ChatComposer({
 	const [personaAnchor, setPersonaAnchor] = useState<null | HTMLElement>(null);
 	const [dragOver, setDragOver] = useState(false);
 	const [zoomed, setZoomed] = useState<{ src: string; name: string } | null>(null);
+	const fileInput = useRef<HTMLInputElement>(null);
 
 	const addFiles = async (files: File[]) => {
 		for (const file of files) {
-			const err = validateImageFile(file);
-			if (err) {
-				showSnackbar(t(err === 'type' ? 'attachTypeError' : 'attachSizeError'), 'error');
+			const err = validateAttachment(file);
+			if (err === 'type') {
+				showSnackbar(t('attachTypeError'), 'error');
+				continue;
+			}
+			if (err === 'size') {
+				const isImage = isImageMediaType(mediaTypeForFile(file));
+				showSnackbar(t(isImage ? 'attachSizeError' : 'attachFileSizeError'), 'error');
 				continue;
 			}
 			const dataUrl = await readFileAsDataUrl(file);
-			const { mediaType, data } = stripDataUrlPrefix(dataUrl);
-			addAttachment({ name: file.name || 'image', mediaType, data });
+			const { data } = stripDataUrlPrefix(dataUrl);
+			// Le type vient du fichier, pas de la data URL : le navigateur laisse `type`
+			// vide sur beaucoup de fichiers de code, où l'extension est plus parlante.
+			addAttachment({
+				name: file.name || 'fichier',
+				mediaType: mediaTypeForFile(file),
+				data,
+			});
 		}
 	};
 
 	const onPaste = (e: ClipboardEvent) => {
-		const files = Array.from(e.clipboardData.files).filter((f) => f.type.startsWith('image/'));
+		const files = Array.from(e.clipboardData.files);
 		if (files.length) {
 			e.preventDefault();
 			void addFiles(files);
@@ -107,7 +135,13 @@ export default function ChatComposer({
 	const onDrop = (e: DragEvent) => {
 		e.preventDefault();
 		setDragOver(false);
-		const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('image/'));
+		const files = Array.from(e.dataTransfer.files);
+		if (files.length) void addFiles(files);
+	};
+	const onPick = (e: ChangeEvent<HTMLInputElement>) => {
+		const files = Array.from(e.target.files ?? []);
+		// Reset avant lecture : sans ça, re-choisir le même fichier n'émet plus `change`.
+		e.target.value = '';
 		if (files.length) void addFiles(files);
 	};
 	const submit = () => {
@@ -292,6 +326,17 @@ export default function ChatComposer({
 				{attachments.length > 0 && (
 					<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1 }}>
 						{attachments.map((a) => {
+							// Un fichier non-image n'a rien à prévisualiser : pastille nom + type.
+							if (!isImageMediaType(a.mediaType))
+								return (
+									<FileChip
+										key={a.id}
+										name={a.name}
+										mediaType={a.mediaType}
+										onRemove={() => removeAttachment(a.id)}
+										removeLabel={t('removeFile')}
+									/>
+								);
 							const src = `data:${a.mediaType};base64,${a.data}`;
 							return (
 								<Box key={a.id} sx={{ position: 'relative' }}>
@@ -357,6 +402,24 @@ export default function ChatComposer({
 					</Typography>
 				)}
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+					<Tooltip title={t('attachFile')}>
+						<IconButton
+							size="small"
+							aria-label={t('attachFile')}
+							onClick={() => fileInput.current?.click()}
+							disabled={disabled}
+						>
+							<AttachFileRoundedIcon sx={{ fontSize: 18 }} />
+						</IconButton>
+					</Tooltip>
+					<Box
+						component="input"
+						ref={fileInput}
+						type="file"
+						multiple
+						onChange={onPick}
+						sx={{ display: 'none' }}
+					/>
 					<AgentSettingsControls
 						model={model}
 						effort={effort}

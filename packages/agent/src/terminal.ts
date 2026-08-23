@@ -67,7 +67,7 @@ interface StreamUserMessage {
 	type: 'stream-user-message';
 	sessionId: string;
 	text: string;
-	images?: { name: string; mediaType: string; data: string }[];
+	attachments?: { name: string; mediaType: string; data: string }[];
 }
 interface StreamSetModelMessage {
 	type: 'stream-set-model';
@@ -365,7 +365,7 @@ export function startTerminalServer(httpServer: HttpServer) {
 				return;
 			}
 			if (msg.type === 'stream-user-message') {
-				sdkAgent.sendUserMessage(msg.sessionId, msg.text, msg.images);
+				sdkAgent.sendUserMessage(msg.sessionId, msg.text, msg.attachments);
 				return;
 			}
 			if (msg.type === 'stream-set-model') {

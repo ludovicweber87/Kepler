@@ -15,7 +15,7 @@ import { DEFAULT_CREATE_PR_PROMPT, DEFAULT_COMMIT_PUSH_PROMPT } from '@/lib/prom
 import { resolvePersonaIdentity } from '@/lib/personaIdentity';
 import { resolveRepoFullName } from '@/lib/resolveRepoFullName';
 import { filterPersonasByRepo } from '@/lib/personaRepos';
-import type { ChatImageInput } from '@/types';
+import type { ChatAttachmentInput } from '@/types';
 import ChatBubble from './chat/ChatBubble';
 import ChatPermissionCard from './chat/ChatPermissionCard';
 import ChatQuestionCard from './chat/ChatQuestionCard';
@@ -150,8 +150,8 @@ export default function AgentChatTab({
 	const prPrompt = createPrPrompt || DEFAULT_CREATE_PR_PROMPT;
 	const commitPrompt = commitPushPrompt || DEFAULT_COMMIT_PUSH_PROMPT;
 
-	const handleSend = (text: string, images?: ChatImageInput[]) => {
-		chat.send(text, images);
+	const handleSend = (text: string, attachments?: ChatAttachmentInput[]) => {
+		chat.send(text, attachments);
 	};
 
 	// Badge du composer = identité de persona, dérivée du seul `persona_id`. Aucun

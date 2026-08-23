@@ -6,7 +6,7 @@ import { getAgentWsUrl } from '@/lib/local-fetch';
 import { useReconnectOnWake } from '@/hooks/useReconnectOnWake';
 import { reduceStreamEvent } from '@/lib/chatReducer';
 import type {
-	ChatImageInput,
+	ChatAttachmentInput,
 	ChatMessage,
 	PendingPermission,
 	PendingQuestion,
@@ -58,7 +58,7 @@ type Status = 'connecting' | 'idle' | 'busy' | 'error' | 'closed';
 export interface QueuedMessage {
 	id: string;
 	text: string;
-	images?: ChatImageInput[];
+	attachments?: ChatAttachmentInput[];
 }
 
 export function useAgentChat(p: Params) {
@@ -161,8 +161,7 @@ export function useAgentChat(p: Params) {
 					if (msg.event === 'result') {
 						setStatus('idle');
 						refreshActivity();
-					}
-					else if (msg.event === 'session') {
+					} else if (msg.event === 'session') {
 						setModelState(
 							String((msg.data as Record<string, unknown>)?.model ?? model),
 						);
@@ -206,25 +205,29 @@ export function useAgentChat(p: Params) {
 	);
 
 	const dispatchUserMessage = useCallback(
-		(text: string, images?: ChatImageInput[]) => {
+		(text: string, attachments?: ChatAttachmentInput[]) => {
 			// Pas d'ajout optimiste : le serveur persiste le tour user et le renvoie
 			// (stream-event 'user'), source unique dédupliquée par seq.
 			setStatus('busy');
-			sendCtl({ type: 'stream-user-message', text, images });
+			sendCtl({ type: 'stream-user-message', text, attachments });
 		},
 		[sendCtl],
 	);
 
 	const send = useCallback(
-		(text: string, images?: ChatImageInput[]) => {
+		(text: string, attachments?: ChatAttachmentInput[]) => {
 			const t = text.trim();
-			if (!t && (!images || images.length === 0)) return;
+			if (!t && (!attachments || attachments.length === 0)) return;
 			// L'agent lit les messages séquentiellement : envoyer en plein tour placerait
 			// le message au milieu de la réponse en cours (seq). On empile côté client et
 			// on dépile à `idle` (voir l'effet ci-dessous). Sinon, envoi direct.
 			if (statusRef.current === 'idle' && queuedRef.current.length === 0)
-				dispatchUserMessage(t, images);
-			else setQueued((prev) => [...prev, { id: `q${queuedId.current++}`, text: t, images }]);
+				dispatchUserMessage(t, attachments);
+			else
+				setQueued((prev) => [
+					...prev,
+					{ id: `q${queuedId.current++}`, text: t, attachments },
+				]);
 		},
 		[dispatchUserMessage],
 	);
@@ -234,7 +237,7 @@ export function useAgentChat(p: Params) {
 		if (status !== 'idle' || queued.length === 0) return;
 		const [next, ...rest] = queued;
 		setQueued(rest);
-		dispatchUserMessage(next.text, next.images);
+		dispatchUserMessage(next.text, next.attachments);
 	}, [status, queued, dispatchUserMessage]);
 
 	const cancelQueued = useCallback((id: string) => {

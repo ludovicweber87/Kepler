@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl';
 import ChatThinking from './ChatThinking';
 import ChatToolCard from './ChatToolCard';
 import ImageLightbox from '@/components/shared/ImageLightbox';
+import FileChip from '@/components/shared/FileChip';
 import { getAgentHttpUrl } from '@/lib/local-fetch';
 import type { ChatMessage } from '@/types';
 
@@ -106,6 +107,15 @@ export default function ChatBubble({
 							/>
 						);
 					}
+					if (seg.kind === 'file')
+						return (
+							<FileChip
+								key={i}
+								name={seg.name}
+								mediaType={seg.mediaType}
+								href={getAgentHttpUrl() + seg.url}
+							/>
+						);
 					if (seg.kind === 'role_switch') return null;
 					return (
 						<ReactMarkdown key={i} remarkPlugins={[remarkGfm]}>

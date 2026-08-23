@@ -1,6 +1,13 @@
 export type StreamEvent =
   | { event: 'session'; data: { id: string; model: string; permissionMode: string; cwd: string; tools: string[] } }
-  | { event: 'user'; data: { text: string; images?: { name: string; url: string }[] } }
+  | {
+      event: 'user';
+      data: {
+        text: string;
+        images?: { name: string; url: string }[];
+        files?: { name: string; url: string; mediaType: string }[];
+      };
+    }
   | { event: 'thinking'; data: { text: string } }
   | { event: 'assistant'; data: { text: string } }
   | { event: 'tool_use'; data: { id: string; name: string; input: unknown } }
