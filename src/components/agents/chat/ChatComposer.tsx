@@ -12,7 +12,6 @@ import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import StopRoundedIcon from '@mui/icons-material/StopRounded';
 import ArrowDropDownRoundedIcon from '@mui/icons-material/ArrowDropDownRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
-import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
 import { alpha, keyframes, type Theme } from '@mui/material/styles';
 import { useTranslations } from 'next-intl';
 import { useSnackbar } from '@/hooks/useSnackbar';
@@ -21,6 +20,7 @@ import { useComposerDraft } from '@/hooks/useComposerDraft';
 import { normalizeEffort } from '@/lib/models';
 import { RAINBOW_GRADIENT } from '@/theme/theme';
 import { appShadow } from '@/theme/shadows';
+import ImageLightbox from '@/components/shared/ImageLightbox';
 import AgentSettingsControls from './AgentSettingsControls';
 import type { ChatImageInput, Persona } from '@/types';
 
@@ -82,6 +82,7 @@ export default function ChatComposer({
 		useComposerDraft(sessionId);
 	const [personaAnchor, setPersonaAnchor] = useState<null | HTMLElement>(null);
 	const [dragOver, setDragOver] = useState(false);
+	const [zoomed, setZoomed] = useState<{ src: string; name: string } | null>(null);
 
 	const addFiles = async (files: File[]) => {
 		for (const file of files) {
@@ -289,40 +290,50 @@ export default function ChatComposer({
 					))}
 				</Menu>
 				{attachments.length > 0 && (
-					<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
-						{attachments.map((a) => (
-							<Box
-								key={a.id}
-								sx={{
-									display: 'flex',
-									alignItems: 'center',
-									gap: 0.5,
-									pl: 0.75,
-									pr: 0.25,
-									py: 0.25,
-									borderRadius: 999,
-									bgcolor: (th) => alpha(th.palette.primary.main, 0.12),
-									maxWidth: 200,
-								}}
-							>
-								<ImageRoundedIcon sx={{ fontSize: 14, color: 'primary.main' }} />
-								<Typography
-									variant="caption"
-									noWrap
-									sx={{ fontSize: '0.7rem', maxWidth: 130 }}
-								>
-									{a.name}
-								</Typography>
-								<IconButton
-									size="small"
-									aria-label={t('removeImage')}
-									onClick={() => removeAttachment(a.id)}
-									sx={{ p: 0.25 }}
-								>
-									<CloseRoundedIcon sx={{ fontSize: 13 }} />
-								</IconButton>
-							</Box>
-						))}
+					<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1 }}>
+						{attachments.map((a) => {
+							const src = `data:${a.mediaType};base64,${a.data}`;
+							return (
+								<Box key={a.id} sx={{ position: 'relative' }}>
+									<Box
+										component="img"
+										src={src}
+										alt={a.name}
+										title={a.name}
+										onClick={() => setZoomed({ src, name: a.name })}
+										sx={{
+											display: 'block',
+											width: 56,
+											height: 56,
+											objectFit: 'cover',
+											borderRadius: 1,
+											border: '1px solid',
+											borderColor: 'divider',
+											cursor: 'zoom-in',
+											transition: 'opacity 120ms',
+											'&:hover': { opacity: 0.85 },
+										}}
+									/>
+									<IconButton
+										size="small"
+										aria-label={t('removeImage')}
+										onClick={() => removeAttachment(a.id)}
+										sx={{
+											position: 'absolute',
+											top: -6,
+											right: -6,
+											p: 0.15,
+											bgcolor: 'background.paper',
+											border: '1px solid',
+											borderColor: 'divider',
+											'&:hover': { bgcolor: 'background.paper' },
+										}}
+									>
+										<CloseRoundedIcon sx={{ fontSize: 12 }} />
+									</IconButton>
+								</Box>
+							);
+						})}
 					</Box>
 				)}
 				<InputBase
@@ -372,6 +383,11 @@ export default function ChatComposer({
 					</IconButton>
 				</Box>
 			</Box>
+			<ImageLightbox
+				src={zoomed?.src ?? null}
+				alt={zoomed?.name}
+				onClose={() => setZoomed(null)}
+			/>
 		</Box>
 	);
 }

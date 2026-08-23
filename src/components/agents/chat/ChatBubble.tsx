@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 import ReactMarkdown from 'react-markdown';
@@ -6,6 +7,7 @@ import remarkGfm from 'remark-gfm';
 import { useTranslations } from 'next-intl';
 import ChatThinking from './ChatThinking';
 import ChatToolCard from './ChatToolCard';
+import ImageLightbox from '@/components/shared/ImageLightbox';
 import { getAgentHttpUrl } from '@/lib/local-fetch';
 import type { ChatMessage } from '@/types';
 
@@ -17,6 +19,7 @@ export default function ChatBubble({
 	onOpenChanges?: (filePath: string) => void;
 }) {
 	const t = useTranslations('agentChat');
+	const [zoomed, setZoomed] = useState<{ src: string; name: string } | null>(null);
 	const isUser = message.role === 'user';
 
 	if (message.role === 'system') {
@@ -85,14 +88,20 @@ export default function ChatBubble({
 								key={i}
 								src={src}
 								alt={seg.name}
-								onClick={() => window.open(src, '_blank')}
+								onClick={() => setZoomed({ src, name: seg.name })}
 								sx={{
 									display: 'block',
-									maxWidth: 180,
-									maxHeight: 180,
+									// Largeur fixe et généreuse : l'aperçu doit être lisible
+									// sans clic, le clic servant à voir l'image en grand.
+									width: 320,
+									maxWidth: '100%',
+									maxHeight: 360,
+									objectFit: 'contain',
 									borderRadius: 1,
 									mt: 0.5,
-									cursor: 'pointer',
+									cursor: 'zoom-in',
+									transition: 'opacity 120ms',
+									'&:hover': { opacity: 0.85 },
 								}}
 							/>
 						);
@@ -105,6 +114,11 @@ export default function ChatBubble({
 					);
 				})}
 			</Box>
+			<ImageLightbox
+				src={zoomed?.src ?? null}
+				alt={zoomed?.name}
+				onClose={() => setZoomed(null)}
+			/>
 		</Box>
 	);
 }
