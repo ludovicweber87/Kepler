@@ -174,6 +174,14 @@ function createMarkdownComponents(
 			// eslint-disable-next-line @next/next/no-img-element
 			<img {...props} src={proxyGitHubImage(src)} alt={alt ?? ''} />
 		),
+		// Un lien d'issue pointe toujours ailleurs (GitHub, docs) : il s'ouvre hors
+		// de l'app, sinon la page distante remplace Kepler dans l'onglet ou la
+		// fenêtre Electron.
+		a: ({ href, children, ...props }: { href?: string; children?: React.ReactNode }) => (
+			<a {...props} href={href} target="_blank" rel="noopener noreferrer">
+				{children}
+			</a>
+		),
 		li: ({
 			children,
 			node,
@@ -686,26 +694,31 @@ export default function IssueDetail({
 									alignItems: 'center',
 									gap: 1,
 									mb: 1.5,
-									cursor: 'pointer',
 									'&:hover .edit-icon': { opacity: 1 },
-								}}
-								onClick={() => {
-									setEditTitle(issue.title);
-									setEditingTitle(true);
 								}}
 							>
 								<Typography variant="h4" sx={{ lineHeight: 1.3 }}>
 									{issue.title}
 								</Typography>
-								<EditRoundedIcon
-									className="edit-icon"
-									sx={{
-										fontSize: 18,
-										color: 'text.disabled',
-										opacity: 0,
-										transition: 'opacity 0.15s',
-									}}
-								/>
+								<Tooltip title={tc('edit')}>
+									<IconButton
+										className="edit-icon"
+										size="small"
+										aria-label={tc('edit')}
+										onClick={() => {
+											setEditTitle(issue.title);
+											setEditingTitle(true);
+										}}
+										sx={{
+											color: 'text.disabled',
+											opacity: 0.4,
+											transition: 'opacity 0.15s',
+											'&:focus-visible': { opacity: 1 },
+										}}
+									>
+										<EditRoundedIcon sx={{ fontSize: 18 }} />
+									</IconButton>
+								</Tooltip>
 							</Box>
 						)}
 						<Box
@@ -873,28 +886,33 @@ export default function IssueDetail({
 					) : (
 						<Box
 							sx={{
-								cursor: 'pointer',
 								'&:hover .edit-body-icon': { opacity: 1 },
 								position: 'relative',
 							}}
-							onClick={(e) => {
-								if ((e.target as HTMLElement).closest('.task-checkbox')) return;
-								setEditBody(issue.body ?? '');
-								setEditingBody(true);
-							}}
 						>
-							<EditRoundedIcon
-								className="edit-body-icon"
-								sx={{
-									position: 'absolute',
-									top: 0,
-									right: 0,
-									fontSize: 16,
-									color: 'text.disabled',
-									opacity: 0,
-									transition: 'opacity 0.15s',
-								}}
-							/>
+							<Tooltip title={tc('edit')}>
+								<IconButton
+									className="edit-body-icon"
+									size="small"
+									aria-label={tc('edit')}
+									onClick={() => {
+										setEditBody(issue.body ?? '');
+										setEditingBody(true);
+									}}
+									sx={{
+										position: 'absolute',
+										top: -4,
+										right: -4,
+										zIndex: 1,
+										color: 'text.disabled',
+										opacity: 0.4,
+										transition: 'opacity 0.15s',
+										'&:focus-visible': { opacity: 1 },
+									}}
+								>
+									<EditRoundedIcon sx={{ fontSize: 16 }} />
+								</IconButton>
+							</Tooltip>
 							{(() => {
 								bodyRef.current = issue.body ?? '';
 								checkboxCounterRef.current = 0;

@@ -16,6 +16,7 @@ import Avatar from '@mui/material/Avatar';
 import TextField from '@mui/material/TextField';
 import CircularProgress from '@mui/material/CircularProgress';
 import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
@@ -145,6 +146,14 @@ function createMarkdownComponents(onCheckboxToggle?: (index: number) => void, co
 		img: ({ src, alt, ...props }: { src?: string; alt?: string }) => (
 			// eslint-disable-next-line @next/next/no-img-element
 			<img {...props} src={proxyGitHubImage(src)} alt={alt ?? ''} />
+		),
+		// Un lien d'issue pointe toujours ailleurs (GitHub, docs) : il s'ouvre hors
+		// de l'app, sinon la page distante remplace Kepler dans l'onglet ou la
+		// fenêtre Electron.
+		a: ({ href, children, ...props }: { href?: string; children?: React.ReactNode }) => (
+			<a {...props} href={href} target="_blank" rel="noopener noreferrer">
+				{children}
+			</a>
 		),
 		li: ({ children, node, ...props }: { children?: React.ReactNode; node?: { children?: Array<{ type: string; tagName?: string; properties?: { type?: string; checked?: boolean } }>; }; className?: string; ordered?: boolean }) => {
 			const isTaskItem = node?.children?.some(
@@ -426,12 +435,7 @@ export default function AgentIssueTab({ owner, repo, issueNumber }: AgentIssueTa
 							alignItems: 'center',
 							gap: 1,
 							mb: 1,
-							cursor: 'pointer',
 							'&:hover .edit-icon': { opacity: 1 },
-						}}
-						onClick={() => {
-							setEditTitle(issue.title);
-							setEditingTitle(true);
 						}}
 					>
 						<Typography
@@ -440,15 +444,25 @@ export default function AgentIssueTab({ owner, repo, issueNumber }: AgentIssueTa
 						>
 							{issue.title}
 						</Typography>
-						<EditRoundedIcon
-							className="edit-icon"
-							sx={{
-								fontSize: 15,
-								color: 'text.disabled',
-								opacity: 0,
-								transition: 'opacity 0.15s',
-							}}
-						/>
+						<Tooltip title={tc('edit')}>
+							<IconButton
+								className="edit-icon"
+								size="small"
+								aria-label={tc('edit')}
+								onClick={() => {
+									setEditTitle(issue.title);
+									setEditingTitle(true);
+								}}
+								sx={{
+									color: 'text.disabled',
+									opacity: 0.4,
+									transition: 'opacity 0.15s',
+									'&:focus-visible': { opacity: 1 },
+								}}
+							>
+								<EditRoundedIcon sx={{ fontSize: 15 }} />
+							</IconButton>
+						</Tooltip>
 					</Box>
 				)}
 
@@ -608,29 +622,34 @@ export default function AgentIssueTab({ owner, repo, issueNumber }: AgentIssueTa
 				) : (
 					<Box
 						sx={{
-							cursor: 'pointer',
 							'&:hover .edit-body-icon': { opacity: 1 },
 							position: 'relative',
 							mb: 2,
 						}}
-						onClick={(e) => {
-							if ((e.target as HTMLElement).closest('.task-checkbox')) return;
-							setEditBody(issue.body ?? '');
-							setEditingBody(true);
-						}}
 					>
-						<EditRoundedIcon
-							className="edit-body-icon"
-							sx={{
-								position: 'absolute',
-								top: 0,
-								right: 0,
-								fontSize: 14,
-								color: 'text.disabled',
-								opacity: 0,
-								transition: 'opacity 0.15s',
-							}}
-						/>
+						<Tooltip title={tc('edit')}>
+							<IconButton
+								className="edit-body-icon"
+								size="small"
+								aria-label={tc('edit')}
+								onClick={() => {
+									setEditBody(issue.body ?? '');
+									setEditingBody(true);
+								}}
+								sx={{
+									position: 'absolute',
+									top: -4,
+									right: -4,
+									zIndex: 1,
+									color: 'text.disabled',
+									opacity: 0.4,
+									transition: 'opacity 0.15s',
+									'&:focus-visible': { opacity: 1 },
+								}}
+							>
+								<EditRoundedIcon sx={{ fontSize: 14 }} />
+							</IconButton>
+						</Tooltip>
 						{(() => { bodyRef.current = issue.body ?? ''; checkboxCounterRef.current = 0; return null; })()}
 						{issue.body ? (
 							<Box sx={markdownSx}>
