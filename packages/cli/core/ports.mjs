@@ -21,7 +21,7 @@ function isFree(port) {
 }
 
 /** First free port >= start, skipping the reserved agent port. */
-export async function findFreePort(start = 4000, range = 40) {
+export async function findFreePort(start = 9999, range = 40) {
 	for (let port = start; port < start + range; port++) {
 		if (port === AGENT_PORT) continue;
 		if (await isFree(port)) return port;

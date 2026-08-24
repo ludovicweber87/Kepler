@@ -11,7 +11,7 @@
 		"dev:web": "node scripts/dev-auto-port.mjs --web-only",
 		"dev:agent": "npm run dev -w packages/agent",
 		"build": "next build",
-		"start": "next start -p 4000",
+		"start": "next start -p 9999",
 		"lint": "eslint",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",

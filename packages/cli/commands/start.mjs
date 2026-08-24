@@ -53,7 +53,7 @@ export async function runStart(opts = {}) {
 		build(repoDir, { ...process.env });
 	}
 
-	const web = await findFreePort(4000);
+	const web = await findFreePort(9999);
 	const agent = AGENT_PORT;
 	writePorts({ web, agent });
 

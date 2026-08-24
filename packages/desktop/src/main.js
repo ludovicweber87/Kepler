@@ -12,7 +12,7 @@ app.setName('Kepler');
  */
 const APP_ICON = join(__dirname, '..', '..', '..', 'public', 'logo.png');
 
-const PORT = process.env.KEPLER_WEB_PORT || '4000';
+const PORT = process.env.KEPLER_WEB_PORT || '9999';
 const SERVER_URL = `http://localhost:${PORT}`;
 
 function loadWithRetry(win, attempts = 0) {

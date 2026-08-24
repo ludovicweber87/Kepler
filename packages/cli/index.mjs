@@ -27,7 +27,7 @@ program
 	.description(
 		[
 			'Build Kepler if not built yet, then start the agent (:4001) and the web',
-			'app (first free port from 4000) as detached background services, and open',
+			'app (first free port from 9999) as detached background services, and open',
 			'the desktop window. Safe to run twice — reopens the window if it was closed.',
 		].join('\n'),
 	)

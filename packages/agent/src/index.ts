@@ -12,7 +12,7 @@ import { handleNotificationsStream } from './routes/notifications.js';
 import { serveAttachment } from './sdk/attachments.js';
 
 const PORT = parseInt(process.env.KEPLER_AGENT_PORT ?? '4001', 10);
-const ALLOWED_ORIGINS = (process.env.KEPLER_ORIGIN ?? 'http://localhost:4000')
+const ALLOWED_ORIGINS = (process.env.KEPLER_ORIGIN ?? 'http://localhost:9999')
 	.split(',')
 	.map((o) => o.trim());
 

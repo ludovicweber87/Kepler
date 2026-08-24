@@ -197,7 +197,7 @@ kepler seed         # optional: install the starter persona library
 Opening a new terminal works just as well: the `PATH` line is picked up at startup. The installer
 prints the exact `source` command for your shell when it finishes.
 
-`start` boots the agent server (`:4001`) and the web app (first free port from `4000`) as background services and opens the desktop window. GitHub access comes from your `gh` session — **there is nothing else to configure.**
+`start` boots the agent server (`:4001`) and the web app (first free port from `9999`) as background services and opens the desktop window. GitHub access comes from your `gh` session — **there is nothing else to configure.**
 
 ### First five minutes
 
@@ -230,14 +230,14 @@ npm install
 npm run dev
 ```
 
-`npm run dev` starts both processes via `concurrently` — the Next.js app on **:4000** and the agent server on **:4001**, sharing one SQLite database. Don't run it alongside `kepler start` (port `4001` collides). Then open [http://localhost:4000](http://localhost:4000).
+`npm run dev` starts both processes via `concurrently` — the Next.js app on **:9999** and the agent server on **:4001**, sharing one SQLite database. Don't run it alongside `kepler start` (port `4001` collides). Then open [http://localhost:9999](http://localhost:9999).
 
 | Script                    | Purpose                                |
 | ------------------------- | -------------------------------------- |
 | `npm run dev`             | Both processes, auto-selected web port |
 | `npm run dev:web`         | Next.js only                           |
 | `npm run dev:agent`       | Agent server only                      |
-| `npm run build` / `start` | Production build / serve on `:4000`    |
+| `npm run build` / `start` | Production build / serve on `:9999`    |
 | `npm run lint` / `format` | ESLint / Prettier                      |
 | `npm run test:web`        | Vitest (pure logic — lib & hooks)      |
 | `npm run seed:personas`   | `kepler seed` from a dev checkout      |
@@ -258,7 +258,7 @@ Kepler runs as **two processes sharing one local SQLite database**:
                │ HTTP / apiFetch               │ WS · SSE · localFetch
                ▼                               ▼
   ┌──────────────────────────┐   ┌─────────────────────────────────┐
-  │   Next.js app  (:4000)   │   │    Agent server (Node, :4001)    │
+  │   Next.js app  (:9999)   │   │    Agent server (Node, :4001)    │
   │  · GitHub proxy          │   │  · git / worktrees / branches     │
   │    (REST + GraphQL)      │   │  · terminals (node-pty + tmux)    │
   │  · CRUD via Drizzle      │   │  · Agent SDK chat (WebSocket)     │
@@ -278,7 +278,7 @@ Kepler runs as **two processes sharing one local SQLite database**:
                    └────────────────────────────┘
 ```
 
-- **Next.js app** (`src/`, `:4000`) — UI + API routes (GitHub proxy, SQLite CRUD). Runs Drizzle migrations at startup.
+- **Next.js app** (`src/`, `:9999`) — UI + API routes (GitHub proxy, SQLite CRUD). Runs Drizzle migrations at startup.
 - **Agent server** (`packages/agent/`, `:4001`) — git and worktrees, terminals over WebSocket, the Agent SDK chat, the docs writer and its in-process MCP tools, daily report generation, and the notifications SSE stream. Opens the **same** SQLite file.
 - **Desktop** (`packages/desktop/`) — a thin Electron window over the local server.
 - **CLI** (`packages/cli/`) — the `kepler` command: build, process supervision, logs, updates, seeding.
@@ -483,7 +483,7 @@ kepler seed         # optionnel : installe la bibliothèque de personas de dépa
 Ouvrir un nouveau terminal marche aussi bien : la ligne de `PATH` est lue au démarrage.
 L'installeur affiche la commande `source` exacte pour votre shell en fin d'exécution.
 
-`start` démarre le serveur agent (`:4001`) et l'app web (premier port libre depuis `4000`) en services d'arrière-plan et ouvre la fenêtre desktop. L'accès GitHub vient de votre session `gh` — **il n'y a rien d'autre à configurer.**
+`start` démarre le serveur agent (`:4001`) et l'app web (premier port libre depuis `9999`) en services d'arrière-plan et ouvre la fenêtre desktop. L'accès GitHub vient de votre session `gh` — **il n'y a rien d'autre à configurer.**
 
 ### Les cinq premières minutes
 
@@ -516,14 +516,14 @@ npm install
 npm run dev
 ```
 
-`npm run dev` lance les deux process via `concurrently` — l'app Next.js sur **:4000** et le serveur agent sur **:4001**, partageant la même base SQLite. Ne le lancez pas en même temps que `kepler start` (conflit sur le port `4001`). Puis ouvrez [http://localhost:4000](http://localhost:4000).
+`npm run dev` lance les deux process via `concurrently` — l'app Next.js sur **:9999** et le serveur agent sur **:4001**, partageant la même base SQLite. Ne le lancez pas en même temps que `kepler start` (conflit sur le port `4001`). Puis ouvrez [http://localhost:9999](http://localhost:9999).
 
 | Script                    | Rôle                                        |
 | ------------------------- | ------------------------------------------- |
 | `npm run dev`             | Les deux process, port web auto-sélectionné |
 | `npm run dev:web`         | Next.js seul                                |
 | `npm run dev:agent`       | Serveur agent seul                          |
-| `npm run build` / `start` | Build de prod / serveur sur `:4000`         |
+| `npm run build` / `start` | Build de prod / serveur sur `:9999`         |
 | `npm run lint` / `format` | ESLint / Prettier                           |
 | `npm run test:web`        | Vitest (logique pure — lib & hooks)         |
 | `npm run seed:personas`   | `kepler seed` depuis un checkout de dev     |
@@ -534,7 +534,7 @@ npm run dev
 
 Kepler tourne en **deux process partageant une base SQLite locale** :
 
-- **App Next.js** (`src/`, `:4000`) — UI + API routes (proxy GitHub, CRUD SQLite). Joue les migrations Drizzle au démarrage.
+- **App Next.js** (`src/`, `:9999`) — UI + API routes (proxy GitHub, CRUD SQLite). Joue les migrations Drizzle au démarrage.
 - **Serveur agent** (`packages/agent/`, `:4001`) — git et worktrees, terminaux en WebSocket, le chat Agent SDK, le rédacteur de docs et ses outils MCP in-process, la génération des comptes-rendus quotidiens, et le stream SSE des notifications. Ouvre le **même** fichier SQLite.
 - **Desktop** (`packages/desktop/`) — une fine fenêtre Electron autour du serveur local.
 - **CLI** (`packages/cli/`) — la commande `kepler` : build, supervision des process, logs, mises à jour, seed.

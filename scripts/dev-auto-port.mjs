@@ -14,17 +14,17 @@ function isPortAvailable(port) {
 	});
 }
 
-async function findAvailablePort(start = 4000, range = 20) {
+async function findAvailablePort(start = 9999, range = 20) {
 	for (let port = start; port < start + range; port++) {
 		if (await isPortAvailable(port)) return port;
 	}
 	throw new Error(`No available port found in range ${start}-${start + range}`);
 }
 
-const port = await findAvailablePort(4000);
+const port = await findAvailablePort(9999);
 
-if (port !== 4000) {
-	console.log(`\x1b[33m⚠ Port 4000 in use → starting on port ${port}\x1b[0m`);
+if (port !== 9999) {
+	console.log(`\x1b[33m⚠ Port 9999 in use → starting on port ${port}\x1b[0m`);
 } else {
 	console.log(`\x1b[32m✓ Starting on port ${port}\x1b[0m`);
 }
