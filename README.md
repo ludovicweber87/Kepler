@@ -4,7 +4,7 @@
 
 <p align="center">
   <strong>Several AI agents on one project.</strong><br/>
-  An app that runs on your Mac and gives every Claude agent its own copy of the code.
+  An app that runs on your Mac and gives every Claude Code agent its own copy of the code.
 </p>
 
 <p align="center">
@@ -19,7 +19,7 @@
   <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react" alt="React 19" />
   <img src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript" alt="TypeScript 5" />
   <img src="https://img.shields.io/badge/MUI-7-007FFF?logo=mui" alt="Material UI 7" />
-  <img src="https://img.shields.io/badge/Claude-Agent%20SDK-7C5CFF" alt="Claude Agent SDK" />
+  <img src="https://img.shields.io/badge/Claude%20Code-Agent%20SDK-7C5CFF" alt="Built on Claude Code" />
   <img src="https://img.shields.io/badge/SQLite-Drizzle%20ORM-003B57?logo=sqlite" alt="SQLite + Drizzle" />
 </p>
 
@@ -34,6 +34,8 @@ You therefore wait for the first to finish before starting the next. And while i
 ## What Kepler is
 
 Kepler is an app that runs on your Mac. It launches several Claude agents on your projects, **each in its own copy of the code**, and shows you at all times what each one is doing.
+
+**Under the hood, the agent is Claude Code.** Kepler doesn't ship a model or an agent of its own: it drives the `claude` you already have on your machine, through its official Agent SDK. So an agent inside Kepler behaves exactly like the one in your terminal — same subscription, same `CLAUDE.md`, same skills, same MCP servers. Kepler adds the copies of the code, the interface and the memory around it.
 
 It also remembers your instructions from one run to the next, can start an agent straight from a GitHub issue, and writes up what happened in a repository each day.
 
@@ -93,7 +95,7 @@ These write-ups appear on a calendar. Click a day and you read the text and, bel
 
 **🛠️ The working screen** — this is where you spend your time. The conversation with the agent takes the left-hand side. On the right, four tabs show you the files it changed, its activity log, the linked issue and a file explorer; a file you open becomes a tab of its own. Below that, one or more terminals open up (`⌘J`), on a split you can drag.
 
-**🤖 A real conversation** — Kepler does not drive a terminal on your behalf: it talks to Claude through the official Agent SDK. Every tool the agent uses shows up as a card, you grant permissions with one click, and it can ask you a question in the middle of its work. You pick the model and how hard it should think as you go.
+**🤖 A real conversation** — Kepler does not drive a terminal on your behalf: it talks to Claude Code through its official Agent SDK. Every tool the agent uses shows up as a card, you grant permissions with one click, and it can ask you a question in the middle of its work. You pick the model and how hard it should think as you go.
 
 **🏷️ Sessions you can rename** — the name of a session is independent from the git branch, so renaming one never touches git. If you leave the branch name empty when you start, Kepler names it from your first message (`feat/…`, `fix/…`), and a name you set by hand is never overwritten afterwards.
 
@@ -153,7 +155,7 @@ Kepler asks you for no password and no key: it reuses the login of `gh`, GitHub'
 | **UI**          | Material UI 7 · MUI X Date Pickers · Emotion · Framer Motion |
 | **Data**        | TanStack React Query 5 (optimistic mutations)                |
 | **Storage**     | SQLite (better-sqlite3) + Drizzle ORM                        |
-| **AI / chat**   | Claude Agent SDK · in-process MCP tools (docs)               |
+| **AI / chat**   | Claude Code (Agent SDK) · in-process MCP tools (docs)        |
 | **Real-time**   | WebSocket (chat + terminal) · SSE (notifications)            |
 | **Terminal**    | xterm.js 6 · node-pty · tmux                                 |
 | **Code render** | Shiki · react-markdown · remark-gfm                          |
@@ -172,7 +174,7 @@ Kepler asks you for no password and no key: it reuses the login of `gh`, GitHub'
 - **macOS** — Kepler is built and tested there (it uses `tmux`, `osascript` for the folder picker and `open -a` for editors)
 - **Node.js 20–25** — native modules (`better-sqlite3`, `node-pty`) don't support Node 26 yet
 - **[GitHub CLI](https://cli.github.com) (`gh`)**, authenticated — `gh auth login` once
-- **[Claude CLI](https://docs.anthropic.com/en/docs/claude-code)** (`claude` on your `PATH`)
+- **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)** (`claude` on your `PATH`), signed in — every Kepler agent runs on it, with your own subscription
 - **`tmux`** and **`git`**
 
 ### Install
@@ -321,6 +323,8 @@ Vous attendez donc que le premier ait fini pour démarrer le suivant. Et pendant
 
 Kepler est une application qui tourne sur votre Mac. Elle lance plusieurs agents Claude sur vos projets, **chacun dans sa propre copie du code**, et vous montre en permanence ce que chacun est en train de faire.
 
+**Sous le capot, l'agent, c'est Claude Code.** Kepler n'embarque ni modèle ni agent maison : il pilote le `claude` que vous avez déjà sur votre machine, via son Agent SDK officiel. Un agent dans Kepler se comporte donc exactement comme celui de votre terminal — même abonnement, même `CLAUDE.md`, mêmes skills, mêmes serveurs MCP. Kepler ajoute autour les copies du code, l'interface et la mémoire.
+
 Elle retient aussi vos consignes d'une fois sur l'autre, sait démarrer un agent directement depuis une issue GitHub, et rédige le compte-rendu de ce qui s'est passé chaque jour dans un dépôt.
 
 Il n'y a aucun compte à créer ni clé d'API à renseigner. L'accès GitHub réutilise la connexion `gh` que vous avez déjà sur votre machine, tout ce que Kepler enregistre tient dans un seul fichier sur votre disque, et les seuls appels sortants vont vers GitHub et vers Claude.
@@ -379,7 +383,7 @@ Ces comptes-rendus s'affichent sur un calendrier. En cliquant sur un jour, vous 
 
 **🛠️ L'écran de travail** — c'est là que vous passez votre temps. La conversation avec l'agent occupe la partie gauche. À droite, quatre onglets vous montrent les fichiers qu'il a modifiés, son journal d'activité, l'issue liée et un explorateur de fichiers ; un fichier que vous ouvrez devient un onglet à part. En dessous s'ouvrent un ou plusieurs terminaux (`⌘J`), sur une séparation que vous pouvez déplacer.
 
-**🤖 Une vraie conversation** — Kepler ne pilote pas un terminal à votre place : il parle à Claude par l'Agent SDK officiel. Chaque outil que l'agent utilise apparaît sous forme de carte, vous accordez les permissions d'un clic, et il peut vous poser une question au milieu de son travail. Vous choisissez le modèle et son niveau de réflexion au fil de l'eau.
+**🤖 Une vraie conversation** — Kepler ne pilote pas un terminal à votre place : il parle à Claude Code par son Agent SDK officiel. Chaque outil que l'agent utilise apparaît sous forme de carte, vous accordez les permissions d'un clic, et il peut vous poser une question au milieu de son travail. Vous choisissez le modèle et son niveau de réflexion au fil de l'eau.
 
 **🏷️ Des sessions que vous pouvez renommer** — le nom d'une session est indépendant de la branche git, donc le changer ne touche jamais à git. Si vous laissez le nom de branche vide au lancement, Kepler la nomme d'après votre premier message (`feat/…`, `fix/…`), et un nom que vous avez posé à la main n'est jamais écrasé ensuite.
 
@@ -439,7 +443,7 @@ Kepler ne vous demande ni mot de passe ni clé : il réutilise la connexion de `
 | **UI**         | Material UI 7 · MUI X Date Pickers · Emotion · Framer Motion |
 | **Data**       | TanStack React Query 5 (mutations optimistes)                |
 | **Stockage**   | SQLite (better-sqlite3) + Drizzle ORM                        |
-| **IA / chat**  | Claude Agent SDK · outils MCP in-process (docs)              |
+| **IA / chat**  | Claude Code (Agent SDK) · outils MCP in-process (docs)       |
 | **Temps réel** | WebSocket (chat + terminal) · SSE (notifications)            |
 | **Terminal**   | xterm.js 6 · node-pty · tmux                                 |
 | **Rendu code** | Shiki · react-markdown · remark-gfm                          |
@@ -458,7 +462,7 @@ Kepler ne vous demande ni mot de passe ni clé : il réutilise la connexion de `
 - **macOS** — Kepler y est développé et testé (usage de `tmux`, `osascript` pour le picker de dossier, `open -a` pour les éditeurs)
 - **Node.js 20–25** — les modules natifs (`better-sqlite3`, `node-pty`) ne supportent pas encore Node 26
 - **[GitHub CLI](https://cli.github.com) (`gh`)**, authentifié — `gh auth login` une fois
-- **[Claude CLI](https://docs.anthropic.com/en/docs/claude-code)** (`claude` dans le `PATH`)
+- **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)** (`claude` dans le `PATH`), connecté — chaque agent Kepler tourne dessus, avec votre propre abonnement
 - **`tmux`** et **`git`**
 
 ### Installation
