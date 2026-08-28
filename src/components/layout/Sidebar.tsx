@@ -829,6 +829,7 @@ export default function Sidebar() {
 															)}
 															<Tooltip
 																title={nameTooltip}
+																placement="right"
 																disableHoverListener={!nameTooltip}
 															>
 																<Typography
