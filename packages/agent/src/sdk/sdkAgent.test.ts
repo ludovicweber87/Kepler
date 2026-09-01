@@ -451,6 +451,30 @@ test('une session normale émet bien sa notification de fin', async () => {
   assert.ok(n > 0, 'non-régression : le Workbench notifie toujours');
 });
 
+test('deux tours au même num_turns (restart SDK) → deux notifications', async () => {
+  // Un restart soft (changement de cwd, switch de persona, resume) repart d'un
+  // compteur `num_turns` bas : deux tours distincts d'une même session peuvent
+  // donc porter le même numéro. La dedupe_key doit rester distincte, sinon
+  // l'INSERT OR IGNORE avale la seconde notification — et le client ne reçoit
+  // rien du tout : ni cloche, ni snackbar, ni notification système.
+  const queryFn = ((_params: { prompt: AsyncIterable<unknown>; options?: unknown }) => {
+    async function* gen() {
+      yield { type: 'system', subtype: 'init', session_id: 'c1', model: 'm', permissionMode: 'bypassPermissions', cwd: '/tmp', tools: [] };
+      yield { type: 'result', subtype: 'success', is_error: false, result: 'un', session_id: 'c1', num_turns: 1, usage: {}, total_cost_usd: 0 };
+      yield { type: 'result', subtype: 'success', is_error: false, result: 'deux', session_id: 'c1', num_turns: 1, usage: {}, total_cost_usd: 0 };
+    }
+    return gen() as AsyncGenerator<unknown> & Record<string, unknown>;
+  }) as unknown as QueryFn;
+
+  const mgr = createSdkAgentManager({ queryFn });
+  mgr.startOrAttach('sess-restart', fakeSocket(), { cwd: '/tmp' });
+  await new Promise((r) => setTimeout(r, 30));
+
+  const keys = memDb.prepare('SELECT dedupe_key FROM notifications').all() as { dedupe_key: string }[];
+  assert.equal(keys.length, 2, 'la seconde notification ne doit pas être avalée par le dédoublonnage');
+  assert.equal(new Set(keys.map((k) => k.dedupe_key)).size, 2, 'les deux clés doivent différer');
+});
+
 test('scopeNote est réinjectée à chaque tour utilisateur', async () => {
   // queryFn qui CONSOMME la queue de prompts pour observer ce qui part au modèle.
   const pushed: string[] = [];

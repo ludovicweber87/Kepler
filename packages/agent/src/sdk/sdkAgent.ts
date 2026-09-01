@@ -183,7 +183,14 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
                   url: `/workbench?session=${sessionId}`,
                   entityRef: { kind: 'session', id: sessionId },
                   payload: { session: sessionId },
-                  dedupeParts: [sessionId, String(ev.data.num_turns)],
+                  // `seq` et non `ev.data.num_turns` : ce dernier compte les tours du
+                  // run SDK courant, pas de la session. Tout restart soft (changement
+                  // de cwd, switch de persona, resume) le fait repartir bas, la
+                  // dedupe_key retombe sur une clé déjà consommée et l'INSERT OR IGNORE
+                  // avale la notification — ni cloche, ni snackbar, ni notif OS. `seq`
+                  // vient de `transcript.nextSeq()` (MAX(seq)+1 en base) : monotone sur
+                  // toute la vie de la session, redémarrages serveur compris.
+                  dedupeParts: [sessionId, String(seq)],
                 }));
               } catch (err) { console.error('[notifications] agent result notif failed', err); }
             }
