@@ -288,9 +288,9 @@ export default function Sidebar() {
 
 	const handleDeleteFree = () => {
 		if (!freeMenu) return;
-		const { rowId } = freeMenu;
+		const { rowId, sessionId } = freeMenu;
 		setFreeMenu(null);
-		remove(rowId)
+		remove(rowId, sessionId)
 			.then(() => showSnackbar(t('sessionDeleted'), 'success'))
 			.catch(() => showSnackbar(t('deleteSessionError'), 'error'));
 	};
@@ -303,7 +303,7 @@ export default function Sidebar() {
 		const session = sessionByWorktree.get(worktreePath);
 		deleteWorktree(projectPath, worktreePath, deleteBranch)
 			.then(() => {
-				if (session) void remove(session.id).catch(() => {});
+				if (session) void remove(session.id, session.session_id).catch(() => {});
 				showSnackbar(t('worktreeDeleted'), 'success');
 			})
 			.catch((err) =>

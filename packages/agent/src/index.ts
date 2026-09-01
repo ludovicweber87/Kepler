@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { createServer, IncomingMessage, ServerResponse } from 'node:http';
 import { parsePath, sendJson, sendError } from './helpers.js';
-import { startTerminalServer } from './terminal.js';
+import { startTerminalServer, reapOrphanSessions } from './terminal.js';
 import { handleGitRoutes } from './routes/git.js';
 import { handleSessionRoutes } from './routes/sessions.js';
 import { handleChatRoutes } from './routes/chat.js';
@@ -111,6 +111,14 @@ const server = createServer(handleRequest);
 
 // WebSocket upgrade for terminal
 startTerminalServer(server);
+
+// Balayage des sessions orphelines : au boot (les sessions tmux survivent à
+// l'arrêt de Kepler, un process SDK tué de force laisse ses traces), puis
+// périodiquement. `unref` : ce timer ne doit jamais retenir le process en vie.
+const REAP_BOOT_DELAY_MS = 15_000;
+const REAP_INTERVAL_MS = 5 * 60_000;
+setTimeout(reapOrphanSessions, REAP_BOOT_DELAY_MS).unref();
+setInterval(reapOrphanSessions, REAP_INTERVAL_MS).unref();
 
 // EADDRINUSE is common when `tsx watch` restarts before the previous process
 // frees the port. Retry a few times, then fail loudly instead of lingering as a

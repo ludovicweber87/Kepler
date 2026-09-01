@@ -12,12 +12,11 @@ import {
 	resolveGitHubToken,
 	findClaude,
 	cleanClaudeEnv,
-	findTmux,
 	startSSE,
 	sendSSE,
 } from '../helpers.js';
 import { getDb } from '../db.js';
-import { sdkAgent } from '../terminal.js';
+import { sdkAgent, terminateSession } from '../terminal.js';
 import { slugifyBranchInput, moveWorktreeDir } from '../sdk/autoRename.js';
 import { fetchIssueContextBlock, issueContextMarker } from '../issueContext.js';
 import { parseFilesToCopy } from '../filesToCopy.js';
@@ -27,9 +26,21 @@ import { resolveRemoteBaseRef, resolveDiffBase } from '../gitBase.js';
 import { untrackedDiff, DIFF_MAX_BUFFER } from '../untrackedDiff.js';
 import { dedupeAndSortBranches, worktreeAddArgs, type RawBranch } from '../branches.js';
 
-const TMUX = findTmux();
 const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
+
+/** Sessions rattachées à un worktree. Dégrade en liste vide si la DB est absente. */
+function boundSessionRows(worktreePath: string): { id: string; session_id: string }[] {
+	try {
+		const db = getDb();
+		if (!db) return [];
+		return db
+			.prepare('SELECT id, session_id FROM agent_sessions WHERE worktree_path = ?')
+			.all(worktreePath) as { id: string; session_id: string }[];
+	} catch {
+		return [];
+	}
+}
 
 /**
  * Récupère la liste `files_to_copy` configurée pour le repo dont le chemin local est `cwd`.
@@ -264,6 +275,12 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 			const worktrees = parseWorktreeList(listOutput);
 			const target = worktrees.find((wt) => wt.path === worktreePath);
 
+			// AVANT le retrait du dossier : sinon on supprime le worktree sous les
+			// pieds d'un process `claude` qui y a son cwd, et il survit en fantôme
+			// (~400 Mo) jusqu'à l'arrêt de l'agent.
+			const bound = boundSessionRows(worktreePath);
+			for (const s of bound) terminateSession(s.session_id);
+
 			execSync(`git worktree remove ${JSON.stringify(worktreePath)} --force`, {
 				cwd,
 				encoding: 'utf-8',
@@ -282,32 +299,12 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 				}
 			}
 
-			// Clean up any agent sessions bound to this worktree: kill their tmux
-			// sessions and purge their DB records + logs. Failures here must not
-			// fail the worktree removal itself.
+			// Les process sont déjà arrêtés plus haut ; ne reste que la purge DB.
+			// Un échec ici ne doit pas faire échouer la suppression du worktree.
 			try {
 				const db = getDb();
 				if (db) {
-					const rows = db
-						.prepare(
-							'SELECT id, session_id FROM agent_sessions WHERE worktree_path = ?',
-						)
-						.all(worktreePath) as { id: string; session_id: string }[];
-					for (const s of rows) {
-						try {
-							execSync(`${TMUX} kill-session -t ${s.session_id}-shell`, {
-								stdio: 'ignore',
-							});
-						} catch {
-							// shell may not exist
-						}
-						try {
-							execSync(`${TMUX} kill-session -t ${s.session_id}`, {
-								stdio: 'ignore',
-							});
-						} catch {
-							// session may be dead
-						}
+					for (const s of bound) {
 						db.prepare(
 							'DELETE FROM agent_activity_logs WHERE agent_session_id = ?',
 						).run(s.id);
@@ -344,10 +341,14 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 			const slug = slugifyBranchInput(newName);
 			if (!slug) return sendJson(res, { error: `Invalid branch name: ${newName}` }, 400);
 
-			const oldBranch = execFileSync('git', ['-C', worktreePath, 'branch', '--show-current'], {
-				encoding: 'utf-8',
-				timeout: 10000,
-			}).trim();
+			const oldBranch = execFileSync(
+				'git',
+				['-C', worktreePath, 'branch', '--show-current'],
+				{
+					encoding: 'utf-8',
+					timeout: 10000,
+				},
+			).trim();
 
 			if (slug !== oldBranch) {
 				// Validate the new ref name against git's own rules.
