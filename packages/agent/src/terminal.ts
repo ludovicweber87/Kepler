@@ -1,7 +1,7 @@
 import { Server as HttpServer } from 'node:http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { spawn, IPty } from 'node-pty';
-import { execSync, execFileSync } from 'node:child_process';
+import { execSync, execFile, execFileSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -9,6 +9,14 @@ import { findTmux, findClaude, CLAUDE_ENV_STRIP_KEYS } from './helpers.js';
 import { isAgentSession } from './sessionFilter.js';
 import { createSdkAgentManager } from './sdk/sdkAgent.js';
 import { buildDocStartParams } from './sdk/docSession.js';
+import { getDb } from './db.js';
+import {
+	killTmuxSession,
+	killTmuxSessionsFor,
+	listTmuxSnapshots,
+	selectDeadSdkSessions,
+	selectOrphanTmuxSessions,
+} from './sessionLifecycle.js';
 
 // Manager de sessions Agent SDK, partagé par toutes les connexions WS.
 export const sdkAgent = createSdkAgentManager();
@@ -141,25 +149,46 @@ function simpleHash(str: string): string {
 	return h.toString(36);
 }
 
-function checkPaneActivity(sessionId: string): boolean {
-	try {
-		const content = execSync(`${TMUX} capture-pane -t ${sessionId} -p -J`, {
-			encoding: 'utf-8',
-			stdio: ['pipe', 'pipe', 'ignore'],
-			timeout: 2000,
-		});
-		const hash = simpleHash(content);
-		const prev = sessionPaneHashes.get(sessionId);
-		sessionPaneHashes.set(sessionId, hash);
-		if (prev === undefined) return false;
-		if (prev !== hash) {
-			sessionOutputTimestamps.set(sessionId, Date.now());
-			return true;
-		}
-		return false;
-	} catch {
-		return false;
-	}
+function capturePaneHash(sessionId: string): Promise<void> {
+	return new Promise((resolve) => {
+		execFile(
+			TMUX,
+			['capture-pane', '-t', `=${sessionId}`, '-p', '-J'],
+			{ encoding: 'utf-8', timeout: 2000, maxBuffer: 1024 * 1024 },
+			(err, stdout) => {
+				if (err) return resolve();
+				const hash = simpleHash(stdout);
+				const prev = sessionPaneHashes.get(sessionId);
+				sessionPaneHashes.set(sessionId, hash);
+				if (prev !== undefined && prev !== hash) {
+					sessionOutputTimestamps.set(sessionId, Date.now());
+				}
+				resolve();
+			},
+		);
+	});
+}
+
+let paneRefreshInFlight = false;
+
+/**
+ * Rafraîchit les hashes de pane en tâche de fond. `getActiveSessions` ne lit
+ * plus que le cache : un `capture-pane` **synchrone** par session (jusqu'à 2 s
+ * chacun) gelait toute la boucle d'événements de l'agent à chaque poll — donc
+ * tous les streams WS de tous les agents en même temps.
+ */
+function refreshPaneActivity(sessionIds: string[]): void {
+	if (paneRefreshInFlight) return;
+	const now = Date.now();
+	// Une session dont le pty pousse déjà des données se signale toute seule.
+	const stale = sessionIds.filter(
+		(id) => now - (sessionOutputTimestamps.get(id) ?? 0) >= ACTIVE_THRESHOLD,
+	);
+	if (stale.length === 0) return;
+	paneRefreshInFlight = true;
+	void Promise.all(stale.map(capturePaneHash)).finally(() => {
+		paneRefreshInFlight = false;
+	});
 }
 
 export interface SessionMeta {
@@ -194,9 +223,7 @@ export function getActiveSessions(): SessionMeta[] {
 				const tmuxActivity = parseInt(activity, 10) * 1000;
 				const trackedTs = sessionOutputTimestamps.get(sessionId);
 				const lastOutput = trackedTs ?? 0;
-				const paneChanged = checkPaneActivity(sessionId);
-				const hasRecentOutput =
-					(lastOutput > 0 && now - lastOutput < ACTIVE_THRESHOLD) || paneChanged;
+				const hasRecentOutput = lastOutput > 0 && now - lastOutput < ACTIVE_THRESHOLD;
 				return {
 					sessionId,
 					cwd: cwd || '',
@@ -210,6 +237,10 @@ export function getActiveSessions(): SessionMeta[] {
 	} catch {
 		tmuxMetas = [];
 	}
+
+	// Le résultat de ce balayage sera lu au prochain poll : l'indicateur
+	// d'activité a un tour de retard, au bénéfice d'un event loop jamais bloqué.
+	refreshPaneActivity(tmuxMetas.map((m) => m.sessionId));
 
 	// Fusionne les sessions SDK (chat modal) : elles n'ont pas de tmux et seraient
 	// sinon classées "passées" alors qu'elles sont ouvertes.
@@ -228,6 +259,55 @@ export function getActiveSessions(): SessionMeta[] {
 			hasRecentOutput: x.busy,
 		}));
 	return [...tmuxMetas, ...sdkMetas];
+}
+
+/**
+ * L'unique porte de sortie d'une session : process SDK `claude` (~400 Mo de RSS)
+ * ET sessions tmux (agent + tous ses onglets shell). Tout chemin qui « ferme »
+ * une session doit passer par ici. Ne tuer que tmux laissait le process SDK
+ * tourner sur un worktree supprimé jusqu'à l'arrêt de l'agent : la machine
+ * saturait à mesure que les sessions parallèles s'accumulaient.
+ */
+export function terminateSession(sessionId: string): void {
+	sdkAgent.stop(sessionId);
+	killTmuxSessionsFor(sessionId);
+}
+
+/** Fenêtre entre `tmux new-session` et l'écriture de la ligne `agent_sessions`. */
+const REAP_GRACE_MS = 5 * 60_000;
+
+/**
+ * Filet de sécurité : rattrape ce qui a échappé à `terminateSession` — worktree
+ * supprimé hors Kepler, ligne effacée à la main, Kepler tué de force (les
+ * sessions tmux sont des daemons du serveur tmux, elles survivent à tout).
+ */
+export function reapOrphanSessions(): void {
+	for (const sessionId of selectDeadSdkSessions(sdkAgent.listActive())) {
+		console.log(`[kepler-agent] reaper: session SDK sur un cwd disparu → ${sessionId}`);
+		terminateSession(sessionId);
+	}
+
+	// Sans base lisible on ne sait rien des sessions légitimes : on ne tue rien.
+	const db = getDb();
+	if (!db) return;
+	try {
+		const rows = db.prepare('SELECT session_id FROM agent_sessions').all() as {
+			session_id: string;
+		}[];
+		const known = new Set(rows.map((r) => r.session_id));
+		const orphans = selectOrphanTmuxSessions(
+			listTmuxSnapshots(),
+			known,
+			Date.now(),
+			REAP_GRACE_MS,
+		);
+		for (const name of orphans) {
+			console.log(`[kepler-agent] reaper: session tmux sans ligne en base → ${name}`);
+			killTmuxSession(name);
+		}
+	} catch (err) {
+		console.error('[kepler-agent] reaper: balayage tmux échoué', err);
+	}
 }
 
 function tmuxSessionExists(sessionId: string): boolean {
@@ -325,13 +405,9 @@ export function startTerminalServer(httpServer: HttpServer) {
 			}
 
 			if (msg.type === 'kill') {
-				try {
-					if (tmuxSessionExists(msg.sessionId)) {
-						execSync(`${TMUX} kill-session -t ${msg.sessionId}`, { stdio: 'ignore' });
-					}
-				} catch (err) {
-					console.error('[kepler-agent] kill-session failed:', err);
-				}
+				// Fermeture d'un onglet shell : correspondance exacte, sinon tmux
+				// résout `-t` par préfixe et emporterait les onglets voisins.
+				killTmuxSession(msg.sessionId);
 				return;
 			}
 

@@ -1,22 +1,12 @@
 import { IncomingMessage, ServerResponse } from 'node:http';
 import { execSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import {
-	readBody,
-	sendJson,
-	sendError,
-	findTmux,
-	findClaude,
-	cleanClaudeEnv,
-	NOW_ISO,
-} from '../helpers.js';
-import { getActiveSessions, sdkAgent } from '../terminal.js';
+import { readBody, sendJson, sendError, findClaude, cleanClaudeEnv, NOW_ISO } from '../helpers.js';
+import { getActiveSessions, sdkAgent, terminateSession } from '../terminal.js';
 import { stripSessionPrefix } from '../sessionFilter.js';
 import { getDb } from '../db.js';
 import { synthesizeReport } from '../sdk/reportSynth.js';
 import { loadTranscript } from '../sdk/transcriptStore.js';
-
-const TMUX = findTmux();
 
 // ── Active session types ──
 
@@ -75,11 +65,7 @@ interface DbSession {
 
 // ── Router ──
 
-export async function handleSessionRoutes(
-	req: IncomingMessage,
-	res: ServerResponse,
-	path: string,
-) {
+export async function handleSessionRoutes(req: IncomingMessage, res: ServerResponse, path: string) {
 	const method = req.method ?? 'GET';
 
 	// GET /sessions
@@ -154,18 +140,8 @@ export async function handleSessionRoutes(
 		const sessionId = decodeURIComponent(killMatch[1]);
 
 		try {
-			// Arrête la session SDK (chat modal) si présente en mémoire.
-			sdkAgent.stop(sessionId);
-			try {
-				execSync(`${TMUX} kill-session -t ${sessionId}-shell`, { stdio: 'ignore' });
-			} catch {
-				// shell may not exist
-			}
-			try {
-				execSync(`${TMUX} kill-session -t ${sessionId}`, { stdio: 'ignore' });
-			} catch {
-				// session may be dead
-			}
+			// Process SDK + tmux (agent et onglets shell) : voir `terminateSession`.
+			terminateSession(sessionId);
 
 			const db = getDb();
 			if (db) {

@@ -70,14 +70,14 @@ export default function ArchivedPage() {
 		setDeleteMenu(null);
 		if (!s.worktree_path) return;
 		deleteWorktree(s.project_path, s.worktree_path, deleteBranch)
-			.then(() => remove(s.id).catch(() => {}))
+			.then(() => remove(s.id, s.session_id).catch(() => {}))
 			.then(() => showSnackbar(t('sessionDeleted'), 'success'))
 			.catch(() => showSnackbar(t('deleteError'), 'error'));
 	};
 
 	const handleRemoveSession = (s: AgentSession) => {
 		setDeleteMenu(null);
-		remove(s.id)
+		remove(s.id, s.session_id)
 			.then(() => showSnackbar(t('sessionDeleted'), 'success'))
 			.catch(() => showSnackbar(t('deleteError'), 'error'));
 	};

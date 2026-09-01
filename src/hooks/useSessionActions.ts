@@ -11,7 +11,7 @@ import { localFetch } from '@/lib/local-fetch';
  *   resume    : passée → active (status=active ; le WS/chat se rouvre côté modal)
  *   archive   : → archivée (arrêt + archived_at)
  *   unarchive : archivée → passée (archived_at=null)
- *   remove    : supprime la ligne session (par id)
+ *   remove    : arrête (si sessionId fourni) puis supprime la ligne session
  */
 export function useSessionActions() {
 	const queryClient = useQueryClient();
@@ -81,15 +81,18 @@ export function useSessionActions() {
 		[patch, invalidate],
 	);
 
+	// Supprimer la ligne ne suffit pas : sans `killLive` le process SDK `claude`
+	// (~400 Mo) continue de tourner, invisible, jusqu'à l'arrêt de l'agent.
 	const remove = useCallback(
-		async (rowId: string) => {
+		async (rowId: string, sessionId?: string) => {
+			if (sessionId) await killLive(sessionId);
 			const res = await apiFetch(`/api/agent-sessions?id=${encodeURIComponent(rowId)}`, {
 				method: 'DELETE',
 			});
 			if (!res.ok) throw new Error('Failed to delete session');
 			invalidate();
 		},
-		[invalidate],
+		[killLive, invalidate],
 	);
 
 	// Renomme le label humain de la session (agent_name). Découplé de la branche
