@@ -293,7 +293,9 @@ export default function AgentChatTab({
 				{chat.pendingQuestions.map((q) => (
 					<ChatQuestionCard key={q.id} question={q} onSubmit={chat.resolveQuestion} />
 				))}
-				{showPending && <ChatPending />}
+				{(showPending || (busy && chat.retry !== null)) && (
+					<ChatPending retry={chat.retry} />
+				)}
 				{chat.queued.map((q) => (
 					<ChatQueued key={q.id} message={q} onCancel={chat.cancelQueued} />
 				))}

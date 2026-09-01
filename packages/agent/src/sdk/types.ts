@@ -16,3 +16,15 @@ export type StreamEvent =
   | { event: 'result'; data: { is_error: boolean; text: string; session_id: string; num_turns: number; usage: unknown; total_cost_usd: number } };
 
 export type PermissionDecision = 'allow-once' | 'allow-always' | 'reject';
+
+/**
+ * Événements transitoires : diffusés aux clients pour le rendu « vivant » du tour
+ * en cours (tokens, progression d'outil, retry API), jamais persistés ni
+ * séquencés. Le bloc complet correspondant arrive ensuite en `StreamEvent` et
+ * fait autorité — un client qui les ignore ne perd rien.
+ */
+export type StreamDelta =
+  | { kind: 'text'; text: string }
+  | { kind: 'thinking'; text: string }
+  | { kind: 'tool_progress'; toolUseId: string; toolName: string; elapsedSeconds: number }
+  | { kind: 'api_retry'; attempt: number; maxRetries: number; delayMs: number };

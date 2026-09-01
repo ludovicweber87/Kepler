@@ -511,6 +511,8 @@
 		"docUpdated": "Doc mise à jour",
 		"docRead": "Doc relue",
 		"toolRunning": "en cours…",
+		"toolElapsed": "{seconds} s",
+		"retrying": "Nouvelle tentative {attempt}/{max}…",
 		"permissionTitle": "Autorisation demandée",
 		"allowOnce": "Autoriser",
 		"allowAlways": "Toujours pour {tool}",

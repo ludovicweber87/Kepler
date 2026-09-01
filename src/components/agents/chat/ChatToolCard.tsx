@@ -72,7 +72,18 @@ export default function ChatToolCard({
 			)}
 
 			{call.status === 'running' ? (
-				<CircularProgress size={12} />
+				<>
+					<CircularProgress size={12} />
+					{/* Sous 2 s le compteur clignoterait pour rien. */}
+					{(call.elapsedSeconds ?? 0) >= 2 && (
+						<Typography
+							variant="caption"
+							sx={{ color: 'text.disabled', fontVariantNumeric: 'tabular-nums' }}
+						>
+							{t('toolElapsed', { seconds: call.elapsedSeconds ?? 0 })}
+						</Typography>
+					)}
+				</>
 			) : (
 				<CheckRoundedIcon
 					sx={{

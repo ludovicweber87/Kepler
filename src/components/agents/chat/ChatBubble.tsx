@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 import ReactMarkdown from 'react-markdown';
@@ -12,7 +12,7 @@ import FileChip from '@/components/shared/FileChip';
 import { getAgentHttpUrl } from '@/lib/local-fetch';
 import type { ChatMessage } from '@/types';
 
-export default function ChatBubble({
+function ChatBubble({
 	message,
 	onOpenChanges,
 }: {
@@ -132,3 +132,10 @@ export default function ChatBubble({
 		</Box>
 	);
 }
+
+/**
+ * Mémoïsé : le reducer ne recrée que la bulle touchée par un événement. Sans
+ * `memo`, chaque token de streaming repeindrait tout le transcript et son
+ * markdown, ce qui coûterait plus cher que ce que le streaming fait gagner.
+ */
+export default memo(ChatBubble);

@@ -9,13 +9,19 @@ const blink = keyframes`
 	40% { opacity: 1; }
 `;
 
-export default function ChatPending() {
+export default function ChatPending({
+	retry,
+}: {
+	retry?: { attempt: number; maxRetries: number } | null;
+}) {
 	const t = useTranslations('agentChat');
 	return (
 		<Box sx={{ display: 'flex', justifyContent: 'flex-start', px: 2, py: 0.5 }}>
 			<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
 				<Typography variant="caption" sx={{ fontStyle: 'italic' }}>
-					{t('pending')}
+					{retry
+						? t('retrying', { attempt: retry.attempt, max: retry.maxRetries })
+						: t('pending')}
 				</Typography>
 				<Box sx={{ display: 'flex', gap: 0.4 }}>
 					{[0, 1, 2].map((i) => (

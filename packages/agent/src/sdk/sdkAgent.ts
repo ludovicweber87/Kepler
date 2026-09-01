@@ -1,7 +1,7 @@
 import { query as realQuery } from '@anthropic-ai/claude-agent-sdk';
 import { findClaude, cleanClaudeEnv, NOW_ISO } from '../helpers.js';
 import { makePromptQueue, type PromptQueue } from './promptQueue.js';
-import { mapMessage } from './mapMessage.js';
+import { mapDelta, mapMessage } from './mapMessage.js';
 import { createPermissionController, type PermissionController, type PendingPermission, type PendingQuestion, type QuestionAnswers } from './permissions.js';
 import type { PermissionDecision } from './types.js';
 import * as transcript from './transcriptStore.js';
@@ -141,6 +141,15 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
     const epoch = s.epoch;
     try {
       for await (const msg of s.q) {
+        // Transitoire (tokens en cours, progression d'outil, retry API) : diffusé
+        // tel quel pour le rendu « vivant », sans seq ni persistance. Écrire ces
+        // milliers d'événements en base noierait le transcript et le replay ; le
+        // bloc complet qui suit fait autorité côté client.
+        const delta = mapDelta(msg as never);
+        if (delta) {
+          broadcast(s, { type: 'stream-delta', ...delta });
+          continue;
+        }
         for (const ev of mapMessage(msg as never)) {
           if (ev.event === 'session') {
             s.claudeSessionId = ev.data.id;
@@ -233,6 +242,11 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
       pathToClaudeCodeExecutable: findClaude(),
       env: cleanEnv(),
       permissionMode: s.permissionMode,
+      // Sans ce drapeau le SDK n'émet que des blocs COMPLETS : le texte
+      // n'apparaît qu'une fois le paragraphe entièrement généré, ce qui donne
+      // l'impression d'une session bien plus lente que le CLI à durée égale.
+      // Les `stream_event` produits ici sont diffusés puis jetés (cf. runLoop).
+      includePartialMessages: true,
       // Requis par le SDK pour autoriser le mode 'bypassPermissions' (défaut :
       // l'agent n'invite jamais à confirmer), au démarrage comme via le chip.
       allowDangerouslySkipPermissions: true,

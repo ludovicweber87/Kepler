@@ -511,6 +511,8 @@
 		"docUpdated": "Doc updated",
 		"docRead": "Doc read",
 		"toolRunning": "running…",
+		"toolElapsed": "{seconds}s",
+		"retrying": "Retrying {attempt}/{max}…",
 		"permissionTitle": "Permission requested",
 		"allowOnce": "Allow",
 		"allowAlways": "Always allow {tool}",
