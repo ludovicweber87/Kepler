@@ -314,11 +314,18 @@ export interface ChatToolCall {
 	result?: unknown;
 	truncated?: boolean;
 	status: 'running' | 'done' | 'error';
+	/** Secondes écoulées, poussées par le serveur tant que l'outil tourne. */
+	elapsedSeconds?: number;
 }
 
+/**
+ * `draft` marque un segment construit à partir des deltas de streaming : il est
+ * remplacé par le bloc complet dès qu'il arrive, et n'existe pas dans le
+ * transcript persisté (un rechargement ne le fait donc jamais réapparaître).
+ */
 export type ChatSegment =
-	| { kind: 'text'; text: string }
-	| { kind: 'thinking'; text: string }
+	| { kind: 'text'; text: string; draft?: true }
+	| { kind: 'thinking'; text: string; draft?: true }
 	| { kind: 'image'; url: string; name: string }
 	| { kind: 'file'; url: string; name: string; mediaType: string }
 	| { kind: 'role_switch'; name: string }
@@ -387,6 +394,16 @@ export interface StreamEventWire {
 		| 'result';
 	data: Record<string, unknown>;
 }
+
+/**
+ * Événement transitoire du serveur (`stream-delta`) : ni seq, ni persistance, ni
+ * déduplication. Sert uniquement au rendu du tour en cours.
+ */
+export type StreamDeltaWire =
+	| { kind: 'text'; text: string }
+	| { kind: 'thinking'; text: string }
+	| { kind: 'tool_progress'; toolUseId: string; toolName: string; elapsedSeconds: number }
+	| { kind: 'api_retry'; attempt: number; maxRetries: number; delayMs: number };
 
 // ─── Repo Settings ──────────────────────────────────────────
 export interface RepoSettings {

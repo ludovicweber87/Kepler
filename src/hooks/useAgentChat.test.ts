@@ -1,6 +1,13 @@
 import { test, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
+import { createElement, type ReactNode } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAgentChat } from './useAgentChat';
+
+// Le hook invalide des queries react-query en fin de tour : sans Provider il jette.
+const client = new QueryClient();
+const wrapper = ({ children }: { children: ReactNode }) =>
+	createElement(QueryClientProvider, { client }, children);
 
 // Mock WebSocket minimal contrôlable.
 class MockWS {
@@ -36,14 +43,14 @@ beforeEach(() => {
 const params = { sessionId: 's1', cwd: '/tmp', enabled: true };
 
 test('envoie stream-init à l ouverture', async () => {
-	renderHook(() => useAgentChat(params));
+	renderHook(() => useAgentChat(params), { wrapper });
 	act(() => MockWS.last._open());
 	const init = MockWS.last.sent.map((s) => JSON.parse(s)).find((m) => m.type === 'stream-init');
 	expect(init).toMatchObject({ sessionId: 's1', cwd: '/tmp' });
 });
 
 test('stream-history initialise les messages', async () => {
-	const { result } = renderHook(() => useAgentChat(params));
+	const { result } = renderHook(() => useAgentChat(params), { wrapper });
 	act(() => {
 		MockWS.last._open();
 		MockWS.last._emit({
@@ -55,7 +62,7 @@ test('stream-history initialise les messages', async () => {
 });
 
 test('dédup par seq : un event déjà vu en history n est pas réappliqué', async () => {
-	const { result } = renderHook(() => useAgentChat(params));
+	const { result } = renderHook(() => useAgentChat(params), { wrapper });
 	act(() => {
 		MockWS.last._open();
 		MockWS.last._emit({
@@ -83,11 +90,15 @@ test('dédup par seq : un event déjà vu en history n est pas réappliqué', as
 	);
 });
 
-test('send ajoute une bulle user optimiste + envoie stream-user-message', async () => {
-	const { result } = renderHook(() => useAgentChat(params));
-	act(() => MockWS.last._open());
+test('send envoie stream-user-message, sans bulle optimiste', async () => {
+	const { result } = renderHook(() => useAgentChat(params), { wrapper });
+	act(() => {
+		MockWS.last._open();
+		MockWS.last._emit({ type: 'stream-ready', busy: false });
+	});
 	act(() => result.current.send('go'));
-	expect(result.current.messages.at(-1)).toMatchObject({ role: 'user' });
+	// La bulle user vient du serveur (stream-event 'user'), source unique dédupliquée par seq.
+	expect(result.current.messages).toHaveLength(0);
 	const um = MockWS.last.sent
 		.map((s) => JSON.parse(s))
 		.find((m) => m.type === 'stream-user-message');
@@ -95,7 +106,7 @@ test('send ajoute une bulle user optimiste + envoie stream-user-message', async 
 });
 
 test('reconnect() ferme la connexion existante et en ouvre une nouvelle', async () => {
-	const { result } = renderHook(() => useAgentChat(params));
+	const { result } = renderHook(() => useAgentChat(params), { wrapper });
 	act(() => MockWS.last._open());
 	const firstWs = MockWS.last;
 	act(() => result.current.reconnect());
@@ -107,8 +118,11 @@ test('reconnect() ferme la connexion existante et en ouvre une nouvelle', async 
 });
 
 test('interrupt() repasse en idle immédiatement + envoie stream-interrupt', async () => {
-	const { result } = renderHook(() => useAgentChat(params));
-	act(() => MockWS.last._open());
+	const { result } = renderHook(() => useAgentChat(params), { wrapper });
+	act(() => {
+		MockWS.last._open();
+		MockWS.last._emit({ type: 'stream-ready', busy: false });
+	});
 	act(() => result.current.send('go')); // status -> busy
 	expect(result.current.status).toBe('busy');
 	act(() => result.current.interrupt());
@@ -120,7 +134,7 @@ test('interrupt() repasse en idle immédiatement + envoie stream-interrupt', asy
 });
 
 test('permission request puis resolve', async () => {
-	const { result } = renderHook(() => useAgentChat(params));
+	const { result } = renderHook(() => useAgentChat(params), { wrapper });
 	act(() => {
 		MockWS.last._open();
 		MockWS.last._emit({

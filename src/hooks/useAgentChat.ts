@@ -4,7 +4,7 @@ import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { getAgentWsUrl } from '@/lib/local-fetch';
 import { useReconnectOnWake } from '@/hooks/useReconnectOnWake';
-import { reduceStreamEvent } from '@/lib/chatReducer';
+import { applyStreamDelta, reduceStreamEvent, supersedesDrafts } from '@/lib/chatReducer';
 import type {
 	ChatAttachmentInput,
 	ChatMessage,
@@ -12,8 +12,16 @@ import type {
 	PendingQuestion,
 	PermissionDecision,
 	QuestionAnswers,
+	StreamDeltaWire,
 	StreamEventWire,
 } from '@/types';
+
+/**
+ * Les deltas arrivent au rythme des tokens. On les applique par paquets : sinon
+ * chaque token relance le rendu markdown de la bulle en cours, et le gain de
+ * réactivité du streaming se paie en saccades.
+ */
+const DELTA_FLUSH_MS = 50;
 
 interface Params {
 	sessionId: string;
@@ -70,6 +78,10 @@ export function useAgentChat(p: Params) {
 	const [pendingPermissions, setPending] = useState<PendingPermission[]>([]);
 	const [pendingQuestions, setQuestions] = useState<PendingQuestion[]>([]);
 	const [queued, setQueued] = useState<QueuedMessage[]>([]);
+	/** Retry API en cours côté serveur : sans ça l'UI a l'air figée. */
+	const [retry, setRetry] = useState<{ attempt: number; maxRetries: number } | null>(null);
+	const deltaBufRef = useRef<StreamDeltaWire[]>([]);
+	const deltaTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const wsRef = useRef<WebSocket | null>(null);
 	const hasConnectedRef = useRef(false);
 	const lastSeqRef = useRef(0);
@@ -89,6 +101,32 @@ export function useAgentChat(p: Params) {
 		qc.invalidateQueries({ queryKey: ['agent-session-logs'] });
 	}, [qc]);
 
+	const flushDeltas = useCallback(() => {
+		deltaTimerRef.current = null;
+		const batch = deltaBufRef.current;
+		if (batch.length === 0) return;
+		deltaBufRef.current = [];
+		setMessages((prev) => batch.reduce((acc, d) => applyStreamDelta(acc, d), prev));
+	}, []);
+
+	const pushDelta = useCallback(
+		(delta: StreamDeltaWire) => {
+			deltaBufRef.current.push(delta);
+			if (deltaTimerRef.current === null)
+				deltaTimerRef.current = setTimeout(flushDeltas, DELTA_FLUSH_MS);
+		},
+		[flushDeltas],
+	);
+
+	/** Le bloc complet fait autorité : ce qui reste en tampon est périmé. */
+	const dropDeltas = useCallback(() => {
+		deltaBufRef.current = [];
+		if (deltaTimerRef.current !== null) {
+			clearTimeout(deltaTimerRef.current);
+			deltaTimerRef.current = null;
+		}
+	}, []);
+
 	const applyWire = useCallback((wire: StreamEventWire) => {
 		if (wire.seq <= lastSeqRef.current) return; // dédup exactly-once
 		lastSeqRef.current = wire.seq;
@@ -103,6 +141,8 @@ export function useAgentChat(p: Params) {
 		setStatus('connecting');
 		setMessages([]);
 		setQueued([]);
+		setRetry(null);
+		dropDeltas();
 
 		ws.onopen = () => {
 			// Session doc : on n'envoie ni cwd, ni systemPrompt, ni réglages. Le
@@ -157,7 +197,17 @@ export function useAgentChat(p: Params) {
 				case 'stream-activity':
 					refreshActivity();
 					break;
-				case 'stream-event':
+				case 'stream-delta': {
+					const delta = msg as unknown as StreamDeltaWire;
+					if (delta.kind === 'api_retry')
+						setRetry({ attempt: delta.attempt, maxRetries: delta.maxRetries });
+					else pushDelta(delta);
+					break;
+				}
+				case 'stream-event': {
+					const name = String(msg.event) as StreamEventWire['event'];
+					if (supersedesDrafts(name) || name === 'result') dropDeltas();
+					setRetry(null);
 					if (msg.event === 'result') {
 						setStatus('idle');
 						refreshActivity();
@@ -170,6 +220,7 @@ export function useAgentChat(p: Params) {
 					} else setStatus('busy');
 					applyWire(msg as unknown as StreamEventWire);
 					break;
+				}
 				case 'stream-permission-request':
 					setPending((prev) => [...prev, msg as unknown as PendingPermission]);
 					break;
@@ -189,6 +240,7 @@ export function useAgentChat(p: Params) {
 		ws.onclose = () => setStatus((s) => (s === 'error' ? s : 'closed'));
 
 		return () => {
+			dropDeltas();
 			ws.close();
 			wsRef.current = null;
 		};
@@ -313,6 +365,7 @@ export function useAgentChat(p: Params) {
 		pendingPermissions,
 		pendingQuestions,
 		queued,
+		retry,
 		send,
 		cancelQueued,
 		setModel,
