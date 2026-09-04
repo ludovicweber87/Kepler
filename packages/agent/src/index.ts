@@ -9,6 +9,7 @@ import { handleFilesystemRoutes } from './routes/filesystem.js';
 import { handleRecapRoutes } from './routes/recap.js';
 import { handleDocRoutes } from './routes/docs.js';
 import { handleNotificationsStream } from './routes/notifications.js';
+import { handleKeplerRoutes } from './routes/kepler.js';
 import { serveAttachment } from './sdk/attachments.js';
 
 const PORT = parseInt(process.env.KEPLER_AGENT_PORT ?? '4001', 10);
@@ -82,6 +83,11 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
 
 		if (path.startsWith('/attachments/') && req.method === 'GET') {
 			serveAttachment(req, res, path);
+			return;
+		}
+
+		if (path.startsWith('/kepler/')) {
+			await handleKeplerRoutes(req, res, path);
 			return;
 		}
 

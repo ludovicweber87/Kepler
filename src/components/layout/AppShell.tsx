@@ -11,6 +11,7 @@ import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import OverlayTerminal from './OverlayTerminal';
+import UpdateAvailableSnackbar from './UpdateAvailableSnackbar';
 import AppLoadingSplash from './AppLoadingSplash';
 import Logo from './Logo';
 import SettingsPanel from '@/components/settings/SettingsPanel';
@@ -163,6 +164,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 					</Box>
 				</Box>
 				<OverlayTerminal />
+				<UpdateAvailableSnackbar />
 			</ScriptRunnerContext.Provider>
 		</OverlayTerminalContext.Provider>
 	);

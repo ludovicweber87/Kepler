@@ -792,5 +792,12 @@
 		"importFailed": "Échec de l'import du fichier",
 		"importNotMarkdown": "Seuls les fichiers .md sont acceptés",
 		"importedWithSkipped": "{count, plural, one {# doc importée} other {# docs importées}} · {skipped, plural, one {# fichier ignoré} other {# fichiers ignorés}}"
+	},
+	"update": {
+		"available": "Mise à jour disponible",
+		"behind": "Ton Kepler a {count, plural, one {# commit} other {# commits}} de retard. Mets à jour, puis relance :",
+		"copyCommand": "Copier la commande",
+		"commandCopied": "Commande copiée",
+		"copyFailed": "Impossible de copier la commande"
 	}
 }
