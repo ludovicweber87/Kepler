@@ -792,5 +792,12 @@
 		"importFailed": "Failed to import the file",
 		"importNotMarkdown": "Only .md files are accepted",
 		"importedWithSkipped": "{count, plural, one {# doc imported} other {# docs imported}} · {skipped, plural, one {# file skipped} other {# files skipped}}"
+	},
+	"update": {
+		"available": "Update available",
+		"behind": "Your Kepler is {count, plural, one {# commit} other {# commits}} behind. Update, then restart:",
+		"copyCommand": "Copy command",
+		"commandCopied": "Command copied",
+		"copyFailed": "Could not copy the command"
 	}
 }

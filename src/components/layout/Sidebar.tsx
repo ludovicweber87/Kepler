@@ -827,9 +827,25 @@ export default function Sidebar() {
 																	}}
 																/>
 															)}
+															{/* Le nom occupe tout l'espace libre : sa bordure
+															    droite tombe pile sur le chip PR et le bouton
+															    « … ». On décale l'infobulle au-delà pour ne
+															    plus les couvrir. */}
 															<Tooltip
 																title={nameTooltip}
 																placement="right"
+																slotProps={{
+																	popper: {
+																		modifiers: [
+																			{
+																				name: 'offset',
+																				options: {
+																					offset: [0, 76],
+																				},
+																			},
+																		],
+																	},
+																}}
 																disableHoverListener={!nameTooltip}
 															>
 																<Typography

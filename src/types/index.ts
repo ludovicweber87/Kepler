@@ -294,6 +294,18 @@ export interface WorktreeInfo {
 	head: string;
 }
 
+// Retard du checkout Kepler sur origin/<branche par défaut>
+// (from local agent /kepler/update-status endpoint)
+
+export interface KeplerUpdateStatus {
+	updateAvailable: boolean;
+	branch: string | null;
+	defaultBranch: string | null;
+	ahead: number;
+	behind: number;
+	remoteSha: string | null;
+}
+
 export interface AgentPreset {
 	id: string;
 	name: string;
