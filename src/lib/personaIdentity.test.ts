@@ -12,6 +12,7 @@ const persona = (id: string, name: string, color: string | null = '#7C5CFF') =>
 		effort: null,
 		permission_mode: null,
 		color,
+		is_default: false,
 		created_at: '',
 		updated_at: '',
 		repos: [],

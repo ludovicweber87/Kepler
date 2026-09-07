@@ -648,7 +648,9 @@
 		"reposHint": "No repo = persona available everywhere",
 		"noReposHint": "No repo configured in settings",
 		"allReposBadge": "All repos",
-		"emptyRepo": "No personas for this repo."
+		"emptyRepo": "No personas for this repo.",
+		"defaultSetup": "Default setup",
+		"defaultSetupHint": "Persona preselected when creating a worktree"
 	},
 	"tasks": {
 		"title": "Tasks",

@@ -62,6 +62,9 @@ export const personas = sqliteTable('personas', {
 	effort: text(),
 	permission_mode: text(),
 	color: text(),
+	// Persona présélectionnée à la création d'un worktree. Au plus une à `true`
+	// (invariant tenu par `/api/personas`).
+	is_default: integer({ mode: 'boolean' }).default(false),
 	created_at: timestamp(),
 	updated_at: timestamp(),
 });

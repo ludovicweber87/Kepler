@@ -629,7 +629,9 @@
 		"reposHint": "Sem repo = persona disponível em todo o lado",
 		"noReposHint": "Nenhum repo configurado nas definições",
 		"allReposBadge": "Todos os repos",
-		"emptyRepo": "Não há personas para este repo."
+		"emptyRepo": "Não há personas para este repo.",
+		"defaultSetup": "Configuração padrão",
+		"defaultSetupHint": "Persona pré-selecionada ao criar um worktree"
 	},
 	"tasks": {
 		"title": "Tarefas",

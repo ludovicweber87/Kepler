@@ -504,6 +504,11 @@ export interface Persona {
 	effort: ClaudeEffort | null;
 	permission_mode: ClaudePermissionMode | null;
 	color: string | null;
+	/**
+	 * Persona présélectionnée dans la modale de lancement. Au plus une persona
+	 * porte ce drapeau : l'API remet les autres à `false` à l'activation.
+	 */
+	is_default: boolean;
 	created_at: string;
 	updated_at: string;
 	/**

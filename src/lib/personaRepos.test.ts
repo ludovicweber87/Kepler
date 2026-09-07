@@ -19,6 +19,7 @@ const persona = (id: string, repos: string[]) =>
 		effort: null,
 		permission_mode: null,
 		color: null,
+		is_default: false,
 		created_at: '',
 		updated_at: '',
 		repos,

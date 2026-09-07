@@ -8,6 +8,7 @@ import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import Avatar from '@mui/material/Avatar';
 import Tooltip from '@mui/material/Tooltip';
+import Switch from '@mui/material/Switch';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import { alpha } from '@mui/material/styles';
@@ -70,6 +71,15 @@ export default function PersonaLibrary() {
 			.catch(() => showSnackbar(t('saveError'), 'error'));
 	};
 
+	// Persona présélectionnée au lancement. L'exclusivité est appliquée côté API :
+	// activer celle-ci désactive l'ancienne, un simple invalidate rafraîchit tout.
+	const handleToggleDefault = (p: Persona, next: boolean) => {
+		update.mutate(
+			{ id: p.id, is_default: next },
+			{ onError: () => showSnackbar(t('saveError'), 'error') },
+		);
+	};
+
 	const handleDelete = (p: Persona) => {
 		if (!confirm(t('deleteConfirm'))) return;
 		remove.mutate(p.id, {
@@ -118,8 +128,11 @@ export default function PersonaLibrary() {
 							repos={reposOfPersona(p, repos)}
 							onOpen={openEdit}
 							onDelete={handleDelete}
+							onToggleDefault={handleToggleDefault}
 							deleteLabel={t('delete')}
 							allReposLabel={t('allReposBadge')}
+							defaultLabel={t('defaultSetup')}
+							defaultHint={t('defaultSetupHint')}
 						/>
 					))}
 				</Box>
@@ -142,15 +155,21 @@ function PersonaCard({
 	repos,
 	onOpen,
 	onDelete,
+	onToggleDefault,
 	deleteLabel,
 	allReposLabel,
+	defaultLabel,
+	defaultHint,
 }: {
 	persona: Persona;
 	repos: string[];
 	onOpen: (p: Persona) => void;
 	onDelete: (p: Persona) => void;
+	onToggleDefault: (p: Persona, next: boolean) => void;
 	deleteLabel: string;
 	allReposLabel: string;
+	defaultLabel: string;
+	defaultHint: string;
 }) {
 	const color = persona.color ?? '#7C5CFF';
 
@@ -223,6 +242,31 @@ function PersonaCard({
 					))
 				)}
 			</Box>
+
+			{/* Toggle « setup par défaut » : la card entière ouvre l'éditeur, on
+			    stoppe donc la propagation du clic sur cette ligne. */}
+			<Stack
+				direction="row"
+				alignItems="center"
+				justifyContent="space-between"
+				onClick={(e) => e.stopPropagation()}
+				sx={{ mt: 1, pt: 1, borderTop: '1px solid', borderColor: 'divider' }}
+			>
+				<Tooltip title={defaultHint}>
+					<Typography
+						variant="caption"
+						color={persona.is_default ? 'text.primary' : 'text.secondary'}
+					>
+						{defaultLabel}
+					</Typography>
+				</Tooltip>
+				<Switch
+					size="small"
+					checked={persona.is_default}
+					onChange={(e) => onToggleDefault(persona, e.target.checked)}
+					inputProps={{ 'aria-label': defaultLabel }}
+				/>
+			</Stack>
 		</Box>
 	);
 }
