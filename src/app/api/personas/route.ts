@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, isAuthError } from '@/lib/auth-utils';
 import { db } from '@/db';
 import { personas, personaRepos } from '@/db/schema';
-import { eq, asc } from 'drizzle-orm';
+import { eq, ne, asc } from 'drizzle-orm';
 
 /** Construit la map persona_id → repo_full_name[] à partir de la table de liaison. */
 function reposByPersona(): Map<string, string[]> {
@@ -25,6 +25,28 @@ function setPersonaRepos(personaId: string, repos: string[]) {
 	}
 }
 
+type PersonaRow = typeof personas.$inferSelect;
+
+/**
+ * Forme de sortie de l'API. `is_default` est normalisé : les personas créées
+ * avant la migration portent `NULL` en base, que le client doit lire `false`.
+ */
+function serialize(row: PersonaRow, byPersona: Map<string, string[]>) {
+	return { ...row, is_default: row.is_default === true, repos: byPersona.get(row.id) ?? [] };
+}
+
+/**
+ * Garantit l'unicité de la persona par défaut : toutes les autres repassent à
+ * `false`. Appelé avant/après l'écriture de la persona courante, jamais pour
+ * une désactivation (décocher n'a pas à toucher aux autres lignes).
+ */
+function clearOtherDefaults(personaId: string) {
+	db.update(personas)
+		.set({ is_default: false, updated_at: new Date().toISOString() })
+		.where(ne(personas.id, personaId))
+		.run();
+}
+
 export async function GET(req: NextRequest) {
 	const auth = await requireAuth();
 	if (isAuthError(auth)) return auth;
@@ -35,14 +57,14 @@ export async function GET(req: NextRequest) {
 		if (id) {
 			const row = db.select().from(personas).where(eq(personas.id, id)).get();
 			if (!row) return NextResponse.json(null);
-			return NextResponse.json({ ...row, repos: byPersona.get(row.id) ?? [] });
+			return NextResponse.json(serialize(row, byPersona));
 		}
 		const rows = db
 			.select()
 			.from(personas)
 			.orderBy(asc(personas.name))
 			.all()
-			.map((row) => ({ ...row, repos: byPersona.get(row.id) ?? [] }));
+			.map((row) => serialize(row, byPersona));
 		return NextResponse.json(rows);
 	} catch (err) {
 		const message = err instanceof Error ? err.message : 'Unknown error';
@@ -69,14 +91,17 @@ export async function POST(req: NextRequest) {
 				effort: body.effort ?? null,
 				permission_mode: body.permission_mode ?? null,
 				color: body.color ?? null,
+				is_default: body.is_default === true,
 			})
 			.returning()
 			.all();
 
+		if (row.is_default) clearOtherDefaults(row.id);
+
 		const repos = Array.isArray(body.repos) ? body.repos : [];
 		if (repos.length) setPersonaRepos(row.id, repos);
 
-		return NextResponse.json({ ...row, repos });
+		return NextResponse.json({ ...row, is_default: row.is_default === true, repos });
 	} catch (err) {
 		const message = err instanceof Error ? err.message : 'Unknown error';
 		return NextResponse.json({ error: message }, { status: 500 });
@@ -89,12 +114,23 @@ export async function PATCH(req: NextRequest) {
 
 	try {
 		const body = await req.json();
-		const { id, created_at: _c, updated_at: _u, repos, ...updates } = body;
+		const { id, created_at: _c, updated_at: _u, repos, is_default, ...updates } = body;
 		if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
+
+		// `is_default` n'est jamais repris tel quel du payload : on le normalise en
+		// booléen pour ne pas écrire une valeur arbitraire dans la colonne.
+		const nextDefault = is_default === undefined ? undefined : is_default === true;
+		// L'exclusivité est purgée avant l'écriture : à aucun instant deux
+		// personas ne portent le drapeau, même si l'UPDATE suivant échoue.
+		if (nextDefault === true) clearOtherDefaults(id);
 
 		const [row] = db
 			.update(personas)
-			.set({ ...updates, updated_at: new Date().toISOString() })
+			.set({
+				...updates,
+				...(nextDefault === undefined ? {} : { is_default: nextDefault }),
+				updated_at: new Date().toISOString(),
+			})
 			.where(eq(personas.id, id))
 			.returning()
 			.all();
@@ -103,7 +139,11 @@ export async function PATCH(req: NextRequest) {
 		if (Array.isArray(repos)) setPersonaRepos(id, repos);
 
 		const links = db.select().from(personaRepos).where(eq(personaRepos.persona_id, id)).all();
-		return NextResponse.json({ ...row, repos: links.map((l) => l.repo_full_name) });
+		return NextResponse.json({
+			...row,
+			is_default: row.is_default === true,
+			repos: links.map((l) => l.repo_full_name),
+		});
 	} catch (err) {
 		const message = err instanceof Error ? err.message : 'Unknown error';
 		return NextResponse.json({ error: message }, { status: 500 });

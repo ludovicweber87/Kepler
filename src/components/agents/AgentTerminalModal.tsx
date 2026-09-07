@@ -46,6 +46,7 @@ import { apiFetch } from '@/lib/api-fetch';
 import { slugify } from '@/lib/slug';
 import { resolveRepoFullName } from '@/lib/resolveRepoFullName';
 import { filterPersonasByRepo } from '@/lib/personaRepos';
+import { pickDefaultPersona } from '@/lib/personaDefault';
 import { MODELS, EFFORTS } from '@/lib/models';
 import { selectableCardSx } from '@/theme/selectableCard';
 import PersonaCards from './launch/PersonaCards';
@@ -184,7 +185,10 @@ export default function AgentTerminalModal({
 		'worktree' | 'current-branch' | 'existing-branch' | 'free' | null
 	>(null);
 	const [selectedExistingBranch, setSelectedExistingBranch] = useState<Branch | null>(null);
-	const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(null);
+	// Choix explicite de l'utilisateur. Tant qu'il n'a rien cliqué (`personaTouched`
+	// à `false`), la sélection effective retombe sur la persona « par défaut ».
+	const [personaChoice, setPersonaChoice] = useState<string | null>(null);
+	const [personaTouched, setPersonaTouched] = useState(false);
 	// Réglages libres utilisés quand aucune persona n'est choisie (« Sans persona »).
 	// Une persona sélectionnée impose et verrouille ses propres valeurs.
 	const [settingsModel, setSettingsModel] = useState('opus');
@@ -194,10 +198,6 @@ export default function AgentTerminalModal({
 	// Mode libre : dossier de lancement configuré dans les settings, hors projet.
 	const { value: freeModePathValue } = useAppSetting('free_mode_path');
 	const freeModePath = freeModePathValue?.trim() || null;
-	const selectedPersona = selectedPersonaId
-		? (personas.find((p) => p.id === selectedPersonaId) ?? null)
-		: null;
-
 	// Path resolution for issue context
 	const { repoPaths, getLocalPath } = useRepoPaths();
 	const { showSnackbar } = useSnackbar();
@@ -218,11 +218,28 @@ export default function AgentTerminalModal({
 		[personas, currentRepo],
 	);
 
+	// Sélection effective : le clic de l'utilisateur, sinon la persona marquée
+	// « setup par défaut » dans la bibliothèque. Dérivée (et non synchronisée par
+	// un effet) pour que la présélection suive le repo sans état intermédiaire.
+	const selectedPersonaId = personaTouched
+		? personaChoice
+		: (pickDefaultPersona(availablePersonas)?.id ?? null);
+	const selectedPersona = selectedPersonaId
+		? (personas.find((p) => p.id === selectedPersonaId) ?? null)
+		: null;
+
 	// Changement de projet après coup : une persona devenue hors périmètre est désélectionnée.
+	// Sans choix explicite, la dérivation ci-dessus ne propose déjà que des personas
+	// disponibles — seul un choix figé peut sortir du périmètre.
 	useEffect(() => {
-		if (!selectedPersonaId) return;
-		if (!availablePersonas.some((p) => p.id === selectedPersonaId)) setSelectedPersonaId(null);
-	}, [availablePersonas, selectedPersonaId]);
+		if (!personaChoice) return;
+		if (!availablePersonas.some((p) => p.id === personaChoice)) setPersonaChoice(null);
+	}, [availablePersonas, personaChoice]);
+
+	const handleSelectPersona = useCallback((id: string | null) => {
+		setPersonaTouched(true);
+		setPersonaChoice(id);
+	}, []);
 
 	// Worktree management
 	const { isCreating } = useWorktrees(projectPath ?? undefined);
@@ -294,7 +311,8 @@ export default function AgentTerminalModal({
 			setCurrentBranch(null);
 			setFetchingBranch(false);
 			setLaunchMode(null);
-			setSelectedPersonaId(null);
+			setPersonaChoice(null);
+			setPersonaTouched(false);
 			setSettingsModel('opus');
 			setSettingsEffort('high');
 			setSettingsMode('bypassPermissions');
@@ -1113,7 +1131,7 @@ export default function AgentTerminalModal({
 						<PersonaCards
 							personas={availablePersonas}
 							selectedPersonaId={selectedPersonaId}
-							onSelect={setSelectedPersonaId}
+							onSelect={handleSelectPersona}
 						/>
 					</Box>
 

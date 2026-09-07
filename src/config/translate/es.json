@@ -628,7 +628,9 @@
 		"reposHint": "Sin repo = persona disponible en todas partes",
 		"noReposHint": "Ningún repo configurado en los ajustes",
 		"allReposBadge": "Todos los repos",
-		"emptyRepo": "No hay personas para este repo."
+		"emptyRepo": "No hay personas para este repo.",
+		"defaultSetup": "Configuración por defecto",
+		"defaultSetupHint": "Persona preseleccionada al crear un worktree"
 	},
 	"tasks": {
 		"title": "Tareas",

@@ -628,7 +628,9 @@
 		"reposHint": "Kein Repo = Persona überall verfügbar",
 		"noReposHint": "Kein Repo in den Einstellungen konfiguriert",
 		"allReposBadge": "Alle Repos",
-		"emptyRepo": "Keine Personas für dieses Repo."
+		"emptyRepo": "Keine Personas für dieses Repo.",
+		"defaultSetup": "Standard-Setup",
+		"defaultSetupHint": "Persona, die beim Erstellen eines Worktrees vorausgewählt wird"
 	},
 	"tasks": {
 		"title": "Aufgaben",
