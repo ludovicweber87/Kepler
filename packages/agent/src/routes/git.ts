@@ -25,6 +25,7 @@ import { linkNodeModules } from '../nodeModulesLink.js';
 import { resolveRemoteBaseRef, resolveDiffBase } from '../gitBase.js';
 import { untrackedDiff, DIFF_MAX_BUFFER } from '../untrackedDiff.js';
 import { dedupeAndSortBranches, worktreeAddArgs, type RawBranch } from '../branches.js';
+import { realPath } from '../realPath.js';
 
 const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
@@ -57,7 +58,7 @@ function getFilesToCopyForCwd(cwd: string): string {
 				 JOIN repo_paths p ON p.repo_full_name = s.repo_full_name
 				 WHERE p.local_path = ?`,
 			)
-			.get(cwd) as { files: string } | undefined;
+			.get(realPath(cwd)) as { files: string } | undefined;
 		return row?.files ?? '';
 	} catch {
 		return '';
@@ -184,8 +185,11 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 
 	// GET /git/worktrees
 	if (path === '/git/worktrees' && method === 'GET') {
-		const cwd = query.get('cwd');
-		if (!cwd) return sendJson(res, { error: 'cwd is required' }, 400);
+		const rawCwd = query.get('cwd');
+		if (!rawCwd) return sendJson(res, { error: 'cwd is required' }, 400);
+		// realpath : `git worktree list` ne renvoie que des chemins réels, sinon le
+		// filtre du worktree principal ci-dessous rate quand `cwd` passe par un symlink.
+		const cwd = realPath(rawCwd);
 
 		try {
 			const output = execSync('git worktree list --porcelain', {
@@ -256,16 +260,20 @@ export async function handleGitRoutes(req: IncomingMessage, res: ServerResponse,
 	if (path === '/git/worktrees' && method === 'DELETE') {
 		try {
 			const {
-				cwd,
-				worktreePath,
+				cwd: rawCwd,
+				worktreePath: rawWorktreePath,
 				deleteBranch = false,
 			} = await readBody<{
 				cwd: string;
 				worktreePath: string;
 				deleteBranch?: boolean;
 			}>(req);
-			if (!cwd || !worktreePath)
+			if (!rawCwd || !rawWorktreePath)
 				return sendJson(res, { error: 'cwd and worktreePath are required' }, 400);
+			// realpath des deux côtés : la recherche du worktree dans la sortie de git et
+			// le nettoyage des sessions (WHERE worktree_path = ?) comparent des chemins.
+			const cwd = realPath(rawCwd);
+			const worktreePath = realPath(rawWorktreePath);
 
 			const listOutput = execSync('git worktree list --porcelain', {
 				cwd,

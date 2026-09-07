@@ -3,6 +3,7 @@ import { requireAuth, isAuthError } from '@/lib/auth-utils';
 import { db } from '@/db';
 import { repoPaths } from '@/db/schema';
 import { eq, asc } from 'drizzle-orm';
+import { realPath } from '@/lib/realPath';
 
 export async function GET() {
 	const auth = await requireAuth();
@@ -27,7 +28,10 @@ export async function PUT(req: NextRequest) {
 	if (isAuthError(auth)) return auth;
 
 	try {
-		const { repo_full_name, local_path } = await req.json();
+		const { repo_full_name, local_path: rawLocalPath } = await req.json();
+		// Racine du repo normalisée en realpath : c'est le `cwd` de tous les appels git,
+		// et la clé de comparaison des chemins de worktree (cf. realPath).
+		const local_path = realPath(rawLocalPath);
 
 		// Upsert: try update, then insert
 		const existing = db

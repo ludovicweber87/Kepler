@@ -3,6 +3,7 @@ import { requireAuth, isAuthError } from '@/lib/auth-utils';
 import { db } from '@/db';
 import { agentSessions, agentActivityLogs } from '@/db/schema';
 import { eq, desc, and, inArray, sql } from 'drizzle-orm';
+import { realPathOrNull } from '@/lib/realPath';
 
 export async function GET(req: NextRequest) {
 	const auth = await requireAuth();
@@ -156,10 +157,12 @@ export async function POST(req: NextRequest) {
 			.insert(agentSessions)
 			.values({
 				session_id,
-				project_path,
+				// Chemins normalisés en realpath : git renvoie toujours le chemin réel,
+				// un chemin saisi via un symlink ne matcherait plus (cf. realPath).
+				project_path: realPathOrNull(project_path),
 				project_name,
 				branch: branch ?? null,
-				worktree_path: worktree_path ?? null,
+				worktree_path: realPathOrNull(worktree_path),
 				agent_name: agent_name ?? null,
 				status: status ?? 'active',
 				issue_owner: issue_owner ?? null,
@@ -191,6 +194,11 @@ export async function PATCH(req: NextRequest) {
 	try {
 		const body = await req.json();
 		const { id, session_id, ...updates } = body;
+
+		// Même normalisation qu'au POST pour les colonnes de chemin mises à jour.
+		if ('project_path' in updates) updates.project_path = realPathOrNull(updates.project_path);
+		if ('worktree_path' in updates)
+			updates.worktree_path = realPathOrNull(updates.worktree_path);
 
 		const whereClause = id
 			? eq(agentSessions.id, id)
