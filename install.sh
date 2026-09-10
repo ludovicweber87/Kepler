@@ -11,10 +11,18 @@ REPO_DIR="$KEPLER_HOME/repo"
 BIN_DIR="$KEPLER_HOME/bin"
 CLI_NAME="kepler"
 
-# Resolve the repo URL: explicit arg > current repo's origin > default.
+# Resolve the repo URL: explicit arg > origin of the *Kepler* checkout we're in > default.
+#
+#    La détection du remote local ne vaut que si le répertoire courant est bien
+#    un clone de Kepler (cas d'un fork). Sans ce garde-fou, un `curl | bash`
+#    lancé depuis n'importe quel projet clonait ce projet-là dans ~/.kepler/repo
+#    et échouait sur son build, sans que le message d'erreur ne dise pourquoi.
 REPO_URL="${1:-}"
-if [ -z "$REPO_URL" ] && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-	REPO_URL="$(git config --get remote.origin.url || true)"
+if [ -z "$REPO_URL" ]; then
+	repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+	if [ -n "$repo_root" ] && [ -x "$repo_root/cli/$CLI_NAME" ]; then
+		REPO_URL="$(git -C "$repo_root" config --get remote.origin.url || true)"
+	fi
 fi
 REPO_URL="${REPO_URL:-https://github.com/ludovicweber87/Kepler.git}"
 
@@ -22,6 +30,14 @@ echo "→ Installing Kepler into $KEPLER_HOME"
 mkdir -p "$KEPLER_HOME" "$BIN_DIR"
 
 # 1. Clone or update the dedicated repo (tracks main).
+#
+#    Un ~/.kepler/repo pointant sur un autre remote (installation partie sur le
+#    mauvais repo) est remplacé plutôt que « pull »é : sinon chaque relance
+#    rejoue le build du mauvais projet.
+if [ -d "$REPO_DIR/.git" ] && [ "$(git -C "$REPO_DIR" config --get remote.origin.url || true)" != "$REPO_URL" ]; then
+	echo "⚠ $REPO_DIR points at a different repository — re-cloning $REPO_URL"
+	rm -rf "$REPO_DIR"
+fi
 if [ -d "$REPO_DIR/.git" ]; then
 	echo "→ Repo present, pulling latest main..."
 	git -C "$REPO_DIR" pull --rebase origin main || git -C "$REPO_DIR" pull origin main
