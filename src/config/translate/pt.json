@@ -18,6 +18,7 @@
 		"projects": "Projetos",
 		"collapseSidebar": "Recolher a barra lateral (⌘B)",
 		"expandSidebar": "Expandir a barra lateral (⌘B)",
+		"resizeSidebar": "Redimensionar a barra lateral",
 		"noWorktrees": "Nenhum worktree",
 		"deleteWorktree": "Excluir worktree",
 		"deleteWorktreeOnly": "Apenas worktree",

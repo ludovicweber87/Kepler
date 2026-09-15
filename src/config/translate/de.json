@@ -18,6 +18,7 @@
 		"projects": "Projekte",
 		"collapseSidebar": "Seitenleiste einklappen (⌘B)",
 		"expandSidebar": "Seitenleiste ausklappen (⌘B)",
+		"resizeSidebar": "Seitenleiste in der Breite anpassen",
 		"noWorktrees": "Keine Worktrees",
 		"deleteWorktree": "Worktree löschen",
 		"deleteWorktreeOnly": "Nur Worktree",
