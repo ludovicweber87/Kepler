@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -47,7 +47,14 @@ import Logo from './Logo';
 import SidebarNavItem, { type SidebarNavEntry } from './SidebarNavItem';
 import TasksOverdueBadge from './TasksOverdueBadge';
 import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
+import { useSidebarWidth } from '@/hooks/useSidebarWidth';
 import { useHotkey } from '@/hooks/useHotkey';
+import {
+	SIDEBAR_WIDTH_COLLAPSED,
+	SIDEBAR_WIDTH_MAX,
+	SIDEBAR_WIDTH_MIN,
+	SIDEBAR_WIDTH_STEP,
+} from '@/lib/sidebarWidth';
 import { useMe } from '@/hooks/useMe';
 import { useTranslations } from 'next-intl';
 import { appShadow } from '@/theme/shadows';
@@ -70,9 +77,6 @@ import { resolveRepoFullName } from '@/lib/resolveRepoFullName';
 import { apiFetch } from '@/lib/api-fetch';
 import { localFetch } from '@/lib/local-fetch';
 import AgentTerminalModal from '@/components/agents/AgentTerminalModal';
-
-export const SIDEBAR_WIDTH = 260;
-export const SIDEBAR_WIDTH_COLLAPSED = 64;
 
 // Logo GitHub "pull-request" (octicon 16px) rendu en SvgIcon MUI.
 function PullRequestIcon(props: SvgIconProps) {
@@ -145,7 +149,41 @@ export default function Sidebar() {
 	const { showSnackbar } = useSnackbar();
 	const { collapsed, toggle } = useSidebarCollapsed();
 	useHotkey('b', toggle);
-	const width = collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH;
+	const { width: expandedWidth, resizing, setWidth, setResizing } = useSidebarWidth();
+	const width = collapsed ? SIDEBAR_WIDTH_COLLAPSED : expandedWidth;
+
+	// Resize à la souris via la poignée du bord droit. Le drawer est ancré à gauche :
+	// `clientX` est directement la largeur voulue. La transition CSS est coupée pendant
+	// le drag, sinon la sidebar traîne de 200ms derrière le curseur.
+	const startResize = useCallback(
+		(e: React.MouseEvent) => {
+			e.preventDefault();
+			setResizing(true);
+			const onMove = (ev: MouseEvent) => setWidth(ev.clientX, { persist: false });
+			const onUp = (ev: MouseEvent) => {
+				document.removeEventListener('mousemove', onMove);
+				document.removeEventListener('mouseup', onUp);
+				document.body.style.userSelect = '';
+				setResizing(false);
+				setWidth(ev.clientX);
+			};
+			document.body.style.userSelect = 'none';
+			document.addEventListener('mousemove', onMove);
+			document.addEventListener('mouseup', onUp);
+		},
+		[setWidth, setResizing],
+	);
+	// Équivalent clavier de la poignée : la largeur ne doit pas dépendre d'une souris.
+	const handleResizeKeyDown = useCallback(
+		(e: React.KeyboardEvent) => {
+			if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+			e.preventDefault();
+			setWidth(
+				expandedWidth + (e.key === 'ArrowRight' ? SIDEBAR_WIDTH_STEP : -SIDEBAR_WIDTH_STEP),
+			);
+		},
+		[expandedWidth, setWidth],
+	);
 
 	// Drag & drop pour réordonner les projets (persiste via le groupe 'views' —
 	// même ordre partagé par le select Daily et les tabs PRs). Clé = view.label.
@@ -400,13 +438,13 @@ export default function Sidebar() {
 				sx={{
 					width,
 					flexShrink: 0,
-					transition: 'width 0.2s',
+					transition: resizing ? 'none' : 'width 0.2s',
 					'& .MuiDrawer-paper': {
 						width,
 						boxSizing: 'border-box',
 						borderRight: 'none',
 						overflowX: 'hidden',
-						transition: 'width 0.2s',
+						transition: resizing ? 'none' : 'width 0.2s',
 						boxShadow: appShadow(theme.palette.mode),
 					},
 				}}
@@ -1205,6 +1243,34 @@ export default function Sidebar() {
 						</Box>
 					)}
 				</Box>
+
+				{/* Poignée de resize, bord droit. Masquée en réduit : la largeur y est figée
+				    à 64px, et la poignée recouvrirait les icônes de navigation. */}
+				{!collapsed && (
+					<Box
+						role="separator"
+						aria-orientation="vertical"
+						aria-label={t('resizeSidebar')}
+						aria-valuenow={expandedWidth}
+						aria-valuemin={SIDEBAR_WIDTH_MIN}
+						aria-valuemax={SIDEBAR_WIDTH_MAX}
+						tabIndex={0}
+						onMouseDown={startResize}
+						onKeyDown={handleResizeKeyDown}
+						sx={{
+							position: 'absolute',
+							top: 0,
+							right: 0,
+							bottom: 0,
+							width: 6,
+							cursor: 'col-resize',
+							bgcolor: resizing ? 'primary.main' : 'transparent',
+							transition: 'background-color 0.15s',
+							'&:hover': { bgcolor: 'primary.main' },
+							'&:focus-visible': { outline: 'none', bgcolor: 'primary.main' },
+						}}
+					/>
+				)}
 			</Drawer>
 
 			<Menu
