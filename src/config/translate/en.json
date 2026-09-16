@@ -543,6 +543,8 @@
 		"queuedHint": "Will be sent after the current response",
 		"cancelQueued": "Cancel queued message",
 		"reconnecting": "Reconnecting…",
+		"mentionCommands": "Available commands",
+		"mentionFiles": "Repository files",
 		"disconnectedBanner": "Connection lost"
 	},
 	"archived": {

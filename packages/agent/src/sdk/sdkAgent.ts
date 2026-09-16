@@ -29,6 +29,7 @@ import {
   worktreeNeedsMove,
 } from './autoRename.js';
 import { applyGeneratedTitle } from './generatedTitle.js';
+import { extractCommandsChanged, normalizeCommands, type SlashCommandInfo } from './slashCommands.js';
 
 export interface StreamSocket { send(data: string): void; readyState?: number }
 export interface StartParams { cwd: string; systemPrompt?: string; model?: string; effort?: string; permissionMode?: string; resumeClaudeSessionId?: string; mcpServers?: Record<string, unknown>; retryLastUser?: boolean; observeOnly?: boolean; initialPrompt?: string; toolGate?: (toolName: string) => boolean; scopeNote?: string; isDocSession?: boolean }
@@ -36,6 +37,7 @@ export type QueryFn = typeof realQuery;
 
 interface QueryLike extends AsyncIterable<unknown> {
   setModel?(model?: string): Promise<void>;
+  supportedCommands?(): Promise<unknown>;
   setPermissionMode?(mode: string): Promise<void>;
   applyFlagSettings?(settings: unknown): Promise<void>;
   interrupt?(): Promise<unknown>;
@@ -55,6 +57,9 @@ interface SessionState {
   cwd: string;
   createdAt: number;
   turnActions: string[];
+  // Commandes proposées par l'autocomplétion `/` du composer. Etat de session,
+  // jamais persisté dans le transcript : ce n'est pas un tour de conversation.
+  commands: SlashCommandInfo[];
   // Synthèses de tour en cours (haiku, plusieurs secondes). `waitForActivity`
   // les attend avant de construire un rapport, pour qu'il couvre le dernier tour.
   pendingSummaries: Set<Promise<void>>;
@@ -122,7 +127,29 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
       busy: s.busy,
       pendingPermissions: s.perms.snapshot(),
       pendingQuestions: s.perms.snapshotQuestions(),
+      commands: s.commands,
     };
+  }
+
+  /**
+   * Capture la liste des commandes du query courant (skills, commandes de projet,
+   * built-ins) et la pousse aux clients. Le SDK ne l'expose qu'à l'initialisation ;
+   * ses changements en cours de session arrivent par `commands_changed` (cf. runLoop).
+   * Fire-and-forget : sans elle la session reste parfaitement utilisable, seule
+   * l'autocomplétion du composer manque. Une liste vide ne remplace pas la
+   * précédente — `supportedCommands` absent ou en échec ne doit rien effacer.
+   */
+  function loadCommands(s: SessionState) {
+    const q = s.q;
+    void Promise.resolve(q.supportedCommands?.())
+      .then((raw) => {
+        if (s.q !== q) return; // restart entre-temps : cette liste est périmée
+        const commands = normalizeCommands(raw);
+        if (commands.length === 0) return;
+        s.commands = commands;
+        broadcast(s, { type: 'stream-commands', commands });
+      })
+      .catch((err) => console.error('[commands] supportedCommands a échoué :', err));
   }
 
   // Reprise d'un run interrompu : si le dernier event persisté est un message
@@ -141,6 +168,14 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
     const epoch = s.epoch;
     try {
       for await (const msg of s.q) {
+        // Liste de commandes rafraîchie en cours de session (skills découverts en
+        // chemin…). Sémantique REPLACE, hors transcript : c'est un état de session.
+        const changedCommands = extractCommandsChanged(msg);
+        if (changedCommands) {
+          s.commands = changedCommands;
+          broadcast(s, { type: 'stream-commands', commands: changedCommands });
+          continue;
+        }
         // Transitoire (tokens en cours, progression d'outil, retry API) : diffusé
         // tel quel pour le rendu « vivant », sans seq ni persistance. Écrire ces
         // milliers d'événements en base noierait le transcript et le replay ; le
@@ -302,6 +337,7 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
     s.q = queryFn({ prompt: s.queue.iterable, options: buildQueryOptions(s, newCwd, resumeId) } as never) as unknown as QueryLike;
     sessions.set(sessionId, s);
     void runLoop(sessionId, s);
+    loadCommands(s);
     broadcast(s, readyPayload(s, true));
   }
 
@@ -497,6 +533,7 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
         cwd: params.cwd,
         createdAt: Date.now(),
         turnActions: [],
+        commands: [],
         pendingSummaries: new Set(),
         systemPrompt: params.systemPrompt,
         mcpServers: params.mcpServers,
@@ -516,6 +553,7 @@ export function createSdkAgentManager(deps?: { queryFn?: QueryFn; onAutoRenameAt
       send(ws, { type: 'stream-history', events: history });
       send(ws, readyPayload(s, false));
       void runLoop(sessionId, s);
+      loadCommands(s);
       // Démarrage depuis une issue : injecte le prompt initial comme premier message
       // utilisateur, une seule fois (garde transcript vide → idempotent aux reconnexions
       // WS et aux redémarrages serveur, le message étant persisté dès l'envoi).

@@ -12,6 +12,7 @@ import type {
 	PendingQuestion,
 	PermissionDecision,
 	QuestionAnswers,
+	SlashCommandInfo,
 	StreamDeltaWire,
 	StreamEventWire,
 } from '@/types';
@@ -78,6 +79,8 @@ export function useAgentChat(p: Params) {
 	const [pendingPermissions, setPending] = useState<PendingPermission[]>([]);
 	const [pendingQuestions, setQuestions] = useState<PendingQuestion[]>([]);
 	const [queued, setQueued] = useState<QueuedMessage[]>([]);
+	/** Commandes disponibles pour l'autocomplétion `/` du composer, poussées par l'agent. */
+	const [commands, setCommands] = useState<SlashCommandInfo[]>([]);
 	/** Retry API en cours côté serveur : sans ça l'UI a l'air figée. */
 	const [retry, setRetry] = useState<{ attempt: number; maxRetries: number } | null>(null);
 	const deltaBufRef = useRef<StreamDeltaWire[]>([]);
@@ -141,6 +144,7 @@ export function useAgentChat(p: Params) {
 		setStatus('connecting');
 		setMessages([]);
 		setQueued([]);
+		setCommands([]);
 		setRetry(null);
 		dropDeltas();
 
@@ -192,7 +196,13 @@ export function useAgentChat(p: Params) {
 					setPermState(String(msg.permissionMode ?? ''));
 					setPending((msg.pendingPermissions as PendingPermission[]) ?? []);
 					setQuestions((msg.pendingQuestions as PendingQuestion[]) ?? []);
+					setCommands((msg.commands as SlashCommandInfo[]) ?? []);
 					setStatus(msg.busy ? 'busy' : 'idle');
+					break;
+				// Liste rejouée en entier par le serveur (skills découverts en cours de
+				// session) : on remplace, jamais on fusionne.
+				case 'stream-commands':
+					setCommands((msg.commands as SlashCommandInfo[]) ?? []);
 					break;
 				case 'stream-activity':
 					refreshActivity();
@@ -365,6 +375,7 @@ export function useAgentChat(p: Params) {
 		pendingPermissions,
 		pendingQuestions,
 		queued,
+		commands,
 		retry,
 		send,
 		cancelQueued,

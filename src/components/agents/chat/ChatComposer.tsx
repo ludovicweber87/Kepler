@@ -32,13 +32,16 @@ import {
 	stripDataUrlPrefix,
 } from '@/lib/fileAttach';
 import { useComposerDraft } from '@/hooks/useComposerDraft';
+import { useFileTree } from '@/hooks/useFileTree';
+import { useMentionMenu } from '@/hooks/useMentionMenu';
 import { normalizeEffort } from '@/lib/models';
 import { RAINBOW_GRADIENT } from '@/theme/theme';
 import { appShadow } from '@/theme/shadows';
 import ImageLightbox from '@/components/shared/ImageLightbox';
 import FileChip from '@/components/shared/FileChip';
 import AgentSettingsControls from './AgentSettingsControls';
-import type { ChatAttachmentInput, Persona } from '@/types';
+import MentionPopover from './MentionPopover';
+import type { ChatAttachmentInput, Persona, SlashCommandInfo } from '@/types';
 
 // Bordure dégradée arc-en-ciel (effort ultracode) : astuce padding-box / border-box pour
 // respecter le border-radius. Seule la 3ᵉ couche (le dégradé de la bordure) défile.
@@ -70,6 +73,10 @@ interface Props {
 	currentPersonaId?: string | null;
 	/** Change la persona active en cours de session (`null` = sans persona). */
 	onSwitchPersona?: (personaId: string | null) => void;
+	/** Racine du dépôt, pour l'autocomplétion `@` des fichiers. */
+	cwd?: string | null;
+	/** Commandes de la session (skills, commandes de projet, built-ins) pour `/`. */
+	commands?: SlashCommandInfo[];
 }
 
 export default function ChatComposer({
@@ -89,6 +96,8 @@ export default function ChatComposer({
 	personas = [],
 	currentPersonaId,
 	onSwitchPersona,
+	cwd = null,
+	commands = [],
 }: Props) {
 	const t = useTranslations('agentChat');
 	const tc = useTranslations('common');
@@ -100,6 +109,15 @@ export default function ChatComposer({
 	const [dragOver, setDragOver] = useState(false);
 	const [zoomed, setZoomed] = useState<{ src: string; name: string } | null>(null);
 	const fileInput = useRef<HTMLInputElement>(null);
+	const textInput = useRef<HTMLTextAreaElement>(null);
+	// State et non ref : `Popper` a besoin de l'élément pendant le rendu pour
+	// s'ancrer et se dimensionner, ce qu'une ref ne garantit pas.
+	const [frameEl, setFrameEl] = useState<HTMLDivElement | null>(null);
+	// Les fichiers du dépôt sont déjà chargés (et cachés) pour l'explorateur :
+	// l'autocomplétion `@` réutilise la même query, sans requête supplémentaire.
+	const { files } = useFileTree(cwd);
+	const mention = useMentionMenu({ text, setText, commands, files, inputRef: textInput });
+	const mentionListId = `mention-${sessionId}`;
 
 	const addFiles = async (files: File[]) => {
 		for (const file of files) {
@@ -155,6 +173,12 @@ export default function ChatComposer({
 		clear();
 	};
 	const onKey = (e: KeyboardEvent) => {
+		// Le menu passe avant le composer : tant qu'il est ouvert, Entrée choisit
+		// une proposition au lieu d'envoyer le message.
+		if (mention.handleKey(e.key)) {
+			e.preventDefault();
+			return;
+		}
 		if (e.key === 'Enter' && !e.shiftKey) {
 			e.preventDefault();
 			submit();
@@ -214,6 +238,7 @@ export default function ChatComposer({
 			}}
 		>
 			<Box
+				ref={setFrameEl}
 				onPaste={onPaste}
 				onDrop={onDrop}
 				onDragOver={(e) => {
@@ -388,10 +413,36 @@ export default function ChatComposer({
 					maxRows={14}
 					placeholder={t('composerPlaceholder')}
 					value={text}
-					onChange={(e) => setText(e.target.value)}
+					inputRef={textInput}
+					onChange={(e) =>
+						mention.handleChange(e.target.value, e.target.selectionStart ?? 0)
+					}
+					// Le caret bouge aussi sans frappe (clic, flèches, sélection souris) et
+					// c'est lui qui décide si un menu doit s'ouvrir : on le resynchronise.
+					onSelect={mention.syncCaret}
+					onClick={mention.syncCaret}
 					onKeyDown={onKey}
 					disabled={disabled}
+					inputProps={{
+						role: 'combobox',
+						'aria-expanded': mention.open,
+						'aria-autocomplete': 'list',
+						'aria-controls': mention.open ? mentionListId : undefined,
+						'aria-activedescendant': mention.open
+							? `${mentionListId}-option-${mention.activeIndex}`
+							: undefined,
+					}}
 					sx={{ fontSize: '0.8rem', mb: 1, alignItems: 'flex-start' }}
+				/>
+				<MentionPopover
+					open={mention.open}
+					anchorEl={frameEl}
+					items={mention.items}
+					activeIndex={mention.activeIndex}
+					id={mentionListId}
+					label={t(mention.kind === 'command' ? 'mentionCommands' : 'mentionFiles')}
+					onHover={mention.setActiveIndex}
+					onSelect={mention.select}
 				/>
 				{busy && text.trim() && (
 					<Typography
