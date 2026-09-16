@@ -98,6 +98,8 @@
 	},
 	"issues": {
 		"title": "Issues",
+		"modeRepos": "Dépôts",
+		"modeBoards": "Boards",
 		"searchPlaceholder": "Rechercher #id ou titre...",
 		"refresh": "Rafraichir",
 		"noOpenIssues": "Aucune issue ouverte",
