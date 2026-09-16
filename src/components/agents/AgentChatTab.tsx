@@ -347,6 +347,8 @@ export default function AgentChatTab({
 						personas={switchablePersonas}
 						currentPersonaId={currentPersonaId}
 						onSwitchPersona={handleSwitchPersona}
+						cwd={cwd}
+						commands={chat.commands}
 					/>
 				</>
 			)}

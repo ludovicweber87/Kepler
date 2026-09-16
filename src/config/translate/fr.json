@@ -543,6 +543,8 @@
 		"queuedHint": "Sera envoyé après la réponse en cours",
 		"cancelQueued": "Annuler le message en attente",
 		"reconnecting": "Reconnexion…",
+		"mentionCommands": "Commandes disponibles",
+		"mentionFiles": "Fichiers du dépôt",
 		"disconnectedBanner": "Connexion perdue"
 	},
 	"archived": {
