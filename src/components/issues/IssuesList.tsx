@@ -12,6 +12,8 @@ import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import ClearRoundedIcon from '@mui/icons-material/ClearRounded';
@@ -26,6 +28,7 @@ import RefetchIntervalSelect from '@/components/shared/RefetchIntervalSelect';
 import { PageContainer, PageHeader } from '@/components/layout/PageContainer';
 import { useProjectConfig } from '@/hooks/useProjectConfig';
 import { useRepoIssues } from '@/hooks/useRepoIssues';
+import { useProjectBoard } from '@/hooks/useProjectBoard';
 import { useRepoPaths } from '@/hooks/useRepoPaths';
 import { useRefetchInterval } from '@/hooks/useRefetchInterval';
 import { useUpdateIssueStatus } from '@/hooks/useUpdateIssueStatus';
@@ -34,6 +37,19 @@ import { GitHubIssue } from '@/types';
 import type { BoardIssue } from '@/lib/boardMerge';
 
 const COLUMN_WIDTH = 300;
+
+/** Source du Kanban : les repos configurés, ou les Projects V2 connectés. */
+type SourceMode = 'repos' | 'boards';
+
+const boardKey = (board: { org: string; projectNumber: number }) =>
+	`${board.org}/${board.projectNumber}`;
+
+const tabsSx = {
+	minHeight: 40,
+	flex: 1,
+	minWidth: 0,
+	'& .MuiTab-root': { textTransform: 'none', minHeight: 40, fontSize: '0.82rem' },
+} as const;
 
 function buildColumns(
 	issues: GitHubIssue[],
@@ -66,6 +82,9 @@ export default function IssuesList() {
 	const hasConnectedProject = configs.some((c) => c.connected);
 
 	const { repoPaths } = useRepoPaths();
+	const boards = useMemo(() => configs.filter((c) => c.connected), [configs]);
+
+	const [mode, setMode] = useState<SourceMode>('repos');
 
 	// Active repo tab (default = first configured repo). Derived so it stays valid
 	// even when the repoPaths list changes without an explicit selection.
@@ -75,9 +94,30 @@ export default function IssuesList() {
 		return repoPaths[0]?.repo_full_name ?? null;
 	}, [activeRepo, repoPaths]);
 
-	// Lazy per-tab: fetch only the active repo's issues (server-reconciled), cached per repo.
+	// Active board tab, derived the same way so it survives config reloads.
+	const [activeBoard, setActiveBoard] = useState<string | null>(null);
+	const effectiveBoard = useMemo(
+		() => boards.find((b) => boardKey(b) === activeBoard) ?? boards[0] ?? null,
+		[boards, activeBoard],
+	);
+	// Ref stable (primitives) pour ne pas relancer le fetch à chaque rendu.
+	const boardRef = useMemo(
+		() =>
+			effectiveBoard
+				? {
+						org: effectiveBoard.org,
+						projectNumber: effectiveBoard.projectNumber,
+						ownerType: effectiveBoard.ownerType,
+					}
+				: null,
+		[effectiveBoard],
+	);
+
+	// Lazy per-tab: seule la source active fetch (l'autre hook reste désactivé).
+	const repoSource = useRepoIssues(mode === 'repos' ? effectiveRepo : null);
+	const boardSource = useProjectBoard(mode === 'boards' ? boardRef : null);
 	const { issues, statusColumns, fetchedAt, isLoading, error, refresh } =
-		useRepoIssues(effectiveRepo);
+		mode === 'boards' ? boardSource : repoSource;
 	const [refreshing, setRefreshing] = useState(false);
 
 	const handleRefresh = useCallback(async () => {
@@ -248,20 +288,87 @@ export default function IssuesList() {
 								</IconButton>
 							</span>
 						</Tooltip>
-						<Button
-							variant="contained"
-							startIcon={<AddRoundedIcon />}
-							onClick={() => setCreateOpen(true)}
-							disabled={!effectiveRepo}
-							sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}
-						>
-							{t('createIssue')}
-						</Button>
+						{mode === 'repos' && (
+							<Button
+								variant="contained"
+								startIcon={<AddRoundedIcon />}
+								onClick={() => setCreateOpen(true)}
+								disabled={!effectiveRepo}
+								sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+							>
+								{t('createIssue')}
+							</Button>
+						)}
 					</>
 				}
 			/>
 
-			{repoPaths.length === 0 ? (
+			<Box
+				sx={{
+					display: 'flex',
+					alignItems: 'center',
+					gap: 1.5,
+					mb: 2,
+					flexShrink: 0,
+					borderBottom: 1,
+					borderColor: 'divider',
+				}}
+			>
+				<ToggleButtonGroup
+					size="small"
+					exclusive
+					value={mode}
+					onChange={(_, v: SourceMode | null) => v && setMode(v)}
+					sx={{
+						flexShrink: 0,
+						'& .MuiToggleButton-root': {
+							textTransform: 'none',
+							fontSize: '0.75rem',
+							py: 0.25,
+							px: 1.25,
+							border: 0,
+						},
+					}}
+				>
+					<ToggleButton value="repos">{t('modeRepos')}</ToggleButton>
+					<ToggleButton value="boards">{t('modeBoards')}</ToggleButton>
+				</ToggleButtonGroup>
+				{mode === 'repos' ? (
+					<Tabs
+						value={effectiveRepo ?? false}
+						onChange={(_, v) => setActiveRepo(v)}
+						variant="scrollable"
+						scrollButtons="auto"
+						sx={tabsSx}
+					>
+						{repoPaths.map((r) => (
+							<Tab
+								key={r.repo_full_name}
+								value={r.repo_full_name}
+								label={r.repo_full_name.split('/')[1] ?? r.repo_full_name}
+							/>
+						))}
+					</Tabs>
+				) : (
+					<Tabs
+						value={effectiveBoard ? boardKey(effectiveBoard) : false}
+						onChange={(_, v) => setActiveBoard(v)}
+						variant="scrollable"
+						scrollButtons="auto"
+						sx={tabsSx}
+					>
+						{boards.map((b) => (
+							<Tab
+								key={boardKey(b)}
+								value={boardKey(b)}
+								label={b.projectTitle || `#${b.projectNumber}`}
+							/>
+						))}
+					</Tabs>
+				)}
+			</Box>
+
+			{mode === 'repos' && repoPaths.length === 0 ? (
 				<Box sx={{ textAlign: 'center', py: 8 }}>
 					<Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
 						{t('noReposConfigured')}
@@ -278,34 +385,25 @@ export default function IssuesList() {
 						{t('configureRepos')}
 					</Button>
 				</Box>
+			) : mode === 'boards' && boards.length === 0 ? (
+				<Box sx={{ textAlign: 'center', py: 8 }}>
+					<Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
+						{t('noViewsSelected')}
+					</Typography>
+					<Typography variant="body2" sx={{ mb: 3 }}>
+						{t('noViewsSelectedDesc')}
+					</Typography>
+					<Button
+						component={Link}
+						href="/settings"
+						variant="contained"
+						startIcon={<SettingsRoundedIcon />}
+					>
+						{t('configureViews')}
+					</Button>
+				</Box>
 			) : (
 				<>
-					<Tabs
-						value={effectiveRepo ?? false}
-						onChange={(_, v) => setActiveRepo(v)}
-						variant="scrollable"
-						scrollButtons="auto"
-						sx={{
-							minHeight: 40,
-							mb: 2,
-							flexShrink: 0,
-							borderBottom: 1,
-							borderColor: 'divider',
-							'& .MuiTab-root': {
-								textTransform: 'none',
-								minHeight: 40,
-								fontSize: '0.82rem',
-							},
-						}}
-					>
-						{repoPaths.map((r) => (
-							<Tab
-								key={r.repo_full_name}
-								value={r.repo_full_name}
-								label={r.repo_full_name.split('/')[1] ?? r.repo_full_name}
-							/>
-						))}
-					</Tabs>
 					{isLoading ? (
 						columnAreaSkeleton
 					) : error ? (
@@ -313,7 +411,7 @@ export default function IssuesList() {
 							Failed to load GitHub data: {error.message}
 						</Alert>
 					) : searchedIssues.length === 0 ? (
-						!hasConnectedProject ? (
+						mode === 'repos' && !hasConnectedProject ? (
 							<Box sx={{ textAlign: 'center', py: 8 }}>
 								<Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
 									{t('noViewsSelected')}
