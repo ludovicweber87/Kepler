@@ -361,6 +361,18 @@ export interface ChatMessage {
 	segments: ChatSegment[];
 }
 
+/**
+ * Commande proposée par l'autocomplétion `/` du composer : skill, commande de
+ * projet (`.claude/commands`), commande de plugin ou built-in. La liste vient du
+ * SDK via l'agent — jamais devinée côté client.
+ */
+export interface SlashCommandInfo {
+	name: string;
+	description: string;
+	argumentHint: string;
+	aliases?: string[];
+}
+
 export type PermissionDecision = 'allow-once' | 'allow-always' | 'reject';
 
 export interface PendingPermission {
